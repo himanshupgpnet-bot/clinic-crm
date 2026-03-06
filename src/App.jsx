@@ -1,90 +1,51 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// ── YOUR RENDER BACKEND URL ───────────────────────────────────────────────────
 const API = "https://clinic-bot-oy48.onrender.com";
 
 const SYSTEM_PROMPT = `You are a friendly clinic assistant chatbot for an aesthetic clinic in Kuala Lumpur, Malaysia.
-
 PRIMARY GOAL: Guide every conversation naturally toward booking a clinic visit appointment.
-
 LANGUAGE: Auto-detect. Reply in Malay if Malay, English if English, Manglish if mixed.
-
 PERSONALITY: Caring, professional, friendly. Never pushy but always gently steering toward booking.
-
 STRICT RULES:
 - You are NOT a doctor. Do NOT diagnose.
 - Do NOT guarantee treatment outcomes.
 - Do NOT recommend stopping medication.
 - If unsure: "Our doctor can best answer that during your free consultation!"
-- If someone is from another city, acknowledge warmly and invite them to plan a KL visit.
-
 KNOWLEDGE BASE:
 {QA_DATA}
-
 IMPORTANT: At the end of your response, on the last line ONLY append:
 {"sources":[{"id":"qa1","relevance":"high"}]}
 Max 3 sources. If no match: {"sources":[]}
-
 Always end with a soft booking call-to-action when natural.`;
+
+const WA_GREEN = "#25D366";
+const WA_DARK = "#128C7E";
+const WA_LIGHT_GREEN = "#dcfce7";
+const WA_BG = "#ECE5DD";
 
 const COLORS = ["#25D366","#128C7E","#34B7F1","#FF6B6B","#FFA726","#AB47BC","#42A5F5","#26A69A"];
 const getColor = n => { let h=0; for(let c of n) h=c.charCodeAt(0)+((h<<5)-h); return COLORS[Math.abs(h)%COLORS.length]; };
 const ts = () => new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-const RELEVANCE_COLOR = { high:"#25D366", medium:"#FFA726", low:"#7a8499" };
-const RELEVANCE_BG_DARK = { high:"#1a3c23", medium:"#2e2010", low:"#1a2235" };
-const RELEVANCE_BG_LIGHT = { high:"#dcfce7", medium:"#fef3c7", low:"#f1f5f9" };
-
-const DARK = {
-  bg:"#0a0f1a",nav:"#0d1424",sidebar:"#0d1424",border:"#1a2235",
-  card:"#111827",card2:"#141b2d",input:"#141b2d",inputBorder:"#1f2937",
-  text:"#e8eaf0",textMuted:"#7a8499",textFaint:"#4a5568",
-  msgUser:"#141b2d",msgBot:"linear-gradient(135deg,#1a3c23,#1e4529)",msgAgent:"linear-gradient(135deg,#1e3a5f,#1a2e4a)",
-  msgUserBorder:"#1a2235",msgBotBorder:"#25D36625",msgAgentBorder:"#34B7F125",
-  botNotice:"#1a2e1e",botNoticeBorder:"#25D36620",botNoticeText:"#25D366",
-  filterActive:"#25D366",filterActiveTxt:"#0a0f1a",filterInactive:"#141b2d",filterInactiveTxt:"#7a8499",
-  qaCard:"#111827",qaCardBorder:"#1f2937",qaHighlight:"#1a3c23",qaHighlightBorder:"#25D366",
-  sysPromptBg:"#070d1a",sysPromptBorder:"#1a2235",sysPromptText:"#c8d6c0",
-  relevanceBg:RELEVANCE_BG_DARK,scrollbar:"#2a3447",
-};
-const LIGHT = {
-  bg:"#f0f4f8",nav:"#ffffff",sidebar:"#ffffff",border:"#e2e8f0",
-  card:"#ffffff",card2:"#f8fafc",input:"#f1f5f9",inputBorder:"#cbd5e1",
-  text:"#1a202c",textMuted:"#4a5568",textFaint:"#94a3b8",
-  msgUser:"#f1f5f9",msgBot:"linear-gradient(135deg,#dcfce7,#bbf7d0)",msgAgent:"linear-gradient(135deg,#dbeafe,#bfdbfe)",
-  msgUserBorder:"#e2e8f0",msgBotBorder:"#25D36640",msgAgentBorder:"#34B7F140",
-  botNotice:"#dcfce7",botNoticeBorder:"#25D36640",botNoticeText:"#15803d",
-  filterActive:"#25D366",filterActiveTxt:"#ffffff",filterInactive:"#f1f5f9",filterInactiveTxt:"#4a5568",
-  qaCard:"#ffffff",qaCardBorder:"#e2e8f0",qaHighlight:"#dcfce7",qaHighlightBorder:"#25D366",
-  sysPromptBg:"#f8fafc",sysPromptBorder:"#e2e8f0",sysPromptText:"#334155",
-  relevanceBg:RELEVANCE_BG_LIGHT,scrollbar:"#cbd5e1",
-};
 
 export default function App() {
-  const [dark, setDark] = useState(true);
-  const T = dark ? DARK : LIGHT;
-
-  // ── Live data from backend ──
+  const [dark, setDark] = useState(false);
+  const [tab, setTab] = useState("crm");
   const [contacts, setContacts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [backendStatus, setBackendStatus] = useState("checking"); // "online" | "offline" | "checking"
-  const [lastRefresh, setLastRefresh] = useState(null);
-
-  // ── UI state ──
   const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [backendStatus, setBackendStatus] = useState("checking");
+  const [lastRefresh, setLastRefresh] = useState(null);
   const [reply, setReply] = useState("");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState("crm");
-
-  // ── Knowledge base ──
   const [qaData, setQaData] = useState([]);
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT);
   const [editingId, setEditingId] = useState(null);
-  const [editQ, setEditQ] = useState(""); const [editA, setEditA] = useState("");
-  const [newQ, setNewQ] = useState(""); const [newA, setNewA] = useState("");
-
-  // ── Bot test ──
-  const [botConvo, setBotConvo] = useState([{ from:"bot", text:"👋 Hello! Welcome to our clinic.\n\nSaya boleh bantu dalam Bahasa Malaysia atau English! 😊", time:ts(), sources:[] }]);
+  const [editQ, setEditQ] = useState("");
+  const [editA, setEditA] = useState("");
+  const [newQ, setNewQ] = useState("");
+  const [newA, setNewA] = useState("");
+  const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hello! Welcome to our clinic.\n\nSaya boleh bantu dalam Bahasa Malaysia atau English! 😊",time:ts(),sources:[]}]);
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
   const [hoveredSource, setHoveredSource] = useState(null);
@@ -95,32 +56,25 @@ export default function App() {
   const qaRefs = useRef({});
   const pollRef = useRef(null);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [selected?.messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({behavior:"smooth"}); });
   useEffect(() => { botEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [botConvo]);
 
-  // ── Fetch conversations from backend ──
   const fetchConversations = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/conversations`);
-      if (!res.ok) throw new Error("Backend error");
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setContacts(data);
       setBackendStatus("online");
       setLastRefresh(new Date());
-
-      // Update selected conversation if open
       if (selected) {
         const updated = data.find(c => c.id === selected.id);
         if (updated) setSelected(updated);
       }
-    } catch {
-      setBackendStatus("offline");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setBackendStatus("offline"); }
+    finally { setLoading(false); }
   }, [selected]);
 
-  // ── Fetch knowledge base ──
   const fetchKnowledge = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/knowledge`);
@@ -131,7 +85,6 @@ export default function App() {
     } catch {}
   }, []);
 
-  // ── Initial load + polling every 5 seconds ──
   useEffect(() => {
     fetchConversations();
     fetchKnowledge();
@@ -139,106 +92,83 @@ export default function App() {
     return () => clearInterval(pollRef.current);
   }, []);
 
-  // ── Select contact + mark read ──
   async function selectContact(c) {
     setSelected(c);
     try {
-      await fetch(`${API}/api/conversations/${c.id}/read`, { method:"PATCH" });
-      setContacts(p => p.map(x => x.id===c.id ? {...x, unread:0} : x));
+      await fetch(`${API}/api/conversations/${c.id}/read`, {method:"PATCH"});
+      setContacts(p => p.map(x => x.id===c.id ? {...x,unread:0} : x));
     } catch {}
   }
 
-  // ── Send agent reply ──
   async function sendAgentReply() {
     if (!reply.trim() || !selected) return;
-    const text = reply.trim();
-    setReply("");
+    const text = reply.trim(); setReply("");
     try {
       const res = await fetch(`${API}/api/conversations/${selected.id}/reply`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ text }),
+        method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({text}),
       });
       if (res.ok) fetchConversations();
-    } catch { alert("Failed to send message"); }
+    } catch { alert("Failed to send"); }
   }
 
-  // ── Toggle resolved/open ──
   async function toggleStatus(id) {
-    const contact = contacts.find(c => c.id === id);
-    const newStatus = contact?.status === "open" ? "resolved" : "open";
+    const c = contacts.find(x => x.id===id);
+    const newStatus = c?.status==="open" ? "resolved" : "open";
     try {
       await fetch(`${API}/api/conversations/${id}/status`, {
-        method:"PATCH",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ status: newStatus }),
+        method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({status:newStatus}),
       });
       fetchConversations();
     } catch {}
   }
 
-  // ── Toggle bot on/off ──
   async function toggleBot(id) {
-    const contact = contacts.find(c => c.id === id);
-    const newActive = !contact?.botActive;
+    const c = contacts.find(x => x.id===id);
     try {
       await fetch(`${API}/api/conversations/${id}/bot`, {
-        method:"PATCH",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ botActive: newActive }),
+        method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({botActive:!c?.botActive}),
       });
       fetchConversations();
     } catch {}
   }
 
-  // ── Knowledge base actions ──
   async function addQA() {
     if (!newQ.trim() || !newA.trim()) return;
     try {
       await fetch(`${API}/api/knowledge/qa`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ question: newQ.trim(), answer: newA.trim() }),
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({question:newQ.trim(), answer:newA.trim()}),
       });
-      setNewQ(""); setNewA("");
-      fetchKnowledge();
+      setNewQ(""); setNewA(""); fetchKnowledge();
     } catch {}
   }
 
   async function saveEdit(id) {
     try {
       await fetch(`${API}/api/knowledge/qa/${id}`, {
-        method:"PATCH",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ question: editQ, answer: editA }),
+        method:"PATCH", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({question:editQ, answer:editA}),
       });
-      setEditingId(null);
-      fetchKnowledge();
+      setEditingId(null); fetchKnowledge();
     } catch {}
   }
 
   async function deleteQA(id) {
-    try {
-      await fetch(`${API}/api/knowledge/qa/${id}`, { method:"DELETE" });
-      fetchKnowledge();
-    } catch {}
+    try { await fetch(`${API}/api/knowledge/qa/${id}`, {method:"DELETE"}); fetchKnowledge(); } catch {}
   }
 
   async function saveSystemPrompt() {
     try {
       await fetch(`${API}/api/knowledge/prompt`, {
-        method:"PATCH",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ prompt: systemPrompt }),
+        method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({prompt:systemPrompt}),
       });
-      alert("System prompt saved! ✅");
+      alert("Saved! ✅");
     } catch { alert("Failed to save"); }
   }
 
-  // ── Bot test ──
   function buildSystemPrompt() {
-    const qaText = qaData.map(q => `[${q.id}] Q: ${q.question}\nA: ${q.answer}`).join("\n\n");
-    return systemPrompt.replace("{QA_DATA}", qaText);
+    const qa = qaData.map(q=>`[${q.id}] Q: ${q.question}\nA: ${q.answer}`).join("\n\n");
+    return systemPrompt.replace("{QA_DATA}", qa);
   }
 
   function parseBotResponse(raw) {
@@ -253,7 +183,7 @@ export default function App() {
 
   async function sendBotMessage() {
     if (!botInput.trim() || botLoading) return;
-    const userMsg = {from:"user", text:botInput.trim(), time:ts(), sources:[]};
+    const userMsg = {from:"user",text:botInput.trim(),time:ts(),sources:[]};
     setBotConvo(p=>[...p,userMsg]); setBotInput(""); setBotLoading(true);
     try {
       const history = [...botConvo, userMsg].map(m=>({
@@ -262,15 +192,13 @@ export default function App() {
       }));
       const res = await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, system:buildSystemPrompt(), messages:history }),
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:buildSystemPrompt(),messages:history}),
       });
       const data = await res.json();
       const raw = data.content?.[0]?.text || "";
       const {text,sources} = parseBotResponse(raw);
       setBotConvo(p=>[...p,{from:"bot",text,time:ts(),sources}]);
-    } catch {
-      setBotConvo(p=>[...p,{from:"bot",text:"⚠️ Error connecting to AI.",time:ts(),sources:[]}]);
-    }
+    } catch { setBotConvo(p=>[...p,{from:"bot",text:"⚠️ Error.",time:ts(),sources:[]}]); }
     setBotLoading(false);
   }
 
@@ -280,90 +208,113 @@ export default function App() {
     setTimeout(()=>setHighlightedQA(null),3000);
   }
 
-  function startEdit(qa) { setEditingId(qa.id); setEditQ(qa.question); setEditA(qa.answer); }
-
   const filtered = contacts.filter(c =>
     (filter==="all"||c.status===filter) &&
     (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))
   );
   const totalUnread = contacts.reduce((s,c)=>s+c.unread,0);
   const totalOpen = contacts.filter(c=>c.status==="open").length;
+  const totalResolved = contacts.filter(c=>c.status==="resolved").length;
+  const botActiveCount = contacts.filter(c=>c.botActive).length;
 
-  // ── Source Badges ──
-  function SourceBadges({sources, onJump}) {
-    if (!sources?.length) return null;
+  const T = dark ? {
+    bg:"#0b141a", sidebar:"#111b21", nav:"#202c33", border:"#2a3942",
+    card:"#182229", card2:"#2a3942", input:"#2a3942", inputBorder:"#3b4a54",
+    text:"#e9edef", textMuted:"#8696a0", textFaint:"#667781",
+    msgOut:"#005c4b", msgIn:"#182229", msgOutText:"#e9edef", msgInText:"#e9edef",
+    chatBg:"#0b141a", sidebarHover:"#2a3942", selectedBg:"#2a3942",
+  } : {
+    bg:"#f0f2f5", sidebar:"#ffffff", nav:"#ffffff", border:"#e9edef",
+    card:"#ffffff", card2:"#f0f2f5", input:"#f0f2f5", inputBorder:"#e9edef",
+    text:"#111b21", textMuted:"#667781", textFaint:"#8696a0",
+    msgOut:"#d9fdd3", msgIn:"#ffffff", msgOutText:"#111b21", msgInText:"#111b21",
+    chatBg:WA_BG, sidebarHover:"#f5f6f6", selectedBg:"#f0f2f5",
+  };
+
+  function SourceBadge({s}) {
+    const qa = qaData.find(q=>q.id===s.id);
+    if (!qa) return null;
+    const color = s.relevance==="high"?WA_GREEN:s.relevance==="medium"?"#FFA726":"#8696a0";
     return (
-      <div style={{marginTop:6,display:"flex",flexWrap:"wrap",gap:5,alignItems:"center"}}>
-        <span style={{fontSize:10,color:T.textFaint}}>📎 Source:</span>
-        {sources.map(s=>{
-          const qa=qaData.find(q=>q.id===s.id); if(!qa) return null;
-          return (
-            <div key={s.id} onMouseEnter={()=>setHoveredSource(s.id)} onMouseLeave={()=>setHoveredSource(null)} onClick={()=>onJump&&onJump(s.id)}
-              style={{position:"relative",background:T.relevanceBg[s.relevance]||T.card2,border:`1px solid ${RELEVANCE_COLOR[s.relevance]||T.border}40`,borderRadius:6,padding:"3px 8px",cursor:"pointer",transition:"all .15s",transform:hoveredSource===s.id?"scale(1.03)":"scale(1)"}}>
-              <span style={{fontSize:10,color:RELEVANCE_COLOR[s.relevance]||T.textMuted,fontWeight:600}}>
-                {s.relevance==="high"?"🟢":s.relevance==="medium"?"🟡":"⚪"} {qa.question.length>32?qa.question.slice(0,32)+"…":qa.question}
-              </span>
-              {hoveredSource===s.id&&(
-                <div style={{position:"absolute",bottom:"calc(100% + 6px)",left:0,zIndex:99,background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:10,width:260,boxShadow:"0 8px 24px rgba(0,0,0,.2)"}}>
-                  <div style={{fontSize:11,color:"#25D366",fontWeight:700,marginBottom:4}}>📌 {qa.question}</div>
-                  <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
-                  <div style={{fontSize:10,color:T.textFaint,marginTop:6,borderTop:`1px solid ${T.border}`,paddingTop:5}}>Click to view & edit →</div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div onMouseEnter={()=>setHoveredSource(s.id)} onMouseLeave={()=>setHoveredSource(null)}
+        onClick={()=>highlightQA(s.id)}
+        style={{position:"relative",display:"inline-flex",alignItems:"center",gap:4,background:dark?"#1a2e23":"#dcfce7",
+          border:`1px solid ${color}40`,borderRadius:12,padding:"2px 8px",cursor:"pointer",marginRight:4,marginTop:4}}>
+        <span style={{width:6,height:6,borderRadius:"50%",background:color,display:"inline-block"}}/>
+        <span style={{fontSize:10,color,fontWeight:600}}>{qa.question.slice(0,28)}{qa.question.length>28?"…":""}</span>
+        {hoveredSource===s.id&&(
+          <div style={{position:"absolute",bottom:"calc(100% + 6px)",left:0,zIndex:99,background:T.card,
+            border:`1px solid ${T.border}`,borderRadius:10,padding:10,width:260,
+            boxShadow:"0 4px 20px rgba(0,0,0,.15)"}}>
+            <div style={{fontSize:11,color:WA_GREEN,fontWeight:700,marginBottom:4}}>📌 {qa.question}</div>
+            <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
+            <div style={{fontSize:10,color:T.textFaint,marginTop:6,paddingTop:5,borderTop:`1px solid ${T.border}`}}>Click to view in Knowledge Base →</div>
+          </div>
+        )}
       </div>
     );
   }
 
-  const inp = {background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:13,width:"100%",fontFamily:"inherit"};
-  const btn = (bg="#25D366",c="#fff") => ({padding:"7px 14px",borderRadius:8,border:"none",background:bg,color:c,fontSize:12,fontWeight:700,cursor:"pointer"});
-
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:T.bg,fontFamily:"'Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden",transition:"all .3s"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:T.bg,
+      fontFamily:"'Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden"}}>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
-        ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:${T.scrollbar};border-radius:4px}
-        .ci:hover{background:${T.card2}!important}.ci.on{background:${T.card2}!important;border-left:3px solid #25D366!important}
+        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
         textarea:focus,input:focus{outline:none}textarea{resize:none}
-        .pulse{animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-        .fadeup{animation:fu .2s ease}@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-        .qa-card{transition:all .3s}.qa-card.hl{background:${T.qaHighlight}!important;border-color:${T.qaHighlightBorder}!important;box-shadow:0 0 0 2px #25D36640}
-        .tab-btn{transition:all .15s;cursor:pointer;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;border:none}
-        .toggle-theme{transition:all .2s;cursor:pointer;border-radius:20px;padding:4px 12px;font-size:13px;display:flex;align-items:center;gap:6px}
+        .contact-item{transition:background .15s;cursor:pointer}
+        .contact-item:hover{background:${T.sidebarHover}}
+        .contact-item.active{background:${T.selectedBg}}
+        .msg-bubble{animation:fadeUp .2s ease}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        .stat-card{transition:transform .2s,box-shadow .2s}.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+        .tab-btn{transition:all .15s;cursor:pointer;border:none;background:transparent;font-family:inherit}
+        .send-btn{transition:transform .1s}.send-btn:active{transform:scale(.92)}
+        .qa-row{transition:all .3s}.qa-row.hl{background:#dcfce7!important;border-color:${WA_GREEN}!important}
+        input::placeholder,textarea::placeholder{color:${T.textFaint}}
       `}</style>
 
-      {/* NAV */}
-      <div style={{display:"flex",alignItems:"center",padding:"0 18px",background:T.nav,borderBottom:`1px solid ${T.border}`,height:50,gap:4,flexShrink:0,boxShadow:dark?"none":"0 1px 4px rgba(0,0,0,.08)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginRight:20}}>
-          <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,#25D366,#128C7E)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🏥</div>
-          <span style={{fontWeight:700,fontSize:14}}>Clinic Bot CRM</span>
+      {/* ── TOP NAV ── */}
+      <div style={{height:56,background:T.nav,borderBottom:`1px solid ${T.border}`,
+        display:"flex",alignItems:"center",padding:"0 16px",gap:8,flexShrink:0,
+        boxShadow:"0 1px 3px rgba(0,0,0,.08)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginRight:16}}>
+          <div style={{width:36,height:36,borderRadius:10,background:`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`,
+            display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,boxShadow:`0 2px 8px ${WA_GREEN}40`}}>🏥</div>
+          <div>
+            <div style={{fontWeight:700,fontSize:14,letterSpacing:"-.3px"}}>Clinic CRM</div>
+            <div style={{fontSize:10,color:T.textMuted}}>WhatsApp Business Dashboard</div>
+          </div>
         </div>
 
+        {/* Tabs */}
         {[
-          {id:"crm",label:"📥 Inbox",badge:totalUnread},
-          {id:"bot",label:"🤖 Test Bot"},
-          {id:"kb",label:`📊 Knowledge Base (${qaData.length})`},
+          {id:"crm",icon:"💬",label:"Inbox",badge:totalUnread},
+          {id:"bot",icon:"🤖",label:"Test Bot"},
+          {id:"kb",icon:"📋",label:`Knowledge (${qaData.length})`},
         ].map(t=>(
           <button key={t.id} className="tab-btn" onClick={()=>setTab(t.id)}
-            style={{background:tab===t.id?(dark?"#1a2e1e":"#dcfce7"):"transparent",color:tab===t.id?"#25D366":T.textMuted}}>
-            {t.label}
-            {t.badge>0&&<span style={{marginLeft:5,background:"#25D366",color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700}}>{t.badge}</span>}
+            style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",borderRadius:20,
+              background:tab===t.id?`${WA_GREEN}15`:"transparent",
+              color:tab===t.id?WA_GREEN:T.textMuted,fontWeight:tab===t.id?700:500,fontSize:13}}>
+            <span>{t.icon}</span><span>{t.label}</span>
+            {t.badge>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,
+              padding:"1px 6px",fontSize:10,fontWeight:700,marginLeft:2}}>{t.badge}</span>}
           </button>
         ))}
 
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:12}}>
-          {/* Backend status */}
-          <div style={{display:"flex",alignItems:"center",gap:5,fontSize:11}}>
-            <div style={{width:7,height:7,borderRadius:"50%",background:backendStatus==="online"?"#25D366":backendStatus==="offline"?"#ef4444":"#FFA726"}} className="pulse"/>
-            <span style={{color:T.textFaint}}>
-              {backendStatus==="online"?`Backend live · ${totalOpen} active`:backendStatus==="offline"?"Backend offline":"Connecting..."}
+          <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11}}>
+            <div style={{width:8,height:8,borderRadius:"50%",
+              background:backendStatus==="online"?WA_GREEN:backendStatus==="offline"?"#ef4444":"#FFA726",
+              boxShadow:backendStatus==="online"?`0 0 6px ${WA_GREEN}`:""}}/>
+            <span style={{color:T.textMuted,fontWeight:500}}>
+              {backendStatus==="online"?"Live":backendStatus==="offline"?"Offline":"Connecting"}
             </span>
           </div>
-          {lastRefresh&&<span style={{fontSize:10,color:T.textFaint}}>↻ {lastRefresh.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
-          <button className="toggle-theme" onClick={()=>setDark(d=>!d)}
-            style={{background:dark?"#1a2235":"#f1f5f9",color:T.textMuted,border:`1px solid ${T.border}`}}>
+          <button onClick={()=>setDark(d=>!d)}
+            style={{padding:"5px 12px",borderRadius:20,border:`1px solid ${T.border}`,
+              background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
             {dark?"☀️ Light":"🌙 Dark"}
           </button>
         </div>
@@ -373,46 +324,83 @@ export default function App() {
 
         {/* ══════════ CRM TAB ══════════ */}
         {tab==="crm"&&<>
-          <div style={{width:280,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column"}}>
-            <div style={{padding:"10px 10px 8px",borderBottom:`1px solid ${T.border}`}}>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search…" style={{...inp,marginBottom:7}}/>
+          {/* Sidebar */}
+          <div style={{width:300,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column"}}>
+
+            {/* Stats Row */}
+            <div style={{padding:"12px 12px 8px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{display:"flex",gap:6,marginBottom:10}}>
+                {[
+                  {label:"Total",value:contacts.length,color:"#667781"},
+                  {label:"Active",value:totalOpen,color:WA_GREEN},
+                  {label:"Resolved",value:totalResolved,color:"#34B7F1"},
+                  {label:"Bot On",value:botActiveCount,color:"#FFA726"},
+                ].map(s=>(
+                  <div key={s.label} className="stat-card"
+                    style={{flex:1,background:T.card2,borderRadius:10,padding:"6px 4px",textAlign:"center",
+                      border:`1px solid ${T.border}`}}>
+                    <div style={{fontSize:15,fontWeight:700,color:s.color}}>{s.value}</div>
+                    <div style={{fontSize:9,color:T.textFaint,marginTop:1}}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{position:"relative",marginBottom:8}}>
+                <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",
+                  fontSize:13,color:T.textFaint}}>🔍</span>
+                <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search conversations..."
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,
+                    borderRadius:20,padding:"7px 12px 7px 32px",color:T.text,fontSize:12}}/>
+              </div>
               <div style={{display:"flex",gap:4}}>
                 {["all","open","resolved"].map(f=>(
                   <button key={f} onClick={()=>setFilter(f)}
-                    style={{flex:1,padding:"4px 0",borderRadius:6,border:"none",background:filter===f?T.filterActive:T.filterInactive,color:filter===f?T.filterActiveTxt:T.filterInactiveTxt,fontSize:11,fontWeight:600,cursor:"pointer",textTransform:"capitalize"}}>
+                    style={{flex:1,padding:"5px 0",borderRadius:16,border:"none",cursor:"pointer",
+                      background:filter===f?WA_GREEN:T.input,
+                      color:filter===f?"#fff":T.textMuted,fontSize:11,fontWeight:600,
+                      textTransform:"capitalize",fontFamily:"inherit"}}>
                     {f}
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Contact List */}
             <div style={{flex:1,overflowY:"auto"}}>
-              {loading&&(
-                <div style={{padding:20,textAlign:"center",color:T.textFaint,fontSize:12}}>
-                  <div className="pulse">Loading conversations...</div>
-                </div>
-              )}
+              {loading&&<div style={{padding:20,textAlign:"center",color:T.textFaint,fontSize:12}}>Loading...</div>}
               {!loading&&filtered.length===0&&(
-                <div style={{padding:20,textAlign:"center",color:T.textFaint,fontSize:12}}>
-                  {backendStatus==="offline"?"⚠️ Backend offline — check Render":"No conversations yet.\nSend a WhatsApp message to get started!"}
+                <div style={{padding:24,textAlign:"center",color:T.textFaint,fontSize:12}}>
+                  <div style={{fontSize:32,marginBottom:8}}>💬</div>
+                  {backendStatus==="offline"?"⚠️ Backend offline":"No conversations yet"}
                 </div>
               )}
               {filtered.map(c=>(
-                <div key={c.id} className={`ci ${selected?.id===c.id?"on":""}`} onClick={()=>selectContact(c)}
-                  style={{padding:"10px",cursor:"pointer",display:"flex",alignItems:"center",gap:9,borderLeft:"3px solid transparent",borderBottom:`1px solid ${T.border}`,transition:"all .15s"}}>
+                <div key={c.id} className={`contact-item ${selected?.id===c.id?"active":""}`}
+                  onClick={()=>selectContact(c)}
+                  style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:10,
+                    borderBottom:`1px solid ${T.border}40`}}>
+                  {/* Avatar */}
                   <div style={{position:"relative",flexShrink:0}}>
-                    <div style={{width:36,height:36,borderRadius:9,background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:12,color:"#fff"}}>{c.avatar||"?"}</div>
-                    {c.status==="open"&&<div style={{position:"absolute",bottom:-1,right:-1,width:8,height:8,borderRadius:"50%",background:"#25D366",border:`2px solid ${T.sidebar}`}}/>}
+                    <div style={{width:44,height:44,borderRadius:"50%",background:getColor(c.name||"?"),
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontWeight:700,fontSize:14,color:"#fff",letterSpacing:"-.5px"}}>
+                      {c.avatar||"?"}
+                    </div>
+                    {c.status==="open"&&<div style={{position:"absolute",bottom:1,right:1,width:10,height:10,
+                      borderRadius:"50%",background:WA_GREEN,border:`2px solid ${T.sidebar}`}}/>}
                   </div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-                      <span style={{fontWeight:600,fontSize:12,color:T.text}}>{c.name}</span>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                      <span style={{fontWeight:600,fontSize:13,color:T.text}}>{c.name}</span>
                       <span style={{fontSize:10,color:T.textFaint}}>{c.lastTime}</span>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>
-                        {c.botActive?"🤖 ":""}{c.lastMessage}
+                      <span style={{fontSize:12,color:T.textMuted,overflow:"hidden",
+                        textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>
+                        {c.botActive&&<span style={{color:WA_GREEN,marginRight:3}}>🤖</span>}
+                        {c.lastMessage||"No messages yet"}
                       </span>
-                      {c.unread>0&&<span style={{background:"#25D366",color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700}}>{c.unread}</span>}
+                      {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,
+                        padding:"1px 6px",fontSize:10,fontWeight:700,flexShrink:0}}>{c.unread}</span>}
                     </div>
                   </div>
                 </div>
@@ -420,74 +408,119 @@ export default function App() {
             </div>
           </div>
 
-          {selected?(
+          {/* Chat Area */}
+          {selected ? (
             <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
-              <div style={{padding:"10px 16px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div style={{display:"flex",alignItems:"center",gap:9}}>
-                  <div style={{width:34,height:34,borderRadius:9,background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:12,color:"#fff"}}>{selected.avatar}</div>
+              {/* Chat Header */}
+              <div style={{padding:"10px 16px",background:T.nav,borderBottom:`1px solid ${T.border}`,
+                display:"flex",alignItems:"center",justifyContent:"space-between",
+                boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:38,height:38,borderRadius:"50%",background:getColor(selected.name||"?"),
+                    display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff"}}>
+                    {selected.avatar}
+                  </div>
                   <div>
-                    <div style={{fontWeight:600,fontSize:13}}>{selected.name}</div>
-                    <div style={{fontSize:11,color:T.textFaint}}>{selected.phone}</div>
+                    <div style={{fontWeight:600,fontSize:14}}>{selected.name}</div>
+                    <div style={{fontSize:11,color:selected.status==="open"?WA_GREEN:T.textFaint}}>
+                      {selected.status==="open"?"● Active":"○ Resolved"} · {selected.phone}
+                    </div>
                   </div>
                 </div>
-                <div style={{display:"flex",gap:7}}>
+                <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>toggleBot(selected.id)}
-                    style={{...btn(selected.botActive?(dark?"#1a3c23":"#dcfce7"):(dark?"#141b2d":"#f1f5f9"),selected.botActive?"#25D366":T.textMuted),border:`1px solid ${selected.botActive?"#25D36640":T.border}`}}>
-                    {selected.botActive?"🤖 Bot ON":"🤖 Bot OFF"}
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:20,border:"none",
+                      background:selected.botActive?`${WA_GREEN}20`:`${T.card2}`,
+                      color:selected.botActive?WA_GREEN:T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                    🤖 {selected.botActive?"Bot ON":"Bot OFF"}
                   </button>
                   <button onClick={()=>toggleStatus(selected.id)}
-                    style={{...btn(selected.status==="open"?(dark?"#1a2e1e":"#dcfce7"):(dark?"#141b2d":"#f1f5f9"),selected.status==="open"?"#25D366":T.textMuted)}}>
+                    style={{padding:"6px 12px",borderRadius:20,border:`1px solid ${T.border}`,
+                      background:T.card2,color:T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                     {selected.status==="open"?"✓ Resolve":"↺ Reopen"}
                   </button>
                 </div>
               </div>
 
               {selected.botActive&&(
-                <div style={{background:T.botNotice,borderBottom:`1px solid ${T.botNoticeBorder}`,padding:"5px 16px",fontSize:11,color:T.botNoticeText,display:"flex",alignItems:"center",gap:5}}>
-                  <span className="pulse">🤖</span> Bot is handling this chat — toggle off to reply manually
+                <div style={{background:`${WA_GREEN}15`,borderBottom:`1px solid ${WA_GREEN}30`,
+                  padding:"6px 16px",fontSize:11,color:WA_DARK,display:"flex",alignItems:"center",gap:6}}>
+                  <span>🤖</span> Bot is handling this conversation — toggle off to reply manually
                 </div>
               )}
 
-              <div style={{flex:1,overflowY:"auto",padding:14,background:T.bg,display:"flex",flexDirection:"column",gap:8}}>
-                {selected.messages?.map(msg=>(
-                  <div key={msg.id} className="fadeup" style={{display:"flex",justifyContent:msg.from==="user"?"flex-start":"flex-end"}}>
-                    {msg.from==="user"&&<div style={{width:26,height:26,borderRadius:7,background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:"#fff",marginRight:7,flexShrink:0,alignSelf:"flex-end"}}>{selected.avatar}</div>}
-                    <div style={{maxWidth:"62%"}}>
-                      <div style={{background:msg.from==="user"?T.msgUser:msg.from==="bot"?T.msgBot:T.msgAgent,borderRadius:msg.from==="user"?"14px 14px 14px 3px":"14px 14px 3px 14px",padding:"9px 12px",border:`1px solid ${msg.from==="user"?T.msgUserBorder:msg.from==="bot"?T.msgBotBorder:T.msgAgentBorder}`}}>
-                        {msg.from!=="user"&&<div style={{fontSize:9,color:msg.from==="bot"?"#25D366":"#34B7F1",marginBottom:3,fontWeight:700}}>{msg.from==="bot"?"🤖 Bot":"👤 You"}</div>}
-                        <div style={{fontSize:12,lineHeight:1.6,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
-                        <div style={{fontSize:9,color:T.textFaint,marginTop:3,textAlign:"right"}}>{msg.time}</div>
+              {/* Messages */}
+              <div style={{flex:1,overflowY:"auto",padding:"16px",background:T.chatBg,
+                backgroundImage:dark?"none":"url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d0d0d0' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+                display:"flex",flexDirection:"column",gap:6}}>
+                {selected.messages?.map((msg,i)=>{
+                  const isOut = msg.from!=="user";
+                  return (
+                    <div key={msg.id||i} className="msg-bubble"
+                      style={{display:"flex",justifyContent:isOut?"flex-end":"flex-start",alignItems:"flex-end",gap:6}}>
+                      {!isOut&&(
+                        <div style={{width:28,height:28,borderRadius:"50%",background:getColor(selected.name||"?"),
+                          flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+                          fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>
+                          {selected.avatar}
+                        </div>
+                      )}
+                      <div style={{maxWidth:"65%"}}>
+                        {!isOut&&<div style={{fontSize:11,color:WA_GREEN,fontWeight:600,marginBottom:2,marginLeft:4}}>{selected.name}</div>}
+                        <div style={{background:isOut?T.msgOut:T.msgIn,color:isOut?T.msgOutText:T.msgInText,
+                          borderRadius:isOut?"16px 4px 16px 16px":"4px 16px 16px 16px",
+                          padding:"8px 12px",boxShadow:"0 1px 2px rgba(0,0,0,.12)"}}>
+                          {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",
+                            fontWeight:700,marginBottom:3}}>{msg.from==="bot"?"🤖 Bot":"👤 You"}</div>}
+                          <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap"}}>{msg.text}</div>
+                          <div style={{fontSize:10,color:isOut?(dark?"#8696a0":"#667781"):T.textFaint,
+                            textAlign:"right",marginTop:3}}>{msg.time}</div>
+                        </div>
+                        {msg.sources?.length>0&&(
+                          <div style={{marginTop:4,paddingLeft:4}}>
+                            {msg.sources.map(s=><SourceBadge key={s.id} s={s}/>)}
+                          </div>
+                        )}
                       </div>
-                      {msg.sources?.length>0&&<SourceBadges sources={msg.sources} onJump={highlightQA}/>}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={messagesEndRef}/>
               </div>
 
-              <div style={{padding:"10px 14px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:7,alignItems:"flex-end"}}>
+              {/* Input */}
+              <div style={{padding:"10px 12px",background:T.nav,borderTop:`1px solid ${T.border}`,
+                display:"flex",gap:8,alignItems:"flex-end"}}>
                 <textarea value={reply} onChange={e=>setReply(e.target.value)}
                   onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAgentReply();}}}
-                  placeholder={selected.botActive?"Bot is active — toggle off to reply manually":"Reply… (Enter to send)"}
-                  disabled={selected.botActive} rows={2}
-                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:9,padding:"8px 11px",color:selected.botActive?T.textFaint:T.text,fontSize:12,fontFamily:"inherit"}}/>
-                <button onClick={sendAgentReply} disabled={selected.botActive}
-                  style={{width:38,height:38,borderRadius:9,border:"none",background:selected.botActive?T.card2:"#25D366",color:selected.botActive?T.textFaint:"#fff",fontSize:15,cursor:selected.botActive?"not-allowed":"pointer"}}>➤</button>
+                  placeholder={selected.botActive?"Bot is active — toggle off to reply manually":"Type a message..."}
+                  disabled={selected.botActive} rows={1}
+                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,
+                    borderRadius:20,padding:"9px 16px",color:selected.botActive?T.textFaint:T.text,
+                    fontSize:13,maxHeight:100,overflowY:"auto"}}/>
+                <button className="send-btn" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()}
+                  style={{width:40,height:40,borderRadius:"50%",border:"none",
+                    background:selected.botActive||!reply.trim()?T.card2:WA_GREEN,
+                    color:selected.botActive||!reply.trim()?T.textFaint:"#fff",
+                    fontSize:16,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0}}>➤</button>
               </div>
             </div>
           ):(
-            <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,color:T.textFaint}}>
-              <div style={{fontSize:48}}>💬</div>
-              <div style={{fontSize:14,fontWeight:600,color:T.textMuted}}>
-                {backendStatus==="online"&&contacts.length===0?"No WhatsApp messages yet!":"Select a conversation"}
+            <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",
+              flexDirection:"column",gap:12,background:T.chatBg}}>
+              <div style={{width:80,height:80,borderRadius:"50%",background:`${WA_GREEN}15`,
+                display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>💬</div>
+              <div style={{fontSize:16,fontWeight:600,color:T.text}}>
+                {backendStatus==="online"&&contacts.length===0?"No messages yet":"Select a conversation"}
               </div>
-              {backendStatus==="online"&&contacts.length===0&&(
-                <div style={{fontSize:12,color:T.textFaint,textAlign:"center",maxWidth:300}}>
-                  Send a WhatsApp message to your bot number and it will appear here automatically 🙂
-                </div>
-              )}
+              <div style={{fontSize:13,color:T.textFaint,textAlign:"center",maxWidth:280}}>
+                {backendStatus==="online"&&contacts.length===0
+                  ?"Send a WhatsApp message to your bot number to get started!"
+                  :"Choose a conversation from the sidebar to start chatting"}
+              </div>
               {backendStatus==="offline"&&(
-                <div style={{fontSize:12,color:"#ef4444",textAlign:"center"}}>⚠️ Cannot connect to backend<br/>Check your Render service</div>
+                <div style={{fontSize:12,color:"#ef4444",background:"#fef2f2",padding:"8px 16px",
+                  borderRadius:20,border:"1px solid #fee2e2"}}>⚠️ Cannot connect to backend</div>
               )}
             </div>
           )}
@@ -495,60 +528,78 @@ export default function App() {
 
         {/* ══════════ BOT TEST TAB ══════════ */}
         {tab==="bot"&&(
-          <div style={{flex:1,display:"flex",flexDirection:"column",maxWidth:720,margin:"0 auto",width:"100%"}}>
-            <div style={{padding:"12px 18px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{display:"flex",alignItems:"center",gap:9}}>
-                <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#25D366,#128C7E)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🤖</div>
+          <div style={{flex:1,display:"flex",flexDirection:"column",maxWidth:700,margin:"0 auto",width:"100%"}}>
+            <div style={{padding:"12px 16px",background:T.nav,borderBottom:`1px solid ${T.border}`,
+              display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:38,height:38,borderRadius:"50%",
+                  background:`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`,
+                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🤖</div>
                 <div>
-                  <div style={{fontWeight:700,fontSize:13}}>Live Bot Preview</div>
-                  <div style={{fontSize:11,color:T.textFaint}}>Test your bot — uses live Knowledge Base from backend</div>
+                  <div style={{fontWeight:700,fontSize:14}}>Bot Preview</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>Test your bot with live Knowledge Base</div>
                 </div>
               </div>
-              <button onClick={()=>setBotConvo([{from:"bot",text:"👋 Hello! How can I help?\n\nSaya boleh bantu dalam Bahasa Malaysia atau English! 😊",time:ts(),sources:[]}])}
-                style={{...btn(T.card2,T.textMuted),border:`1px solid ${T.border}`,fontSize:11}}>↺ Reset</button>
+              <button onClick={()=>setBotConvo([{from:"bot",text:"👋 Hello! How can I help?\nSaya boleh bantu dalam Bahasa Malaysia atau English! 😊",time:ts(),sources:[]}])}
+                style={{padding:"6px 14px",borderRadius:20,border:`1px solid ${T.border}`,
+                  background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                ↺ Reset
+              </button>
             </div>
 
-            <div style={{flex:1,overflowY:"auto",padding:16,background:T.bg,display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{flex:1,overflowY:"auto",padding:16,background:T.chatBg,display:"flex",flexDirection:"column",gap:8}}>
               {botConvo.map((msg,i)=>(
-                <div key={i} className="fadeup" style={{display:"flex",justifyContent:msg.from==="user"?"flex-end":"flex-start"}}>
+                <div key={i} className="msg-bubble"
+                  style={{display:"flex",justifyContent:msg.from==="user"?"flex-end":"flex-start"}}>
                   <div style={{maxWidth:"70%"}}>
-                    <div style={{background:msg.from==="user"?T.msgAgent:T.msgBot,borderRadius:msg.from==="user"?"14px 14px 3px 14px":"14px 14px 14px 3px",padding:"10px 13px",border:`1px solid ${msg.from==="user"?T.msgAgentBorder:T.msgBotBorder}`}}>
-                      <div style={{fontSize:9,color:msg.from==="user"?"#34B7F1":"#25D366",marginBottom:3,fontWeight:700}}>{msg.from==="user"?"👤 You (Test)":"🤖 Clinic Bot"}</div>
+                    <div style={{background:msg.from==="user"?T.msgOut:T.msgIn,
+                      borderRadius:msg.from==="user"?"16px 4px 16px 16px":"4px 16px 16px 16px",
+                      padding:"9px 13px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                      <div style={{fontSize:10,color:msg.from==="user"?"#34B7F1":WA_GREEN,
+                        fontWeight:700,marginBottom:3}}>{msg.from==="user"?"👤 You":"🤖 Clinic Bot"}</div>
                       <div style={{fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
-                      <div style={{fontSize:9,color:T.textFaint,marginTop:3,textAlign:"right"}}>{msg.time}</div>
+                      <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:3}}>{msg.time}</div>
                     </div>
-                    {msg.sources?.length>0&&<div style={{marginTop:6}}><div style={{fontSize:10,color:T.textFaint,marginBottom:4}}>📎 Used from Knowledge Base:</div><SourceBadges sources={msg.sources} onJump={highlightQA}/></div>}
-                    {msg.from==="bot"&&msg.sources?.length===0&&i>0&&<div style={{marginTop:4,fontSize:10,color:T.textFaint}}>💡 No direct Q&A match</div>}
+                    {msg.sources?.length>0&&<div style={{marginTop:4}}>{msg.sources.map(s=><SourceBadge key={s.id} s={s}/>)}</div>}
                   </div>
                 </div>
               ))}
               {botLoading&&(
                 <div style={{display:"flex"}}>
-                  <div style={{background:T.card2,borderRadius:"14px 14px 14px 3px",padding:"10px 14px",border:`1px solid ${T.border}`}}>
-                    <div style={{fontSize:9,color:"#25D366",marginBottom:4,fontWeight:700}}>🤖 Clinic Bot</div>
-                    <div style={{display:"flex",gap:4}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"#25D366",animation:`pulse 1s ${i*.2}s infinite`}}/>)}</div>
+                  <div style={{background:T.msgIn,borderRadius:"4px 16px 16px 16px",padding:"12px 16px",
+                    boxShadow:"0 1px 2px rgba(0,0,0,.1)",display:"flex",gap:5,alignItems:"center"}}>
+                    {[0,1,2].map(i=>(
+                      <div key={i} style={{width:8,height:8,borderRadius:"50%",background:WA_GREEN,
+                        animation:`bounce 1s ${i*.15}s infinite`}}/>
+                    ))}
                   </div>
                 </div>
               )}
+              <style>{`@keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}`}</style>
               <div ref={botEndRef}/>
             </div>
 
-            <div style={{padding:"8px 16px",background:T.bg,borderTop:`1px solid ${T.border}`,display:"flex",gap:6,flexWrap:"wrap"}}>
-              {["Where are you located?","I'm from Melaka","How much for skin whitening?","Nak buat appointment","Do you treat acne?"].map(q=>(
+            <div style={{padding:"8px 12px",background:T.nav,borderTop:`1px solid ${T.border}`,
+              display:"flex",gap:6,flexWrap:"wrap"}}>
+              {["Where are you located?","How much is consultation?","I'm from Melaka","Skin whitening price?","Book appointment"].map(q=>(
                 <button key={q} onClick={()=>setBotInput(q)}
-                  style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:16,padding:"4px 10px",color:T.textMuted,fontSize:11,cursor:"pointer"}}>
+                  style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:16,
+                    padding:"4px 12px",color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
                   {q}
                 </button>
               ))}
             </div>
 
-            <div style={{padding:"10px 16px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:7,alignItems:"flex-end"}}>
+            <div style={{padding:"10px 12px",background:T.nav,display:"flex",gap:8,alignItems:"flex-end"}}>
               <textarea value={botInput} onChange={e=>setBotInput(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendBotMessage();}}}
-                placeholder="Type a test message… (Enter to send)" rows={2}
-                style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:9,padding:"8px 11px",color:T.text,fontSize:13,fontFamily:"inherit"}}/>
-              <button onClick={sendBotMessage} disabled={botLoading}
-                style={{width:38,height:38,borderRadius:9,border:"none",background:botLoading?T.card2:"#25D366",color:botLoading?T.textFaint:"#fff",fontSize:15,cursor:"pointer"}}>➤</button>
+                placeholder="Type a test message..." rows={1}
+                style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,
+                  borderRadius:20,padding:"9px 16px",color:T.text,fontSize:13}}/>
+              <button className="send-btn" onClick={sendBotMessage} disabled={botLoading||!botInput.trim()}
+                style={{width:40,height:40,borderRadius:"50%",border:"none",
+                  background:botLoading||!botInput.trim()?T.card2:WA_GREEN,
+                  color:botLoading||!botInput.trim()?T.textFaint:"#fff",fontSize:16,cursor:"pointer",flexShrink:0}}>➤</button>
             </div>
           </div>
         )}
@@ -556,85 +607,131 @@ export default function App() {
         {/* ══════════ KNOWLEDGE BASE TAB ══════════ */}
         {tab==="kb"&&(
           <div style={{flex:1,overflowY:"auto",padding:20,background:T.bg}}>
-            <div style={{maxWidth:780,margin:"0 auto"}}>
-              <div style={{marginBottom:16}}>
-                <div style={{fontWeight:700,fontSize:16,marginBottom:3}}>📊 Knowledge Base</div>
-                <div style={{fontSize:12,color:T.textMuted}}>{qaData.length} Q&A pairs loaded from backend · Changes save instantly</div>
+            <div style={{maxWidth:800,margin:"0 auto"}}>
+
+              {/* Header */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:18,letterSpacing:"-.5px"}}>📋 Knowledge Base</div>
+                  <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{qaData.length} Q&A pairs · Changes auto-save to Excel</div>
+                </div>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <div style={{background:`${WA_GREEN}15`,border:`1px solid ${WA_GREEN}30`,
+                    borderRadius:20,padding:"5px 12px",fontSize:12,color:WA_GREEN,fontWeight:600}}>
+                    💾 Auto-saves to Excel
+                  </div>
+                </div>
               </div>
 
               {/* System Prompt */}
-              <div style={{background:T.nav,border:`1px solid #25D36640`,borderRadius:12,padding:16,marginBottom:18}}>
-                <div style={{fontWeight:700,fontSize:13,color:"#25D366",marginBottom:4}}>⚙️ System Prompt</div>
-                <div style={{fontSize:11,color:T.textFaint,marginBottom:10}}>Defines bot personality, goal, language rules and medical restrictions.</div>
-                <div style={{background:T.sysPromptBg,border:`1px solid ${T.sysPromptBorder}`,borderRadius:8,padding:2,marginBottom:10}}>
-                  <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={10}
-                    style={{width:"100%",background:"transparent",border:"none",padding:"10px 12px",color:T.sysPromptText,fontSize:12,fontFamily:"'Courier New',monospace",lineHeight:1.7}}/>
-                </div>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  <div style={{flex:1,fontSize:11,color:T.textFaint}}>
-                    💡 Use <code style={{background:T.card2,padding:"1px 5px",borderRadius:4,color:"#FFA726"}}>{"{"+"QA_DATA}"+"}"}</code> to inject Q&A pairs.
+              <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:16,
+                padding:18,marginBottom:20,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <div style={{width:32,height:32,borderRadius:8,background:`${WA_GREEN}15`,
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⚙️</div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13}}>System Prompt</div>
+                    <div style={{fontSize:11,color:T.textMuted}}>Bot personality & rules</div>
                   </div>
-                  <button onClick={()=>setSystemPrompt(SYSTEM_PROMPT)} style={{...btn(T.card2,T.textMuted),border:`1px solid ${T.border}`,fontSize:11}}>↺ Reset</button>
-                  <button onClick={saveSystemPrompt} style={{...btn(),fontSize:11}}>💾 Save to Backend</button>
+                </div>
+                <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={8}
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,
+                    borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,
+                    fontFamily:"'Courier New',monospace",lineHeight:1.7,marginBottom:10}}/>
+                <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                  <button onClick={()=>setSystemPrompt(SYSTEM_PROMPT)}
+                    style={{padding:"7px 16px",borderRadius:20,border:`1px solid ${T.border}`,
+                      background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                    ↺ Reset
+                  </button>
+                  <button onClick={saveSystemPrompt}
+                    style={{padding:"7px 16px",borderRadius:20,border:"none",
+                      background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                    💾 Save Prompt
+                  </button>
                 </div>
               </div>
 
-              {/* Add new Q&A */}
-              <div style={{background:T.card,border:`1px solid ${T.qaCardBorder}`,borderRadius:12,padding:14,marginBottom:16}}>
-                <div style={{fontWeight:700,fontSize:12,marginBottom:9,color:"#34B7F1"}}>➕ Add New Q&A</div>
-                <input value={newQ} onChange={e=>setNewQ(e.target.value)} placeholder="Question" style={{...inp,marginBottom:7}}/>
-                <textarea value={newA} onChange={e=>setNewA(e.target.value)} placeholder="Answer" rows={2} style={{...inp,marginBottom:9}}/>
-                <button onClick={addQA} style={btn()}>Add to Knowledge Base</button>
-              </div>
-
-              {/* Legend */}
-              <div style={{display:"flex",gap:12,marginBottom:12,fontSize:11,color:T.textFaint,alignItems:"center"}}>
-                <span>Relevance:</span>
-                {Object.entries(RELEVANCE_COLOR).map(([k,v])=>(
-                  <span key={k} style={{display:"flex",alignItems:"center",gap:4}}>
-                    <span style={{width:8,height:8,borderRadius:"50%",background:v,display:"inline-block"}}/>
-                    <span style={{color:v,textTransform:"capitalize"}}>{k}</span>
-                  </span>
-                ))}
+              {/* Add New Q&A */}
+              <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:16,
+                padding:18,marginBottom:20,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <div style={{width:32,height:32,borderRadius:8,background:"#34B7F115",
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>➕</div>
+                  <div style={{fontWeight:700,fontSize:13}}>Add New Q&A</div>
+                </div>
+                <input value={newQ} onChange={e=>setNewQ(e.target.value)} placeholder="Question..."
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,
+                    borderRadius:10,padding:"9px 14px",color:T.text,fontSize:13,marginBottom:8}}/>
+                <textarea value={newA} onChange={e=>setNewA(e.target.value)} placeholder="Answer..." rows={2}
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,
+                    borderRadius:10,padding:"9px 14px",color:T.text,fontSize:13,marginBottom:10}}/>
+                <button onClick={addQA}
+                  style={{padding:"8px 20px",borderRadius:20,border:"none",
+                    background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  ➕ Add to Knowledge Base
+                </button>
               </div>
 
               {/* Q&A List */}
               {qaData.length===0&&(
-                <div style={{textAlign:"center",padding:30,color:T.textFaint,fontSize:13}}>
-                  No Q&A pairs yet. Add some above or upload your Excel file! 📊
+                <div style={{textAlign:"center",padding:40,color:T.textFaint,fontSize:13}}>
+                  <div style={{fontSize:40,marginBottom:12}}>📭</div>
+                  No Q&A pairs yet. Add some above!
                 </div>
               )}
-              {qaData.map((qa,i)=>(
-                <div key={qa.id} ref={el=>qaRefs.current[qa.id]=el}
-                  className={`qa-card ${highlightedQA===qa.id?"hl":""}`}
-                  style={{background:T.qaCard,border:`1px solid ${T.qaCardBorder}`,borderRadius:10,padding:13,marginBottom:9}}>
-                  {editingId===qa.id?(
-                    <div>
-                      <div style={{fontSize:10,color:"#34B7F1",fontWeight:700,marginBottom:6}}>✏️ Editing [{qa.id}]</div>
-                      <input value={editQ} onChange={e=>setEditQ(e.target.value)} style={{...inp,marginBottom:7}}/>
-                      <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={3} style={{...inp,marginBottom:9}}/>
-                      <div style={{display:"flex",gap:7}}>
-                        <button onClick={()=>saveEdit(qa.id)} style={btn()}>Save</button>
-                        <button onClick={()=>setEditingId(null)} style={{...btn(T.card2,T.textMuted),border:`1px solid ${T.border}`}}>Cancel</button>
-                      </div>
-                    </div>
-                  ):(
-                    <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                      <div style={{flex:1}}>
-                        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
-                          <span style={{fontSize:9,color:T.textFaint,fontFamily:"monospace",background:T.card2,padding:"2px 6px",borderRadius:4}}>{qa.id}</span>
-                          <span style={{fontWeight:600,fontSize:13,color:T.text}}>Q: {qa.question}</span>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {qaData.map((qa,i)=>(
+                  <div key={qa.id} ref={el=>qaRefs.current[qa.id]=el}
+                    className={`qa-row ${highlightedQA===qa.id?"hl":""}`}
+                    style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,
+                      padding:16,boxShadow:"0 1px 4px rgba(0,0,0,.05)"}}>
+                    {editingId===qa.id?(
+                      <div>
+                        <div style={{fontSize:11,color:"#34B7F1",fontWeight:700,marginBottom:8}}>✏️ Editing</div>
+                        <input value={editQ} onChange={e=>setEditQ(e.target.value)}
+                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,
+                            borderRadius:10,padding:"9px 14px",color:T.text,fontSize:13,marginBottom:8}}/>
+                        <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={3}
+                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,
+                            borderRadius:10,padding:"9px 14px",color:T.text,fontSize:13,marginBottom:10}}/>
+                        <div style={{display:"flex",gap:8}}>
+                          <button onClick={()=>saveEdit(qa.id)}
+                            style={{padding:"7px 16px",borderRadius:20,border:"none",background:WA_GREEN,
+                              color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+                          <button onClick={()=>setEditingId(null)}
+                            style={{padding:"7px 16px",borderRadius:20,border:`1px solid ${T.border}`,
+                              background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
                         </div>
-                        <div style={{fontSize:12,color:T.textMuted,lineHeight:1.5}}>A: {qa.answer}</div>
                       </div>
-                      <div style={{display:"flex",gap:6,flexShrink:0}}>
-                        <button onClick={()=>startEdit(qa)} style={{...btn(dark?"#1a2e1e":"#dcfce7","#25D366"),border:"1px solid #25D36630",fontSize:11}}>✏️ Edit</button>
-                        <button onClick={()=>deleteQA(qa.id)} style={{...btn(dark?"#2d1a1a":"#fee2e2","#ef4444"),border:"1px solid #ff4d4d30",fontSize:11}}>✕</button>
+                    ):(
+                      <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                        <div style={{width:28,height:28,borderRadius:8,background:`${WA_GREEN}15`,
+                          display:"flex",alignItems:"center",justifyContent:"center",
+                          fontSize:11,fontWeight:700,color:WA_GREEN,flexShrink:0}}>
+                          {i+1}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:600,fontSize:13,color:T.text,marginBottom:4}}>
+                            {qa.question}
+                          </div>
+                          <div style={{fontSize:12,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
+                        </div>
+                        <div style={{display:"flex",gap:6,flexShrink:0}}>
+                          <button onClick={()=>{setEditingId(qa.id);setEditQ(qa.question);setEditA(qa.answer);}}
+                            style={{padding:"5px 12px",borderRadius:16,border:`1px solid ${WA_GREEN}40`,
+                              background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:600,
+                              cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit</button>
+                          <button onClick={()=>deleteQA(qa.id)}
+                            style={{padding:"5px 12px",borderRadius:16,border:"1px solid #ef444440",
+                              background:"#ef444410",color:"#ef4444",fontSize:11,fontWeight:600,
+                              cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
