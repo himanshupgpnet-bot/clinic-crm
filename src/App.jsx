@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const API = "https://clinic-bot-oy48.onrender.com";
+const CRM_VERSION = "2.5.0";
 const WA_GREEN = "#25D366";
 const WA_DARK  = "#128C7E";
 const WA_BG    = "#ECE5DD";
@@ -34,6 +35,7 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [backendStatus, setBackendStatus] = useState("checking");
+  const [backendVersion, setBackendVersion] = useState("");
   const [reply, setReply] = useState("");
   const [filter, setFilter] = useState("all");
   const [leadFilter, setLeadFilter] = useState("all");
@@ -74,6 +76,11 @@ export default function App() {
       const data = await res.json();
       setContacts(data);
       setBackendStatus("online");
+      // Fetch backend version
+      try {
+        const vr = await fetch(`${API}/version`);
+        if (vr.ok) { const vd = await vr.json(); setBackendVersion(vd.version||""); }
+      } catch {}
       if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(u); }
     } catch { setBackendStatus("offline"); }
     finally { setLoading(false); }
@@ -421,6 +428,11 @@ export default function App() {
             <div style={{width:7,height:7,borderRadius:"50%",
               background:backendStatus==="online"?WA_GREEN:backendStatus==="offline"?"#ef4444":"#f59e0b"}}/>
             <span style={{color:T.textMuted}}>{backendStatus==="online"?"Live":"Offline"}</span>
+          </div>
+          <div title={`CRM v${CRM_VERSION} | Backend v${backendVersion||"..."}`}
+            style={{fontSize:10,color:T.textFaint,background:T.card2,
+              border:`1px solid ${T.border}`,borderRadius:12,padding:"2px 8px",cursor:"default"}}>
+            CRM v{CRM_VERSION} {backendVersion&&`· API v${backendVersion}`}
           </div>
           <button onClick={()=>setDark(d=>!d)}
             style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${T.border}`,
