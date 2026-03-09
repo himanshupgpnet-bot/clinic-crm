@@ -140,8 +140,32 @@ export default function App() {
 
   async function sendAgentReply() {
     if(!reply.trim()||!selected) return;
-    const text=reply.trim(); setReply("");
-    try { const r=await fetch(`${API}/api/conversations/${selected.id}/reply`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})}); if(r.ok) fetchConversations(); } catch {}
+    const text = reply.trim();
+    setReply("");
+
+    // Show message instantly in UI
+    const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today() };
+    setSelected(prev => ({ ...prev, messages: [...(prev.messages||[]), tempMsg] }));
+    setContacts(prev => prev.map(c => c.id===selected.id ? {...c, lastMessage:text, lastTime:ts()} : c));
+
+    try {
+      const r = await fetch(`${API}/api/conversations/${selected.id}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+      if (r.ok) {
+        fetchConversations(); // refresh to get real message ID from DB
+      } else {
+        const err = await r.json().catch(()=>({}));
+        alert(`❌ Failed to send: ${err.error||r.status}\n\nCheck:\n1. WhatsApp token not expired\n2. Customer messaged within last 24 hours`);
+        // Remove temp message on failure
+        setSelected(prev => ({ ...prev, messages: prev.messages.filter(m=>m.id!==tempMsg.id) }));
+      }
+    } catch(e) {
+      alert("❌ Network error — backend may be offline. Check: " + API + "/health");
+      setSelected(prev => ({ ...prev, messages: prev.messages.filter(m=>m.id!==tempMsg.id) }));
+    }
   }
 
   async function toggleBot(id) {
