@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://clinic-bot-oy48.onrender.com";
-const CRM_VERSION = "2.6.0";
+const CRM_VERSION = "2.6.1";
 const WA_GREEN = "#25D366";
 const WA_DARK  = "#128C7E";
 const WA_BG    = "#ECE5DD";
@@ -786,6 +786,32 @@ export default function App() {
                 <button onClick={saveSettings} style={{padding:"8px 18px",borderRadius:18,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save All</button>
               </div>
             </div>
+            {/* AI Toggle */}
+            <div className="cc" style={{border:`2px solid ${appSettings.ai_enabled==="true"?WA_GREEN:"#ef4444"}30`,background:appSettings.ai_enabled==="true"?`${WA_GREEN}08`:"#ef444408"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:15}}>🤖 Sara AI Bot</div>
+                  <div style={{fontSize:12,color:T.textMuted,marginTop:3}}>
+                    {appSettings.ai_enabled==="true"
+                      ? "✅ Active — using Anthropic API key from Render environment"
+                      : "⛔ Disabled — no Anthropic API calls, zero cost"}
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:13,fontWeight:600,color:appSettings.ai_enabled==="true"?WA_GREEN:"#ef4444"}}>
+                    {appSettings.ai_enabled==="true"?"ON":"OFF"}
+                  </span>
+                  <div onClick={()=>setAppSettings(p=>({...p,ai_enabled:p.ai_enabled==="true"?"false":"true"}))}
+                    style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.ai_enabled==="true"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
+                    <div style={{position:"absolute",top:3,left:appSettings.ai_enabled==="true"?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+                  </div>
+                </div>
+              </div>
+              {appSettings.ai_enabled!=="true"&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"#ef444415",fontSize:12,color:"#ef4444",fontWeight:500}}>
+                ⚠️ Bot is OFF globally — Sara will not reply to any customer. Manual agent replies still work.
+              </div>}
+            </div>
+
             <div className="cc">
               <div style={{fontWeight:700,fontSize:14,marginBottom:14}}>🎯 Lead Scoring Keywords</div>
               <SettingInput label="🔥 Hot Keywords" settingKey="hot_keywords" rows={2} hint="Comma-separated → Hot lead (booking intent)"/>
