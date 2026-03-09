@@ -108,10 +108,13 @@ export default function App() {
     setAnalyticsLoading(false);
   }, []);
 
+  const pollRef = useRef(null);
+
   useEffect(() => {
     fetchConversations(); fetchKnowledge(); fetchSettings();
-    const p = setInterval(fetchConversations, 5000);
-    return () => clearInterval(p);
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(fetchConversations, 10000); // 10s — easier on backend
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
   useEffect(() => { if(tab==="analytics") fetchAnalytics(dateFrom, dateTo); }, [tab]);
