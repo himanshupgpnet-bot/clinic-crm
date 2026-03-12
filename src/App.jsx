@@ -70,6 +70,7 @@ export default function App() {
   const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Evera Health 😊\nHow can I help you today?",time:ts(),sources:[]}]);
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
+  const [aiStatus, setAiStatus] = useState({});
 
   const messagesEndRef = useRef(null);
   const botEndRef = useRef(null);
@@ -112,6 +113,7 @@ export default function App() {
 
   useEffect(() => {
     fetchConversations(); fetchKnowledge(); fetchSettings();
+    fetch(`${API}/api/ai-status`).then(r=>r.json()).then(setAiStatus).catch(()=>{});
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(fetchConversations, 10000); // 10s — easier on backend
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -786,31 +788,81 @@ export default function App() {
                 <button onClick={saveSettings} style={{padding:"8px 18px",borderRadius:18,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save All</button>
               </div>
             </div>
-            {/* AI Toggle */}
-            <div className="cc" style={{border:`2px solid ${appSettings.ai_enabled==="true"?WA_GREEN:"#ef4444"}30`,background:appSettings.ai_enabled==="true"?`${WA_GREEN}08`:"#ef444408"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div>
-                  <div style={{fontWeight:700,fontSize:15}}>🤖 Sara AI Bot</div>
-                  <div style={{fontSize:12,color:T.textMuted,marginTop:3}}>
-                    {appSettings.ai_enabled==="true"
-                      ? "✅ Active — using Anthropic API key from Render environment"
-                      : "⛔ Disabled — no Anthropic API calls, zero cost"}
+            {/* AI Provider Selector */}
+            {(()=>{
+              const provider = appSettings.ai_provider || "anthropic";
+              const aiOn = appSettings.ai_enabled !== "false";
+              const providers = [
+                { id:"anthropic", label:"Claude",  icon:"🟣", company:"Anthropic", model:"claude-sonnet-4", envKey:"ANTHROPIC_API_KEY" },
+                { id:"openai",    label:"GPT-4o",  icon:"🟢", company:"OpenAI",    model:"gpt-4o-mini",     envKey:"OPENAI_API_KEY"    },
+                { id:"groq",      label:"Llama 3", icon:"🟡", company:"Groq",      model:"llama-3.3-70b",   envKey:"GROQ_API_KEY", free:true },
+              ];
+              const active = providers.find(p=>p.id===provider);
+              const missingKeys = providers.filter(p=>aiStatus[p.id]===false);
+              const availableKeys = providers.filter(p=>aiStatus[p.id]===true);
+              return <>
+                {/* Missing key warning */}
+                {missingKeys.length>0&&aiOn&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#856404",marginBottom:8}}>⚠️ Missing API Keys in Render</div>
+                  {missingKeys.map(p=><div key={p.id} style={{fontSize:12,color:"#856404",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+                    {p.icon} <b>{p.label} ({p.company})</b> — <code style={{background:"#ffeeba",padding:"1px 5px",borderRadius:4}}>{p.envKey}</code> not set in Render
+                  </div>)}
+                  {availableKeys.length>0&&<div style={{marginTop:8,fontSize:12,color:"#155724",fontWeight:600}}>
+                    ✅ Available: {availableKeys.map(p=>`${p.icon} ${p.label}`).join(" · ")}
+                  </div>}
+                </div>}
+
+                <div className="cc" style={{border:`2px solid ${aiOn?WA_GREEN:"#ef4444"}30`,background:aiOn?`${WA_GREEN}08`:"#ef444408"}}>
+                  {/* ON/OFF toggle */}
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:aiOn?16:0}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:15}}>🤖 Sara AI Bot</div>
+                      <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>
+                        {aiOn ? `Active — using ${active?.label} (${active?.company})` : "Disabled — no AI calls, zero cost"}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:13,fontWeight:700,color:aiOn?WA_GREEN:"#ef4444"}}>{aiOn?"ON":"OFF"}</span>
+                      <div onClick={()=>setAppSettings(p=>({...p,ai_enabled:p.ai_enabled==="false"?"true":"false"}))}
+                        style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:aiOn?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:3,left:aiOn?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Provider cards */}
+                  {aiOn&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                    {providers.map(p=>{
+                      const hasKey = aiStatus[p.id];
+                      const isSelected = provider===p.id;
+                      return <div key={p.id}
+                        onClick={()=>{ if(hasKey) setAppSettings(prev=>({...prev,ai_provider:p.id})); }}
+                        style={{
+                          borderRadius:10, padding:"12px 10px", textAlign:"center",
+                          cursor:hasKey?"pointer":"not-allowed",
+                          border:`2px solid ${isSelected?WA_GREEN:hasKey?T.border:"#ef444440"}`,
+                          background:isSelected?`${WA_GREEN}15`:hasKey?T.card:"#ef444408",
+                          opacity:hasKey?1:0.6, transition:"all .15s", position:"relative"
+                        }}>
+                        {p.free&&<div style={{position:"absolute",top:-8,right:8,background:"#10b981",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:8}}>FREE</div>}
+                        {isSelected&&<div style={{position:"absolute",top:-8,left:8,background:WA_GREEN,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:8}}>ACTIVE</div>}
+                        <div style={{fontSize:22,marginBottom:4}}>{p.icon}</div>
+                        <div style={{fontWeight:700,fontSize:13,color:isSelected?WA_GREEN:T.text}}>{p.label}</div>
+                        <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{p.company}</div>
+                        <div style={{fontSize:10,color:T.textMuted}}>{p.model}</div>
+                        <div style={{marginTop:6,fontSize:10,fontWeight:600,color:hasKey===undefined?"#6b7280":hasKey?"#10b981":"#ef4444"}}>
+                          {hasKey===undefined?"⏳ checking...":hasKey?"✅ Key set":"❌ No key in Render"}
+                        </div>
+                      </div>;
+                    })}
+                  </div>}
+
+                  {!aiOn&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"#ef444415",fontSize:12,color:"#ef4444",fontWeight:500}}>
+                    ⚠️ Bot is OFF globally — Sara will not reply to any customer. Manual agent replies still work.
+                  </div>}
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:13,fontWeight:600,color:appSettings.ai_enabled==="true"?WA_GREEN:"#ef4444"}}>
-                    {appSettings.ai_enabled==="true"?"ON":"OFF"}
-                  </span>
-                  <div onClick={()=>setAppSettings(p=>({...p,ai_enabled:p.ai_enabled==="true"?"false":"true"}))}
-                    style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.ai_enabled==="true"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
-                    <div style={{position:"absolute",top:3,left:appSettings.ai_enabled==="true"?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
-                  </div>
-                </div>
-              </div>
-              {appSettings.ai_enabled!=="true"&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"#ef444415",fontSize:12,color:"#ef4444",fontWeight:500}}>
-                ⚠️ Bot is OFF globally — Sara will not reply to any customer. Manual agent replies still work.
-              </div>}
-            </div>
+              </>;
+            })()}
 
             <div className="cc">
               <div style={{fontWeight:700,fontSize:14,marginBottom:14}}>🎯 Lead Scoring Keywords</div>
