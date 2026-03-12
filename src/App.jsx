@@ -71,6 +71,30 @@ export default function App() {
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState({});
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [changelogSeen, setChangelogSeen] = useState(()=>localStorage.getItem("changelog_seen")||"");
+
+  const CHANGELOG = [
+    { version:"2.7.0", date:"Mar 12 2026", tag:"NEW", color:"#10b981", items:[
+      "🤖 Multi AI provider — switch between Claude, GPT-4o, Groq (free) from Settings",
+      "🔔 Notification bell — version changelog (you're reading it!)",
+      "⚙️ Global AI ON/OFF toggle — zero API cost when off",
+    ]},
+    { version:"2.6.1", date:"Mar 9 2026", tag:"FIX", color:"#3b82f6", items:[
+      "✅ Agent manual reply from CRM now working",
+      "🔑 WhatsApp token error now shows exact error code",
+      "🔌 Dead DB connection recovery — auto reconnects",
+      "⏱️ Polling reduced to 10s — less backend load",
+    ]},
+    { version:"2.6.0", date:"Mar 8 2026", tag:"NEW", color:"#10b981", items:[
+      "🗂️ Archive contact feature",
+      "📊 Enhanced analytics — peak hours, bot vs human, growth %",
+      "📱 Mobile hamburger menu",
+      "🏷️ Versioning system (/version, /health, /stats)",
+    ]},
+  ];
+  const latestVersion = CHANGELOG[0].version;
+  const hasUnread = changelogSeen !== latestVersion;
 
   const messagesEndRef = useRef(null);
   const botEndRef = useRef(null);
@@ -385,8 +409,33 @@ export default function App() {
             v{CRM_VERSION}{backendVersion&&` · API v${backendVersion}`}
           </div>
           <button onClick={()=>setDark(d=>!d)} style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{dark?"☀️":"🌙"}</button>
+          {/* Notification Bell */}
+          <div style={{position:"relative"}}>
+            <button onClick={()=>{setShowChangelog(c=>!c); if(hasUnread){setChangelogSeen(latestVersion);localStorage.setItem("changelog_seen",latestVersion);}}}
+              style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${hasUnread?"#f59e0b":T.border}`,background:hasUnread?"#fef3c7":T.card2,color:hasUnread?"#d97706":T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
+              🔔
+              {hasUnread&&<span style={{position:"absolute",top:-4,right:-4,width:8,height:8,borderRadius:"50%",background:"#ef4444",border:"2px solid white"}}/>}
+            </button>
+            {/* Changelog dropdown */}
+            {showChangelog&&<div style={{position:"absolute",right:0,top:36,width:340,background:T.card,border:`1px solid ${T.border}`,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.15)",zIndex:200,overflow:"hidden"}}>
+              <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontWeight:700,fontSize:14}}>🔔 What's New</div>
+                <button onClick={()=>setShowChangelog(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted}}>✕</button>
+              </div>
+              <div style={{maxHeight:400,overflowY:"auto"}}>
+                {CHANGELOG.map((c,i)=><div key={c.version} style={{padding:"12px 16px",borderBottom:i<CHANGELOG.length-1?`1px solid ${T.border}`:"none"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                    <span style={{background:c.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8}}>{c.tag}</span>
+                    <span style={{fontWeight:700,fontSize:13}}>v{c.version}</span>
+                    <span style={{fontSize:11,color:T.textMuted,marginLeft:"auto"}}>{c.date}</span>
+                    {i===0&&<span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8}}>LATEST</span>}
+                  </div>
+                  {c.items.map((item,j)=><div key={j} style={{fontSize:12,color:T.textMuted,marginBottom:3,paddingLeft:4}}>{item}</div>)}
+                </div>)}
+              </div>
+            </div>}
+          </div>
         </div>
-      </div>
 
       {/* HAMBURGER SIDEBAR OVERLAY */}
       {menuOpen&&<>
@@ -836,13 +885,14 @@ export default function App() {
                       const hasKey = aiStatus[p.id];
                       const isSelected = provider===p.id;
                       return <div key={p.id}
-                        onClick={()=>{ if(hasKey) setAppSettings(prev=>({...prev,ai_provider:p.id})); }}
+                        onClick={()=>setAppSettings(prev=>({...prev,ai_provider:p.id}))}
                         style={{
                           borderRadius:10, padding:"12px 10px", textAlign:"center",
-                          cursor:hasKey?"pointer":"not-allowed",
-                          border:`2px solid ${isSelected?WA_GREEN:hasKey?T.border:"#ef444440"}`,
-                          background:isSelected?`${WA_GREEN}15`:hasKey?T.card:"#ef444408",
-                          opacity:hasKey?1:0.6, transition:"all .15s", position:"relative"
+                          cursor:"pointer",
+                          border:`2px solid ${isSelected?WA_GREEN:hasKey?T.border:"#f59e0b40"}`,
+                          background:isSelected?`${WA_GREEN}15`:T.card,
+                          transition:"all .15s", position:"relative",
+                          boxShadow:isSelected?"0 0 0 3px "+WA_GREEN+"30":""
                         }}>
                         {p.free&&<div style={{position:"absolute",top:-8,right:8,background:"#10b981",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:8}}>FREE</div>}
                         {isSelected&&<div style={{position:"absolute",top:-8,left:8,background:WA_GREEN,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:8}}>ACTIVE</div>}
@@ -850,11 +900,15 @@ export default function App() {
                         <div style={{fontWeight:700,fontSize:13,color:isSelected?WA_GREEN:T.text}}>{p.label}</div>
                         <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{p.company}</div>
                         <div style={{fontSize:10,color:T.textMuted}}>{p.model}</div>
-                        <div style={{marginTop:6,fontSize:10,fontWeight:600,color:hasKey===undefined?"#6b7280":hasKey?"#10b981":"#ef4444"}}>
-                          {hasKey===undefined?"⏳ checking...":hasKey?"✅ Key set":"❌ No key in Render"}
+                        <div style={{marginTop:6,fontSize:10,fontWeight:600,color:hasKey===undefined?"#6b7280":hasKey?"#10b981":"#f59e0b"}}>
+                          {hasKey===undefined?"⏳ checking...":hasKey?"✅ Key set":"⚠️ Add key to Render"}
                         </div>
                       </div>;
                     })}
+                  </div>}
+                  {/* Warning if selected provider has no key */}
+                  {aiOn&&aiStatus[provider]===false&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"#fff3cd",border:"1px solid #ffc10740",fontSize:12,color:"#856404"}}>
+                    ⚠️ <b>{providers.find(p=>p.id===provider)?.label}</b> is selected but <code>{providers.find(p=>p.id===provider)?.envKey}</code> is not set in Render. Bot will fail until you add the key.
                   </div>}
 
                   {!aiOn&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"#ef444415",fontSize:12,color:"#ef4444",fontWeight:500}}>
