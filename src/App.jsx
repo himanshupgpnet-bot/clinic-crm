@@ -72,7 +72,7 @@ export default function App() {
   const [botLoading, setBotLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState({});
   const [showChangelog, setShowChangelog] = useState(false);
-  const [changelogSeen, setChangelogSeen] = useState(()=>localStorage.getItem("changelog_seen")||"");
+  const [changelogSeen, setChangelogSeen] = useState("");
 
   const CHANGELOG = [
     { version:"2.7.0", date:"Mar 12 2026", tag:"NEW", color:"#10b981", items:[
@@ -411,7 +411,7 @@ export default function App() {
           <button onClick={()=>setDark(d=>!d)} style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{dark?"☀️":"🌙"}</button>
           {/* Notification Bell */}
           <div style={{position:"relative"}}>
-            <button onClick={()=>{setShowChangelog(c=>!c); if(hasUnread){setChangelogSeen(latestVersion);localStorage.setItem("changelog_seen",latestVersion);}}}
+            <button onClick={()=>{setShowChangelog(c=>!c); if(hasUnread){setChangelogSeen(latestVersion);}}}
               style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${hasUnread?"#f59e0b":T.border}`,background:hasUnread?"#fef3c7":T.card2,color:hasUnread?"#d97706":T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
               🔔
               {hasUnread&&<span style={{position:"absolute",top:-4,right:-4,width:8,height:8,borderRadius:"50%",background:"#ef4444",border:"2px solid white"}}/>}
@@ -436,6 +436,7 @@ export default function App() {
             </div>}
           </div>
         </div>
+      </div>
 
       {/* HAMBURGER SIDEBAR OVERLAY */}
       {menuOpen&&<>
