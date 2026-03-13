@@ -111,6 +111,7 @@ export default function App() {
       sessionStorage.setItem("crm_token", d.token);
       sessionStorage.setItem("crm_user", JSON.stringify(d.user));
       sessionStorage.setItem("crm_perms", JSON.stringify(d.permissions));
+      window.location.reload();
     } catch { setLoginError("Cannot connect to server"); }
     finally { setLoginLoading(false); }
   }
