@@ -35,9 +35,86 @@ const TABS = [
   {id:"bot",       icon:"🤖", label:"Test Bot"},
   {id:"kb",        icon:"📋", label:"Knowledge"},
   {id:"settings",  icon:"⚙️", label:"Settings"},
+  {id:"admin",     icon:"👑", label:"Admin", adminOnly:true},
 ];
 
 export default function App() {
+  // ── AUTH ──
+  const [authToken, setAuthToken] = useState(()=>sessionStorage.getItem("crm_token")||"");
+  const [currentUser, setCurrentUser] = useState(()=>{ try{ return JSON.parse(sessionStorage.getItem("crm_user")||"null"); }catch{return null;} });
+  const [permissions, setPermissions] = useState(()=>{ try{ return JSON.parse(sessionStorage.getItem("crm_perms")||"null"); }catch{return null;} });
+  const [loginForm, setLoginForm] = useState({username:"",password:""});
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const isAdmin = currentUser?.role === "admin";
+  const canSee = (tab) => {
+    if (!currentUser) return false;
+    if (isAdmin) return true;
+    if (!permissions || permissions === "all") return true;
+    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:false, admin:false };
+    return map[tab] ? permissions[map[tab]] : false;
+  };
+
+  const authHeaders = () => ({ "Content-Type":"application/json", "Authorization":`Bearer ${authToken}` });
+
+  async function doLogin() {
+    setLoginLoading(true); setLoginError("");
+    try {
+      const r = await fetch(`${API}/api/auth/login`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify(loginForm)
+      });
+      const d = await r.json();
+      if (!r.ok) { setLoginError(d.error||"Login failed"); return; }
+      setAuthToken(d.token);
+      setCurrentUser(d.user);
+      setPermissions(d.permissions);
+      sessionStorage.setItem("crm_token", d.token);
+      sessionStorage.setItem("crm_user", JSON.stringify(d.user));
+      sessionStorage.setItem("crm_perms", JSON.stringify(d.permissions));
+    } catch { setLoginError("Cannot connect to server"); }
+    finally { setLoginLoading(false); }
+  }
+
+  function doLogout() {
+    setAuthToken(""); setCurrentUser(null); setPermissions(null);
+    sessionStorage.clear();
+  }
+
+  // ── LOGIN PAGE ──
+  if (!currentUser) {
+    return (
+      <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1a2a1a,#0d1f0d)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
+        <div style={{background:"#fff",borderRadius:20,padding:40,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+          <div style={{textAlign:"center",marginBottom:28}}>
+            <div style={{width:56,height:56,borderRadius:14,background:`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px"}}>🏥</div>
+            <div style={{fontWeight:800,fontSize:22,color:"#111"}}>Evera Health CRM</div>
+            <div style={{fontSize:13,color:"#888",marginTop:4}}>Sign in to your account</div>
+          </div>
+          {loginError&&<div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#dc2626",marginBottom:16}}>❌ {loginError}</div>}
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:5}}>Username</div>
+            <input value={loginForm.username} onChange={e=>setLoginForm(p=>({...p,username:e.target.value}))}
+              onKeyDown={e=>e.key==="Enter"&&doLogin()}
+              placeholder="Enter username" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+          </div>
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:5}}>Password</div>
+            <input type="password" value={loginForm.password} onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
+              onKeyDown={e=>e.key==="Enter"&&doLogin()}
+              placeholder="Enter password" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+          </div>
+          <button onClick={doLogin} disabled={loginLoading}
+            style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:15,fontWeight:700,cursor:loginLoading?"wait":"pointer"}}>
+            {loginLoading?"Signing in...":"Sign In"}
+          </button>
+          <div style={{textAlign:"center",marginTop:16,fontSize:11,color:"#aaa"}}>Powered by Evera Health CRM v{CRM_VERSION}</div>
+        </div>
+      </div>
+    );
+  }
+
   const [dark, setDark] = useState(false);
   const [tab, setTab] = useState("crm");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -388,7 +465,7 @@ export default function App() {
 
         {/* Desktop tabs */}
         <div className="hide-mobile" style={{display:"flex",gap:2}}>
-          {TABS.map(t=>(
+          {TABS.filter(t=>!t.adminOnly||isAdmin).filter(t=>canSee(t.id)).map(t=>(
             <button key={t.id} className="tb" onClick={()=>setTab(t.id)}
               style={{display:"flex",alignItems:"center",gap:4,padding:"6px 10px",borderRadius:18,
                 background:tab===t.id?`${WA_GREEN}18`:"transparent",
@@ -409,6 +486,11 @@ export default function App() {
             v{CRM_VERSION}{backendVersion&&` · API v${backendVersion}`}
           </div>
           <button onClick={()=>setDark(d=>!d)} style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{dark?"☀️":"🌙"}</button>
+          {/* User info + logout */}
+          <div style={{display:"flex",alignItems:"center",gap:6,padding:"3px 10px",borderRadius:18,background:T.card2,border:`1px solid ${T.border}`}}>
+            <span style={{fontSize:11,color:T.textMuted}}>{isAdmin?"👑":"👤"} {currentUser?.username}</span>
+            <button onClick={doLogout} style={{padding:"2px 8px",borderRadius:10,border:"none",background:"#ef444420",color:"#ef4444",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Logout</button>
+          </div>
           {/* Notification Bell */}
           <div style={{position:"relative"}}>
             <button onClick={()=>{setShowChangelog(c=>!c); if(hasUnread){setChangelogSeen(latestVersion);}}}
@@ -950,6 +1032,213 @@ export default function App() {
           </div>
         </div>}
 
+        {/* ══ ADMIN TAB ══ */}
+        {tab==="admin"&&isAdmin&&<AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark}/>}
+
+      </div>
+    </div>
+  );
+}
+
+// ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
+function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
+  const [users, setUsers] = useState([]);
+  const [clinics, setClinics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showNewUser, setShowNewUser] = useState(false);
+  const [newUser, setNewUser] = useState({username:"",password:"",role:"client",clinic_id:1});
+  const [editUser, setEditUser] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const PROVIDERS = [{id:"anthropic",label:"🟣 Claude"},{id:"openai",label:"🟢 GPT-4o"},{id:"groq",label:"🟡 Groq (Free)"}];
+  const PERM_TABS = [
+    {key:"can_inbox",    label:"💬 Inbox"},
+    {key:"can_leads",    label:"🎯 Leads"},
+    {key:"can_analytics",label:"📊 Analytics"},
+    {key:"can_testbot",  label:"🤖 Test Bot"},
+    {key:"can_knowledge",label:"📋 Knowledge"},
+  ];
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [ur, cr] = await Promise.all([
+        fetch(`${API}/api/admin/users`, {headers:authHeaders()}),
+        fetch(`${API}/api/admin/clinics`, {headers:authHeaders()}),
+      ]);
+      setUsers(await ur.json());
+      setClinics(await cr.json());
+    } catch {}
+    setLoading(false);
+  }
+
+  useEffect(()=>{ load(); },[]);
+
+  async function createUser() {
+    setSaving(true);
+    try {
+      const r = await fetch(`${API}/api/admin/users`, {method:"POST",headers:authHeaders(),body:JSON.stringify(newUser)});
+      if(r.ok){ setMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",role:"client",clinic_id:1}); load(); }
+      else { const d=await r.json(); setMsg("❌ "+d.error); }
+    } catch { setMsg("❌ Error"); }
+    setSaving(false); setTimeout(()=>setMsg(""),3000);
+  }
+
+  async function saveUser() {
+    setSaving(true);
+    try {
+      const r = await fetch(`${API}/api/admin/users/${editUser.id}`, {method:"PATCH",headers:authHeaders(),body:JSON.stringify({
+        active: editUser.active,
+        password: editUser.newPassword||undefined,
+        permissions: {
+          can_inbox:     editUser.can_inbox,
+          can_leads:     editUser.can_leads,
+          can_analytics: editUser.can_analytics,
+          can_testbot:   editUser.can_testbot,
+          can_knowledge: editUser.can_knowledge,
+          ai_provider:   editUser.ai_provider||"anthropic",
+        }
+      })});
+      if(r.ok){ setMsg("✅ Saved!"); setEditUser(null); load(); }
+      else { setMsg("❌ Error saving"); }
+    } catch { setMsg("❌ Error"); }
+    setSaving(false); setTimeout(()=>setMsg(""),3000);
+  }
+
+  async function deleteUser(id) {
+    if(!confirm("Delete this user?")) return;
+    await fetch(`${API}/api/admin/users/${id}`, {method:"DELETE",headers:authHeaders()});
+    load();
+  }
+
+  const inp = (val, onChange, placeholder, type="text") => (
+    <input type={type} value={val||""} onChange={onChange} placeholder={placeholder}
+      style={{width:"100%",padding:"8px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+  );
+
+  if(loading) return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:T.textMuted}}>Loading...</div>;
+
+  return (
+    <div style={{flex:1,overflowY:"auto",padding:16,background:T.bg}}>
+      <div style={{maxWidth:800,margin:"0 auto"}}>
+        {msg&&<div style={{background:msg.startsWith("✅")?"#f0fdf4":"#fef2f2",border:`1px solid ${msg.startsWith("✅")?"#86efac":"#fca5a5"}`,borderRadius:10,padding:"8px 14px",marginBottom:12,fontSize:13,color:msg.startsWith("✅")?"#166534":"#dc2626"}}>{msg}</div>}
+
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+          <div><div style={{fontWeight:800,fontSize:18}}>👑 Admin Panel</div><div style={{fontSize:12,color:T.textMuted}}>Manage users, clinics & permissions</div></div>
+          <button onClick={()=>setShowNewUser(true)} style={{padding:"8px 16px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ New User</button>
+        </div>
+
+        {/* Clinics */}
+        <div className="cc" style={{marginBottom:16}}>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:12}}>🏥 Clinics ({clinics.length})</div>
+          {clinics.map(c=><div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div>
+              <div style={{fontWeight:600,fontSize:13}}>{c.name}</div>
+              <div style={{fontSize:11,color:T.textMuted}}>{c.whatsapp_number} · {c.ai_provider}</div>
+            </div>
+            <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:8,background:c.active?"#dcfce7":"#fee2e2",color:c.active?"#166534":"#dc2626"}}>{c.active?"Active":"Inactive"}</span>
+          </div>)}
+        </div>
+
+        {/* Users */}
+        <div className="cc">
+          <div style={{fontWeight:700,fontSize:14,marginBottom:12}}>👥 Users ({users.length})</div>
+          {users.map(u=><div key={u.id} style={{padding:"12px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:36,height:36,borderRadius:10,background:u.role==="admin"?"#fef3c7":"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
+                  {u.role==="admin"?"👑":"👤"}
+                </div>
+                <div>
+                  <div style={{fontWeight:600,fontSize:13}}>{u.username} <span style={{fontSize:10,color:T.textMuted}}>#{u.id}</span></div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{u.clinic_name||"No clinic"} · {u.role}</div>
+                  {u.role==="client"&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>
+                    {["can_inbox","can_leads","can_analytics","can_testbot","can_knowledge"].filter(k=>u[k]).map(k=>({can_inbox:"💬",can_leads:"🎯",can_analytics:"📊",can_testbot:"🤖",can_knowledge:"📋"})[k]).join(" ")||"No tabs"}
+                    {u.ai_provider&&` · ${u.ai_provider}`}
+                  </div>}
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>setEditUser({...u,newPassword:""})} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Edit</button>
+                {u.role!=="admin"&&<button onClick={()=>deleteUser(u.id)} style={{padding:"4px 10px",borderRadius:8,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>}
+              </div>
+            </div>
+          </div>)}
+        </div>
+
+        {/* New User Modal */}
+        {showNewUser&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:T.card,borderRadius:16,padding:24,width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:16}}>➕ Create New User</div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {inp(newUser.username, e=>setNewUser(p=>({...p,username:e.target.value})), "Username")}
+              {inp(newUser.password, e=>setNewUser(p=>({...p,password:e.target.value})), "Password", "password")}
+              <select value={newUser.role} onChange={e=>setNewUser(p=>({...p,role:e.target.value}))}
+                style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit"}}>
+                <option value="client">Client</option>
+                <option value="admin">Admin</option>
+              </select>
+              <select value={newUser.clinic_id} onChange={e=>setNewUser(p=>({...p,clinic_id:parseInt(e.target.value)}))}
+                style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit"}}>
+                {clinics.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:16}}>
+              <button onClick={()=>setShowNewUser(false)} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={createUser} disabled={saving} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Saving...":"Create"}</button>
+            </div>
+          </div>
+        </div>}
+
+        {/* Edit User Modal */}
+        {editUser&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:T.card,borderRadius:16,padding:24,width:"100%",maxWidth:440,boxShadow:"0 20px 60px rgba(0,0,0,.3)",maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:16}}>✏️ Edit User — {editUser.username}</div>
+
+            {/* Active toggle */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"10px 12px",borderRadius:10,background:T.card2}}>
+              <span style={{fontSize:13,fontWeight:600}}>Account Active</span>
+              <div onClick={()=>setEditUser(p=>({...p,active:!p.active}))}
+                style={{width:42,height:24,borderRadius:12,cursor:"pointer",background:editUser.active?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s"}}>
+                <div style={{position:"absolute",top:3,left:editUser.active?20:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
+              </div>
+            </div>
+
+            {/* Reset password */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:5}}>New Password (leave blank to keep)</div>
+              {inp(editUser.newPassword, e=>setEditUser(p=>({...p,newPassword:e.target.value})), "New password", "password")}
+            </div>
+
+            {/* Permissions (client only) */}
+            {editUser.role==="client"&&<>
+              <div style={{fontSize:13,fontWeight:700,marginBottom:10}}>📋 Tab Permissions</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+                {PERM_TABS.map(p=><div key={p.key} onClick={()=>setEditUser(prev=>({...prev,[p.key]:!prev[p.key]}))}
+                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,cursor:"pointer",background:editUser[p.key]?`${WA_GREEN}15`:T.card2}}>
+                  <span style={{fontSize:12,fontWeight:600,color:editUser[p.key]?WA_GREEN:T.textMuted}}>{p.label}</span>
+                  <div style={{width:32,height:18,borderRadius:9,background:editUser[p.key]?WA_GREEN:T.border,position:"relative",transition:"background .2s",flexShrink:0}}>
+                    <div style={{position:"absolute",top:2,left:editUser[p.key]?14:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
+                  </div>
+                </div>)}
+              </div>
+              <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>🤖 AI Provider</div>
+              <div style={{display:"flex",gap:8,marginBottom:14}}>
+                {PROVIDERS.map(p=><button key={p.id} onClick={()=>setEditUser(prev=>({...prev,ai_provider:p.id}))}
+                  style={{flex:1,padding:"8px 4px",borderRadius:8,border:`2px solid ${editUser.ai_provider===p.id?WA_GREEN:T.border}`,background:editUser.ai_provider===p.id?`${WA_GREEN}15`:T.card2,color:editUser.ai_provider===p.id?WA_GREEN:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  {p.label}
+                </button>)}
+              </div>
+            </>}
+
+            <div style={{display:"flex",gap:10,marginTop:4}}>
+              <button onClick={()=>setEditUser(null)} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={saveUser} disabled={saving} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Saving...":"Save Changes"}</button>
+            </div>
+          </div>
+        </div>}
       </div>
     </div>
   );
