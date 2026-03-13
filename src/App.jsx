@@ -1130,49 +1130,73 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
 
   return (
     <div style={{flex:1,overflowY:"auto",padding:16,background:T.bg}}>
-      <div style={{maxWidth:800,margin:"0 auto"}}>
+      <div style={{maxWidth:860,margin:"0 auto"}}>
         {msg&&<div style={{background:msg.startsWith("✅")?"#f0fdf4":"#fef2f2",border:`1px solid ${msg.startsWith("✅")?"#86efac":"#fca5a5"}`,borderRadius:10,padding:"8px 14px",marginBottom:12,fontSize:13,color:msg.startsWith("✅")?"#166534":"#dc2626"}}>{msg}</div>}
 
         {/* Header */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
-          <div><div style={{fontWeight:800,fontSize:18}}>👑 Admin Panel</div><div style={{fontSize:12,color:T.textMuted}}>Manage users, clinics & permissions</div></div>
-          <button onClick={()=>setShowNewUser(true)} style={{padding:"8px 16px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ New User</button>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+          <div>
+            <div style={{fontWeight:800,fontSize:20}}>👑 User Management</div>
+            <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>Create client accounts and control what each user can access</div>
+          </div>
+          <button onClick={()=>setShowNewUser(true)} style={{padding:"10px 20px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+            ＋ New User
+          </button>
         </div>
 
-        {/* Clinics */}
-        <div className="cc" style={{marginBottom:16}}>
-          <div style={{fontWeight:700,fontSize:14,marginBottom:12}}>🏥 Clinics ({clinics.length})</div>
-          {clinics.map(c=><div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
-            <div>
-              <div style={{fontWeight:600,fontSize:13}}>{c.name}</div>
-              <div style={{fontSize:11,color:T.textMuted}}>{c.whatsapp_number} · {c.ai_provider}</div>
-            </div>
-            <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:8,background:c.active?"#dcfce7":"#fee2e2",color:c.active?"#166534":"#dc2626"}}>{c.active?"Active":"Inactive"}</span>
+        {/* Stats row */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+          {[
+            {icon:"👥", label:"Total Users", value:users.length},
+            {icon:"✅", label:"Active", value:users.filter(u=>u.active).length},
+            {icon:"🏥", label:"Clinics", value:clinics.length},
+          ].map(s=><div key={s.label} className="cc" style={{textAlign:"center",padding:"14px 10px"}}>
+            <div style={{fontSize:24,marginBottom:4}}>{s.icon}</div>
+            <div style={{fontWeight:800,fontSize:22,color:WA_GREEN}}>{s.value}</div>
+            <div style={{fontSize:11,color:T.textMuted}}>{s.label}</div>
           </div>)}
         </div>
 
-        {/* Users */}
-        <div className="cc">
-          <div style={{fontWeight:700,fontSize:14,marginBottom:12}}>👥 Users ({users.length})</div>
-          {users.map(u=><div key={u.id} style={{padding:"12px 0",borderBottom:`1px solid ${T.border}`}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:36,height:36,borderRadius:10,background:u.role==="admin"?"#fef3c7":"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
-                  {u.role==="admin"?"👑":"👤"}
+        {/* Users table */}
+        <div className="cc" style={{padding:0,overflow:"hidden"}}>
+          <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{fontWeight:700,fontSize:14}}>👥 Client Users ({users.length})</div>
+          </div>
+          {users.length===0&&<div style={{padding:32,textAlign:"center",color:T.textMuted}}>
+            <div style={{fontSize:40,marginBottom:8}}>👤</div>
+            <div style={{fontWeight:600}}>No users yet</div>
+            <div style={{fontSize:12,marginTop:4}}>Click "+ New User" to create your first client account</div>
+          </div>}
+          {users.map((u,i)=><div key={u.id} style={{padding:"14px 16px",borderBottom:i<users.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,flex:1,minWidth:0}}>
+              <div style={{width:40,height:40,borderRadius:12,background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
+              <div style={{minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:8}}>
+                  {u.username}
+                  <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:6,background:u.active?"#dcfce7":"#fee2e2",color:u.active?"#166534":"#dc2626"}}>{u.active?"Active":"Inactive"}</span>
                 </div>
-                <div>
-                  <div style={{fontWeight:600,fontSize:13}}>{u.username} <span style={{fontSize:10,color:T.textMuted}}>#{u.id}</span></div>
-                  <div style={{fontSize:11,color:T.textMuted}}>{u.clinic_name||"No clinic"} · {u.role}</div>
-                  {u.role==="client"&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>
-                    {["can_inbox","can_leads","can_analytics","can_testbot","can_knowledge"].filter(k=>u[k]).map(k=>({can_inbox:"💬",can_leads:"🎯",can_analytics:"📊",can_testbot:"🤖",can_knowledge:"📋"})[k]).join(" ")||"No tabs"}
-                    {u.ai_provider&&` · ${u.ai_provider}`}
-                  </div>}
+                <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{u.clinic_name||"No clinic"}</div>
+                <div style={{display:"flex",gap:4,marginTop:5,flexWrap:"wrap"}}>
+                  {[
+                    {k:"can_inbox",    e:"💬", l:"Inbox"},
+                    {k:"can_leads",    e:"🎯", l:"Leads"},
+                    {k:"can_analytics",e:"📊", l:"Analytics"},
+                    {k:"can_testbot",  e:"🤖", l:"Test Bot"},
+                    {k:"can_knowledge",e:"📋", l:"Knowledge"},
+                  ].map(p=><span key={p.k} style={{fontSize:10,padding:"2px 7px",borderRadius:6,background:u[p.k]?`${WA_GREEN}20`:`${T.border}`,color:u[p.k]?WA_GREEN:T.textMuted,fontWeight:600}}>
+                    {p.e} {p.l}
+                  </span>)}
+                  <span style={{fontSize:10,padding:"2px 7px",borderRadius:6,background:"#f3e8ff",color:"#7c3aed",fontWeight:600}}>
+                    🤖 {u.ai_provider||"anthropic"}
+                  </span>
                 </div>
               </div>
-              <div style={{display:"flex",gap:6}}>
-                <button onClick={()=>setEditUser({...u,newPassword:""})} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Edit</button>
-                {u.role!=="admin"&&<button onClick={()=>deleteUser(u.id)} style={{padding:"4px 10px",borderRadius:8,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>}
-              </div>
+            </div>
+            <div style={{display:"flex",gap:8,flexShrink:0}}>
+              <button onClick={()=>setEditUser({...u,newPassword:""})}
+                style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit</button>
+              <button onClick={()=>deleteUser(u.id)}
+                style={{padding:"6px 14px",borderRadius:8,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
             </div>
           </div>)}
         </div>
