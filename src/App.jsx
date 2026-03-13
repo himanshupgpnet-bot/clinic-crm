@@ -120,39 +120,209 @@ export default function App() {
     sessionStorage.clear();
   }
 
+  function doLogout() {
+    sessionStorage.clear();
+    setCurrentUser(null);
+    setAuthToken("");
+    setPermissions(null);
+    setLoginForm({username:"",password:""});
+    setLoginError("");
+  }
+
+
   // ── LOGIN PAGE ──
   if (!currentUser) {
     return (
-      <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1a2a1a,#0d1f0d)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
-        <div style={{background:"#fff",borderRadius:20,padding:40,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-          <div style={{textAlign:"center",marginBottom:28}}>
-            <div style={{width:56,height:56,borderRadius:14,background:`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 12px"}}>🏥</div>
-            <div style={{fontWeight:800,fontSize:22,color:"#111"}}>Evera Health CRM</div>
-            <div style={{fontSize:13,color:"#888",marginTop:4}}>Sign in to your account</div>
-          </div>
-          {loginError&&<div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#dc2626",marginBottom:16}}>❌ {loginError}</div>}
-          <div style={{marginBottom:14}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:5}}>Username</div>
-            <input value={loginForm.username} onChange={e=>setLoginForm(p=>({...p,username:e.target.value}))}
-              onKeyDown={e=>e.key==="Enter"&&doLogin()}
-              placeholder="Enter username" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
-          </div>
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:5}}>Password</div>
-            <div style={{position:"relative"}}>
-              <input type={showPw?"text":"password"} value={loginForm.password} onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
-                onKeyDown={e=>e.key==="Enter"&&doLogin()}
-                placeholder="Enter password" style={{width:"100%",padding:"10px 40px 10px 12px",borderRadius:10,border:"1px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
-              <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:16,color:"#888"}}>
-                {showPw?"🙈":"👁️"}
-              </button>
+      <div style={{minHeight:"100vh",display:"flex",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",background:"#f8faff"}}>
+        <style>{`
+          @keyframes bob1{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+          @keyframes bob2{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+          @keyframes bob3{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+          @keyframes bob4{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+          @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+          @keyframes floatCard{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(-2deg)}}
+          @keyframes floatCard2{0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+          @keyframes pulse{0%,100%{transform:scale(1);opacity:0.6}50%{transform:scale(1.08);opacity:1}}
+          @keyframes dash{to{stroke-dashoffset:-40}}
+          .ani{animation:fadeUp 0.6s ease forwards}
+          .btn-wa:hover{filter:brightness(1.08);transform:translateY(-2px);transition:all 0.2s}
+          .btn-ig:hover{filter:brightness(1.08);transform:translateY(-2px);transition:all 0.2s}
+          .btn-tk:hover{filter:brightness(1.08);transform:translateY(-2px);transition:all 0.2s}
+          .btn-fb:hover{filter:brightness(1.08);transform:translateY(-2px);transition:all 0.2s}
+          .login-input:focus{border-color:#4f46e5!important;box-shadow:0 0 0 3px rgba(79,70,229,0.1)!important;outline:none}
+        `}</style>
+
+        {/* LEFT — login form */}
+        <div style={{width:"45%",minWidth:380,padding:"48px 56px",display:"flex",flexDirection:"column",justifyContent:"center",background:"#fff",boxShadow:"4px 0 40px rgba(0,0,0,0.06)",position:"relative",zIndex:2}}>
+
+          {/* Logo */}
+          <div className="ani" style={{marginBottom:40,animationDelay:"0s"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#4f46e5,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🤖</div>
+              <div style={{fontWeight:900,fontSize:22,letterSpacing:-0.5}}>
+                <span style={{color:"#4f46e5"}}>Nexo</span><span style={{color:"#111"}}>ra</span>
+              </div>
             </div>
           </div>
-          <button onClick={doLogin} disabled={loginLoading}
-            style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:15,fontWeight:700,cursor:loginLoading?"wait":"pointer"}}>
-            {loginLoading?"Signing in...":"Sign In"}
-          </button>
-          <div style={{textAlign:"center",marginTop:16,fontSize:11,color:"#aaa"}}>Powered by Evera Health CRM v{CRM_VERSION}</div>
+
+          <div className="ani" style={{marginBottom:32,animationDelay:"0.1s"}}>
+            <div style={{fontWeight:800,fontSize:28,color:"#111",marginBottom:6}}>Welcome back 👋</div>
+            <div style={{fontSize:14,color:"#888"}}>Sign in to your omnichannel dashboard</div>
+          </div>
+
+          {/* Social login buttons */}
+          <div className="ani" style={{display:"flex",flexDirection:"column",gap:12,marginBottom:24,animationDelay:"0.2s"}}>
+
+            {/* WhatsApp */}
+            <button className="btn-wa" onClick={()=>{}} style={{display:"flex",alignItems:"center",gap:14,padding:"13px 20px",borderRadius:14,border:"none",background:"#25D366",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
+              <div style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </div>
+              Connect with WhatsApp
+            </button>
+
+            {/* Instagram */}
+            <button className="btn-ig" onClick={()=>{}} style={{display:"flex",alignItems:"center",gap:14,padding:"13px 20px",borderRadius:14,border:"none",background:"linear-gradient(90deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
+              <div style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              </div>
+              Connect with Instagram
+            </button>
+
+            {/* TikTok */}
+            <button className="btn-tk" onClick={()=>{}} style={{display:"flex",alignItems:"center",gap:14,padding:"13px 20px",borderRadius:14,border:"none",background:"#010101",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s",border:"1px solid #333"}}>
+              <div style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#69c9d0"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.27 8.27 0 004.84 1.56V6.78a4.85 4.85 0 01-1.07-.09z"/></svg>
+              </div>
+              Connect with TikTok
+            </button>
+
+            {/* Facebook */}
+            <button className="btn-fb" onClick={()=>{}} style={{display:"flex",alignItems:"center",gap:14,padding:"13px 20px",borderRadius:14,border:"none",background:"#1877f2",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
+              <div style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              </div>
+              Connect with Facebook
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="ani" style={{display:"flex",alignItems:"center",gap:12,marginBottom:24,animationDelay:"0.3s"}}>
+            <div style={{flex:1,height:1,background:"#e5e7eb"}}/>
+            <span style={{fontSize:13,color:"#aaa",fontWeight:500}}>or sign in with credentials</span>
+            <div style={{flex:1,height:1,background:"#e5e7eb"}}/>
+          </div>
+
+          {/* Username + password */}
+          <div className="ani" style={{animationDelay:"0.35s"}}>
+            {loginError&&<div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#dc2626",marginBottom:14}}>⚠ {loginError}</div>}
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:5,letterSpacing:0.3}}>Username</div>
+              <input className="login-input" value={loginForm.username}
+                onChange={e=>setLoginForm(p=>({...p,username:e.target.value}))}
+                onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                placeholder="Enter your username"
+                style={{width:"100%",padding:"12px 14px",borderRadius:12,border:"1.5px solid #e5e7eb",fontSize:14,boxSizing:"border-box",fontFamily:"inherit",transition:"all 0.2s",color:"#111"}}/>
+            </div>
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:5,letterSpacing:0.3}}>Password</div>
+              <div style={{position:"relative"}}>
+                <input className="login-input" type={showPw?"text":"password"} value={loginForm.password}
+                  onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
+                  onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                  placeholder="Enter your password"
+                  style={{width:"100%",padding:"12px 44px 12px 14px",borderRadius:12,border:"1.5px solid #e5e7eb",fontSize:14,boxSizing:"border-box",fontFamily:"inherit",transition:"all 0.2s",color:"#111"}}/>
+                <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:16,color:"#aaa",padding:0}}>{showPw?"🙈":"👁️"}</button>
+              </div>
+            </div>
+            <button onClick={doLogin} disabled={loginLoading}
+              style={{width:"100%",padding:"13px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#4f46e5,#7c3aed)",color:"#fff",fontSize:15,fontWeight:800,cursor:loginLoading?"wait":"pointer",fontFamily:"inherit",boxShadow:"0 8px 24px rgba(79,70,229,0.35)",transition:"all 0.2s"}}>
+              {loginLoading?"Signing in...":"Sign In →"}
+            </button>
+          </div>
+
+          <div style={{marginTop:24,fontSize:11,color:"#ccc",textAlign:"center"}}>Nexora CRM · v{CRM_VERSION}</div>
+        </div>
+
+        {/* RIGHT — animated illustration */}
+        <div style={{flex:1,background:"linear-gradient(135deg,#f0f4ff 0%,#faf0ff 50%,#f0fff8 100%)",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
+
+          {/* Background blobs */}
+          <div style={{position:"absolute",top:"-10%",right:"-5%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle,rgba(79,70,229,0.08),transparent 70%)"}}/>
+          <div style={{position:"absolute",bottom:"-10%",left:"-5%",width:350,height:350,borderRadius:"50%",background:"radial-gradient(circle,rgba(124,58,237,0.07),transparent 70%)"}}/>
+
+          <div style={{position:"relative",width:"80%",maxWidth:520}}>
+
+            {/* Main chat UI card */}
+            <div style={{background:"#fff",borderRadius:24,padding:24,boxShadow:"0 20px 60px rgba(79,70,229,0.12)",animation:"floatCard 5s ease-in-out infinite"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18}}>
+                <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#4f46e5,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🤖</div>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#111"}}>Nexora AI</div>
+                  <div style={{fontSize:11,color:"#25D366",fontWeight:600}}>● Online</div>
+                </div>
+              </div>
+              {/* Chat messages */}
+              {[
+                {from:"bot",text:"Hi! How can I help you today? 😊",color:"#f3f4f6",tc:"#111"},
+                {from:"user",text:"I want to book an appointment",color:"#4f46e5",tc:"#fff"},
+                {from:"bot",text:"Sure! What date works for you? 📅",color:"#f3f4f6",tc:"#111"},
+              ].map((m,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:m.from==="user"?"flex-end":"flex-start",marginBottom:8}}>
+                  <div style={{background:m.color,color:m.tc,padding:"9px 14px",borderRadius:m.from==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",fontSize:13,fontWeight:500,maxWidth:"75%"}}>{m.text}</div>
+                </div>
+              ))}
+              <div style={{marginTop:12,display:"flex",gap:8}}>
+                <div style={{flex:1,background:"#f9fafb",borderRadius:10,padding:"9px 14px",fontSize:12,color:"#aaa",border:"1px solid #e5e7eb"}}>Type a message...</div>
+                <div style={{width:36,height:36,borderRadius:10,background:"#4f46e5",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:16,cursor:"pointer"}}>↑</div>
+              </div>
+            </div>
+
+            {/* Floating WhatsApp badge */}
+            <div style={{position:"absolute",top:-20,right:-20,background:"#fff",borderRadius:16,padding:"10px 14px",boxShadow:"0 8px 30px rgba(37,211,102,0.2)",display:"flex",alignItems:"center",gap:8,animation:"bob1 4s ease-in-out infinite"}}>
+              <div style={{width:32,height:32,borderRadius:10,background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </div>
+              <div><div style={{fontSize:11,fontWeight:700,color:"#111"}}>WhatsApp</div><div style={{fontSize:10,color:"#25D366",fontWeight:600}}>Connected ✓</div></div>
+            </div>
+
+            {/* Floating Instagram badge */}
+            <div style={{position:"absolute",bottom:-16,left:-24,background:"#fff",borderRadius:16,padding:"10px 14px",boxShadow:"0 8px 30px rgba(225,48,108,0.2)",display:"flex",alignItems:"center",gap:8,animation:"bob2 5s ease-in-out infinite 0.5s"}}>
+              <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,#f09433,#dc2743,#bc1888)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              </div>
+              <div><div style={{fontSize:11,fontWeight:700,color:"#111"}}>Instagram</div><div style={{fontSize:10,color:"#E1306C",fontWeight:600}}>Connected ✓</div></div>
+            </div>
+
+            {/* Floating TikTok badge */}
+            <div style={{position:"absolute",top:"40%",right:-30,background:"#fff",borderRadius:16,padding:"10px 14px",boxShadow:"0 8px 30px rgba(105,201,208,0.2)",display:"flex",alignItems:"center",gap:8,animation:"bob3 6s ease-in-out infinite 1s"}}>
+              <div style={{width:32,height:32,borderRadius:10,background:"#010101",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#69c9d0"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.27 8.27 0 004.84 1.56V6.78a4.85 4.85 0 01-1.07-.09z"/></svg>
+              </div>
+              <div><div style={{fontSize:11,fontWeight:700,color:"#111"}}>TikTok</div><div style={{fontSize:10,color:"#69c9d0",fontWeight:600}}>Connected ✓</div></div>
+            </div>
+
+            {/* Floating Facebook badge */}
+            <div style={{position:"absolute",top:-10,left:"30%",background:"#fff",borderRadius:16,padding:"10px 14px",boxShadow:"0 8px 30px rgba(24,119,242,0.2)",display:"flex",alignItems:"center",gap:8,animation:"bob4 4.5s ease-in-out infinite 0.8s"}}>
+              <div style={{width:32,height:32,borderRadius:10,background:"#1877f2",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              </div>
+              <div><div style={{fontSize:11,fontWeight:700,color:"#111"}}>Facebook</div><div style={{fontSize:10,color:"#1877f2",fontWeight:600}}>Connected ✓</div></div>
+            </div>
+
+            {/* Stats card */}
+            <div style={{position:"absolute",bottom:-50,right:20,background:"#fff",borderRadius:16,padding:"12px 16px",boxShadow:"0 8px 30px rgba(79,70,229,0.15)",animation:"floatCard2 6s ease-in-out infinite"}}>
+              <div style={{fontSize:10,color:"#888",fontWeight:600,marginBottom:6,letterSpacing:0.5}}>TODAY'S MESSAGES</div>
+              <div style={{display:"flex",gap:12}}>
+                {[{c:"#25D366",n:"48"},{c:"#E1306C",n:"23"},{c:"#69c9d0",n:"31"},{c:"#1877f2",n:"17"}].map((s,i)=>(
+                  <div key={i} style={{textAlign:"center"}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:s.c,margin:"0 auto 3px"}}/>
+                    <div style={{fontSize:13,fontWeight:800,color:"#111"}}>{s.n}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
