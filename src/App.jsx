@@ -48,6 +48,42 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
 
+  // ── MAIN APP HOOKS (must all be declared before any return) ──
+  const [tab, setTab] = useState("crm");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [contacts, setContacts] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [backendStatus, setBackendStatus] = useState("checking");
+  const [backendVersion, setBackendVersion] = useState("");
+  const [reply, setReply] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [leadFilter, setLeadFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [qaData, setQaData] = useState([]);
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editQ, setEditQ] = useState(""); const [editA, setEditA] = useState("");
+  const [newQ, setNewQ] = useState(""); const [newA, setNewA] = useState("");
+  const [appSettings, setAppSettings] = useState({});
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [hoveredSource, setHoveredSource] = useState(null);
+  const [highlightedQA, setHighlightedQA] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
+  const [sendingFollowup, setSendingFollowup] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [dateFrom, setDateFrom] = useState(daysAgo(29));
+  const [dateTo, setDateTo] = useState(today());
+  const [datePreset, setDatePreset] = useState("30d");
+  const [archiveConfirm, setArchiveConfirm] = useState(null);
+  const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Evera Health 😊\nHow can I help you today?",time:ts(),sources:[]}]);
+  const [botInput, setBotInput] = useState("");
+  const [botLoading, setBotLoading] = useState(false);
+  const [aiStatus, setAiStatus] = useState({});
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [changelogSeen, setChangelogSeen] = useState("");
+
   const isAdmin = currentUser?.role === "admin";
   const canSee = (tab) => {
     if (!currentUser) return false;
@@ -83,6 +119,8 @@ export default function App() {
     sessionStorage.clear();
   }
 
+  // ── LOGIN PAGE ──
+  if (!currentUser) {
     return (
       <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1a2a1a,#0d1f0d)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
         <div style={{background:"#fff",borderRadius:20,padding:40,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
@@ -119,41 +157,7 @@ export default function App() {
     );
   }
 
-  const [dark, setDark] = useState(false);
-  const [tab, setTab] = useState("crm");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [contacts, setContacts] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [backendStatus, setBackendStatus] = useState("checking");
-  const [backendVersion, setBackendVersion] = useState("");
-  const [reply, setReply] = useState("");
-  const [filter, setFilter] = useState("all");
-  const [leadFilter, setLeadFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [qaData, setQaData] = useState([]);
-  const [systemPrompt, setSystemPrompt] = useState("");
-  const [editingId, setEditingId] = useState(null);
-  const [editQ, setEditQ] = useState(""); const [editA, setEditA] = useState("");
-  const [newQ, setNewQ] = useState(""); const [newA, setNewA] = useState("");
-  const [appSettings, setAppSettings] = useState({});
-  const [settingsSaved, setSettingsSaved] = useState(false);
-  const [hoveredSource, setHoveredSource] = useState(null);
-  const [highlightedQA, setHighlightedQA] = useState(null);
-  const [dragOver, setDragOver] = useState(null);
-  const [sendingFollowup, setSendingFollowup] = useState(null);
-  const [analytics, setAnalytics] = useState(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const [dateFrom, setDateFrom] = useState(daysAgo(29));
-  const [dateTo, setDateTo] = useState(today());
-  const [datePreset, setDatePreset] = useState("30d");
-  const [archiveConfirm, setArchiveConfirm] = useState(null);
-  const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Evera Health 😊\nHow can I help you today?",time:ts(),sources:[]}]);
-  const [botInput, setBotInput] = useState("");
-  const [botLoading, setBotLoading] = useState(false);
-  const [aiStatus, setAiStatus] = useState({});
-  const [showChangelog, setShowChangelog] = useState(false);
-  const [changelogSeen, setChangelogSeen] = useState("");
+  // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
     { version:"2.7.0", date:"Mar 12 2026", tag:"NEW", color:"#10b981", items:[
