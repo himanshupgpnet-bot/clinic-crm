@@ -83,6 +83,7 @@ export default function App() {
   const [aiStatus, setAiStatus] = useState({});
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelogSeen, setChangelogSeen] = useState("");
+  const [dark, setDark] = useState(false);
 
   const isAdmin = currentUser?.role === "admin";
   const canSee = (tab) => {
