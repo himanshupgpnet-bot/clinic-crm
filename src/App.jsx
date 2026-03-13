@@ -46,6 +46,7 @@ export default function App() {
   const [loginForm, setLoginForm] = useState({username:"",password:""});
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const isAdmin = currentUser?.role === "admin";
   const canSee = (tab) => {
@@ -82,8 +83,6 @@ export default function App() {
     sessionStorage.clear();
   }
 
-  // ── LOGIN PAGE ──
-  if (!currentUser) {
     return (
       <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1a2a1a,#0d1f0d)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
         <div style={{background:"#fff",borderRadius:20,padding:40,width:"100%",maxWidth:380,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
@@ -101,9 +100,14 @@ export default function App() {
           </div>
           <div style={{marginBottom:20}}>
             <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:5}}>Password</div>
-            <input type="password" value={loginForm.password} onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
-              onKeyDown={e=>e.key==="Enter"&&doLogin()}
-              placeholder="Enter password" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+            <div style={{position:"relative"}}>
+              <input type={showPw?"text":"password"} value={loginForm.password} onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
+                onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                placeholder="Enter password" style={{width:"100%",padding:"10px 40px 10px 12px",borderRadius:10,border:"1px solid #e5e7eb",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+              <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:16,color:"#888"}}>
+                {showPw?"🙈":"👁️"}
+              </button>
+            </div>
           </div>
           <button onClick={doLogin} disabled={loginLoading}
             style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:15,fontWeight:700,cursor:loginLoading?"wait":"pointer"}}>
