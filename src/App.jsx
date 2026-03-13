@@ -123,11 +123,7 @@ export default function App() {
 
   function doLogout() {
     sessionStorage.clear();
-    setCurrentUser(null);
-    setAuthToken("");
-    setPermissions(null);
-    setLoginForm({username:"",password:""});
-    setLoginError("");
+    window.location.reload();
   }
 
 
