@@ -90,7 +90,7 @@ export default function App() {
     if (!currentUser) return false;
     if (isAdmin) return true;
     if (!permissions || permissions === "all") return true;
-    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:false, admin:false };
+    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:"can_settings", admin:false };
     return map[tab] ? permissions[map[tab]] : false;
   };
 
@@ -1263,7 +1263,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const [loading, setLoading] = useState(true);
   const [showNewUser, setShowNewUser] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:""});
+  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
   const [editUser, setEditUser] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1283,11 +1283,12 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
     {id:"groq",      label:"Llama 3 (Groq)",    color:"#f59e0b"},
   ];
   const PERM_TABS = [
-    {key:"can_inbox",     label:"💬 Inbox"},
-    {key:"can_leads",     label:"🎯 Leads"},
-    {key:"can_analytics", label:"📊 Analytics"},
-    {key:"can_testbot",   label:"🤖 Test Bot"},
-    {key:"can_knowledge", label:"📋 Knowledge"},
+    {key:"can_inbox",     label:"💬 Inbox",     desc:"See & reply to messages"},
+    {key:"can_leads",     label:"🎯 Leads",     desc:"View lead scoring & pipeline"},
+    {key:"can_analytics", label:"📊 Analytics", desc:"View reports & stats"},
+    {key:"can_testbot",   label:"🤖 Test Bot",  desc:"Chat with AI bot directly"},
+    {key:"can_knowledge", label:"📋 Knowledge", desc:"View knowledge base"},
+    {key:"can_settings",  label:"⚙️ Settings",  desc:"Access basic settings"},
   ];
 
   async function load() {
@@ -1311,9 +1312,12 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
     if(newUser.password.length<6) return showMsg("❌ Password must be at least 6 characters");
     setSaving(true);
     try {
-      const r = await fetch(`${API}/api/admin/users`, {method:"POST",headers:authHeaders(),body:JSON.stringify(newUser)});
+      const r = await fetch(`${API}/api/admin/users`, {method:"POST",headers:authHeaders(),body:JSON.stringify({
+        ...newUser,
+        permissions:{can_inbox:newUser.can_inbox,can_leads:newUser.can_leads,can_analytics:newUser.can_analytics,can_testbot:newUser.can_testbot,can_knowledge:newUser.can_knowledge,can_settings:newUser.can_settings,ai_provider:newUser.ai_provider}
+      })});
       const d = await r.json();
-      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:""}); load(); }
+      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false}); load(); }
       else showMsg("❌ "+d.error);
     } catch { showMsg("❌ Network error"); }
     setSaving(false);
