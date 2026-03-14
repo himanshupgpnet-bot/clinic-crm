@@ -1357,7 +1357,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
 
         {/* Stats */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
-          {[{icon:"👥",label:"Total Users",value:users.length},{icon:"✅",label:"Active",value:users.filter(u=>u.active).length},{icon:"🏥",label:"Clinics",value:clinics.length}].map(s=>(
+          {[{icon:"👥",label:"Total Users",value:users.length},{icon:"✅",label:"Active",value:users.filter(u=>u.active).length},{icon:"🔴",label:"Inactive",value:users.filter(u=>!u.active).length}].map(s=>(
             <div key={s.label} className="cc" style={{textAlign:"center",padding:"14px 10px"}}>
               <div style={{fontSize:22,marginBottom:4}}>{s.icon}</div>
               <div style={{fontWeight:800,fontSize:22,color:WA_GREEN}}>{s.value}</div>
@@ -1423,29 +1423,8 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
               </div>
 
               <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME</div>
-                {inp(newUser.company_name, e=>setNewUser(p=>({...p,company_name:e.target.value})), "e.g. Nexora Health Clinic")}
-              </div>
-
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>AI PROVIDER</div>
-                <select value={newUser.ai_provider} onChange={e=>setNewUser(p=>({...p,ai_provider:e.target.value}))}
-                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-                  {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>API KEY FOR {newUser.ai_provider.toUpperCase()}</div>
-                <div style={{position:"relative"}}>
-                  {inp(newUser.ai_api_key, e=>setNewUser(p=>({...p,ai_api_key:e.target.value})), "Paste API key here...", showApiKey?"text":"password", {paddingRight:40,fontFamily:"monospace",fontSize:12})}
-                  <button onClick={()=>setShowApiKey(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showApiKey?"🙈":"👁️"}</button>
-                </div>
-                <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>
-                  {newUser.ai_provider==="anthropic"&&"Get from console.anthropic.com → API Keys"}
-                  {newUser.ai_provider==="openai"&&"Get from platform.openai.com → API Keys"}
-                  {newUser.ai_provider==="groq"&&"Get from console.groq.com → API Keys (FREE)"}
-                </div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME *</div>
+                {inp(newUser.company_name, e=>setNewUser(p=>({...p,company_name:e.target.value})), "Enter company or business name")}
               </div>
 
               <div>
