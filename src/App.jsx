@@ -77,7 +77,7 @@ export default function App() {
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
   const [archiveConfirm, setArchiveConfirm] = useState(null);
-  const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Evera Health 😊\nHow can I help you today?",time:ts(),sources:[]}]);
+  const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}]);
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState({});
@@ -634,7 +634,7 @@ export default function App() {
         <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:4,flex:1}}>
           <div style={{width:32,height:32,borderRadius:8,background:`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🏥</div>
           <div className="hide-mobile">
-            <div style={{fontWeight:700,fontSize:13}}>Evera Health CRM</div>
+            <div style={{fontWeight:700,fontSize:13}}>Nexora CRM</div>
             <div style={{fontSize:10,color:T.textMuted}}>WhatsApp Business</div>
           </div>
         </div>
@@ -1019,9 +1019,9 @@ export default function App() {
           <div style={{padding:"10px 14px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🤖</div>
-              <div><div style={{fontWeight:700,fontSize:13}}>Sara — Evera Health Bot</div><div style={{fontSize:11,color:T.textMuted}}>Test with live Knowledge Base</div></div>
+              <div><div style={{fontWeight:700,fontSize:13}}>Sara — Nexora Bot</div><div style={{fontSize:11,color:T.textMuted}}>Test with live Knowledge Base</div></div>
             </div>
-            <button onClick={()=>setBotConvo([{from:"bot",text:"👋 Hi! I'm Sara from Evera Health 😊\nHow can I help you today?",time:ts(),sources:[]}])} style={{padding:"5px 12px",borderRadius:16,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Reset</button>
+            <button onClick={()=>setBotConvo([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}])} style={{padding:"5px 12px",borderRadius:16,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Reset</button>
           </div>
           <div style={{flex:1,overflowY:"auto",padding:14,background:T.chatBg,display:"flex",flexDirection:"column",gap:7}}>
             {botConvo.map((msg,i)=><div key={i} className="mb" style={{display:"flex",justifyContent:msg.from==="user"?"flex-end":"flex-start"}}>
@@ -1231,6 +1231,9 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const [showEditPw, setShowEditPw] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showEditApiKey, setShowEditApiKey] = useState(false);
+  const [showCurrPw, setShowCurrPw] = useState(false);
+  const [showNewCPw, setShowNewCPw] = useState(false);
+  const [showConfPw, setShowConfPw] = useState(false);
   const [pwForm, setPwForm] = useState({current_password:"",new_password:"",confirm:""});
   const [pwMsg, setPwMsg] = useState("");
 
@@ -1420,7 +1423,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
 
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME</div>
-                {inp(newUser.company_name, e=>setNewUser(p=>({...p,company_name:e.target.value})), "e.g. Evera Health Clinic")}
+                {inp(newUser.company_name, e=>setNewUser(p=>({...p,company_name:e.target.value})), "e.g. Nexora Health Clinic")}
               </div>
 
               <div>
@@ -1483,7 +1486,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
               {/* Company name */}
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME</div>
-                {inp(editUser.company_name, e=>setEditUser(p=>({...p,company_name:e.target.value})), "e.g. Evera Health Clinic")}
+                {inp(editUser.company_name, e=>setEditUser(p=>({...p,company_name:e.target.value})), "e.g. Nexora Health Clinic")}
               </div>
 
               {/* New password */}
@@ -1546,15 +1549,24 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>CURRENT PASSWORD</div>
-                {inp(pwForm.current_password, e=>setPwForm(p=>({...p,current_password:e.target.value})), "Enter current password", "password")}
+                <div style={{position:"relative"}}>
+                  {inp(pwForm.current_password, e=>setPwForm(p=>({...p,current_password:e.target.value})), "Enter current password", showCurrPw?"text":"password", {paddingRight:40})}
+                  <button onClick={()=>setShowCurrPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showCurrPw?"🙈":"👁️"}</button>
+                </div>
               </div>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>NEW PASSWORD</div>
-                {inp(pwForm.new_password, e=>setPwForm(p=>({...p,new_password:e.target.value})), "Min 6 characters", "password")}
+                <div style={{position:"relative"}}>
+                  {inp(pwForm.new_password, e=>setPwForm(p=>({...p,new_password:e.target.value})), "Min 6 characters", showNewCPw?"text":"password", {paddingRight:40})}
+                  <button onClick={()=>setShowNewCPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showNewCPw?"🙈":"👁️"}</button>
+                </div>
               </div>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>CONFIRM NEW PASSWORD</div>
-                {inp(pwForm.confirm, e=>setPwForm(p=>({...p,confirm:e.target.value})), "Repeat new password", "password")}
+                <div style={{position:"relative"}}>
+                  {inp(pwForm.confirm, e=>setPwForm(p=>({...p,confirm:e.target.value})), "Repeat new password", showConfPw?"text":"password", {paddingRight:40})}
+                  <button onClick={()=>setShowConfPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showConfPw?"🙈":"👁️"}</button>
+                </div>
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20}}>
