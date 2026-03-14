@@ -1222,18 +1222,29 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewUser, setShowNewUser] = useState(false);
-  const [newUser, setNewUser] = useState({username:"",password:"",role:"client",clinic_id:1});
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:""});
   const [editUser, setEditUser] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showEditPw, setShowEditPw] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showEditApiKey, setShowEditApiKey] = useState(false);
+  const [pwForm, setPwForm] = useState({current_password:"",new_password:"",confirm:""});
+  const [pwMsg, setPwMsg] = useState("");
 
-  const PROVIDERS = [{id:"anthropic",label:"🟣 Claude"},{id:"openai",label:"🟢 GPT-4o"},{id:"groq",label:"🟡 Groq (Free)"}];
+  const PROVIDERS = [
+    {id:"anthropic", label:"Claude (Anthropic)", color:"#7c3aed"},
+    {id:"openai",    label:"GPT-4o (OpenAI)",   color:"#10b981"},
+    {id:"groq",      label:"Llama 3 (Groq)",    color:"#f59e0b"},
+  ];
   const PERM_TABS = [
-    {key:"can_inbox",    label:"💬 Inbox"},
-    {key:"can_leads",    label:"🎯 Leads"},
-    {key:"can_analytics",label:"📊 Analytics"},
-    {key:"can_testbot",  label:"🤖 Test Bot"},
-    {key:"can_knowledge",label:"📋 Knowledge"},
+    {key:"can_inbox",     label:"💬 Inbox"},
+    {key:"can_leads",     label:"🎯 Leads"},
+    {key:"can_analytics", label:"📊 Analytics"},
+    {key:"can_testbot",   label:"🤖 Test Bot"},
+    {key:"can_knowledge", label:"📋 Knowledge"},
   ];
 
   async function load() {
@@ -1248,197 +1259,311 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
     } catch {}
     setLoading(false);
   }
-
   useEffect(()=>{ load(); },[]);
 
+  function showMsg(m) { setMsg(m); setTimeout(()=>setMsg(""),3500); }
+
   async function createUser() {
+    if(!newUser.username||!newUser.password) return showMsg("❌ Username and password required");
+    if(newUser.password.length<6) return showMsg("❌ Password must be at least 6 characters");
     setSaving(true);
     try {
       const r = await fetch(`${API}/api/admin/users`, {method:"POST",headers:authHeaders(),body:JSON.stringify(newUser)});
-      if(r.ok){ setMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",role:"client",clinic_id:1}); load(); }
-      else { const d=await r.json(); setMsg("❌ "+d.error); }
-    } catch { setMsg("❌ Error"); }
-    setSaving(false); setTimeout(()=>setMsg(""),3000);
+      const d = await r.json();
+      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:""}); load(); }
+      else showMsg("❌ "+d.error);
+    } catch { showMsg("❌ Network error"); }
+    setSaving(false);
   }
 
   async function saveUser() {
     setSaving(true);
     try {
-      const r = await fetch(`${API}/api/admin/users/${editUser.id}`, {method:"PATCH",headers:authHeaders(),body:JSON.stringify({
-        active: editUser.active,
-        password: editUser.newPassword||undefined,
+      const payload = {
+        active:       editUser.active,
+        company_name: editUser.company_name,
+        ai_provider:  editUser.ai_provider,
+        ai_api_key:   editUser.ai_api_key||"",
         permissions: {
           can_inbox:     editUser.can_inbox,
           can_leads:     editUser.can_leads,
           can_analytics: editUser.can_analytics,
           can_testbot:   editUser.can_testbot,
           can_knowledge: editUser.can_knowledge,
-          ai_provider:   editUser.ai_provider||"anthropic",
+          ai_provider:   editUser.ai_provider,
         }
-      })});
-      if(r.ok){ setMsg("✅ Saved!"); setEditUser(null); load(); }
-      else { setMsg("❌ Error saving"); }
-    } catch { setMsg("❌ Error"); }
-    setSaving(false); setTimeout(()=>setMsg(""),3000);
+      };
+      if(editUser.newPassword) {
+        if(editUser.newPassword.length<6) { showMsg("❌ Password must be at least 6 characters"); setSaving(false); return; }
+        payload.password = editUser.newPassword;
+      }
+      const r = await fetch(`${API}/api/admin/users/${editUser.id}`, {method:"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
+      if(r.ok){ showMsg("✅ User updated!"); setEditUser(null); load(); }
+      else { const d=await r.json(); showMsg("❌ "+d.error); }
+    } catch { showMsg("❌ Network error"); }
+    setSaving(false);
   }
 
   async function deleteUser(id) {
-    if(!confirm("Delete this user?")) return;
+    if(!confirm("Delete this user? This cannot be undone.")) return;
     await fetch(`${API}/api/admin/users/${id}`, {method:"DELETE",headers:authHeaders()});
-    load();
+    showMsg("✅ User deleted"); load();
   }
 
-  const inp = (val, onChange, placeholder, type="text") => (
+  async function changePassword() {
+    if(!pwForm.current_password||!pwForm.new_password) return setPwMsg("❌ All fields required");
+    if(pwForm.new_password!==pwForm.confirm) return setPwMsg("❌ Passwords do not match");
+    if(pwForm.new_password.length<6) return setPwMsg("❌ Min 6 characters");
+    setSaving(true);
+    try {
+      const r = await fetch(`${API}/api/admin/change-password`, {method:"POST",headers:authHeaders(),body:JSON.stringify(pwForm)});
+      const d = await r.json();
+      if(r.ok){ setPwMsg("✅ Password changed!"); setTimeout(()=>{ setShowChangePassword(false); setPwForm({current_password:"",new_password:"",confirm:""}); setPwMsg(""); },1500); }
+      else setPwMsg("❌ "+d.error);
+    } catch { setPwMsg("❌ Network error"); }
+    setSaving(false);
+  }
+
+  const inp = (val, onChange, placeholder, type="text", extra={}) => (
     <input type={type} value={val||""} onChange={onChange} placeholder={placeholder}
-      style={{width:"100%",padding:"8px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",...extra}}/>
   );
 
-  if(loading) return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:T.textMuted}}>Loading...</div>;
+  const providerColor = (id) => PROVIDERS.find(p=>p.id===id)?.color||WA_GREEN;
+
+  if(loading) return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:T.textMuted,fontSize:14}}>Loading...</div>;
 
   return (
     <div style={{flex:1,overflowY:"auto",padding:16,background:T.bg}}>
       <div style={{maxWidth:860,margin:"0 auto"}}>
-        {msg&&<div style={{background:msg.startsWith("✅")?"#f0fdf4":"#fef2f2",border:`1px solid ${msg.startsWith("✅")?"#86efac":"#fca5a5"}`,borderRadius:10,padding:"8px 14px",marginBottom:12,fontSize:13,color:msg.startsWith("✅")?"#166534":"#dc2626"}}>{msg}</div>}
+
+        {msg&&<div style={{background:msg.startsWith("✅")?"#f0fdf4":"#fef2f2",border:`1px solid ${msg.startsWith("✅")?"#86efac":"#fca5a5"}`,borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:msg.startsWith("✅")?"#166534":"#dc2626"}}>{msg}</div>}
 
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <div>
             <div style={{fontWeight:800,fontSize:20}}>👑 User Management</div>
-            <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>Create client accounts and control what each user can access</div>
+            <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>Create and manage client accounts, permissions and API keys</div>
           </div>
-          <button onClick={()=>setShowNewUser(true)} style={{padding:"10px 20px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
-            ＋ New User
-          </button>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>setShowChangePassword(true)} style={{padding:"9px 16px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>🔑 My Password</button>
+            <button onClick={()=>setShowNewUser(true)} style={{padding:"9px 16px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>＋ New User</button>
+          </div>
         </div>
 
-        {/* Stats row */}
+        {/* Stats */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
-          {[
-            {icon:"👥", label:"Total Users", value:users.length},
-            {icon:"✅", label:"Active", value:users.filter(u=>u.active).length},
-            {icon:"🏥", label:"Clinics", value:clinics.length},
-          ].map(s=><div key={s.label} className="cc" style={{textAlign:"center",padding:"14px 10px"}}>
-            <div style={{fontSize:24,marginBottom:4}}>{s.icon}</div>
-            <div style={{fontWeight:800,fontSize:22,color:WA_GREEN}}>{s.value}</div>
-            <div style={{fontSize:11,color:T.textMuted}}>{s.label}</div>
-          </div>)}
+          {[{icon:"👥",label:"Total Users",value:users.length},{icon:"✅",label:"Active",value:users.filter(u=>u.active).length},{icon:"🏥",label:"Clinics",value:clinics.length}].map(s=>(
+            <div key={s.label} className="cc" style={{textAlign:"center",padding:"14px 10px"}}>
+              <div style={{fontSize:22,marginBottom:4}}>{s.icon}</div>
+              <div style={{fontWeight:800,fontSize:22,color:WA_GREEN}}>{s.value}</div>
+              <div style={{fontSize:11,color:T.textMuted}}>{s.label}</div>
+            </div>
+          ))}
         </div>
 
-        {/* Users table */}
+        {/* Users list */}
         <div className="cc" style={{padding:0,overflow:"hidden"}}>
-          <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div style={{fontWeight:700,fontSize:14}}>👥 Client Users ({users.length})</div>
-          </div>
-          {users.length===0&&<div style={{padding:32,textAlign:"center",color:T.textMuted}}>
+          <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:14}}>👥 Client Users ({users.length})</div>
+          {users.length===0&&<div style={{padding:40,textAlign:"center",color:T.textMuted}}>
             <div style={{fontSize:40,marginBottom:8}}>👤</div>
-            <div style={{fontWeight:600}}>No users yet</div>
-            <div style={{fontSize:12,marginTop:4}}>Click "+ New User" to create your first client account</div>
+            <div style={{fontWeight:600,marginBottom:4}}>No users yet</div>
+            <div style={{fontSize:12}}>Click "+ New User" to create your first client account</div>
           </div>}
-          {users.map((u,i)=><div key={u.id} style={{padding:"14px 16px",borderBottom:i<users.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-            <div style={{display:"flex",alignItems:"center",gap:12,flex:1,minWidth:0}}>
-              <div style={{width:40,height:40,borderRadius:12,background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
-              <div style={{minWidth:0}}>
-                <div style={{fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:8}}>
-                  {u.username}
-                  <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:6,background:u.active?"#dcfce7":"#fee2e2",color:u.active?"#166534":"#dc2626"}}>{u.active?"Active":"Inactive"}</span>
+          {users.map((u,i)=>(
+            <div key={u.id} style={{padding:"14px 16px",borderBottom:i<users.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:42,height:42,borderRadius:12,background:`${WA_GREEN}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:14}}>{u.username}</span>
+                  {u.company_name&&<span style={{fontSize:11,color:T.textMuted}}>· {u.company_name}</span>}
+                  <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:6,background:u.active?"#dcfce7":"#fee2e2",color:u.active?"#166534":"#dc2626"}}>{u.active?"Active":"Inactive"}</span>
                 </div>
-                <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{u.clinic_name||"No clinic"}</div>
-                <div style={{display:"flex",gap:4,marginTop:5,flexWrap:"wrap"}}>
-                  {[
-                    {k:"can_inbox",    e:"💬", l:"Inbox"},
-                    {k:"can_leads",    e:"🎯", l:"Leads"},
-                    {k:"can_analytics",e:"📊", l:"Analytics"},
-                    {k:"can_testbot",  e:"🤖", l:"Test Bot"},
-                    {k:"can_knowledge",e:"📋", l:"Knowledge"},
-                  ].map(p=><span key={p.k} style={{fontSize:10,padding:"2px 7px",borderRadius:6,background:u[p.k]?`${WA_GREEN}20`:`${T.border}`,color:u[p.k]?WA_GREEN:T.textMuted,fontWeight:600}}>
-                    {p.e} {p.l}
-                  </span>)}
-                  <span style={{fontSize:10,padding:"2px 7px",borderRadius:6,background:"#f3e8ff",color:"#7c3aed",fontWeight:600}}>
-                    🤖 {u.ai_provider||"anthropic"}
+                <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
+                  {PERM_TABS.map(p=>(
+                    <span key={p.key} style={{fontSize:10,padding:"2px 8px",borderRadius:6,background:u[p.key]?`${WA_GREEN}18`:`${T.border}`,color:u[p.key]?WA_GREEN:T.textMuted,fontWeight:600}}>{p.label}</span>
+                  ))}
+                  <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,background:`${providerColor(u.ai_provider)}18`,color:providerColor(u.ai_provider),fontWeight:700,border:`1px solid ${providerColor(u.ai_provider)}30`}}>
+                    🤖 {PROVIDERS.find(p=>p.id===u.ai_provider)?.label||u.ai_provider}
                   </span>
+                  {u.ai_api_key&&<span style={{fontSize:10,color:T.textMuted}}>🔑 Key set</span>}
                 </div>
               </div>
+              <div style={{display:"flex",gap:8,flexShrink:0}}>
+                <button onClick={()=>setEditUser({...u,newPassword:"",ai_api_key:u.ai_api_key||""})}
+                  style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit</button>
+                <button onClick={()=>deleteUser(u.id)}
+                  style={{padding:"6px 12px",borderRadius:8,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+              </div>
             </div>
-            <div style={{display:"flex",gap:8,flexShrink:0}}>
-              <button onClick={()=>setEditUser({...u,newPassword:""})}
-                style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit</button>
-              <button onClick={()=>deleteUser(u.id)}
-                style={{padding:"6px 14px",borderRadius:8,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
-            </div>
-          </div>)}
+          ))}
         </div>
 
-        {/* New User Modal */}
-        {showNewUser&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:T.card,borderRadius:16,padding:24,width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-            <div style={{fontWeight:700,fontSize:16,marginBottom:16}}>➕ Create New User</div>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {inp(newUser.username, e=>setNewUser(p=>({...p,username:e.target.value})), "Username")}
-              {inp(newUser.password, e=>setNewUser(p=>({...p,password:e.target.value})), "Password", "password")}
-              <select value={newUser.role} onChange={e=>setNewUser(p=>({...p,role:e.target.value}))}
-                style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit"}}>
-                <option value="client">Client</option>
-                <option value="admin">Admin</option>
-              </select>
-              <select value={newUser.clinic_id} onChange={e=>setNewUser(p=>({...p,clinic_id:parseInt(e.target.value)}))}
-                style={{padding:"8px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit"}}>
-                {clinics.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+        {/* ── NEW USER MODAL ── */}
+        {showNewUser&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:480,boxShadow:"0 24px 60px rgba(0,0,0,.3)",maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{fontWeight:800,fontSize:17,marginBottom:20}}>➕ Create New User</div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>USERNAME *</div>
+                {inp(newUser.username, e=>setNewUser(p=>({...p,username:e.target.value})), "e.g. john_clinic")}
+              </div>
+
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>PASSWORD *</div>
+                <div style={{position:"relative"}}>
+                  {inp(newUser.password, e=>setNewUser(p=>({...p,password:e.target.value})), "Min 6 characters", showNewPw?"text":"password", {paddingRight:40})}
+                  <button onClick={()=>setShowNewPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showNewPw?"🙈":"👁️"}</button>
+                </div>
+              </div>
+
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME</div>
+                {inp(newUser.company_name, e=>setNewUser(p=>({...p,company_name:e.target.value})), "e.g. Evera Health Clinic")}
+              </div>
+
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>AI PROVIDER</div>
+                <select value={newUser.ai_provider} onChange={e=>setNewUser(p=>({...p,ai_provider:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+                  {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>API KEY FOR {newUser.ai_provider.toUpperCase()}</div>
+                <div style={{position:"relative"}}>
+                  {inp(newUser.ai_api_key, e=>setNewUser(p=>({...p,ai_api_key:e.target.value})), "Paste API key here...", showApiKey?"text":"password", {paddingRight:40,fontFamily:"monospace",fontSize:12})}
+                  <button onClick={()=>setShowApiKey(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showApiKey?"🙈":"👁️"}</button>
+                </div>
+                <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>
+                  {newUser.ai_provider==="anthropic"&&"Get from console.anthropic.com → API Keys"}
+                  {newUser.ai_provider==="openai"&&"Get from platform.openai.com → API Keys"}
+                  {newUser.ai_provider==="groq"&&"Get from console.groq.com → API Keys (FREE)"}
+                </div>
+              </div>
+
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>ASSIGN TO CLINIC</div>
+                <select value={newUser.clinic_id} onChange={e=>setNewUser(p=>({...p,clinic_id:parseInt(e.target.value)}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+                  {clinics.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
             </div>
-            <div style={{display:"flex",gap:10,marginTop:16}}>
-              <button onClick={()=>setShowNewUser(false)} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={createUser} disabled={saving} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Saving...":"Create"}</button>
+
+            <div style={{display:"flex",gap:10,marginTop:20}}>
+              <button onClick={()=>setShowNewUser(false)} style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={createUser} disabled={saving} style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Creating...":"Create User"}</button>
             </div>
           </div>
         </div>}
 
-        {/* Edit User Modal */}
-        {editUser&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:T.card,borderRadius:16,padding:24,width:"100%",maxWidth:440,boxShadow:"0 20px 60px rgba(0,0,0,.3)",maxHeight:"90vh",overflowY:"auto"}}>
-            <div style={{fontWeight:700,fontSize:16,marginBottom:16}}>✏️ Edit User — {editUser.username}</div>
+        {/* ── EDIT USER MODAL ── */}
+        {editUser&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:480,boxShadow:"0 24px 60px rgba(0,0,0,.3)",maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{fontWeight:800,fontSize:17,marginBottom:4}}>✏️ Edit User</div>
+            <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>@{editUser.username}</div>
 
-            {/* Active toggle */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"10px 12px",borderRadius:10,background:T.card2}}>
-              <span style={{fontSize:13,fontWeight:600}}>Account Active</span>
-              <div onClick={()=>setEditUser(p=>({...p,active:!p.active}))}
-                style={{width:42,height:24,borderRadius:12,cursor:"pointer",background:editUser.active?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s"}}>
-                <div style={{position:"absolute",top:3,left:editUser.active?20:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+              {/* Active toggle */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:T.card2,border:`1px solid ${T.border}`}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700}}>Account Status</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{editUser.active?"User can login":"User is blocked"}</div>
+                </div>
+                <div onClick={()=>setEditUser(p=>({...p,active:!p.active}))}
+                  style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:editUser.active?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
+                  <div style={{position:"absolute",top:3,left:editUser.active?22:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
+                </div>
+              </div>
+
+              {/* Company name */}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME</div>
+                {inp(editUser.company_name, e=>setEditUser(p=>({...p,company_name:e.target.value})), "e.g. Evera Health Clinic")}
+              </div>
+
+              {/* New password */}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>NEW PASSWORD (leave blank to keep current)</div>
+                <div style={{position:"relative"}}>
+                  {inp(editUser.newPassword, e=>setEditUser(p=>({...p,newPassword:e.target.value})), "Enter new password...", showEditPw?"text":"password", {paddingRight:40})}
+                  <button onClick={()=>setShowEditPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showEditPw?"🙈":"👁️"}</button>
+                </div>
+              </div>
+
+              {/* AI Provider */}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>AI PROVIDER</div>
+                <select value={editUser.ai_provider||"anthropic"} onChange={e=>setEditUser(p=>({...p,ai_provider:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+                  {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
+                </select>
+              </div>
+
+              {/* API Key */}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>API KEY</div>
+                <div style={{position:"relative"}}>
+                  {inp(editUser.ai_api_key, e=>setEditUser(p=>({...p,ai_api_key:e.target.value})), "Paste API key...", showEditApiKey?"text":"password", {paddingRight:40,fontFamily:"monospace",fontSize:12})}
+                  <button onClick={()=>setShowEditApiKey(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showEditApiKey?"🙈":"👁️"}</button>
+                </div>
+              </div>
+
+              {/* Tab permissions */}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:8,letterSpacing:0.5}}>TAB PERMISSIONS</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  {PERM_TABS.map(p=>(
+                    <div key={p.key} onClick={()=>setEditUser(prev=>({...prev,[p.key]:!prev[p.key]}))}
+                      style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 12px",borderRadius:10,border:`1px solid ${editUser[p.key]?WA_GREEN:T.border}`,cursor:"pointer",background:editUser[p.key]?`${WA_GREEN}10`:T.card2,transition:"all 0.15s"}}>
+                      <span style={{fontSize:12,fontWeight:600,color:editUser[p.key]?WA_GREEN:T.textMuted}}>{p.label}</span>
+                      <div style={{width:32,height:18,borderRadius:9,background:editUser[p.key]?WA_GREEN:T.border,position:"relative",transition:"background .2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:2,left:editUser[p.key]?14:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Reset password */}
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:5}}>New Password (leave blank to keep)</div>
-              {inp(editUser.newPassword, e=>setEditUser(p=>({...p,newPassword:e.target.value})), "New password", "password")}
-            </div>
-
-            {/* Permissions (client only) */}
-            {editUser.role==="client"&&<>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:10}}>📋 Tab Permissions</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-                {PERM_TABS.map(p=><div key={p.key} onClick={()=>setEditUser(prev=>({...prev,[p.key]:!prev[p.key]}))}
-                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,cursor:"pointer",background:editUser[p.key]?`${WA_GREEN}15`:T.card2}}>
-                  <span style={{fontSize:12,fontWeight:600,color:editUser[p.key]?WA_GREEN:T.textMuted}}>{p.label}</span>
-                  <div style={{width:32,height:18,borderRadius:9,background:editUser[p.key]?WA_GREEN:T.border,position:"relative",transition:"background .2s",flexShrink:0}}>
-                    <div style={{position:"absolute",top:2,left:editUser[p.key]?14:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
-                  </div>
-                </div>)}
-              </div>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>🤖 AI Provider</div>
-              <div style={{display:"flex",gap:8,marginBottom:14}}>
-                {PROVIDERS.map(p=><button key={p.id} onClick={()=>setEditUser(prev=>({...prev,ai_provider:p.id}))}
-                  style={{flex:1,padding:"8px 4px",borderRadius:8,border:`2px solid ${editUser.ai_provider===p.id?WA_GREEN:T.border}`,background:editUser.ai_provider===p.id?`${WA_GREEN}15`:T.card2,color:editUser.ai_provider===p.id?WA_GREEN:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                  {p.label}
-                </button>)}
-              </div>
-            </>}
-
-            <div style={{display:"flex",gap:10,marginTop:4}}>
-              <button onClick={()=>setEditUser(null)} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={saveUser} disabled={saving} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Saving...":"Save Changes"}</button>
+            <div style={{display:"flex",gap:10,marginTop:20}}>
+              <button onClick={()=>setEditUser(null)} style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={saveUser} disabled={saving} style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Saving...":"Save Changes"}</button>
             </div>
           </div>
         </div>}
+
+        {/* ── CHANGE OWN PASSWORD MODAL ── */}
+        {showChangePassword&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:400,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+            <div style={{fontWeight:800,fontSize:17,marginBottom:4}}>🔑 Change My Password</div>
+            <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>Update your admin account password</div>
+            {pwMsg&&<div style={{background:pwMsg.startsWith("✅")?"#f0fdf4":"#fef2f2",border:`1px solid ${pwMsg.startsWith("✅")?"#86efac":"#fca5a5"}`,borderRadius:10,padding:"10px 14px",fontSize:13,color:pwMsg.startsWith("✅")?"#166534":"#dc2626",marginBottom:14}}>{pwMsg}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>CURRENT PASSWORD</div>
+                {inp(pwForm.current_password, e=>setPwForm(p=>({...p,current_password:e.target.value})), "Enter current password", "password")}
+              </div>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>NEW PASSWORD</div>
+                {inp(pwForm.new_password, e=>setPwForm(p=>({...p,new_password:e.target.value})), "Min 6 characters", "password")}
+              </div>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>CONFIRM NEW PASSWORD</div>
+                {inp(pwForm.confirm, e=>setPwForm(p=>({...p,confirm:e.target.value})), "Repeat new password", "password")}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:20}}>
+              <button onClick={()=>{setShowChangePassword(false);setPwMsg("");}} style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={changePassword} disabled={saving} style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Saving...":"Change Password"}</button>
+            </div>
+          </div>
+        </div>}
+
       </div>
     </div>
   );
