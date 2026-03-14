@@ -1223,7 +1223,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const [loading, setLoading] = useState(true);
   const [showNewUser, setShowNewUser] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:""});
+  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:""});
   const [editUser, setEditUser] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1273,7 +1273,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
     try {
       const r = await fetch(`${API}/api/admin/users`, {method:"POST",headers:authHeaders(),body:JSON.stringify(newUser)});
       const d = await r.json();
-      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:""}); load(); }
+      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:""}); load(); }
       else showMsg("❌ "+d.error);
     } catch { showMsg("❌ Network error"); }
     setSaving(false);
@@ -1285,6 +1285,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
       const payload = {
         active:       editUser.active,
         company_name: editUser.company_name,
+        industry:     editUser.industry||"",
         ai_provider:  editUser.ai_provider,
         ai_api_key:   editUser.ai_api_key||"",
         permissions: {
@@ -1448,10 +1449,27 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
               </div>
 
               <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>ASSIGN TO CLINIC</div>
-                <select value={newUser.clinic_id} onChange={e=>setNewUser(p=>({...p,clinic_id:parseInt(e.target.value)}))}
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>INDUSTRY</div>
+                <select value={newUser.industry||""} onChange={e=>setNewUser(p=>({...p,industry:e.target.value}))}
                   style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-                  {clinics.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="">— Select Industry —</option>
+                  <option value="Healthcare & Clinic">🏥 Healthcare & Clinic</option>
+                  <option value="Dental">🦷 Dental</option>
+                  <option value="Beauty & Salon">💅 Beauty & Salon</option>
+                  <option value="Spa & Wellness">🧖 Spa & Wellness</option>
+                  <option value="Fitness & Gym">🏋️ Fitness & Gym</option>
+                  <option value="Legal & Law Firm">⚖️ Legal & Law Firm</option>
+                  <option value="Real Estate">🏠 Real Estate</option>
+                  <option value="Education & Tuition">📚 Education & Tuition</option>
+                  <option value="Restaurant & Food">🍽️ Restaurant & Food</option>
+                  <option value="Retail & E-commerce">🛍️ Retail & E-commerce</option>
+                  <option value="Finance & Accounting">💰 Finance & Accounting</option>
+                  <option value="Insurance">🛡️ Insurance</option>
+                  <option value="Logistics & Delivery">🚚 Logistics & Delivery</option>
+                  <option value="Hotel & Hospitality">🏨 Hotel & Hospitality</option>
+                  <option value="Automotive">🚗 Automotive</option>
+                  <option value="Technology & IT">💻 Technology & IT</option>
+                  <option value="Other">📦 Other</option>
                 </select>
               </div>
             </div>
@@ -1486,7 +1504,31 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
               {/* Company name */}
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME</div>
-                {inp(editUser.company_name, e=>setEditUser(p=>({...p,company_name:e.target.value})), "e.g. Nexora Health Clinic")}
+                {inp(editUser.company_name, e=>setEditUser(p=>({...p,company_name:e.target.value})), "Enter company name")}
+              </div>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>INDUSTRY</div>
+                <select value={editUser.industry||""} onChange={e=>setEditUser(p=>({...p,industry:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+                  <option value="">— Select Industry —</option>
+                  <option value="Healthcare & Clinic">🏥 Healthcare & Clinic</option>
+                  <option value="Dental">🦷 Dental</option>
+                  <option value="Beauty & Salon">💅 Beauty & Salon</option>
+                  <option value="Spa & Wellness">🧖 Spa & Wellness</option>
+                  <option value="Fitness & Gym">🏋️ Fitness & Gym</option>
+                  <option value="Legal & Law Firm">⚖️ Legal & Law Firm</option>
+                  <option value="Real Estate">🏠 Real Estate</option>
+                  <option value="Education & Tuition">📚 Education & Tuition</option>
+                  <option value="Restaurant & Food">🍽️ Restaurant & Food</option>
+                  <option value="Retail & E-commerce">🛍️ Retail & E-commerce</option>
+                  <option value="Finance & Accounting">💰 Finance & Accounting</option>
+                  <option value="Insurance">🛡️ Insurance</option>
+                  <option value="Logistics & Delivery">🚚 Logistics & Delivery</option>
+                  <option value="Hotel & Hospitality">🏨 Hotel & Hospitality</option>
+                  <option value="Automotive">🚗 Automotive</option>
+                  <option value="Technology & IT">💻 Technology & IT</option>
+                  <option value="Other">📦 Other</option>
+                </select>
               </div>
 
               {/* New password */}
