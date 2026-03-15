@@ -117,11 +117,6 @@ export default function App() {
   }
 
   function doLogout() {
-    setAuthToken(""); setCurrentUser(null); setPermissions(null);
-    sessionStorage.clear();
-  }
-
-  function doLogout() {
     sessionStorage.clear();
     window.location.reload();
   }
@@ -602,10 +597,14 @@ export default function App() {
         </button>
 
         <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:4,flex:1}}>
-          <div style={{width:32,height:32,borderRadius:8,background:`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🏥</div>
+          <div style={{width:34,height:34,borderRadius:8,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:currentUser?.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`}}>
+            {currentUser?.logo_url
+              ? <img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="logo"/>
+              : <span style={{fontSize:16}}>🤖</span>}
+          </div>
           <div className="hide-mobile">
-            <div style={{fontWeight:700,fontSize:13}}>Nexora CRM</div>
-            <div style={{fontSize:10,color:T.textMuted}}>WhatsApp Business</div>
+            <div style={{fontWeight:700,fontSize:13}}>{currentUser?.company_name||"Nexora CRM"}</div>
+            <div style={{fontSize:10,color:T.textMuted}}>{isAdmin?"Admin Dashboard":"WhatsApp Business"}</div>
           </div>
         </div>
 
@@ -1193,7 +1192,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const [loading, setLoading] = useState(true);
   const [showNewUser, setShowNewUser] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
+  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
   const [editUser, setEditUser] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1247,7 +1246,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
         permissions:{can_inbox:newUser.can_inbox,can_leads:newUser.can_leads,can_analytics:newUser.can_analytics,can_testbot:newUser.can_testbot,can_knowledge:newUser.can_knowledge,can_settings:newUser.can_settings,ai_provider:newUser.ai_provider}
       })});
       const d = await r.json();
-      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false}); load(); }
+      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false}); load(); }
       else showMsg("❌ "+d.error);
     } catch { showMsg("❌ Network error"); }
     setSaving(false);
@@ -1260,6 +1259,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
         active:       editUser.active,
         company_name: editUser.company_name,
         industry:     editUser.industry||"",
+        logo_url:     editUser.logo_url||"",
         ai_provider:  editUser.ai_provider,
         ai_api_key:   editUser.ai_api_key||"",
         permissions: {
@@ -1402,6 +1402,31 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
               </div>
 
               <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY LOGO</div>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:56,height:56,borderRadius:12,border:`2px dashed ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",background:T.card2,flexShrink:0}}>
+                    {newUser.logo_url
+                      ? <img src={newUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}} alt="logo"/>
+                      : <span style={{fontSize:22}}>🏢</span>}
+                  </div>
+                  <div style={{flex:1}}>
+                    <label style={{display:"inline-block",padding:"8px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                      📎 Upload Logo
+                      <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+                        const file=e.target.files[0]; if(!file) return;
+                        if(file.size>500000){alert("Logo must be under 500KB");return;}
+                        const reader=new FileReader();
+                        reader.onload=ev=>setNewUser(p=>({...p,logo_url:ev.target.result}));
+                        reader.readAsDataURL(file);
+                      }}/>
+                    </label>
+                    <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>PNG, JPG · Max 500KB</div>
+                    {newUser.logo_url&&<button onClick={()=>setNewUser(p=>({...p,logo_url:""}))} style={{fontSize:10,color:"#ef4444",border:"none",background:"none",cursor:"pointer",padding:"2px 0",display:"block",marginTop:2}}>✕ Remove</button>}
+                  </div>
+                </div>
+              </div>
+
+              <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>INDUSTRY</div>
                 <select value={newUser.industry||""} onChange={e=>setNewUser(p=>({...p,industry:e.target.value}))}
                   style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
@@ -1502,6 +1527,31 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME</div>
                 {inp(editUser.company_name, e=>setEditUser(p=>({...p,company_name:e.target.value})), "Enter company name")}
+              </div>
+
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY LOGO</div>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:56,height:56,borderRadius:12,border:`2px dashed ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",background:T.card2,flexShrink:0}}>
+                    {editUser.logo_url
+                      ? <img src={editUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}} alt="logo"/>
+                      : <span style={{fontSize:22}}>🏢</span>}
+                  </div>
+                  <div style={{flex:1}}>
+                    <label style={{display:"inline-block",padding:"8px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                      📎 Upload Logo
+                      <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+                        const file=e.target.files[0]; if(!file) return;
+                        if(file.size>500000){alert("Logo must be under 500KB");return;}
+                        const reader=new FileReader();
+                        reader.onload=ev=>setEditUser(p=>({...p,logo_url:ev.target.result}));
+                        reader.readAsDataURL(file);
+                      }}/>
+                    </label>
+                    <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>PNG, JPG · Max 500KB</div>
+                    {editUser.logo_url&&<button onClick={()=>setEditUser(p=>({...p,logo_url:""}))} style={{fontSize:10,color:"#ef4444",border:"none",background:"none",cursor:"pointer",padding:"2px 0",display:"block",marginTop:2}}>✕ Remove</button>}
+                  </div>
+                </div>
               </div>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>INDUSTRY</div>
