@@ -348,7 +348,12 @@ export default function App() {
   }, []);
 
   const fetchSettings = useCallback(async () => {
-    try { const r=await fetch(`${API}/api/settings`, {headers:authHeaders()}); if(!r.ok)return; setAppSettings(await r.json()); } catch {}
+    try {
+      const r=await fetch(`${API}/api/settings`, {headers:authHeaders()});
+      if(!r.ok)return;
+      const d=await r.json();
+      setAppSettings(d);
+    } catch {}
   }, []);
 
   const fetchAnalytics = useCallback(async (from, to, clinicId=null) => {
@@ -375,20 +380,29 @@ export default function App() {
 
   async function loadClientSettings(client) {
     setSettingsClinic(client);
+    setClientSettings(null);
     try {
       const r = await fetch(`${API}/api/admin/users/${client.id}/settings`, {headers:authHeaders()});
       if(r.ok) {
         const d = await r.json();
-        // Load client settings INTO appSettings so all existing SettingInput components work
+        setClientSettings(d);
+        // Load ALL client settings into appSettings so every SettingInput works
         setAppSettings(prev=>({
           ...prev,
-          ai_provider:   d.ai_provider||"anthropic",
-          ai_api_key:    d.ai_api_key||"",
-          ai_enabled:    d.bot_enabled===false?"false":"true",
-          hot_keywords:  d.lead_keywords||prev.hot_keywords||"",
-          system_prompt: d.system_prompt||"",
+          ai_provider:        d.ai_provider||"anthropic",
+          ai_api_key:         d.ai_api_key||"",
+          ai_enabled:         d.bot_enabled===false?"false":"true",
+          hot_keywords:       d.lead_keywords||"",
+          warm_keywords:      d.warm_keywords||prev.warm_keywords||"",
+          cold_keywords:      d.cold_keywords||prev.cold_keywords||"",
+          system_prompt:      d.system_prompt||"",
+          followup_enabled:   d.followup_enabled||"true",
+          followup_1_delay:   d.followup_1_delay||"2",
+          followup_1_message: d.followup_1_message||"",
+          followup_2_delay:   d.followup_2_delay||"24",
+          followup_2_message: d.followup_2_message||"",
+          followup_max:       d.followup_max||"2",
         }));
-        setClientSettings(d);
       }
     } catch(e) {
       console.error("loadClientSettings failed:", e);
@@ -505,20 +519,25 @@ export default function App() {
   async function saveSettings() {
     try {
       if(isAdmin && settingsClinic) {
-        // Save to this specific client's account
+        // Save ALL settings to this specific client's account
         await fetch(`${API}/api/admin/users/${settingsClinic.id}/settings`, {
           method:"PATCH", headers:authHeaders(),
           body:JSON.stringify({
-            ai_provider:   appSettings.ai_provider,
-            ai_api_key:    appSettings.ai_api_key||"",
-            bot_enabled:   appSettings.ai_enabled!=="false",
-            system_prompt: appSettings.system_prompt||"",
-            lead_keywords: appSettings.hot_keywords||"",
+            ai_provider:        appSettings.ai_provider,
+            ai_api_key:         appSettings.ai_api_key||"",
+            bot_enabled:        appSettings.ai_enabled!=="false",
+            system_prompt:      appSettings.system_prompt||"",
+            lead_keywords:      appSettings.hot_keywords||"",
+            followup_enabled:   appSettings.followup_enabled||"true",
+            followup_1_delay:   appSettings.followup_1_delay||"2",
+            followup_1_message: appSettings.followup_1_message||"",
+            followup_2_delay:   appSettings.followup_2_delay||"24",
+            followup_2_message: appSettings.followup_2_message||"",
+            followup_max:       appSettings.followup_max||"2",
           })
         });
-        // Also save global settings like followups, pipeline etc
-        await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
       } else {
+        // Client saving their own settings
         await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
       }
       setSettingsSaved(true); setTimeout(()=>setSettingsSaved(false),2500);
@@ -1216,15 +1235,11 @@ export default function App() {
               const missingKeys = providers.filter(p=>aiStatus[p.id]===false);
               const availableKeys = providers.filter(p=>aiStatus[p.id]===true);
               return <>
-                {/* Missing key warning */}
-                {missingKeys.length>0&&aiOn&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#856404",marginBottom:8}}>⚠️ Missing API Keys in Render</div>
-                  {missingKeys.map(p=><div key={p.id} style={{fontSize:12,color:"#856404",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
-                    {p.icon} <b>{p.label} ({p.company})</b> — {isAdmin&&settingsClinic&&clientSettings?.ai_provider===p.id&&clientSettings?.ai_api_key ? <span style={{color:"#166534"}}>✅ Key saved in DB for {settingsClinic.company_name||settingsClinic.username}</span> : <span><code style={{background:"#ffeeba",padding:"1px 5px",borderRadius:4}}>{p.envKey}</code> not set in Render</span>}
-                  </div>)}
-                  {availableKeys.length>0&&<div style={{marginTop:8,fontSize:12,color:"#155724",fontWeight:600}}>
-                    ✅ Available: {availableKeys.map(p=>`${p.icon} ${p.label}`).join(" · ")}
-                  </div>}
+                {/* API Key status from DB */}
+                {isAdmin&&settingsClinic&&<div style={{background:clientSettings?.ai_api_key?"#f0fdf4":"#fef9c3",border:`1px solid ${clientSettings?.ai_api_key?"#86efac":"#fde68a"}`,borderRadius:12,padding:"12px 16px",marginBottom:12}}>
+                  {clientSettings?.ai_api_key
+                    ? <div style={{fontSize:13,color:"#166534",fontWeight:600}}>✅ API Key saved in DB for {settingsClinic.company_name||settingsClinic.username} · Using {providers.find(p=>p.id===appSettings.ai_provider)?.label||appSettings.ai_provider}</div>
+                    : <div style={{fontSize:13,color:"#854d0e",fontWeight:600}}>⚠️ No API key set for {settingsClinic.company_name||settingsClinic.username} — add one in the API Key field below</div>}
                 </div>}
 
                 <div className="cc" style={{border:`2px solid ${aiOn?WA_GREEN:"#ef4444"}30`,background:aiOn?`${WA_GREEN}08`:"#ef444408"}}>
@@ -1267,14 +1282,14 @@ export default function App() {
                         <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{p.company}</div>
                         <div style={{fontSize:10,color:T.textMuted}}>{p.model}</div>
                         <div style={{marginTop:6,fontSize:10,fontWeight:600,color:hasKey===undefined?"#6b7280":hasKey?"#10b981":"#f59e0b"}}>
-                          {hasKey===undefined?"⏳ checking...":hasKey?"✅ Key set in Render":(clientSettings?.ai_api_key?"✅ Key set in DB":"⚠️ Add key above")}
+                          {isAdmin&&settingsClinic ? (clientSettings?.ai_api_key&&clientSettings?.ai_provider===p.id?"✅ Key in DB":"Add key above ↓") : (hasKey?"✅ Key set":"No key")}
                         </div>
                       </div>;
                     })}
                   </div>}
                   {/* Warning if selected provider has no key */}
                   {aiOn&&aiStatus[provider]===false&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"#fff3cd",border:"1px solid #ffc10740",fontSize:12,color:"#856404"}}>
-                    {isAdmin&&settingsClinic&&clientSettings?.ai_api_key ? `✅ ${providers.find(p=>p.id===provider)?.label} key is saved in DB for ${settingsClinic?.company_name||settingsClinic?.username}. Bot will use this key.` : `⚠️ ${providers.find(p=>p.id===provider)?.label} is selected but no API key found. Add the key above and save.`}
+                    {isAdmin&&settingsClinic ? (clientSettings?.ai_api_key&&clientSettings?.ai_provider===provider ? `✅ ${providers.find(p=>p.id===provider)?.label} key saved in DB — bot will use this key.` : `⚠️ No API key set for ${settingsClinic?.company_name||settingsClinic?.username}. Add the key in the field above.`) : `⚠️ Add API key above.`}
                   </div>}
 
                   {!aiOn&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"#ef444415",fontSize:12,color:"#ef4444",fontWeight:500}}>
