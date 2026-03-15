@@ -1291,6 +1291,19 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
     showMsg("✅ User deleted"); load();
   }
 
+  async function resetClinicData(user) {
+    if(!confirm(`⚠️ This will permanently delete ALL contacts, messages and analytics for "${user.company_name||user.username}".
+
+This CANNOT be undone. Are you sure?`)) return;
+    if(!confirm(`Second confirmation — DELETE everything for "${user.company_name||user.username}"?`)) return;
+    try {
+      const r = await fetch(`${API}/api/admin/users/${user.id}/reset-data`, {method:"DELETE",headers:authHeaders()});
+      const d = await r.json();
+      if(r.ok) showMsg(`✅ Reset complete — ${d.deleted_contacts} contacts and ${d.deleted_messages} messages deleted`);
+      else showMsg("❌ "+d.error);
+    } catch { showMsg("❌ Network error"); }
+  }
+
   async function changePassword() {
     if(!pwForm.current_password||!pwForm.new_password) return setPwMsg("❌ All fields required");
     if(pwForm.new_password!==pwForm.confirm) return setPwMsg("❌ Passwords do not match");
@@ -1375,6 +1388,8 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
                   style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit</button>
                 <button onClick={()=>deleteUser(u.id)}
                   style={{padding:"6px 12px",borderRadius:8,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+                <button onClick={()=>resetClinicData(u)}
+                  style={{padding:"6px 12px",borderRadius:8,border:"1px solid #f9731630",background:"#f9731610",color:"#f97316",fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>🔄 Reset Data</button>
               </div>
             </div>
           ))}
