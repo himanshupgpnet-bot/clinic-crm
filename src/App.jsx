@@ -373,39 +373,25 @@ export default function App() {
     setOverviewLoading(false);
   }, []);
 
-  async function fetchClientSettings(client) {
+  async function loadClientSettings(client) {
     setSettingsClinic(client);
-    setClientSettings(null);
     try {
       const r = await fetch(`${API}/api/admin/users/${client.id}/settings`, {headers:authHeaders()});
       if(r.ok) {
         const d = await r.json();
+        // Load client settings INTO appSettings so all existing SettingInput components work
+        setAppSettings(prev=>({
+          ...prev,
+          ai_provider:   d.ai_provider||"anthropic",
+          ai_api_key:    d.ai_api_key||"",
+          ai_enabled:    d.bot_enabled===false?"false":"true",
+          hot_keywords:  d.lead_keywords||prev.hot_keywords||"",
+          system_prompt: d.system_prompt||"",
+        }));
         setClientSettings(d);
-      } else {
-        // Fallback — create default settings object from what we know
-        setClientSettings({
-          id: client.id,
-          username: client.username,
-          company_name: client.company_name||"",
-          ai_provider: client.ai_provider||"anthropic",
-          ai_api_key: client.ai_api_key||"",
-          bot_enabled: true,
-          system_prompt: "",
-          lead_keywords: ""
-        });
       }
     } catch(e) {
-      // Fallback on network error
-      setClientSettings({
-        id: client.id,
-        username: client.username,
-        company_name: client.company_name||"",
-        ai_provider: client.ai_provider||"anthropic",
-        ai_api_key: "",
-        bot_enabled: true,
-        system_prompt: "",
-        lead_keywords: ""
-      });
+      console.error("loadClientSettings failed:", e);
     }
   }
 
@@ -517,7 +503,26 @@ export default function App() {
   }
 
   async function saveSettings() {
-    try { await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)}); setSettingsSaved(true); setTimeout(()=>setSettingsSaved(false),2500); } catch{alert("Failed");}
+    try {
+      if(isAdmin && settingsClinic) {
+        // Save to this specific client's account
+        await fetch(`${API}/api/admin/users/${settingsClinic.id}/settings`, {
+          method:"PATCH", headers:authHeaders(),
+          body:JSON.stringify({
+            ai_provider:   appSettings.ai_provider,
+            ai_api_key:    appSettings.ai_api_key||"",
+            bot_enabled:   appSettings.ai_enabled!=="false",
+            system_prompt: appSettings.system_prompt||"",
+            lead_keywords: appSettings.hot_keywords||"",
+          })
+        });
+        // Also save global settings like followups, pipeline etc
+        await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
+      } else {
+        await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
+      }
+      setSettingsSaved(true); setTimeout(()=>setSettingsSaved(false),2500);
+    } catch{alert("Failed");}
   }
 
   async function addQA() {
@@ -1151,110 +1156,46 @@ export default function App() {
         </div>}
 
         {/* ══ SETTINGS ══ */}
+        {/* ══ SETTINGS ══ */}
         {tab==="settings"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
-          {/* Admin sidebar — client picker for settings */}
+          {/* Admin sidebar */}
           {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Settings For</div>
-            <div onClick={()=>{setSettingsClinic(null);fetchSettings();}}
-              style={{padding:"10px 14px",cursor:"pointer",background:!settingsClinic?`${WA_GREEN}15`:"transparent",borderLeft:!settingsClinic?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:28,height:28,borderRadius:8,background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚙️</div>
-              <div style={{fontSize:12,fontWeight:700,color:!settingsClinic?WA_GREEN:T.text}}>Global / My Settings</div>
-            </div>
             {adminOverview.map(c=>(
-              <div key={c.id} onClick={()=>fetchClientSettings(c)}
-                style={{padding:"10px 14px",cursor:"pointer",background:settingsClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:settingsClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
-                <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
+              <div key={c.id} onClick={()=>loadClientSettings(c)}
+                style={{padding:"11px 14px",cursor:"pointer",background:settingsClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:settingsClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:32,height:32,borderRadius:9,overflow:"hidden",background:`${WA_GREEN}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:15}}>🏢</span>}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:700,color:settingsClinic?.id===c.id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:settingsClinic?.id===c.id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
+                  <div style={{fontSize:10,color:T.textMuted,marginTop:1}}>{c.industry||"Client"}</div>
                 </div>
               </div>
             ))}
+            {adminOverview.length===0&&<div style={{padding:20,fontSize:12,color:T.textMuted,textAlign:"center"}}>No clients yet</div>}
           </div>}
 
-          {/* Settings content */}
-          <div style={{flex:1,overflowY:"auto",padding:16}}>
-            {isAdmin&&settingsClinic&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,padding:"10px 14px",borderRadius:12,background:T.card,border:`1px solid ${T.border}`}}>
-              <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                {settingsClinic.logo_url?<img src={settingsClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
-              </div>
-              <div>
-                <div style={{fontWeight:700,fontSize:14}}>{settingsClinic.company_name||settingsClinic.username}</div>
-                <div style={{fontSize:11,color:T.textMuted}}>Editing this client's settings</div>
-              </div>
-              <button onClick={()=>{setSettingsClinic(null);fetchSettings();}} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>← Global</button>
+          {/* Main settings area */}
+          <div style={{flex:1,overflowY:"auto",padding:0}}>
+
+            {/* Admin must pick client */}
+            {isAdmin&&!settingsClinic&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",color:T.textMuted}}>
+              <div style={{fontSize:48,marginBottom:12}}>👈</div>
+              <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client</div>
+              <div style={{fontSize:13}}>Choose from the sidebar to edit their settings</div>
             </div>}
 
-            {/* Per-client AI + Bot settings when admin selects a client */}
-            {isAdmin&&settingsClinic&&<div style={{maxWidth:700}}>
-              {!clientSettings&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading settings...</div>}
-              {clientSettings&&<>
-              <div className="cc" style={{padding:20,marginBottom:14}}>
-                <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>🤖 AI & Bot Settings</div>
-
-                {/* Bot ON/OFF */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:T.card2,border:`1px solid ${T.border}`,marginBottom:12}}>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:13}}>Bot Status</div>
-                    <div style={{fontSize:11,color:T.textMuted}}>{clientSettings.bot_enabled?"Bot is replying automatically":"Bot is OFF — manual replies only"}</div>
-                  </div>
-                  <div onClick={()=>setClientSettings(p=>({...p,bot_enabled:!p.bot_enabled}))}
-                    style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:clientSettings.bot_enabled?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
-                    <div style={{position:"absolute",top:3,left:clientSettings.bot_enabled?22:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
-                  </div>
+            {(!isAdmin||settingsClinic)&&<>
+              {isAdmin&&settingsClinic&&<div style={{padding:"12px 20px",background:`${WA_GREEN}10`,borderBottom:`1px solid ${WA_GREEN}30`,display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {settingsClinic.logo_url?<img src={settingsClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
                 </div>
-
-                {/* AI Provider */}
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>AI PROVIDER</div>
-                  <select value={clientSettings.ai_provider||"anthropic"} onChange={e=>setClientSettings(p=>({...p,ai_provider:e.target.value}))}
-                    style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-                    <option value="anthropic">Claude (Anthropic)</option>
-                    <option value="openai">GPT-4o (OpenAI)</option>
-                    <option value="groq">Llama 3 (Groq — Free)</option>
-                  </select>
-                </div>
-
-                {/* API Key */}
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>API KEY</div>
-                  <input type="password" value={clientSettings.ai_api_key||""} onChange={e=>setClientSettings(p=>({...p,ai_api_key:e.target.value}))}
-                    placeholder="Paste API key..."
-                    style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"monospace",outline:"none",boxSizing:"border-box"}}/>
-                </div>
-
-                {/* System Prompt */}
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>BOT PERSONALITY / SYSTEM PROMPT</div>
-                  <textarea value={clientSettings.system_prompt||""} onChange={e=>setClientSettings(p=>({...p,system_prompt:e.target.value}))}
-                    placeholder="You are Sara, a friendly assistant for [Company]..."
-                    rows={5}
-                    style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
-                </div>
-
-                {/* Lead keywords */}
-                <div style={{marginBottom:16}}>
-                  <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>LEAD KEYWORDS (comma separated)</div>
-                  <textarea value={clientSettings.lead_keywords||""} onChange={e=>setClientSettings(p=>({...p,lead_keywords:e.target.value}))}
-                    placeholder="book,appointment,price,interested,want to..."
-                    rows={3}
-                    style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
-                  <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Words that trigger hot/warm lead scoring for this client</div>
-                </div>
-
-                <button onClick={saveClientSettings} style={{padding:"11px 24px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  💾 Save Client Settings
-                </button>
-                {settingsSaved&&<span style={{marginLeft:12,color:WA_GREEN,fontSize:12,fontWeight:600}}>✅ Saved!</span>}
-              </div>
-            </>}
-            </div>}
-
-            {/* Original settings when no client selected or for client user */}
-            {(!isAdmin||!settingsClinic)&&<div style={{maxWidth:700}}>
-          <div style={{maxWidth:720,margin:"0 auto"}}>
+                <div style={{fontWeight:700,fontSize:14,color:WA_GREEN}}>{settingsClinic.company_name||settingsClinic.username}</div>
+                <div style={{fontSize:11,color:T.textMuted,marginLeft:4}}>— Editing their settings. Changes save to their account only.</div>
+              </div>}
+                        <div style={{maxWidth:720,margin:"0 auto"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,flexWrap:"wrap",gap:8}}>
               <div><div style={{fontWeight:700,fontSize:17}}>⚙️ Settings</div><div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Saved to settings.xlsx</div></div>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1279,7 +1220,7 @@ export default function App() {
                 {missingKeys.length>0&&aiOn&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
                   <div style={{fontWeight:700,fontSize:13,color:"#856404",marginBottom:8}}>⚠️ Missing API Keys in Render</div>
                   {missingKeys.map(p=><div key={p.id} style={{fontSize:12,color:"#856404",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
-                    {p.icon} <b>{p.label} ({p.company})</b> — <code style={{background:"#ffeeba",padding:"1px 5px",borderRadius:4}}>{p.envKey}</code> not set in Render
+                    {p.icon} <b>{p.label} ({p.company})</b> — {isAdmin&&settingsClinic&&clientSettings?.ai_provider===p.id&&clientSettings?.ai_api_key ? <span style={{color:"#166534"}}>✅ Key saved in DB for {settingsClinic.company_name||settingsClinic.username}</span> : <span><code style={{background:"#ffeeba",padding:"1px 5px",borderRadius:4}}>{p.envKey}</code> not set in Render</span>}
                   </div>)}
                   {availableKeys.length>0&&<div style={{marginTop:8,fontSize:12,color:"#155724",fontWeight:600}}>
                     ✅ Available: {availableKeys.map(p=>`${p.icon} ${p.label}`).join(" · ")}
@@ -1326,14 +1267,14 @@ export default function App() {
                         <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{p.company}</div>
                         <div style={{fontSize:10,color:T.textMuted}}>{p.model}</div>
                         <div style={{marginTop:6,fontSize:10,fontWeight:600,color:hasKey===undefined?"#6b7280":hasKey?"#10b981":"#f59e0b"}}>
-                          {hasKey===undefined?"⏳ checking...":hasKey?"✅ Key set":"⚠️ Add key to Render"}
+                          {hasKey===undefined?"⏳ checking...":hasKey?"✅ Key set in Render":(clientSettings?.ai_api_key?"✅ Key set in DB":"⚠️ Add key above")}
                         </div>
                       </div>;
                     })}
                   </div>}
                   {/* Warning if selected provider has no key */}
                   {aiOn&&aiStatus[provider]===false&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"#fff3cd",border:"1px solid #ffc10740",fontSize:12,color:"#856404"}}>
-                    ⚠️ <b>{providers.find(p=>p.id===provider)?.label}</b> is selected but <code>{providers.find(p=>p.id===provider)?.envKey}</code> is not set in Render. Bot will fail until you add the key.
+                    {isAdmin&&settingsClinic&&clientSettings?.ai_api_key ? `✅ ${providers.find(p=>p.id===provider)?.label} key is saved in DB for ${settingsClinic?.company_name||settingsClinic?.username}. Bot will use this key.` : `⚠️ ${providers.find(p=>p.id===provider)?.label} is selected but no API key found. Add the key above and save.`}
                   </div>}
 
                   {!aiOn&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"#ef444415",fontSize:12,color:"#ef4444",fontWeight:500}}>
@@ -1372,7 +1313,7 @@ export default function App() {
               </div>
             </div>
           </div>
-            </div>}
+            </>}
           </div>
         </div>}
 
