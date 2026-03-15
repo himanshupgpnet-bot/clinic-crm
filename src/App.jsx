@@ -1192,7 +1192,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const [loading, setLoading] = useState(true);
   const [showNewUser, setShowNewUser] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
+  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",wa_phone_number:"",wa_phone_number_id:"",wa_token:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
   const [editUser, setEditUser] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1246,7 +1246,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
         permissions:{can_inbox:newUser.can_inbox,can_leads:newUser.can_leads,can_analytics:newUser.can_analytics,can_testbot:newUser.can_testbot,can_knowledge:newUser.can_knowledge,can_settings:newUser.can_settings,ai_provider:newUser.ai_provider}
       })});
       const d = await r.json();
-      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false}); load(); }
+      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",wa_phone_number:"",wa_phone_number_id:"",wa_token:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false}); load(); }
       else showMsg("❌ "+d.error);
     } catch { showMsg("❌ Network error"); }
     setSaving(false);
@@ -1259,7 +1259,10 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
         active:       editUser.active,
         company_name: editUser.company_name,
         industry:     editUser.industry||"",
-        logo_url:     editUser.logo_url||"",
+        logo_url:          editUser.logo_url||"",
+        wa_phone_number:    editUser.wa_phone_number||"",
+        wa_phone_number_id: editUser.wa_phone_number_id||"",
+        wa_token:           editUser.wa_token||"",
         ai_provider:  editUser.ai_provider,
         ai_api_key:   editUser.ai_api_key||"",
         permissions: {
@@ -1494,6 +1497,29 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
                 </div>
               </div>
 
+              <div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
+                <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:4}}>📱 WhatsApp Configuration</div>
+                <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Get these from Meta Business → WhatsApp → API Setup</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>WHATSAPP PHONE NUMBER</div>
+                    {inp(newUser.wa_phone_number, e=>setNewUser(p=>({...p,wa_phone_number:e.target.value})), "e.g. +60111234567")}
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>PHONE NUMBER ID</div>
+                    {inp(newUser.wa_phone_number_id, e=>setNewUser(p=>({...p,wa_phone_number_id:e.target.value})), "e.g. 123456789012345")}
+                    <div style={{fontSize:10,color:T.textMuted,marginTop:3}}>Found in Meta Business → WhatsApp → Getting Started</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>WHATSAPP ACCESS TOKEN</div>
+                    <div style={{position:"relative"}}>
+                      {inp(newUser.wa_token, e=>setNewUser(p=>({...p,wa_token:e.target.value})), "Paste access token...", "password", {paddingRight:40,fontFamily:"monospace",fontSize:12})}
+                    </div>
+                    <div style={{fontSize:10,color:T.textMuted,marginTop:3}}>Permanent token from Meta System User</div>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             <div style={{display:"flex",gap:10,marginTop:20}}>
@@ -1602,6 +1628,27 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
                 <div style={{position:"relative"}}>
                   {inp(editUser.ai_api_key, e=>setEditUser(p=>({...p,ai_api_key:e.target.value})), "Paste API key...", showEditApiKey?"text":"password", {paddingRight:40,fontFamily:"monospace",fontSize:12})}
                   <button onClick={()=>setShowEditApiKey(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showEditApiKey?"🙈":"👁️"}</button>
+                </div>
+              </div>
+
+              {/* WhatsApp config */}
+              <div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
+                <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:10}}>📱 WhatsApp Configuration</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>WHATSAPP PHONE NUMBER</div>
+                    {inp(editUser.wa_phone_number, e=>setEditUser(p=>({...p,wa_phone_number:e.target.value})), "e.g. +60111234567")}
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>PHONE NUMBER ID</div>
+                    {inp(editUser.wa_phone_number_id, e=>setEditUser(p=>({...p,wa_phone_number_id:e.target.value})), "e.g. 123456789012345")}
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>WHATSAPP ACCESS TOKEN</div>
+                    <div style={{position:"relative"}}>
+                      {inp(editUser.wa_token||"", e=>setEditUser(p=>({...p,wa_token:e.target.value})), "Paste access token...", "password", {fontFamily:"monospace",fontSize:12})}
+                    </div>
+                  </div>
                 </div>
               </div>
 
