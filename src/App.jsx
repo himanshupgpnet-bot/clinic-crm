@@ -954,139 +954,15 @@ export default function App() {
                       </div>
                     </div>
                   </div>}
-            {!analyticsLoading&&analytics&&<>
-              {/* Summary Banner */}
-              {analytics.growth&&<div style={{background:`linear-gradient(135deg,${WA_GREEN}15,${WA_DARK}10)`,border:`1px solid ${WA_GREEN}30`,borderRadius:14,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-                <div style={{fontSize:28}}>📈</div>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:15,color:T.text}}>Period Summary: {analytics.dateFrom} → {analytics.dateTo}</div>
-                  <div style={{fontSize:13,color:T.textMuted,marginTop:4}}>
-                    <strong style={{color:WA_GREEN}}>{analytics.growth.thisperiod}</strong> people messaged the bot ·
-                    <strong style={{color:"#ef4444"}}> {analytics.totals?.hot}</strong> hot leads ·
-                    <strong style={{color:"#10b981"}}> {analytics.growth.conversionRate}%</strong> conversion rate
-                    {analytics.growth.pct!==0&&<span style={{marginLeft:8,background:analytics.growth.pct>0?"#dcfce7":"#fef2f2",color:analytics.growth.pct>0?WA_GREEN:"#ef4444",borderRadius:10,padding:"2px 8px",fontSize:12,fontWeight:700}}>{analytics.growth.pct>0?"▲":"▼"} {Math.abs(analytics.growth.pct)}% vs prev period</span>}
-                  </div>
-                </div>
-              </div>}
+                </>}
+              </>}
 
-              {/* Stat Cards */}
-              <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
-                <StatCard icon="👥" label="Total Contacts" value={analytics.totals?.contacts} color={WA_GREEN} sub="All time"/>
-                <StatCard icon="🔥" label="Hot Leads" value={analytics.totals?.hot} color="#ef4444" sub="Current"
-                  badge={analytics.growth?.conversionRate?{value:analytics.growth.conversionRate,positive:true}:null}/>
-                <StatCard icon="💬" label="Messages Received" value={analytics.totals?.userMessages} color="#3b82f6" sub="This period"/>
-                <StatCard icon="🤖" label="Bot Replies" value={analytics.totals?.botMessages} color="#8b5cf6" sub="Automated"/>
-                <StatCard icon="✅" label="Deals Done" value={analytics.totals?.done} color="#10b981" sub="Pipeline done"/>
-              </div>
-
-              {/* Lead Trends */}
-              <div className="cc">
-                <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>🔥 Lead Quality Over Time</div>
-                <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>How many hot, warm and cold leads were generated each day</div>
-                {analytics.leadTrends?.length>0?<ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={analytics.leadTrends} margin={{top:5,right:20,left:0,bottom:5}}>
-                    <defs>
-                      <linearGradient id="hot" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/></linearGradient>
-                      <linearGradient id="warm" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/><stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/></linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={T.border}/>
-                    <XAxis dataKey="date" tick={{fontSize:10,fill:T.textFaint}} tickFormatter={d=>d.slice(5)}/>
-                    <YAxis tick={{fontSize:10,fill:T.textFaint}} allowDecimals={false}/>
-                    <Tooltip contentStyle={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,fontSize:12}}/>
-                    <Legend wrapperStyle={{fontSize:12}}/>
-                    <Area type="monotone" dataKey="hot"  stroke="#ef4444" fill="url(#hot)"  strokeWidth={2} name="🔥 Hot"/>
-                    <Area type="monotone" dataKey="warm" stroke="#f59e0b" fill="url(#warm)" strokeWidth={2} name="🟡 Warm"/>
-                    <Line type="monotone" dataKey="cold" stroke="#3b82f6" strokeWidth={1.5} dot={false} name="🔵 Cold"/>
-                  </AreaChart>
-                </ResponsiveContainer>:<div style={{textAlign:"center",padding:40,color:T.textFaint,fontSize:12}}>No lead history yet — data builds up as customers message each day</div>}
-              </div>
-
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:0}}>
-                {/* Active Users per day */}
-                <div className="cc">
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>👥 New Visitors / Day</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>Unique customers who messaged the bot</div>
-                  {analytics.activePerDay?.length>0?<ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={analytics.activePerDay} margin={{top:5,right:10,left:0,bottom:5}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={T.border}/>
-                      <XAxis dataKey="date" tick={{fontSize:10,fill:T.textFaint}} tickFormatter={d=>d.slice(5)}/>
-                      <YAxis tick={{fontSize:10,fill:T.textFaint}} allowDecimals={false}/>
-                      <Tooltip contentStyle={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,fontSize:12}}/>
-                      <Bar dataKey="count" fill={WA_GREEN} radius={[4,4,0,0]} name="Visitors"/>
-                    </BarChart>
-                  </ResponsiveContainer>:<div style={{textAlign:"center",padding:40,color:T.textFaint,fontSize:12}}>No data yet</div>}
-                </div>
-
-                {/* Bot vs Human replies */}
-                <div className="cc">
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>🤖 Bot vs Human Replies</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>How messages were handled each day</div>
-                  {analytics.messagesPerDay?.length>0?<ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={analytics.messagesPerDay} margin={{top:5,right:10,left:0,bottom:5}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={T.border}/>
-                      <XAxis dataKey="date" tick={{fontSize:10,fill:T.textFaint}} tickFormatter={d=>d.slice(5)}/>
-                      <YAxis tick={{fontSize:10,fill:T.textFaint}} allowDecimals={false}/>
-                      <Tooltip contentStyle={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,fontSize:12}}/>
-                      <Legend wrapperStyle={{fontSize:11}}/>
-                      <Bar dataKey="bot"   stackId="a" fill="#8b5cf6" radius={[0,0,0,0]} name="🤖 Bot"/>
-                      <Bar dataKey="agent" stackId="a" fill="#34B7F1" radius={[4,4,0,0]} name="👤 Agent"/>
-                    </BarChart>
-                  </ResponsiveContainer>:<div style={{textAlign:"center",padding:40,color:T.textFaint,fontSize:12}}>No data yet</div>}
-                </div>
-              </div>
-
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                {/* Peak Hours */}
-                <div className="cc">
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>⏰ Peak Hours</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>When do most customers message?</div>
-                  {analytics.peakHours?.length>0?<ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={analytics.peakHours.map(h=>({...h,label:HOUR_LABELS[h.hour]||`${h.hour}h`}))} margin={{top:5,right:10,left:0,bottom:5}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={T.border}/>
-                      <XAxis dataKey="label" tick={{fontSize:9,fill:T.textFaint}}/>
-                      <YAxis tick={{fontSize:10,fill:T.textFaint}} allowDecimals={false}/>
-                      <Tooltip contentStyle={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,fontSize:12}}/>
-                      <Bar dataKey="count" fill="#f59e0b" radius={[4,4,0,0]} name="Messages"/>
-                    </BarChart>
-                  </ResponsiveContainer>:<div style={{textAlign:"center",padding:40,color:T.textFaint,fontSize:12}}>Not enough data yet</div>}
-                </div>
-
-                {/* Pipeline Pie */}
-                <div className="cc">
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>🎯 Pipeline Breakdown</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>Current lead stage distribution</div>
-                  {analytics.pipelineBreakdown?.length>0?<div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}>
-                    <ResponsiveContainer width={180} height={180}>
-                      <PieChart>
-                        <Pie data={analytics.pipelineBreakdown} dataKey="count" nameKey="stage" cx="50%" cy="50%" outerRadius={80} innerRadius={45} paddingAngle={3} label={({percent})=>`${(percent*100).toFixed(0)}%`} labelLine={false}>
-                          {analytics.pipelineBreakdown.map((e,i)=><Cell key={i} fill={PIE_COLORS[e.stage]||"#6b7280"}/>)}
-                        </Pie>
-                        <Tooltip contentStyle={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,fontSize:12}} formatter={(v,n)=>[v,PIE_LABELS[n]||n]}/>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                      {analytics.pipelineBreakdown.map(r=><div key={r.stage} style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{width:10,height:10,borderRadius:2,background:PIE_COLORS[r.stage]||"#6b7280"}}/>
-                        <div style={{fontSize:12,fontWeight:600}}>{PIE_LABELS[r.stage]||r.stage}</div>
-                        <div style={{fontSize:12,color:T.textMuted}}>{r.count}</div>
-                      </div>)}
-                    </div>
-                  </div>:<div style={{textAlign:"center",padding:40,color:T.textFaint,fontSize:12}}>No data yet</div>}
-                </div>
-              </div>
-            </>}
 
             {!analyticsLoading&&!analytics&&<div style={{textAlign:"center",padding:80,color:T.textFaint}}>
               <div style={{fontSize:40,marginBottom:12}}>📊</div>
               <div style={{fontSize:14,fontWeight:600}}>No analytics data yet</div>
               <div style={{fontSize:12,marginTop:6}}>Data appears as customers message in</div>
             </div>}
-          </div>
-        </div>}
-
-        {/* ══ BOT TEST ══ */}
-              </>
-            }
 
             </div>
           </div>
