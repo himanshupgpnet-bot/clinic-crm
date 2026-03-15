@@ -73,6 +73,9 @@ export default function App() {
   const [sendingFollowup, setSendingFollowup] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [adminOverview, setAdminOverview] = useState([]);
+  const [selectedClinic, setSelectedClinic] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
   const [dateFrom, setDateFrom] = useState(daysAgo(29));
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
@@ -345,10 +348,23 @@ export default function App() {
     try { const r=await fetch(`${API}/api/settings`, {headers:authHeaders()}); if(!r.ok)return; setAppSettings(await r.json()); } catch {}
   }, []);
 
-  const fetchAnalytics = useCallback(async (from, to) => {
+  const fetchAnalytics = useCallback(async (from, to, clinicId=null) => {
     setAnalyticsLoading(true);
-    try { const r=await fetch(`${API}/api/analytics?from=${from}&to=${to}`, {headers:authHeaders()}); if(r.ok) setAnalytics(await r.json()); } catch {}
+    try {
+      const cParam = clinicId ? `&clinic_id=${clinicId}` : "";
+      const r = await fetch(`${API}/api/analytics?from=${from}&to=${to}${cParam}`, {headers:authHeaders()});
+      if(r.ok) setAnalytics(await r.json());
+    } catch {}
     setAnalyticsLoading(false);
+  }, []);
+
+  const fetchAdminOverview = useCallback(async () => {
+    setOverviewLoading(true);
+    try {
+      const r = await fetch(`${API}/api/admin/analytics-overview`, {headers:authHeaders()});
+      if(r.ok) setAdminOverview(await r.json());
+    } catch {}
+    setOverviewLoading(false);
   }, []);
 
   const pollRef = useRef(null);
@@ -361,7 +377,12 @@ export default function App() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  useEffect(() => { if(tab==="analytics") fetchAnalytics(dateFrom, dateTo); }, [tab]);
+  useEffect(() => {
+    if(tab==="analytics") {
+      fetchAnalytics(dateFrom, dateTo, selectedClinic?.clinic_id||null);
+      if(isAdmin) fetchAdminOverview();
+    }
+  }, [tab]);
 
   function setPreset(p) {
     setDatePreset(p); const t=today();
