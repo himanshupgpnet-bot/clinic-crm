@@ -79,6 +79,8 @@ export default function App() {
   const [leadsClinic, setLeadsClinic] = useState(null);
   const [settingsClinic, setSettingsClinic] = useState(null);
   const [clientSettings, setClientSettings] = useState(null);
+  const [inboxClinic, setInboxClinic] = useState(null);
+  const [kbClinic, setKbClinic] = useState(null);
   const [dateFrom, setDateFrom] = useState(daysAgo(29));
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
@@ -329,7 +331,8 @@ export default function App() {
 
   const fetchConversations = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/conversations`, {headers:authHeaders()});
+      const clinicParam = inboxClinic ? `?clinic_id=${inboxClinic}` : "";
+      const res = await fetch(`${API}/api/conversations${clinicParam}`, {headers:authHeaders()});
       if (!res.ok) throw new Error();
       const data = await res.json();
       setContacts(data);
@@ -409,6 +412,25 @@ export default function App() {
     }
   }
 
+  async function loadKbForClient(client) {
+    setKbClinic(client);
+    // Fetch this client's knowledge into qaData and systemPrompt
+    try {
+      const r = await fetch(`${API}/api/admin/users/${client.id}/knowledge`, {headers:authHeaders()});
+      if(r.ok) {
+        const d = await r.json();
+        setQaData(d.qa||[]);
+        setSystemPrompt(d.systemPrompt||"");
+      }
+    } catch(e) {
+      // Fallback — fetch via standard endpoint with clinic param
+      try {
+        const r2 = await fetch(`${API}/api/knowledge?clinic_id=${client.clinic_id}`, {headers:authHeaders()});
+        if(r2.ok) { const d=await r2.json(); setQaData(d.qa||[]); setSystemPrompt(d.systemPrompt||""); }
+      } catch {}
+    }
+  }
+
   async function saveClientSettings() {
     if(!settingsClinic||!clientSettings) return;
     try {
@@ -424,6 +446,10 @@ export default function App() {
 
   useEffect(() => {
     fetchConversations(); fetchKnowledge(); fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    fetchConversations();
     fetch(`${API}/api/ai-status`).then(r=>r.json()).then(setAiStatus).catch(()=>{});
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(fetchConversations, 10000); // 10s — easier on backend
@@ -435,7 +461,7 @@ export default function App() {
       fetchAnalytics(dateFrom, dateTo, selectedClinic?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
     }
-    if((tab==="leads"||tab==="settings") && isAdmin && adminOverview.length===0) {
+    if((tab==="leads"||tab==="settings"||tab==="kb") && isAdmin && adminOverview.length===0) {
       fetchAdminOverview();
     }
   }, [tab]);
@@ -590,7 +616,8 @@ export default function App() {
   const filtered = contacts.filter(c=>
     (filter==="all"||c.status===filter)&&
     (leadFilter==="all"||c.lead===leadFilter)&&
-    (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))
+    (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))&&
+    (!isAdmin||!inboxClinic||String(c.clinic_id||1)===String(inboxClinic))
   );
 
   const totalUnread = contacts.reduce((s,c)=>s+c.unread,0);
@@ -795,6 +822,16 @@ export default function App() {
         {tab==="crm"&&<>
           <div style={{width:300,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0}}>
             <div style={{padding:"10px 10px 8px",borderBottom:`1px solid ${T.border}`}}>
+              {/* Admin client selector dropdown */}
+              {isAdmin&&adminOverview.length>0&&<div style={{marginBottom:8}}>
+                <select value={inboxClinic||""} onChange={e=>{setInboxClinic(e.target.value||null);}}
+                  style={{width:"100%",padding:"6px 10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+                  <option value="">🌐 All Clients</option>
+                  {adminOverview.map(c=>(
+                    <option key={c.id} value={c.clinic_id}>{c.company_name||c.username}</option>
+                  ))}
+                </select>
+              </div>}
               <div style={{display:"flex",gap:5,marginBottom:8}}>
                 {[{label:"Total",value:contacts.length,color:T.textMuted},{label:"Open",value:contacts.filter(c=>c.status==="open").length,color:WA_GREEN},{label:"🔥",value:hotCount,color:"#ef4444"},{label:"🟡",value:warmCount,color:"#f59e0b"}].map(s=>(
                   <div key={s.label} className="sc" style={{flex:1,background:T.card2,borderRadius:8,padding:"5px 3px",textAlign:"center",border:`1px solid ${T.border}`}}>
@@ -1115,66 +1152,103 @@ export default function App() {
             {botConvo.map((msg,i)=><div key={i} className="mb" style={{display:"flex",justifyContent:msg.from==="user"?"flex-end":"flex-start"}}>
               <div style={{maxWidth:"72%",background:msg.from==="user"?T.msgOut:T.msgIn,borderRadius:msg.from==="user"?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"9px 13px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
                 <div style={{fontSize:10,color:msg.from==="user"?"#34B7F1":WA_GREEN,fontWeight:700,marginBottom:3}}>{msg.from==="user"?"👤 You":"🤖 Sara"}</div>
-                <div style={{fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
-                <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{msg.time}</div>
-              </div>
-            </div>)}
-            {botLoading&&<div style={{display:"flex"}}><div style={{background:T.msgIn,borderRadius:"4px 16px 16px 16px",padding:"12px 16px",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><div key={i} style={{width:8,height:8,borderRadius:"50%",background:WA_GREEN,animation:`bounce 1s ${i*.15}s infinite`}}/>)}</div></div>}
-            <div ref={botEndRef}/>
-          </div>
-          <div style={{padding:"6px 10px",background:T.nav,display:"flex",gap:5,flexWrap:"wrap",borderTop:`1px solid ${T.border}`}}>
-            {["I have diabetes, can you help?","How much is consultation?","I want to book Tuesday","I'm in Johor Bahru"].map(q=><button key={q} onClick={()=>setBotInput(q)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"3px 10px",color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{q}</button>)}
-          </div>
-          <div style={{padding:"8px 10px",background:T.nav,display:"flex",gap:6,alignItems:"flex-end"}}>
-            <textarea value={botInput} onChange={e=>setBotInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendBotMessage();}}} placeholder="Type a test message..." rows={1}
-              style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:20,padding:"8px 14px",color:T.text,fontSize:13}}/>
-            <button className="sb" onClick={sendBotMessage} disabled={botLoading||!botInput.trim()} style={{width:38,height:38,borderRadius:"50%",border:"none",flexShrink:0,background:botLoading||!botInput.trim()?T.card2:WA_GREEN,color:botLoading||!botInput.trim()?T.textFaint:"#fff",fontSize:15,cursor:"pointer"}}>➤</button>
-          </div>
-        </div>}
+        {tab==="kb"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
-        {/* ══ KNOWLEDGE BASE ══ */}
-        {tab==="kb"&&<div style={{flex:1,overflowY:"auto",padding:16,background:T.bg}}>
-          <div style={{maxWidth:780,margin:"0 auto"}}>
-            <div style={{marginBottom:16}}><div style={{fontWeight:700,fontSize:17}}>📋 Knowledge Base</div><div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{qaData.length} Q&A pairs · Sara uses these as background context</div></div>
-            <div className="cc">
-              <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>⚙️ System Prompt (Sara's personality)</div>
-              <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={8}
-                style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:11,fontFamily:"'Courier New',monospace",lineHeight:1.7,marginBottom:10}}/>
-              <button onClick={async()=>{await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({prompt:systemPrompt})});alert("Saved! ✅");}}
-                style={{padding:"7px 16px",borderRadius:16,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>💾 Save Prompt</button>
-            </div>
-            <div className="cc">
-              <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>➕ Add New Q&A</div>
-              <input value={newQ} onChange={e=>setNewQ(e.target.value)} placeholder="Question..." style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:13,marginBottom:7}}/>
-              <textarea value={newA} onChange={e=>setNewA(e.target.value)} placeholder="Answer..." rows={2} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:13,marginBottom:10}}/>
-              <button onClick={addQA} style={{padding:"7px 16px",borderRadius:16,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>➕ Add Q&A</button>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {qaData.map((qa,i)=>(
-                <div key={qa.id} ref={el=>qaRefs.current[qa.id]=el} className={`qa-row ${highlightedQA===qa.id?"hl":""}`}
-                  style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:12,padding:14,transition:"all .3s"}}>
-                  {editingId===qa.id?<div>
-                    <input value={editQ} onChange={e=>setEditQ(e.target.value)} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:13,marginBottom:7}}/>
-                    <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={3} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:13,marginBottom:9}}/>
-                    <div style={{display:"flex",gap:7}}>
-                      <button onClick={()=>saveEdit(qa.id)} style={{padding:"6px 14px",borderRadius:14,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
-                      <button onClick={()=>setEditingId(null)} style={{padding:"6px 14px",borderRadius:14,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-                    </div>
-                  </div>:<div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                    <div style={{width:24,height:24,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{i+1}</div>
-                    <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13,marginBottom:3}}>{qa.question}</div><div style={{fontSize:12,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div></div>
-                    <div style={{display:"flex",gap:4,flexShrink:0}}>
-                      <button onClick={()=>{setEditingId(qa.id);setEditQ(qa.question);setEditA(qa.answer);}} style={{padding:"4px 10px",borderRadius:12,border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
-                      <button onClick={()=>deleteQA(qa.id)} style={{padding:"4px 10px",borderRadius:12,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
-                    </div>
-                  </div>}
+          {/* Admin sidebar */}
+          {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Knowledge For</div>
+            {adminOverview.map(c=>(
+              <div key={c.id} onClick={()=>loadKbForClient(c)}
+                style={{padding:"11px 14px",cursor:"pointer",background:kbClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:kbClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:32,height:32,borderRadius:9,overflow:"hidden",background:`${WA_GREEN}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:15}}>🏢</span>}
                 </div>
-              ))}
-            </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:700,color:kbClinic?.id===c.id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
+                </div>
+              </div>
+            ))}
+            {adminOverview.length===0&&<div style={{padding:16,fontSize:12,color:T.textMuted,textAlign:"center"}}>No clients yet</div>}
+          </div>}
+
+          {/* KB content */}
+          <div style={{flex:1,overflowY:"auto",padding:16}}>
+
+            {/* Admin pick client prompt */}
+            {isAdmin&&!kbClinic&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",color:T.textMuted}}>
+              <div style={{fontSize:48,marginBottom:12}}>📋</div>
+              <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client</div>
+              <div style={{fontSize:13}}>Choose a client to manage their knowledge base</div>
+            </div>}
+
+            {/* Client header */}
+            {isAdmin&&kbClinic&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 14px",borderRadius:12,background:T.card,border:`1px solid ${T.border}`}}>
+              <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {kbClinic.logo_url?<img src={kbClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
+              </div>
+              <div>
+                <div style={{fontWeight:700,fontSize:14}}>{kbClinic.company_name||kbClinic.username}</div>
+                <div style={{fontSize:11,color:T.textMuted}}>{qaData.length} Q&A pairs</div>
+              </div>
+            </div>}
+
+            {(!isAdmin||kbClinic)&&<div style={{maxWidth:800}}>
+              {/* System Prompt */}
+              <div className="cc" style={{marginBottom:16}}>
+                <div style={{fontWeight:700,fontSize:14,marginBottom:10}}>⚙️ System Prompt (Bot personality)</div>
+                <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={6}
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical"}}/>
+                <button onClick={async()=>{await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({prompt:systemPrompt})});alert("Saved! ✅");}}
+                  style={{marginTop:10,padding:"8px 20px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save Prompt</button>
+              </div>
+
+              {/* Add new Q&A */}
+              <div className="cc" style={{marginBottom:16}}>
+                <div style={{fontWeight:700,fontSize:14,marginBottom:10}}>➕ Add New Q&A</div>
+                <input value={newQ} onChange={e=>setNewQ(e.target.value)} placeholder="Question..."
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,marginBottom:8}}/>
+                <textarea value={newA} onChange={e=>setNewA(e.target.value)} placeholder="Answer..." rows={3}
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8}}/>
+                <button onClick={async()=>{
+                  try{await fetch(`${API}/api/knowledge/qa`,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});setNewQ("");setNewA("");fetchKnowledge();}catch{}
+                }} style={{padding:"8px 20px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Add Q&A</button>
+              </div>
+
+              {/* Q&A list */}
+              <div style={{fontSize:12,color:T.textMuted,marginBottom:8}}>{qaData.length} Q&A pairs</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {qaData.map((qa,i)=>(
+                  <div key={qa.id} className="cc" ref={el=>qaRefs.current[qa.id]=el}
+                    style={{padding:14,borderLeft:highlightedQA===qa.id?`3px solid ${WA_GREEN}`:"3px solid transparent"}}>
+                    {editingId===qa.id
+                      ?<div>
+                        <input value={editQ} onChange={e=>setEditQ(e.target.value)}
+                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,marginBottom:8}}/>
+                        <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={3}
+                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8}}/>
+                        <div style={{display:"flex",gap:7}}>
+                          <button onClick={()=>saveEdit(qa.id)} style={{padding:"6px 14px",borderRadius:14,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+                          <button onClick={()=>setEditingId(null)} style={{padding:"6px 14px",borderRadius:14,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                        </div>
+                      </div>
+                      :<div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                        <div style={{width:24,height:24,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{i+1}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:600,fontSize:13,marginBottom:3}}>{qa.question}</div>
+                          <div style={{fontSize:12,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
+                        </div>
+                        <div style={{display:"flex",gap:4,flexShrink:0}}>
+                          <button onClick={()=>{setEditingId(qa.id);setEditQ(qa.question);setEditA(qa.answer);}} style={{padding:"4px 10px",borderRadius:12,border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                          <button onClick={()=>deleteQA(qa.id)} style={{padding:"4px 10px",borderRadius:12,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                        </div>
+                      </div>}
+                  </div>
+                ))}
+              </div>
+            </div>}
           </div>
         </div>}
 
-        {/* ══ SETTINGS ══ */}
         {/* ══ SETTINGS ══ */}
         {tab==="settings"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
