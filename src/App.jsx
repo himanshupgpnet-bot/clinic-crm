@@ -375,10 +375,38 @@ export default function App() {
 
   async function fetchClientSettings(client) {
     setSettingsClinic(client);
+    setClientSettings(null);
     try {
       const r = await fetch(`${API}/api/admin/users/${client.id}/settings`, {headers:authHeaders()});
-      if(r.ok) setClientSettings(await r.json());
-    } catch {}
+      if(r.ok) {
+        const d = await r.json();
+        setClientSettings(d);
+      } else {
+        // Fallback — create default settings object from what we know
+        setClientSettings({
+          id: client.id,
+          username: client.username,
+          company_name: client.company_name||"",
+          ai_provider: client.ai_provider||"anthropic",
+          ai_api_key: client.ai_api_key||"",
+          bot_enabled: true,
+          system_prompt: "",
+          lead_keywords: ""
+        });
+      }
+    } catch(e) {
+      // Fallback on network error
+      setClientSettings({
+        id: client.id,
+        username: client.username,
+        company_name: client.company_name||"",
+        ai_provider: client.ai_provider||"anthropic",
+        ai_api_key: "",
+        bot_enabled: true,
+        system_prompt: "",
+        lead_keywords: ""
+      });
+    }
   }
 
   async function saveClientSettings() {
@@ -1160,7 +1188,9 @@ export default function App() {
             </div>}
 
             {/* Per-client AI + Bot settings when admin selects a client */}
-            {isAdmin&&settingsClinic&&clientSettings&&<div style={{maxWidth:700}}>
+            {isAdmin&&settingsClinic&&<div style={{maxWidth:700}}>
+              {!clientSettings&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading settings...</div>}
+              {clientSettings&&<>
               <div className="cc" style={{padding:20,marginBottom:14}}>
                 <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>🤖 AI & Bot Settings</div>
 
@@ -1219,6 +1249,7 @@ export default function App() {
                 </button>
                 {settingsSaved&&<span style={{marginLeft:12,color:WA_GREEN,fontSize:12,fontWeight:600}}>✅ Saved!</span>}
               </div>
+            </>}
             </div>}
 
             {/* Original settings when no client selected or for client user */}
