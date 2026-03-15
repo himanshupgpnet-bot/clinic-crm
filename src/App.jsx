@@ -834,25 +834,126 @@ export default function App() {
         </div>}
 
         {/* ══ ANALYTICS TAB ══ */}
-        {tab==="analytics"&&<div style={{flex:1,overflowY:"auto",padding:16,background:T.bg}}>
-          <div style={{maxWidth:1100,margin:"0 auto"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:10}}>
-              <div><div style={{fontWeight:700,fontSize:17}}>📊 Analytics</div><div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Client-ready overview — all data permanent in Supabase</div></div>
-              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                {[{id:"7d",label:"7D"},{id:"30d",label:"30D"},{id:"90d",label:"90D"},{id:"custom",label:"Custom"}].map(p=>(
-                  <button key={p.id} onClick={()=>setPreset(p.id)} style={{padding:"5px 12px",borderRadius:16,border:`1px solid ${T.border}`,background:datePreset===p.id?WA_GREEN:T.card,color:datePreset===p.id?"#fff":T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{p.label}</button>
-                ))}
-                {datePreset==="custom"&&<>
-                  <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"4px 8px",color:T.text,fontSize:12}}/>
-                  <span style={{color:T.textMuted}}>→</span>
-                  <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"4px 8px",color:T.text,fontSize:12}}/>
-                </>}
-                <button onClick={()=>fetchAnalytics(dateFrom,dateTo)} style={{padding:"5px 12px",borderRadius:16,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>🔄</button>
+        {/* ══ ANALYTICS TAB ══ */}
+        {tab==="analytics"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
+
+          {/* Admin sidebar — client list */}
+          {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Clients</div>
+            <div onClick={()=>{setSelectedClinic(null);fetchAnalytics(dateFrom,dateTo,null);fetchAdminOverview();}}
+              style={{padding:"10px 14px",cursor:"pointer",background:!selectedClinic?`${WA_GREEN}15`:"transparent",borderLeft:!selectedClinic?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:28,height:28,borderRadius:8,background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🌐</div>
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:!selectedClinic?WA_GREEN:T.text}}>All Clients</div>
+                <div style={{fontSize:10,color:T.textMuted}}>{adminOverview.length} total</div>
               </div>
             </div>
+            {overviewLoading&&<div style={{padding:16,textAlign:"center",fontSize:12,color:T.textMuted}}>Loading...</div>}
+            {adminOverview.map(c=>(
+              <div key={c.id} onClick={()=>{setSelectedClinic(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}
+                style={{padding:"10px 14px",cursor:"pointer",background:selectedClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:selectedClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:selectedClinic?.id===c.id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
+                  <div style={{fontSize:10,color:T.textMuted}}>{c.total_contacts||0} contacts</div>
+                </div>
+                <div style={{width:6,height:6,borderRadius:"50%",background:c.active?"#22c55e":"#ef4444",flexShrink:0}}/>
+              </div>
+            ))}
+          </div>}
 
-            {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:T.textFaint}}>Loading analytics...</div>}
+          {/* Main analytics content */}
+          <div style={{flex:1,overflowY:"auto",padding:16}}>
+            <div style={{maxWidth:1100,margin:"0 auto"}}>
 
+              {/* Admin overview cards — all clients */}
+              {isAdmin&&!selectedClinic&&<>
+                <div style={{fontWeight:800,fontSize:16,marginBottom:12}}>📊 All Clients Performance</div>
+                {overviewLoading&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading...</div>}
+                {!overviewLoading&&adminOverview.length===0&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>No client users yet</div>}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12,marginBottom:20}}>
+                  {adminOverview.map(c=>(
+                    <div key={c.id} className="cc" style={{padding:16,cursor:"pointer"}}
+                      onClick={()=>{setSelectedClinic(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                        <div style={{width:36,height:36,borderRadius:10,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:18}}>🏢</span>}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
+                          <div style={{fontSize:10,color:T.textMuted}}>{c.industry||"—"}</div>
+                        </div>
+                        <span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6,background:c.active?"#dcfce7":"#fee2e2",color:c.active?"#166534":"#dc2626"}}>{c.active?"Live":"Off"}</span>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                        {[
+                          {icon:"💬",label:"Messages",value:c.total_messages||0,color:"#3b82f6"},
+                          {icon:"🎯",label:"Leads",value:(c.hot_leads||0)+(c.warm_leads||0),color:"#f59e0b"},
+                          {icon:"🤖",label:"Bot %",value:`${c.bot_performance||0}%`,color:WA_GREEN},
+                          {icon:"✅",label:"Resolved",value:c.resolved_convos||0,color:"#8b5cf6"},
+                        ].map(s=>(
+                          <div key={s.label} style={{background:T.card2,borderRadius:8,padding:"8px 10px"}}>
+                            <div style={{fontSize:10,color:T.textMuted,marginBottom:2}}>{s.icon} {s.label}</div>
+                            <div style={{fontWeight:800,fontSize:16,color:s.color}}>{s.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{marginTop:8,display:"flex",justifyContent:"space-between",fontSize:10,color:T.textMuted}}>
+                        <span>🔥 {c.hot_leads||0} hot · 🌡️ {c.warm_leads||0} warm</span>
+                        <span style={{color:WA_GREEN,fontWeight:600}}>{c.conversion_rate||0}% conv.</span>
+                      </div>
+                      <div style={{marginTop:8,fontSize:11,color:WA_GREEN,fontWeight:600,textAlign:"right"}}>View details →</div>
+                    </div>
+                  ))}
+                </div>
+              </>}
+
+              {/* Selected client header */}
+              {isAdmin&&selectedClinic&&<div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,padding:"12px 16px",borderRadius:14,background:T.card,border:`1px solid ${T.border}`}}>
+                <div style={{width:40,height:40,borderRadius:10,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {selectedClinic.logo_url?<img src={selectedClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:20}}>🏢</span>}
+                </div>
+                <div>
+                  <div style={{fontWeight:800,fontSize:15}}>{selectedClinic.company_name||selectedClinic.username}</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{selectedClinic.industry||""}</div>
+                </div>
+                <button onClick={()=>{setSelectedClinic(null);fetchAnalytics(dateFrom,dateTo,null);}} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← All Clients</button>
+              </div>}
+
+              {/* Show detailed analytics when client selected or for client user */}
+              {(!isAdmin||selectedClinic)&&<>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:10}}>
+                  <div><div style={{fontWeight:700,fontSize:17}}>📊 Analytics</div></div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    {[{id:"7d",label:"7D"},{id:"30d",label:"30D"},{id:"90d",label:"90D"},{id:"custom",label:"Custom"}].map(p=>(
+                      <button key={p.id} onClick={()=>setPreset(p.id)} style={{padding:"5px 12px",borderRadius:16,border:`1px solid ${T.border}`,background:datePreset===p.id?WA_GREEN:T.card,color:datePreset===p.id?"#fff":T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{p.label}</button>
+                    ))}
+                    {datePreset==="custom"&&<>
+                      <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"4px 8px",color:T.text,fontSize:12}}/>
+                      <span style={{color:T.textMuted}}>→</span>
+                      <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"4px 8px",color:T.text,fontSize:12}}/>
+                    </>}
+                    <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} style={{padding:"5px 12px",borderRadius:16,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>🔄</button>
+                  </div>
+                </div>
+
+                {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:T.textFaint}}>Loading analytics...</div>}
+
+                {!analyticsLoading&&analytics&&<>
+                  {analytics.growth&&<div style={{background:`linear-gradient(135deg,${WA_GREEN}15,${WA_DARK}10)`,border:`1px solid ${WA_GREEN}30`,borderRadius:14,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                    <div style={{fontSize:28}}>📈</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:15,color:T.text}}>Period Summary: {analytics.dateFrom} → {analytics.dateTo}</div>
+                      <div style={{fontSize:13,color:T.textMuted,marginTop:4}}>
+                        <strong style={{color:WA_GREEN}}>{analytics.growth.thisperiod}</strong> people messaged the bot ·
+                        <strong style={{color:"#ef4444"}}> {analytics.totals?.hot}</strong> hot leads ·
+                        <strong style={{color:"#10b981"}}> {analytics.growth.conversionRate}%</strong> conversion rate
+                        {analytics.growth.pct!==0&&<span style={{marginLeft:8,background:analytics.growth.pct>0?"#dcfce7":"#fef2f2",color:analytics.growth.pct>0?WA_GREEN:"#ef4444",borderRadius:10,padding:"2px 8px",fontSize:12,fontWeight:700}}>{analytics.growth.pct>0?"▲":"▼"} {Math.abs(analytics.growth.pct)}% vs prev period</span>}
+                      </div>
+                    </div>
+                  </div>}
             {!analyticsLoading&&analytics&&<>
               {/* Summary Banner */}
               {analytics.growth&&<div style={{background:`linear-gradient(135deg,${WA_GREEN}15,${WA_DARK}10)`,border:`1px solid ${WA_GREEN}30`,borderRadius:14,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
@@ -984,6 +1085,13 @@ export default function App() {
         </div>}
 
         {/* ══ BOT TEST ══ */}
+              </>
+            }
+
+            </div>
+          </div>
+        </div>}
+
         {tab==="bot"&&<div style={{flex:1,display:"flex",flexDirection:"column",maxWidth:680,margin:"0 auto",width:"100%"}}>
           <div style={{padding:"10px 14px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
