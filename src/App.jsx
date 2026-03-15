@@ -323,7 +323,7 @@ export default function App() {
 
   const fetchConversations = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/conversations`);
+      const res = await fetch(`${API}/api/conversations`, {headers:authHeaders()});
       if (!res.ok) throw new Error();
       const data = await res.json();
       setContacts(data);
@@ -338,16 +338,16 @@ export default function App() {
   }, [selected]);
 
   const fetchKnowledge = useCallback(async () => {
-    try { const r=await fetch(`${API}/api/knowledge`); if(!r.ok)return; const d=await r.json(); setQaData(d.qa||[]); setSystemPrompt(d.systemPrompt||""); } catch {}
+    try { const r=await fetch(`${API}/api/knowledge`, {headers:authHeaders()}); if(!r.ok)return; const d=await r.json(); setQaData(d.qa||[]); setSystemPrompt(d.systemPrompt||""); } catch {}
   }, []);
 
   const fetchSettings = useCallback(async () => {
-    try { const r=await fetch(`${API}/api/settings`); if(!r.ok)return; setAppSettings(await r.json()); } catch {}
+    try { const r=await fetch(`${API}/api/settings`, {headers:authHeaders()}); if(!r.ok)return; setAppSettings(await r.json()); } catch {}
   }, []);
 
   const fetchAnalytics = useCallback(async (from, to) => {
     setAnalyticsLoading(true);
-    try { const r=await fetch(`${API}/api/analytics?from=${from}&to=${to}`); if(r.ok) setAnalytics(await r.json()); } catch {}
+    try { const r=await fetch(`${API}/api/analytics?from=${from}&to=${to}`, {headers:authHeaders()}); if(r.ok) setAnalytics(await r.json()); } catch {}
     setAnalyticsLoading(false);
   }, []);
 
@@ -372,13 +372,13 @@ export default function App() {
 
   async function selectContact(c) {
     setSelected(c); setMenuOpen(false);
-    try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH"}); } catch {}
+    try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders()}); } catch {}
     setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:0}:x));
   }
 
   async function archiveContact(id) {
     try {
-      await fetch(`${API}/api/conversations/${id}/archive`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({archived:true})});
+      await fetch(`${API}/api/conversations/${id}/archive`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({archived:true})});
       setContacts(p=>p.filter(x=>x.id!==id));
       if(selected?.id===id) setSelected(null);
     } catch {}
@@ -398,7 +398,7 @@ export default function App() {
     try {
       const r = await fetch(`${API}/api/conversations/${selected.id}/reply`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ text })
       });
       if (r.ok) {
@@ -417,44 +417,44 @@ export default function App() {
 
   async function toggleBot(id) {
     const c=contacts.find(x=>x.id===id);
-    try { await fetch(`${API}/api/conversations/${id}/bot`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({botActive:!c?.botActive})}); fetchConversations(); } catch {}
+    try { await fetch(`${API}/api/conversations/${id}/bot`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({botActive:!c?.botActive})}); fetchConversations(); } catch {}
   }
 
   async function toggleStatus(id) {
     const c=contacts.find(x=>x.id===id); const s=c?.status==="open"?"resolved":"open";
-    try { await fetch(`${API}/api/conversations/${id}/status`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:s})}); fetchConversations(); } catch {}
+    try { await fetch(`${API}/api/conversations/${id}/status`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({status:s})}); fetchConversations(); } catch {}
   }
 
   async function setManualLead(id,lead) {
-    try { await fetch(`${API}/api/conversations/${id}/lead`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({lead})}); fetchConversations(); } catch {}
+    try { await fetch(`${API}/api/conversations/${id}/lead`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({lead})}); fetchConversations(); } catch {}
   }
 
   async function setPipelineStage(id,stage) {
-    try { await fetch(`${API}/api/conversations/${id}/pipeline`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({stage})}); fetchConversations(); } catch {}
+    try { await fetch(`${API}/api/conversations/${id}/pipeline`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({stage})}); fetchConversations(); } catch {}
   }
 
   async function sendFollowup(phone,followupNum) {
     setSendingFollowup(phone);
-    try { const r=await fetch(`${API}/api/conversations/${phone}/followup`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({followupNum})}); if(r.ok){fetchConversations();alert("✅ Follow-up sent!");}else alert("❌ Failed"); } catch{alert("❌ Error");}
+    try { const r=await fetch(`${API}/api/conversations/${phone}/followup`,{method:"POST",headers:authHeaders(),body:JSON.stringify({followupNum})}); if(r.ok){fetchConversations();alert("✅ Follow-up sent!");}else alert("❌ Failed"); } catch{alert("❌ Error");}
     setSendingFollowup(null);
   }
 
   async function saveSettings() {
-    try { await fetch(`${API}/api/settings`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(appSettings)}); setSettingsSaved(true); setTimeout(()=>setSettingsSaved(false),2500); } catch{alert("Failed");}
+    try { await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)}); setSettingsSaved(true); setTimeout(()=>setSettingsSaved(false),2500); } catch{alert("Failed");}
   }
 
   async function addQA() {
     if(!newQ.trim()||!newA.trim()) return;
-    try { await fetch(`${API}/api/knowledge/qa`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})}); setNewQ(""); setNewA(""); fetchKnowledge(); } catch {}
+    try { await fetch(`${API}/api/knowledge/qa`,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})}); setNewQ(""); setNewA(""); fetchKnowledge(); } catch {}
   }
 
   async function saveEdit(id) {
-    try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:editQ,answer:editA})}); setEditingId(null); fetchKnowledge(); } catch {}
+    try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({question:editQ,answer:editA})}); setEditingId(null); fetchKnowledge(); } catch {}
   }
 
   async function deleteQA(id) {
     if(!confirm("Delete?")) return;
-    try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE"}); fetchKnowledge(); } catch {}
+    try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()}); fetchKnowledge(); } catch {}
   }
 
   function parseBotResponse(raw) {
@@ -1021,7 +1021,7 @@ export default function App() {
               <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>⚙️ System Prompt (Sara's personality)</div>
               <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={8}
                 style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:11,fontFamily:"'Courier New',monospace",lineHeight:1.7,marginBottom:10}}/>
-              <button onClick={async()=>{await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:systemPrompt})});alert("Saved! ✅");}}
+              <button onClick={async()=>{await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({prompt:systemPrompt})});alert("Saved! ✅");}}
                 style={{padding:"7px 16px",borderRadius:16,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>💾 Save Prompt</button>
             </div>
             <div className="cc">
