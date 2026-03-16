@@ -461,7 +461,7 @@ export default function App() {
       fetchAnalytics(dateFrom, dateTo, selectedClinic?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
     }
-    if((tab==="leads"||tab==="settings"||tab==="kb") && isAdmin && adminOverview.length===0) {
+    if((tab==="crm"||tab==="leads"||tab==="settings"||tab==="kb") && isAdmin && adminOverview.length===0) {
       fetchAdminOverview();
     }
   }, [tab]);
@@ -617,7 +617,7 @@ export default function App() {
     (filter==="all"||c.status===filter)&&
     (leadFilter==="all"||c.lead===leadFilter)&&
     (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))&&
-    (!isAdmin||!inboxClinic||String(c.clinic_id||1)===String(inboxClinic))
+    (!isAdmin||!inboxClinic||String(c.clinicId||c.clinic_id||1)===String(inboxClinic))
   );
 
   const totalUnread = contacts.reduce((s,c)=>s+c.unread,0);
