@@ -1394,6 +1394,9 @@ export default function App() {
 
               {/* Follow-up */}
               <div className="cc" style={{marginBottom:14}}>
+                <div style={{background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:T.text}}>
+                  🤖 <strong>Smart AI Follow-up</strong> — Bot reads the actual conversation and writes a personalized message automatically. The messages below are only used as fallback if AI fails.
+                </div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
                   <div style={{fontWeight:700,fontSize:14}}>⏰ Auto Follow-up</div>
                   <div onClick={()=>setAppSettings(p=>({...p,followup_enabled:p.followup_enabled==="true"?"false":"true"}))}
@@ -1430,8 +1433,8 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                  <SettingInput label="Follow-up 1 Message" settingKey="followup_1_message" rows={2} hint="Use {name} for customer name"/>
-                  <SettingInput label="Follow-up 2 Message" settingKey="followup_2_message" rows={2} hint="Use {name} for customer name"/>
+                  <SettingInput label="Follow-up 1 Fallback Message" settingKey="followup_1_message" rows={2} hint="Used only if AI fails. Use {name} for customer name. AI will generate smart message based on conversation."/>
+                  <SettingInput label="Follow-up 2 Fallback Message" settingKey="followup_2_message" rows={2} hint="Used only if AI fails. Use {name} for customer name."/>
                   <SettingInput label="Max follow-ups per customer" settingKey="followup_max" type="number"/>
                 </div>
               </div>
