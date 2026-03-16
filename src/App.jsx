@@ -392,19 +392,21 @@ export default function App() {
         // Load ALL client settings into appSettings so every SettingInput works
         setAppSettings(prev=>({
           ...prev,
-          ai_provider:        d.ai_provider||"anthropic",
-          ai_api_key:         d.ai_api_key||"",
-          ai_enabled:         d.bot_enabled===false?"false":"true",
-          hot_keywords:       d.lead_keywords||"",
-          warm_keywords:      d.warm_keywords||prev.warm_keywords||"",
-          cold_keywords:      d.cold_keywords||prev.cold_keywords||"",
-          system_prompt:      d.system_prompt||"",
-          followup_enabled:   d.followup_enabled||"true",
-          followup_1_delay:   d.followup_1_delay||"2",
-          followup_1_message: d.followup_1_message||"",
-          followup_2_delay:   d.followup_2_delay||"24",
-          followup_2_message: d.followup_2_message||"",
-          followup_max:       d.followup_max||"2",
+          ai_provider:          d.ai_provider||"anthropic",
+          ai_api_key:           d.ai_api_key||"",
+          ai_enabled:           d.bot_enabled===false?"false":"true",
+          hot_keywords:         d.lead_keywords||d.hot_keywords||"",
+          warm_keywords:        d.warm_keywords||"",
+          cold_keywords:        d.cold_keywords||"",
+          system_prompt:        d.system_prompt||"",
+          followup_enabled:     d.followup_enabled||"true",
+          followup_1_delay:     d.followup_1_delay||"2",
+          followup_1_delay_unit:d.followup_1_delay_unit||"hours",
+          followup_1_message:   d.followup_1_message||"",
+          followup_2_delay:     d.followup_2_delay||"24",
+          followup_2_delay_unit:d.followup_2_delay_unit||"hours",
+          followup_2_message:   d.followup_2_message||"",
+          followup_max:         d.followup_max||"2",
         }));
       }
     } catch(e) {
@@ -549,17 +551,21 @@ export default function App() {
         await fetch(`${API}/api/admin/users/${settingsClinic.id}/settings`, {
           method:"PATCH", headers:authHeaders(),
           body:JSON.stringify({
-            ai_provider:        appSettings.ai_provider,
-            ai_api_key:         appSettings.ai_api_key||"",
-            bot_enabled:        appSettings.ai_enabled!=="false",
-            system_prompt:      appSettings.system_prompt||"",
-            lead_keywords:      appSettings.hot_keywords||"",
-            followup_enabled:   appSettings.followup_enabled||"true",
-            followup_1_delay:   appSettings.followup_1_delay||"2",
-            followup_1_message: appSettings.followup_1_message||"",
-            followup_2_delay:   appSettings.followup_2_delay||"24",
-            followup_2_message: appSettings.followup_2_message||"",
-            followup_max:       appSettings.followup_max||"2",
+            ai_provider:          appSettings.ai_provider,
+            ai_api_key:           appSettings.ai_api_key||"",
+            bot_enabled:          appSettings.ai_enabled!=="false",
+            system_prompt:        appSettings.system_prompt||"",
+            hot_keywords:         appSettings.hot_keywords||"",
+            warm_keywords:        appSettings.warm_keywords||"",
+            cold_keywords:        appSettings.cold_keywords||"",
+            followup_enabled:     appSettings.followup_enabled||"true",
+            followup_1_delay:     appSettings.followup_1_delay||"2",
+            followup_1_delay_unit:appSettings.followup_1_delay_unit||"hours",
+            followup_1_message:   appSettings.followup_1_message||"",
+            followup_2_delay:     appSettings.followup_2_delay||"24",
+            followup_2_delay_unit:appSettings.followup_2_delay_unit||"hours",
+            followup_2_message:   appSettings.followup_2_message||"",
+            followup_max:         appSettings.followup_max||"2",
           })
         });
       } else {
@@ -1391,8 +1397,32 @@ export default function App() {
                 </div>
                 <div style={{opacity:appSettings.followup_enabled==="true"?1:.4,pointerEvents:appSettings.followup_enabled==="true"?"auto":"none"}}>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                    <SettingInput label="Follow-up 1 Delay (hours)" settingKey="followup_1_delay" type="number"/>
-                    <SettingInput label="Follow-up 2 Delay (hours)" settingKey="followup_2_delay" type="number"/>
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>Follow-up 1 Delay</div>
+                      <div style={{display:"flex",gap:6}}>
+                        <input type="number" value={appSettings.followup_1_delay||"2"} onChange={e=>setAppSettings(p=>({...p,followup_1_delay:e.target.value}))}
+                          style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>
+                        <select value={appSettings.followup_1_delay_unit||"hours"} onChange={e=>setAppSettings(p=>({...p,followup_1_delay_unit:e.target.value}))}
+                          style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 10px",color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                          <option value="mins">Mins</option>
+                          <option value="hours">Hours</option>
+                          <option value="days">Days</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>Follow-up 2 Delay</div>
+                      <div style={{display:"flex",gap:6}}>
+                        <input type="number" value={appSettings.followup_2_delay||"24"} onChange={e=>setAppSettings(p=>({...p,followup_2_delay:e.target.value}))}
+                          style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>
+                        <select value={appSettings.followup_2_delay_unit||"hours"} onChange={e=>setAppSettings(p=>({...p,followup_2_delay_unit:e.target.value}))}
+                          style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 10px",color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                          <option value="mins">Mins</option>
+                          <option value="hours">Hours</option>
+                          <option value="days">Days</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                   <SettingInput label="Follow-up 1 Message" settingKey="followup_1_message" rows={2} hint="Use {name} for customer name"/>
                   <SettingInput label="Follow-up 2 Message" settingKey="followup_2_message" rows={2} hint="Use {name} for customer name"/>
