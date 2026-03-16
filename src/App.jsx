@@ -907,7 +907,13 @@ export default function App() {
                 </div>
               </div>
               {selected.botActive&&<div style={{background:`${WA_GREEN}12`,borderBottom:`1px solid ${WA_GREEN}25`,padding:"4px 14px",fontSize:11,color:WA_DARK}}>🤖 Bot is handling this — toggle off to reply manually</div>}
-              {selected.lead==="hot"&&selected.leadReason&&<div style={{background:"#fef2f2",borderBottom:"1px solid #fca5a5",padding:"4px 14px",fontSize:11,color:"#ef4444",display:"flex",alignItems:"center",gap:6}}>🔥 <strong>Hot Lead:</strong> {selected.leadReason}<button onClick={()=>sendFollowup(selected.id,1)} disabled={sendingFollowup===selected.id} style={{marginLeft:"auto",padding:"3px 10px",borderRadius:12,border:"none",background:"#ef4444",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{sendingFollowup===selected.id?"...":"📤 Follow-up"}</button></div>}
+              {(selected.lead==="hot"||selected.lead==="warm")&&<div style={{background:selected.lead==="hot"?"#fef2f2":"#fffbeb",borderBottom:`1px solid ${selected.lead==="hot"?"#fca5a5":"#fcd34d"}`,padding:"4px 14px",fontSize:11,color:selected.lead==="hot"?"#ef4444":"#f59e0b",display:"flex",alignItems:"center",gap:6}}>
+                {selected.lead==="hot"?"🔥":"🟡"} <strong>{selected.lead==="hot"?"Hot":"Warm"} Lead:</strong> {selected.leadReason||"Keyword match"}
+                <button onClick={()=>sendFollowup(selected.id,1)} disabled={sendingFollowup===selected.id}
+                  style={{marginLeft:"auto",padding:"3px 10px",borderRadius:12,border:"none",background:selected.lead==="hot"?"#ef4444":"#f59e0b",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                  {sendingFollowup===selected.id?"⏳ Sending...":"📤 Follow-up"}
+                </button>
+              </div>}
               <div style={{flex:1,overflowY:"auto",padding:14,background:T.chatBg,display:"flex",flexDirection:"column",gap:6}}>
                 {selected.messages?.map((msg,i)=>{
                   const isOut=msg.from!=="user";
@@ -998,7 +1004,7 @@ export default function App() {
                       <LeadBadge lead={c.lead} score={c.leadScore} reason={c.leadReason} small/>
                       {c.lastMessage&&<div style={{fontSize:10,color:T.textFaint,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:6,fontStyle:"italic"}}>"{c.lastMessage}"</div>}
                       <div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
-                        {(c.lead==="hot"||c.lead==="warm")&&stage.id!=="done"&&<button onClick={e=>{e.stopPropagation();sendFollowup(c.id,1);}} disabled={sendingFollowup===c.id} style={{padding:"3px 8px",borderRadius:10,border:"none",background:"#ef444420",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>{sendingFollowup===c.id?"...":"📤 Follow-up"}</button>}
+                        {(c.lead==="hot"||c.lead==="warm")&&stage.id!=="done"&&<button onClick={e=>{e.stopPropagation();sendFollowup(c.id,1);}} disabled={sendingFollowup===c.id} style={{padding:"3px 8px",borderRadius:10,border:"none",background:c.lead==="hot"?"#ef444420":"#f59e0b20",color:c.lead==="hot"?"#ef4444":"#f59e0b",fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>{sendingFollowup===c.id?"⏳":"📤 Follow-up"}</button>}
                         <button onClick={e=>{e.stopPropagation();setArchiveConfirm(c.id);}} style={{padding:"3px 8px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:"#f59e0b",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📦</button>
                       </div>
                     </div>
