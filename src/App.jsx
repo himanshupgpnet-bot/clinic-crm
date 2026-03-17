@@ -1742,44 +1742,78 @@ This CANNOT be undone. Are you sure?`)) return;
           ))}
         </div>
 
-        {/* Users list */}
-        <div className="cc" style={{padding:0,overflow:"hidden"}}>
-          <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:14}}>👥 Client Users ({users.length})</div>
-          {users.length===0&&<div style={{padding:40,textAlign:"center",color:T.textMuted}}>
+        {/* Users list — grouped by company */}
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {users.length===0&&<div className="cc" style={{padding:40,textAlign:"center",color:T.textMuted}}>
             <div style={{fontSize:40,marginBottom:8}}>👤</div>
             <div style={{fontWeight:600,marginBottom:4}}>No users yet</div>
             <div style={{fontSize:12}}>Click "+ New User" to create your first client account</div>
           </div>}
-          {users.map((u,i)=>(
-            <div key={u.id} style={{padding:"14px 16px",borderBottom:i<users.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:42,height:42,borderRadius:12,background:`${WA_GREEN}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:14}}>{u.username}</span>
-                  {u.company_name&&<span style={{fontSize:11,color:T.textMuted}}>· {u.company_name}</span>}
-                  <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:6,background:u.active?"#dcfce7":"#fee2e2",color:u.active?"#166534":"#dc2626"}}>{u.active?"Active":"Inactive"}</span>
+
+          {/* Group users by clinic_id */}
+          {Object.entries(users.reduce((groups, u) => {
+            const key = u.clinic_id || u.id;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(u);
+            return groups;
+          }, {})).map(([clinicId, clinicUsers]) => {
+            const primaryUser = clinicUsers[0];
+            const isExpanded = true;
+            return (
+              <div key={clinicId} className="cc" style={{padding:0,overflow:"hidden"}}>
+                {/* Company header */}
+                <div style={{padding:"14px 16px",background:`${WA_GREEN}08`,borderBottom:`1px solid ${WA_GREEN}20`,display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:44,height:44,borderRadius:12,overflow:"hidden",background:`${WA_GREEN}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    {primaryUser.logo_url
+                      ?<img src={primaryUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
+                      :<span style={{fontSize:22}}>🏢</span>}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:800,fontSize:15}}>{primaryUser.company_name||primaryUser.username}</div>
+                    <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>
+                      {primaryUser.industry||"—"} · Clinic #{clinicId} · {clinicUsers.length} user{clinicUsers.length>1?"s":""}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    {clinicUsers.some(u=>u.active_session)&&<span style={{fontSize:10,padding:"3px 10px",borderRadius:8,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
+                    <button onClick={()=>setShowNewUser(true)}
+                      style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      + Add Staff
+                    </button>
+                  </div>
                 </div>
-                <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
-                  {PERM_TABS.map(p=>(
-                    <span key={p.key} style={{fontSize:10,padding:"2px 8px",borderRadius:6,background:u[p.key]?`${WA_GREEN}18`:`${T.border}`,color:u[p.key]?WA_GREEN:T.textMuted,fontWeight:600}}>{p.label}</span>
-                  ))}
-                  <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,background:`${providerColor(u.ai_provider)}18`,color:providerColor(u.ai_provider),fontWeight:700,border:`1px solid ${providerColor(u.ai_provider)}30`}}>
-                    🤖 {PROVIDERS.find(p=>p.id===u.ai_provider)?.label||u.ai_provider}
-                  </span>
-                  {u.ai_api_key&&<span style={{fontSize:10,color:T.textMuted}}>🔑 Key set</span>}
-                </div>
+
+                {/* Staff members */}
+                {clinicUsers.map((u,i)=>(
+                  <div key={u.id} style={{padding:"12px 16px",borderBottom:i<clinicUsers.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",gap:12,paddingLeft:28}}>
+                    {/* Role indicator */}
+                    <div style={{width:8,height:8,borderRadius:"50%",background:u.active_session?"#22c55e":u.active?"#94a3b8":"#ef4444",flexShrink:0}}/>
+                    <div style={{width:36,height:36,borderRadius:10,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>👤</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                        <span style={{fontWeight:700,fontSize:13}}>{u.username}</span>
+                        {u.active_session&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
+                        <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:6,background:u.active?"#dcfce7":"#fee2e2",color:u.active?"#166534":"#dc2626"}}>{u.active?"Active":"Inactive"}</span>
+                      </div>
+                      <div style={{display:"flex",gap:3,marginTop:5,flexWrap:"wrap"}}>
+                        {PERM_TABS.map(p=>(
+                          <span key={p.key} style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:u[p.key]?`${WA_GREEN}18`:T.card2,color:u[p.key]?WA_GREEN:T.textFaint,fontWeight:600,border:`1px solid ${u[p.key]?WA_GREEN+"30":T.border}`}}>{p.label.split(" ").slice(1).join(" ")||p.label}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:6,flexShrink:0}}>
+                      <button onClick={()=>setEditUser({...u,newPassword:"",ai_api_key:u.ai_api_key||""})}
+                        style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                      <button onClick={()=>deleteUser(u.id)}
+                        style={{padding:"5px 10px",borderRadius:8,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+                      <button onClick={()=>resetClinicData(u)}
+                        style={{padding:"5px 10px",borderRadius:8,border:"1px solid #f9731630",background:"#f9731610",color:"#f97316",fontSize:11,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>🔄</button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div style={{display:"flex",gap:8,flexShrink:0,alignItems:"center"}}>
-                {u.active_session&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
-                <button onClick={()=>setEditUser({...u,newPassword:"",ai_api_key:u.ai_api_key||""})}
-                  style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit</button>
-                <button onClick={()=>deleteUser(u.id)}
-                  style={{padding:"6px 12px",borderRadius:8,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
-                <button onClick={()=>resetClinicData(u)}
-                  style={{padding:"6px 12px",borderRadius:8,border:"1px solid #f9731630",background:"#f9731610",color:"#f97316",fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>🔄 Reset Data</button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* ── NEW USER MODAL ── */}
@@ -1834,7 +1868,7 @@ This CANNOT be undone. Are you sure?`)) return;
                 {inp(newUser.company_name, e=>setNewUser(p=>({...p,company_name:e.target.value})), "Enter company or business name")}
               </div>}
 
-              <div>
+              {!newUser.is_staff&&<div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY LOGO</div>
                 <div style={{display:"flex",alignItems:"center",gap:12}}>
                   <div style={{width:56,height:56,borderRadius:12,border:`2px dashed ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",background:T.card2,flexShrink:0}}>
@@ -1857,9 +1891,9 @@ This CANNOT be undone. Are you sure?`)) return;
                     {newUser.logo_url&&<button onClick={()=>setNewUser(p=>({...p,logo_url:""}))} style={{fontSize:10,color:"#ef4444",border:"none",background:"none",cursor:"pointer",padding:"2px 0",display:"block",marginTop:2}}>✕ Remove</button>}
                   </div>
                 </div>
-              </div>
+              </div>}
 
-              <div>
+              {!newUser.is_staff&&<div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>INDUSTRY</div>
                 <select value={newUser.industry||""} onChange={e=>setNewUser(p=>({...p,industry:e.target.value}))}
                   style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
@@ -1882,7 +1916,7 @@ This CANNOT be undone. Are you sure?`)) return;
                   <option value="Technology & IT">💻 Technology & IT</option>
                   <option value="Other">📦 Other</option>
                 </select>
-              </div>
+              </div>}
 
               <div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
                 <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:8}}>🔐 Tab Permissions</div>
@@ -1904,7 +1938,7 @@ This CANNOT be undone. Are you sure?`)) return;
                 <div style={{fontSize:10,color:T.textMuted,marginTop:6}}>💡 Admin tab is never visible to client users</div>
               </div>
 
-              <div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
+              {!newUser.is_staff&&<div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
                 <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:10}}>🤖 AI Configuration</div>
                 <div style={{marginBottom:10}}>
                   <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>AI PROVIDER</div>
@@ -1925,9 +1959,9 @@ This CANNOT be undone. Are you sure?`)) return;
                     {newUser.ai_provider==="groq"&&"Get from console.groq.com → API Keys (FREE)"}
                   </div>
                 </div>
-              </div>
+              </div>}
 
-              <div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
+              {!newUser.is_staff&&<div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
                 <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:4}}>📱 WhatsApp Configuration</div>
                 <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Get these from Meta Business → WhatsApp → API Setup</div>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -1948,7 +1982,7 @@ This CANNOT be undone. Are you sure?`)) return;
                     <div style={{fontSize:10,color:T.textMuted,marginTop:3}}>Permanent token from Meta System User</div>
                   </div>
                 </div>
-              </div>
+              </div>}
 
             </div>
 
