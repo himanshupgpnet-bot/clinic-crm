@@ -2088,8 +2088,6 @@ This CANNOT be undone. Are you sure?`)) return;
                   style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
                   {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
                 </select>
-              </div>
-
               </div>}
               {/* API Key - only for primary user */}
               {!editUser.is_staff_user&&<div>
