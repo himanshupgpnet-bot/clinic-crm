@@ -1699,68 +1699,119 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   // SectionCard and PermGrid defined outside AdminPanel — see below
 
   // ── CLINIC FORM ─────────────────────────────────────────────────────────────
+  const [clinicTab, setClinicTab] = useState("info");
   if(view==="clinic_form") return (
-    <div style={{maxWidth:560,margin:"0 auto"}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
-        <button onClick={()=>{setView("clients");setEditClinic(null);}} style={{border:"none",background:"none",cursor:"pointer",fontSize:22,color:T.textMuted,padding:0}}>←</button>
+    <div style={{maxWidth:540,margin:"0 auto"}}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <button onClick={()=>{setView("clients");setEditClinic(null);setClinicTab("info");}} style={{border:"none",background:"none",cursor:"pointer",fontSize:22,color:T.textMuted,padding:0}}>←</button>
         <div style={{fontWeight:800,fontSize:18}}>{editClinic?.id?"✏️ Edit Client":"🏢 Onboard New Client"}</div>
       </div>
 
-      <SectionCard T={T} title="🏢 COMPANY INFO">
-        {field("COMPANY NAME *", inp(editClinic?.name, e=>setEditClinic(p=>({...p,name:e.target.value})), "e.g. Evera Health"))}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          {field("INDUSTRY",
+      {/* Tabs */}
+      <div style={{display:"flex",gap:6,marginBottom:16,background:T.card2,borderRadius:12,padding:4}}>
+        {[["info","🏢 Info"],["wa","📱 WhatsApp"],["ai","🤖 AI"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setClinicTab(id)}
+            style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",cursor:"pointer",fontFamily:"inherit",
+              fontSize:12,fontWeight:700,background:clinicTab===id?WA_GREEN:"transparent",
+              color:clinicTab===id?"#fff":T.textMuted,transition:"all .15s"}}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* INFO TAB */}
+      {clinicTab==="info"&&<div className="cc" style={{padding:16,marginBottom:12}}>
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>COMPANY NAME *</div>
+          <input value={editClinic?.name||""} onChange={e=>setEditClinic(p=>({...p,name:e.target.value}))} placeholder="e.g. Evera Health"
+            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>INDUSTRY</div>
             <select value={editClinic?.industry||""} onChange={e=>setEditClinic(p=>({...p,industry:e.target.value}))}
               style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
               <option value="">— Select —</option>
               {INDUSTRIES.map(i=><option key={i} value={i}>{i}</option>)}
             </select>
-          )}
-          {field("MAX SEATS", inp(editClinic?.max_seats, e=>setEditClinic(p=>({...p,max_seats:e.target.value})), "1","number"))}
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          {field("WEBSITE", inp(editClinic?.website||editClinic?.contact_email, e=>setEditClinic(p=>({...p,website:e.target.value})), "https://company.com"))}
-          {field("CONTACT PHONE", inp(editClinic?.contact_phone, e=>setEditClinic(p=>({...p,contact_phone:e.target.value})), "+60123456789"))}
-        </div>
-        {field("COMPANY LOGO",
-          <div>
-            <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:6}}>
-              {editClinic?.logo_url&&<img src={editClinic.logo_url} style={{width:44,height:44,borderRadius:10,objectFit:"cover",border:`1px solid ${T.border}`,flexShrink:0}} alt=""/>}
-              <label style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,cursor:"pointer",fontSize:12,fontWeight:600,color:T.text,whiteSpace:"nowrap"}}>
-                📎 Upload Logo
-                <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
-                  const file=e.target.files[0]; if(!file) return;
-                  if(file.size>500000){alert("Max 500KB");return;}
-                  const r=new FileReader();
-                  r.onload=ev=>setEditClinic(p=>({...p,logo_url:ev.target.result}));
-                  r.readAsDataURL(file);
-                }}/>
-              </label>
-              {editClinic?.logo_url&&<button onClick={()=>setEditClinic(p=>({...p,logo_url:""}))} style={{fontSize:11,color:"#ef4444",border:"none",background:"none",cursor:"pointer"}}>✕ Remove</button>}
-            </div>
-            <div style={{fontSize:10,color:T.textFaint}}>PNG, JPG · Max 500KB</div>
           </div>
-        )}
-      </SectionCard>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>MAX SEATS</div>
+            <input type="number" value={editClinic?.max_seats||1} onChange={e=>setEditClinic(p=>({...p,max_seats:e.target.value}))}
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>WEBSITE</div>
+            <input value={editClinic?.website||editClinic?.contact_email||""} onChange={e=>setEditClinic(p=>({...p,website:e.target.value}))} placeholder="https://company.com"
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+          </div>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>CONTACT PHONE</div>
+            <input value={editClinic?.contact_phone||""} onChange={e=>setEditClinic(p=>({...p,contact_phone:e.target.value}))} placeholder="+60123456789"
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>COMPANY LOGO</div>
+          <div style={{display:"flex",gap:10,alignItems:"center"}}>
+            {editClinic?.logo_url&&<img src={editClinic.logo_url} style={{width:44,height:44,borderRadius:10,objectFit:"cover",border:`1px solid ${T.border}`,flexShrink:0}} alt=""/>}
+            <label style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,cursor:"pointer",fontSize:12,fontWeight:600,color:T.text}}>
+              📎 Upload Logo
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+                const file=e.target.files[0]; if(!file) return;
+                if(file.size>500000){alert("Max 500KB");return;}
+                const r=new FileReader(); r.onload=ev=>setEditClinic(p=>({...p,logo_url:ev.target.result})); r.readAsDataURL(file);
+              }}/>
+            </label>
+            {editClinic?.logo_url&&<button onClick={()=>setEditClinic(p=>({...p,logo_url:""}))} style={{fontSize:11,color:"#ef4444",border:"none",background:"none",cursor:"pointer"}}>✕</button>}
+            {!editClinic?.logo_url&&<span style={{fontSize:10,color:T.textFaint}}>PNG/JPG · Max 500KB</span>}
+          </div>
+        </div>
+      </div>}
 
-      <SectionCard T={T} title="📱 WHATSAPP">
-        {field("WA PHONE NUMBER", inp(editClinic?.whatsapp_number, e=>setEditClinic(p=>({...p,whatsapp_number:e.target.value})), "+60111050720"))}
-        {field("PHONE NUMBER ID", inp(editClinic?.phone_number_id, e=>setEditClinic(p=>({...p,phone_number_id:e.target.value})), "From Meta Business Manager"))}
-        {field("ACCESS TOKEN", inp(editClinic?.whatsapp_token, e=>setEditClinic(p=>({...p,whatsapp_token:e.target.value})), "EAA...", "password"))}
-      </SectionCard>
+      {/* WHATSAPP TAB */}
+      {clinicTab==="wa"&&<div className="cc" style={{padding:16,marginBottom:12}}>
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>WA PHONE NUMBER</div>
+          <input value={editClinic?.whatsapp_number||""} onChange={e=>setEditClinic(p=>({...p,whatsapp_number:e.target.value}))} placeholder="+60111050720"
+            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>PHONE NUMBER ID</div>
+          <input value={editClinic?.phone_number_id||""} onChange={e=>setEditClinic(p=>({...p,phone_number_id:e.target.value}))} placeholder="From Meta Business Manager"
+            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+        </div>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>ACCESS TOKEN</div>
+          <input type="password" value={editClinic?.whatsapp_token||""} onChange={e=>setEditClinic(p=>({...p,whatsapp_token:e.target.value}))} placeholder="EAA..."
+            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+          <div style={{fontSize:11,color:T.textFaint,marginTop:6}}>Get this from Meta Business Manager → WhatsApp → API Setup</div>
+        </div>
+      </div>}
 
-      <SectionCard T={T} title="🤖 AI CONFIGURATION">
-        {field("AI PROVIDER",
+      {/* AI TAB */}
+      {clinicTab==="ai"&&<div className="cc" style={{padding:16,marginBottom:12}}>
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>AI PROVIDER</div>
           <select value={editClinic?.ai_provider||"anthropic"} onChange={e=>setEditClinic(p=>({...p,ai_provider:e.target.value}))}
             style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
             {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
-        )}
-        {field("API KEY", inp(editClinic?.ai_api_key, e=>setEditClinic(p=>({...p,ai_api_key:e.target.value})), "sk-... or paste key","password"))}
-      </SectionCard>
+        </div>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>API KEY</div>
+          <input type="password" value={editClinic?.ai_api_key||""} onChange={e=>setEditClinic(p=>({...p,ai_api_key:e.target.value}))} placeholder="sk-ant-... or paste key"
+            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+          <div style={{fontSize:11,color:T.textFaint,marginTop:6}}>This key is used for AI replies and smart follow-ups</div>
+        </div>
+      </div>}
 
+      {/* Save/Cancel */}
       <div style={{display:"flex",gap:10,marginBottom:20}}>
-        <button onClick={()=>{setView("clients");setEditClinic(null);}}
+        <button onClick={()=>{setView("clients");setEditClinic(null);setClinicTab("info");}}
           style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
           Cancel
         </button>
