@@ -63,6 +63,7 @@ export default function App() {
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
+  const [sessionConflict, setSessionConflict] = useState(null);
 
   // ── MAIN APP HOOKS (must all be declared before any return) ──
   const [tab, setTab] = useState("crm");
@@ -132,14 +133,19 @@ export default function App() {
 
   const authHeaders = () => ({ "Content-Type":"application/json", "Authorization":`Bearer ${authToken}` });
 
-  async function doLogin() {
+  async function doLogin(force=false) {
     setLoginLoading(true); setLoginError("");
     try {
       const r = await fetch(`${API}/api/auth/login`, {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify(loginForm)
+        body: JSON.stringify({...loginForm, force})
       });
       const d = await r.json();
+      if (r.status === 409 && d.error === "already_logged_in") {
+        setSessionConflict(d);
+        setLoginLoading(false);
+        return;
+      }
       if (!r.ok) { setLoginError(d.error||"Login failed"); return; }
       setAuthToken(d.token);
       setCurrentUser(d.user);
@@ -152,7 +158,10 @@ export default function App() {
     finally { setLoginLoading(false); }
   }
 
-  function doLogout() {
+  async function doLogout() {
+    try {
+      await fetch(`${API}/api/auth/logout`, {method:"POST", headers:authHeaders()});
+    } catch {}
     sessionStorage.clear();
     window.location.reload();
   }
@@ -209,6 +218,23 @@ export default function App() {
               </h1>
               <p style={{margin:"8px 0 0",fontSize:13,color:"#6b7280",lineHeight:1.6,fontWeight:400}}>Manage WhatsApp, Instagram, TikTok & Facebook conversations powered by AI.</p>
             </div>
+
+            {/* Session conflict modal */}
+            {sessionConflict&&<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:14,padding:"16px",marginBottom:14}}>
+              <div style={{fontWeight:700,fontSize:14,color:"#c2410c",marginBottom:6}}>⚠️ Already Logged In</div>
+              <div style={{fontSize:12,color:"#78350f",marginBottom:4}}>{sessionConflict.message}</div>
+              <div style={{fontSize:11,color:"#92400e",marginBottom:12}}>Device: {sessionConflict.device_info}</div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setSessionConflict(null)}
+                  style={{flex:1,padding:"8px",borderRadius:10,border:"1px solid #fed7aa",background:"#fff",color:"#c2410c",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                  Cancel
+                </button>
+                <button onClick={()=>{setSessionConflict(null);doLogin(true);}}
+                  style={{flex:2,padding:"8px",borderRadius:10,border:"none",background:"#c2410c",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  Force Login (Logout Other Device)
+                </button>
+              </div>
+            </div>}
 
             {/* Error */}
             {loginError&&<div className="a2" style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#dc2626",marginBottom:14,fontWeight:500}}>⚠ {loginError}</div>}
@@ -1735,7 +1761,8 @@ This CANNOT be undone. Are you sure?`)) return;
                   {u.ai_api_key&&<span style={{fontSize:10,color:T.textMuted}}>🔑 Key set</span>}
                 </div>
               </div>
-              <div style={{display:"flex",gap:8,flexShrink:0}}>
+              <div style={{display:"flex",gap:8,flexShrink:0,alignItems:"center"}}>
+                {u.active_session&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
                 <button onClick={()=>setEditUser({...u,newPassword:"",ai_api_key:u.ai_api_key||""})}
                   style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit</button>
                 <button onClick={()=>deleteUser(u.id)}
