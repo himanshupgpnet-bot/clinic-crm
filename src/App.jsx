@@ -1703,29 +1703,36 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   if(view==="clinic_form") return (
     <div style={{maxWidth:540,margin:"0 auto"}}>
       {/* Header */}
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-        <button onClick={()=>{setView("clients");setEditClinic(null);setClinicTab("info");}} style={{border:"none",background:"none",cursor:"pointer",fontSize:22,color:T.textMuted,padding:0}}>←</button>
-        <div style={{fontWeight:800,fontSize:18}}>{editClinic?.id?"✏️ Edit Client":"🏢 Onboard New Client"}</div>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+        <button onClick={()=>{setView("clients");setEditClinic(null);setClinicTab("info");}}
+          style={{width:36,height:36,borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,
+            cursor:"pointer",fontSize:16,color:T.textMuted,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>←</button>
+        <div>
+          <div style={{fontWeight:800,fontSize:17}}>{editClinic?.id?"Edit Client":"Onboard New Client"}</div>
+          <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>{editClinic?.id?`Clinic #${editClinic.id}`:"Set up a new client account"}</div>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{display:"flex",gap:6,marginBottom:16,background:T.card2,borderRadius:12,padding:4}}>
-        {[["info","🏢 Info"],["wa","📱 WhatsApp"],["ai","🤖 AI"]].map(([id,label])=>(
+      {/* Tabs — pill style */}
+      <div style={{display:"flex",gap:4,marginBottom:16,padding:"4px",background:T.card2,borderRadius:14,border:`1px solid ${T.border}`}}>
+        {[["info","🏢","Info"],["wa","📱","WhatsApp"],["ai","🤖","AI Config"]].map(([id,icon,label])=>(
           <button key={id} onClick={()=>setClinicTab(id)}
-            style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",cursor:"pointer",fontFamily:"inherit",
-              fontSize:12,fontWeight:700,background:clinicTab===id?WA_GREEN:"transparent",
-              color:clinicTab===id?"#fff":T.textMuted,transition:"all .15s"}}>
-            {label}
+            style={{flex:1,padding:"9px 4px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",
+              fontSize:12,fontWeight:700,transition:"all .2s",
+              background:clinicTab===id?WA_GREEN:"transparent",
+              color:clinicTab===id?"#fff":T.textMuted,
+              boxShadow:clinicTab===id?"0 2px 8px rgba(37,211,102,.3)":"none"}}>
+            {icon} {label}
           </button>
         ))}
       </div>
 
       {/* INFO TAB */}
-      {clinicTab==="info"&&<div className="cc" style={{padding:16,marginBottom:12}}>
+      {clinicTab==="info"&&<div className="cc" style={{padding:20,marginBottom:12,borderRadius:16}}>
         <div style={{marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>COMPANY NAME *</div>
           <input value={editClinic?.name||""} onChange={e=>setEditClinic(p=>({...p,name:e.target.value}))} placeholder="e.g. Evera Health"
-            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.input||T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}/>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
           <div>
@@ -1739,19 +1746,19 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
           <div>
             <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>MAX SEATS</div>
             <input type="number" value={editClinic?.max_seats||1} onChange={e=>setEditClinic(p=>({...p,max_seats:e.target.value}))}
-              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+              style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.input||T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}/>
           </div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
           <div>
             <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>WEBSITE</div>
             <input value={editClinic?.website||editClinic?.contact_email||""} onChange={e=>setEditClinic(p=>({...p,website:e.target.value}))} placeholder="https://company.com"
-              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+              style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.input||T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}/>
           </div>
           <div>
             <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>CONTACT PHONE</div>
             <input value={editClinic?.contact_phone||""} onChange={e=>setEditClinic(p=>({...p,contact_phone:e.target.value}))} placeholder="+60123456789"
-              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+              style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.input||T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}/>
           </div>
         </div>
         <div>
@@ -1773,27 +1780,27 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
       </div>}
 
       {/* WHATSAPP TAB */}
-      {clinicTab==="wa"&&<div className="cc" style={{padding:16,marginBottom:12}}>
+      {clinicTab==="wa"&&<div className="cc" style={{padding:20,marginBottom:12,borderRadius:16}}>
         <div style={{marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>WA PHONE NUMBER</div>
           <input value={editClinic?.whatsapp_number||""} onChange={e=>setEditClinic(p=>({...p,whatsapp_number:e.target.value}))} placeholder="+60111050720"
-            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.input||T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}/>
         </div>
         <div style={{marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>PHONE NUMBER ID</div>
           <input value={editClinic?.phone_number_id||""} onChange={e=>setEditClinic(p=>({...p,phone_number_id:e.target.value}))} placeholder="From Meta Business Manager"
-            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.input||T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}/>
         </div>
         <div>
           <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>ACCESS TOKEN</div>
           <input type="password" value={editClinic?.whatsapp_token||""} onChange={e=>setEditClinic(p=>({...p,whatsapp_token:e.target.value}))} placeholder="EAA..."
-            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.input||T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}/>
           <div style={{fontSize:11,color:T.textFaint,marginTop:6}}>Get this from Meta Business Manager → WhatsApp → API Setup</div>
         </div>
       </div>}
 
       {/* AI TAB */}
-      {clinicTab==="ai"&&<div className="cc" style={{padding:16,marginBottom:12}}>
+      {clinicTab==="ai"&&<div className="cc" style={{padding:20,marginBottom:12,borderRadius:16}}>
         <div style={{marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>AI PROVIDER</div>
           <select value={editClinic?.ai_provider||"anthropic"} onChange={e=>setEditClinic(p=>({...p,ai_provider:e.target.value}))}
@@ -1804,20 +1811,24 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
         <div>
           <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>API KEY</div>
           <input type="password" value={editClinic?.ai_api_key||""} onChange={e=>setEditClinic(p=>({...p,ai_api_key:e.target.value}))} placeholder="sk-ant-... or paste key"
-            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.input||T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}/>
           <div style={{fontSize:11,color:T.textFaint,marginTop:6}}>This key is used for AI replies and smart follow-ups</div>
         </div>
       </div>}
 
       {/* Save/Cancel */}
-      <div style={{display:"flex",gap:10,marginBottom:20}}>
+      <div style={{display:"flex",gap:10,marginBottom:24}}>
         <button onClick={()=>{setView("clients");setEditClinic(null);setClinicTab("info");}}
-          style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+          style={{flex:1,padding:"13px",borderRadius:12,border:`1px solid ${T.border}`,
+            background:"transparent",color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
           Cancel
         </button>
         <button onClick={saveClinic}
-          style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-          💾 {editClinic?.id?"Save Changes":"Onboard Client"}
+          style={{flex:2,padding:"13px",borderRadius:12,border:"none",
+            background:`linear-gradient(135deg, ${WA_GREEN}, #1da851)`,
+            color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+            boxShadow:"0 4px 14px rgba(37,211,102,.35)"}}>
+          {editClinic?.id?"💾 Save Changes":"🚀 Onboard Client"}
         </button>
       </div>
     </div>
