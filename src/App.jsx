@@ -1572,6 +1572,34 @@ export default function App() {
 
 // ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
 
+// ── ADMIN SUB-COMPONENTS (defined outside to prevent focus loss) ─────────────
+function SectionCard({title, children, T}) {
+  return (
+    <div className="cc" style={{marginBottom:12,padding:16}}>
+      <div style={{fontWeight:700,fontSize:12,color:T.textMuted,letterSpacing:0.8,marginBottom:14}}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function PermGrid({data, setData, PERM_TABS, WA_GREEN, T}) {
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+      {PERM_TABS.map(p=>(
+        <div key={p.key} onClick={()=>setData(prev=>({...prev,[p.key]:!prev[p.key]}))}
+          style={{padding:"10px 12px",borderRadius:10,border:`1px solid ${data[p.key]?WA_GREEN:T.border}`,
+            background:data[p.key]?`${WA_GREEN}10`:T.card2,cursor:"pointer",
+            display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontSize:12,fontWeight:600,color:data[p.key]?WA_GREEN:T.textMuted}}>{p.label}</span>
+          <div style={{width:32,height:18,borderRadius:9,background:data[p.key]?WA_GREEN:T.border,position:"relative",flexShrink:0}}>
+            <div style={{position:"absolute",top:2,left:data[p.key]?14:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
 function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const [view, setView] = useState("clients");
@@ -1613,16 +1641,17 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   useEffect(()=>{load();},[]);
   const flash = m => { setMsg(m); setTimeout(()=>setMsg(""),3000); };
 
-  const inp = (val,onChange,ph="",type="text",extra={}) =>
+  // Use useCallback to stabilize inp function reference
+  const inp = useCallback((val,onChange,ph="",type="text",extra={}) =>
     <input type={type} value={val||""} onChange={onChange} placeholder={ph}
       style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,
         background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",
-        boxSizing:"border-box",...extra}}/>;
+        boxSizing:"border-box",...extra}}/>, [T]);
 
-  const field = (label,node) => <div style={{marginBottom:12}}>
+  const field = useCallback((label,node) => <div style={{marginBottom:12}}>
     <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>{label}</div>
     {node}
-  </div>;
+  </div>, [T]);
 
   const saveClinic = async () => {
     if(!editClinic.name?.trim()) return alert("Company name required");
@@ -1667,30 +1696,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
     load();
   };
 
-  // ── SECTION CARD ────────────────────────────────────────────────────────────
-  const SectionCard = ({title,children}) => (
-    <div className="cc" style={{marginBottom:12,padding:16}}>
-      <div style={{fontWeight:700,fontSize:12,color:T.textMuted,letterSpacing:0.8,marginBottom:14}}>{title}</div>
-      {children}
-    </div>
-  );
-
-  // ── PERM GRID ───────────────────────────────────────────────────────────────
-  const PermGrid = ({data,setData}) => (
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-      {PERM_TABS.map(p=>(
-        <div key={p.key} onClick={()=>setData(prev=>({...prev,[p.key]:!prev[p.key]}))}
-          style={{padding:"10px 12px",borderRadius:10,border:`1px solid ${data[p.key]?WA_GREEN:T.border}`,
-            background:data[p.key]?`${WA_GREEN}10`:T.card2,cursor:"pointer",
-            display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <span style={{fontSize:12,fontWeight:600,color:data[p.key]?WA_GREEN:T.textMuted}}>{p.label}</span>
-          <div style={{width:32,height:18,borderRadius:9,background:data[p.key]?WA_GREEN:T.border,position:"relative",flexShrink:0}}>
-            <div style={{position:"absolute",top:2,left:data[p.key]?14:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  // SectionCard and PermGrid defined outside AdminPanel — see below
 
   // ── CLINIC FORM ─────────────────────────────────────────────────────────────
   if(view==="clinic_form") return (
@@ -1700,7 +1706,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
         <div style={{fontWeight:800,fontSize:18}}>{editClinic?.id?"✏️ Edit Client":"🏢 Onboard New Client"}</div>
       </div>
 
-      <SectionCard title="🏢 COMPANY INFO">
+      <SectionCard T={T} title="🏢 COMPANY INFO">
         {field("COMPANY NAME *", inp(editClinic?.name, e=>setEditClinic(p=>({...p,name:e.target.value})), "e.g. Evera Health"))}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           {field("INDUSTRY",
@@ -1737,13 +1743,13 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
         )}
       </SectionCard>
 
-      <SectionCard title="📱 WHATSAPP">
+      <SectionCard T={T} title="📱 WHATSAPP">
         {field("WA PHONE NUMBER", inp(editClinic?.whatsapp_number, e=>setEditClinic(p=>({...p,whatsapp_number:e.target.value})), "+60111050720"))}
         {field("PHONE NUMBER ID", inp(editClinic?.phone_number_id, e=>setEditClinic(p=>({...p,phone_number_id:e.target.value})), "From Meta Business Manager"))}
         {field("ACCESS TOKEN", inp(editClinic?.whatsapp_token, e=>setEditClinic(p=>({...p,whatsapp_token:e.target.value})), "EAA...", "password"))}
       </SectionCard>
 
-      <SectionCard title="🤖 AI CONFIGURATION">
+      <SectionCard T={T} title="🤖 AI CONFIGURATION">
         {field("AI PROVIDER",
           <select value={editClinic?.ai_provider||"anthropic"} onChange={e=>setEditClinic(p=>({...p,ai_provider:e.target.value}))}
             style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
@@ -1774,7 +1780,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
         <div style={{fontWeight:800,fontSize:18}}>{editUser?.id?`✏️ Edit @${editUser.username}`:"👤 Add New User"}</div>
       </div>
 
-      <SectionCard title="👤 USER DETAILS">
+      <SectionCard T={T} title="👤 USER DETAILS">
         {/* Active toggle — edit only */}
         {editUser?.id&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",borderRadius:10,background:T.card2,border:`1px solid ${T.border}`,marginBottom:12}}>
           <div>
@@ -1811,8 +1817,8 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
         </div>
       </SectionCard>
 
-      <SectionCard title="🔐 TAB PERMISSIONS">
-        <PermGrid data={editUser||{}} setData={setEditUser}/>
+      <SectionCard T={T} title="🔐 TAB PERMISSIONS">
+        <PermGrid data={editUser||{}} setData={setEditUser} PERM_TABS={PERM_TABS} WA_GREEN={WA_GREEN} T={T}/>
       </SectionCard>
 
       <div style={{display:"flex",gap:10,marginBottom:20}}>
