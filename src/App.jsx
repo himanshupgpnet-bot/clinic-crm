@@ -1574,36 +1574,36 @@ export default function App() {
 
 // ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
 function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
-  const [view, setView] = useState("clients"); // "clients" | "onboard" | "editclient" | "users" | "newuser" | "edituser"
+  const [view, setView] = useState("clients");
   const [clinics, setClinics] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClinic, setSelectedClinic] = useState(null);
   const [editClinic, setEditClinic] = useState(null);
   const [editUser, setEditUser] = useState(null);
-  const [showEditPw, setShowEditPw] = useState(false);
-  const [showEditApiKey, setShowEditApiKey] = useState(false);
+  const [newUser, setNewUser] = useState(null);
+  const [showPw, setShowPw] = useState(false);
   const [msg, setMsg] = useState("");
   const API = window.location.hostname==="localhost" ? "http://localhost:5000" : "https://clinic-bot-oy48.onrender.com";
 
   const INDUSTRIES = ["Healthcare & Clinic","Dental","Beauty & Salon","Spa & Wellness",
     "Fitness & Gym","Legal & Law Firm","Real Estate","Education","Restaurant & F&B","Other"];
-  const PROVIDERS = [{id:"anthropic",label:"Claude (Anthropic)"},{id:"openai",label:"GPT (OpenAI)"},{id:"groq",label:"Groq (Fast)"}];
+  const PROVIDERS = [{id:"anthropic",label:"Claude (Anthropic)"},{id:"openai",label:"GPT (OpenAI)"},{id:"groq",label:"Groq"}];
   const PERM_TABS = [
     {key:"can_inbox",label:"💬 Inbox"},{key:"can_leads",label:"🎯 Leads"},
     {key:"can_analytics",label:"📊 Analytics"},{key:"can_testbot",label:"🤖 Test Bot"},
     {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"}
   ];
-
-  const [newClinic, setNewClinic] = useState({name:"",industry:"",logo_url:"",whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",contact_email:"",contact_phone:"",max_seats:1});
-  const [newUser, setNewUser] = useState({username:"",password:"",clinic_id:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
+  const emptyClinic = {name:"",industry:"",website:"",contact_phone:"",logo_url:"",
+    whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",max_seats:1};
+  const emptyUser = (clinic_id="") => ({username:"",password:"",clinic_id,
+    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
 
   const load = async () => {
     setLoading(true);
     try {
-      const [cr, ur] = await Promise.all([
-        fetch(`${API}/api/admin/clinics`, {headers:authHeaders()}),
-        fetch(`${API}/api/admin/users`, {headers:authHeaders()})
+      const [cr,ur] = await Promise.all([
+        fetch(`${API}/api/admin/clinics`,{headers:authHeaders()}),
+        fetch(`${API}/api/admin/users`,{headers:authHeaders()})
       ]);
       if(cr.ok) setClinics(await cr.json());
       if(ur.ok) setUsers(await ur.json());
@@ -1611,337 +1611,323 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   };
 
   useEffect(()=>{load();},[]);
+  const flash = m => { setMsg(m); setTimeout(()=>setMsg(""),3000); };
 
-  const flash = (m) => { setMsg(m); setTimeout(()=>setMsg(""),3000); };
-
-  const inp = (val, onChange, ph="", type="text", extra={}) =>
+  const inp = (val,onChange,ph="",type="text",extra={}) =>
     <input type={type} value={val||""} onChange={onChange} placeholder={ph}
       style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,
-        background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",...extra}}/>;
+        background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",
+        boxSizing:"border-box",...extra}}/>;
 
-  const createClinic = async () => {
-    if(!newClinic.name.trim()) return alert("Company name required");
-    const r = await fetch(`${API}/api/admin/clinics`, {method:"POST",headers:authHeaders(),body:JSON.stringify(newClinic)});
-    const d = await r.json();
-    if(!r.ok) return alert(d.error||"Failed");
-    flash(`✅ Client "${newClinic.name}" created!`);
-    setNewClinic({name:"",industry:"",logo_url:"",whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",contact_email:"",contact_phone:"",max_seats:1});
-    setView("clients");
-    load();
-  };
+  const field = (label,node) => <div style={{marginBottom:12}}>
+    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>{label}</div>
+    {node}
+  </div>;
 
   const saveClinic = async () => {
-    const r = await fetch(`${API}/api/admin/clinics/${editClinic.id}`, {method:"PATCH",headers:authHeaders(),body:JSON.stringify(editClinic)});
-    if(!r.ok) return alert("Failed to save");
-    flash("✅ Client updated!");
-    setView("clients");
-    load();
-  };
-
-  const createUser = async () => {
-    if(!newUser.username.trim()||!newUser.password.trim()) return alert("Username and password required");
-    if(!newUser.clinic_id) return alert("Select a client company");
-    const r = await fetch(`${API}/api/admin/users`, {method:"POST",headers:authHeaders(),body:JSON.stringify({
-      ...newUser, existing_clinic_id: newUser.clinic_id, role:"client",
-      permissions:{can_inbox:newUser.can_inbox,can_leads:newUser.can_leads,can_analytics:newUser.can_analytics,
-        can_testbot:newUser.can_testbot,can_knowledge:newUser.can_knowledge,can_settings:newUser.can_settings}
+    if(!editClinic.name?.trim()) return alert("Company name required");
+    const isNew = !editClinic.id;
+    const url = isNew ? `${API}/api/admin/clinics` : `${API}/api/admin/clinics/${editClinic.id}`;
+    const method = isNew ? "POST" : "PATCH";
+    const r = await fetch(url,{method,headers:authHeaders(),body:JSON.stringify({
+      ...editClinic,
+      contact_email: editClinic.website  // reuse contact_email field for website
     })});
     const d = await r.json();
     if(!r.ok) return alert(d.error||"Failed");
-    flash(`✅ User "${newUser.username}" created!`);
-    setNewUser({username:"",password:"",clinic_id:selectedClinic?.id||"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
-    setView("clients");
-    load();
+    flash(isNew ? `✅ "${editClinic.name}" onboarded!` : "✅ Client updated!");
+    setView("clients"); setEditClinic(null); load();
   };
 
   const saveUser = async () => {
-    const payload = {active:editUser.active};
-    if(editUser.username) payload.username = editUser.username;
-    if(editUser.newPassword) payload.password = editUser.newPassword;
-    PERM_TABS.forEach(p=>{ payload[p.key]=editUser[p.key]; });
-    const r = await fetch(`${API}/api/admin/users/${editUser.id}`, {method:"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
-    if(!r.ok) return alert("Failed to save");
-    flash("✅ User updated!");
-    setEditUser(null);
-    setView("clients");
-    load();
+    const isNew = !editUser.id;
+    if(isNew && (!editUser.username?.trim()||!editUser.password?.trim())) return alert("Username and password required");
+    if(isNew && !editUser.clinic_id) return alert("Select a company");
+    const payload = isNew
+      ? {...editUser, existing_clinic_id:editUser.clinic_id, role:"client",
+          permissions:{can_inbox:editUser.can_inbox,can_leads:editUser.can_leads,
+            can_analytics:editUser.can_analytics,can_testbot:editUser.can_testbot,
+            can_knowledge:editUser.can_knowledge,can_settings:editUser.can_settings}}
+      : {username:editUser.username, active:editUser.active,
+          ...(editUser.newPassword?{password:editUser.newPassword}:{}),
+          can_inbox:editUser.can_inbox,can_leads:editUser.can_leads,
+          can_analytics:editUser.can_analytics,can_testbot:editUser.can_testbot,
+          can_knowledge:editUser.can_knowledge,can_settings:editUser.can_settings};
+    const url = isNew ? `${API}/api/admin/users` : `${API}/api/admin/users/${editUser.id}`;
+    const r = await fetch(url,{method:isNew?"POST":"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
+    const d = await r.json();
+    if(!r.ok) return alert(d.error||"Failed");
+    flash(isNew?`✅ User "@${editUser.username}" created!`:"✅ User updated!");
+    setView("clients"); setEditUser(null); load();
   };
 
-  const deleteUser = async (uid) => {
+  const deleteUser = async uid => {
     if(!confirm("Delete this user?")) return;
-    await fetch(`${API}/api/admin/users/${uid}`, {method:"DELETE",headers:authHeaders()});
+    await fetch(`${API}/api/admin/users/${uid}`,{method:"DELETE",headers:authHeaders()});
     load();
   };
 
-  const resetData = async (u) => {
-    if(!confirm(`Reset ALL data for ${u.company_name||u.username}?`)) return;
-    await fetch(`${API}/api/admin/users/${u.id}/reset-data`, {method:"DELETE",headers:authHeaders()});
-    flash("✅ Data reset");
-    load();
-  };
+  // ── SECTION CARD ────────────────────────────────────────────────────────────
+  const SectionCard = ({title,children}) => (
+    <div className="cc" style={{marginBottom:12,padding:16}}>
+      <div style={{fontWeight:700,fontSize:12,color:T.textMuted,letterSpacing:0.8,marginBottom:14}}>{title}</div>
+      {children}
+    </div>
+  );
 
-  if(loading) return <div style={{padding:40,textAlign:"center",color:T.textMuted}}>Loading...</div>;
-
-  // ── CLINIC ONBOARDING FORM ──────────────────────────────────────────────────
-  const clinicForm = (data, setData, onSave, onCancel, title) => (
-    <div style={{maxWidth:600,margin:"0 auto"}}>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-        <button onClick={onCancel} style={{border:"none",background:"none",cursor:"pointer",fontSize:20,color:T.textMuted}}>←</button>
-        <div style={{fontWeight:800,fontSize:18}}>{title}</div>
-      </div>
-
-      {/* Company Info */}
-      <div className="cc" style={{marginBottom:12,padding:16}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.textMuted,marginBottom:12,letterSpacing:0.5}}>🏢 COMPANY INFO</div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>COMPANY NAME *</div>
-            {inp(data.name, e=>setData(p=>({...p,name:e.target.value})), "e.g. Evera Health")}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div>
-              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>INDUSTRY</div>
-              <select value={data.industry||""} onChange={e=>setData(p=>({...p,industry:e.target.value}))}
-                style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-                <option value="">— Select —</option>
-                {INDUSTRIES.map(i=><option key={i} value={i}>{i}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>MAX SEATS</div>
-              {inp(data.max_seats, e=>setData(p=>({...p,max_seats:e.target.value})), "1", "number")}
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div>
-              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>CONTACT EMAIL</div>
-              {inp(data.contact_email, e=>setData(p=>({...p,contact_email:e.target.value})), "email@company.com")}
-            </div>
-            <div>
-              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>CONTACT PHONE</div>
-              {inp(data.contact_phone, e=>setData(p=>({...p,contact_phone:e.target.value})), "+60123456789")}
-            </div>
-          </div>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>COMPANY LOGO URL</div>
-            <div style={{display:"flex",gap:10,alignItems:"center"}}>
-              {data.logo_url&&<img src={data.logo_url} style={{width:44,height:44,borderRadius:10,objectFit:"cover",border:`1px solid ${T.border}`}} alt=""/>}
-              {inp(data.logo_url, e=>setData(p=>({...p,logo_url:e.target.value})), "https://... or paste base64")}
-            </div>
+  // ── PERM GRID ───────────────────────────────────────────────────────────────
+  const PermGrid = ({data,setData}) => (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+      {PERM_TABS.map(p=>(
+        <div key={p.key} onClick={()=>setData(prev=>({...prev,[p.key]:!prev[p.key]}))}
+          style={{padding:"10px 12px",borderRadius:10,border:`1px solid ${data[p.key]?WA_GREEN:T.border}`,
+            background:data[p.key]?`${WA_GREEN}10`:T.card2,cursor:"pointer",
+            display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontSize:12,fontWeight:600,color:data[p.key]?WA_GREEN:T.textMuted}}>{p.label}</span>
+          <div style={{width:32,height:18,borderRadius:9,background:data[p.key]?WA_GREEN:T.border,position:"relative",flexShrink:0}}>
+            <div style={{position:"absolute",top:2,left:data[p.key]?14:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/>
           </div>
         </div>
+      ))}
+    </div>
+  );
+
+  // ── CLINIC FORM ─────────────────────────────────────────────────────────────
+  if(view==="clinic_form") return (
+    <div style={{maxWidth:560,margin:"0 auto"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+        <button onClick={()=>{setView("clients");setEditClinic(null);}} style={{border:"none",background:"none",cursor:"pointer",fontSize:22,color:T.textMuted,padding:0}}>←</button>
+        <div style={{fontWeight:800,fontSize:18}}>{editClinic?.id?"✏️ Edit Client":"🏢 Onboard New Client"}</div>
       </div>
 
-      {/* WhatsApp */}
-      <div className="cc" style={{marginBottom:12,padding:16}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.textMuted,marginBottom:12,letterSpacing:0.5}}>📱 WHATSAPP</div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>WA PHONE NUMBER</div>
-            {inp(data.whatsapp_number, e=>setData(p=>({...p,whatsapp_number:e.target.value})), "+60123456789")}
-          </div>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>PHONE NUMBER ID</div>
-            {inp(data.phone_number_id, e=>setData(p=>({...p,phone_number_id:e.target.value})), "From Meta Business")}
-          </div>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>WA ACCESS TOKEN</div>
-            {inp(data.whatsapp_token, e=>setData(p=>({...p,whatsapp_token:e.target.value})), "EAA...", "password")}
-          </div>
-        </div>
-      </div>
-
-      {/* AI */}
-      <div className="cc" style={{marginBottom:16,padding:16}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.textMuted,marginBottom:12,letterSpacing:0.5}}>🤖 AI CONFIGURATION</div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>AI PROVIDER</div>
-            <select value={data.ai_provider||"anthropic"} onChange={e=>setData(p=>({...p,ai_provider:e.target.value}))}
+      <SectionCard title="🏢 COMPANY INFO">
+        {field("COMPANY NAME *", inp(editClinic?.name, e=>setEditClinic(p=>({...p,name:e.target.value})), "e.g. Evera Health"))}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {field("INDUSTRY",
+            <select value={editClinic?.industry||""} onChange={e=>setEditClinic(p=>({...p,industry:e.target.value}))}
               style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-              {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
+              <option value="">— Select —</option>
+              {INDUSTRIES.map(i=><option key={i} value={i}>{i}</option>)}
             </select>
-          </div>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>API KEY</div>
-            {inp(data.ai_api_key, e=>setData(p=>({...p,ai_api_key:e.target.value})), "sk-... or paste key", "password")}
-          </div>
+          )}
+          {field("MAX SEATS", inp(editClinic?.max_seats, e=>setEditClinic(p=>({...p,max_seats:e.target.value})), "1","number"))}
         </div>
-      </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {field("WEBSITE", inp(editClinic?.website||editClinic?.contact_email, e=>setEditClinic(p=>({...p,website:e.target.value})), "https://company.com"))}
+          {field("CONTACT PHONE", inp(editClinic?.contact_phone, e=>setEditClinic(p=>({...p,contact_phone:e.target.value})), "+60123456789"))}
+        </div>
+        {field("COMPANY LOGO",
+          <div>
+            <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:6}}>
+              {editClinic?.logo_url&&<img src={editClinic.logo_url} style={{width:44,height:44,borderRadius:10,objectFit:"cover",border:`1px solid ${T.border}`,flexShrink:0}} alt=""/>}
+              <label style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,cursor:"pointer",fontSize:12,fontWeight:600,color:T.text,whiteSpace:"nowrap"}}>
+                📎 Upload Logo
+                <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+                  const file=e.target.files[0]; if(!file) return;
+                  if(file.size>500000){alert("Max 500KB");return;}
+                  const r=new FileReader();
+                  r.onload=ev=>setEditClinic(p=>({...p,logo_url:ev.target.result}));
+                  r.readAsDataURL(file);
+                }}/>
+              </label>
+              {editClinic?.logo_url&&<button onClick={()=>setEditClinic(p=>({...p,logo_url:""}))} style={{fontSize:11,color:"#ef4444",border:"none",background:"none",cursor:"pointer"}}>✕ Remove</button>}
+            </div>
+            <div style={{fontSize:10,color:T.textFaint}}>PNG, JPG · Max 500KB</div>
+          </div>
+        )}
+      </SectionCard>
 
-      <div style={{display:"flex",gap:10}}>
-        <button onClick={onCancel} style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-        <button onClick={onSave} style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save</button>
+      <SectionCard title="📱 WHATSAPP">
+        {field("WA PHONE NUMBER", inp(editClinic?.whatsapp_number, e=>setEditClinic(p=>({...p,whatsapp_number:e.target.value})), "+60111050720"))}
+        {field("PHONE NUMBER ID", inp(editClinic?.phone_number_id, e=>setEditClinic(p=>({...p,phone_number_id:e.target.value})), "From Meta Business Manager"))}
+        {field("ACCESS TOKEN", inp(editClinic?.whatsapp_token, e=>setEditClinic(p=>({...p,whatsapp_token:e.target.value})), "EAA...", "password"))}
+      </SectionCard>
+
+      <SectionCard title="🤖 AI CONFIGURATION">
+        {field("AI PROVIDER",
+          <select value={editClinic?.ai_provider||"anthropic"} onChange={e=>setEditClinic(p=>({...p,ai_provider:e.target.value}))}
+            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+            {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
+          </select>
+        )}
+        {field("API KEY", inp(editClinic?.ai_api_key, e=>setEditClinic(p=>({...p,ai_api_key:e.target.value})), "sk-... or paste key","password"))}
+      </SectionCard>
+
+      <div style={{display:"flex",gap:10,marginBottom:20}}>
+        <button onClick={()=>{setView("clients");setEditClinic(null);}}
+          style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+          Cancel
+        </button>
+        <button onClick={saveClinic}
+          style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+          💾 {editClinic?.id?"Save Changes":"Onboard Client"}
+        </button>
       </div>
     </div>
   );
 
   // ── USER FORM ───────────────────────────────────────────────────────────────
-  const userForm = (data, setData, onSave, onCancel, title, isEdit=false) => (
-    <div style={{maxWidth:500,margin:"0 auto"}}>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-        <button onClick={onCancel} style={{border:"none",background:"none",cursor:"pointer",fontSize:20,color:T.textMuted}}>←</button>
-        <div style={{fontWeight:800,fontSize:18}}>{title}</div>
+  if(view==="user_form") return (
+    <div style={{maxWidth:480,margin:"0 auto"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+        <button onClick={()=>{setView("clients");setEditUser(null);}} style={{border:"none",background:"none",cursor:"pointer",fontSize:22,color:T.textMuted,padding:0}}>←</button>
+        <div style={{fontWeight:800,fontSize:18}}>{editUser?.id?`✏️ Edit @${editUser.username}`:"👤 Add New User"}</div>
       </div>
 
-      <div className="cc" style={{marginBottom:12,padding:16}}>
-        {/* Account status for edit */}
-        {isEdit&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:T.card2,marginBottom:12}}>
+      <SectionCard title="👤 USER DETAILS">
+        {/* Active toggle — edit only */}
+        {editUser?.id&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",borderRadius:10,background:T.card2,border:`1px solid ${T.border}`,marginBottom:12}}>
           <div>
-            <div style={{fontWeight:700,fontSize:14}}>Account Status</div>
-            <div style={{fontSize:11,color:T.textMuted}}>{data.active?"User can login":"Account disabled"}</div>
+            <div style={{fontWeight:700,fontSize:13}}>Account Status</div>
+            <div style={{fontSize:11,color:T.textMuted}}>{editUser.active?"Active — can login":"Disabled"}</div>
           </div>
-          <div onClick={()=>setData(p=>({...p,active:!p.active}))}
-            style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:data.active?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
-            <div style={{position:"absolute",top:3,left:data.active?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+          <div onClick={()=>setEditUser(p=>({...p,active:!p.active}))}
+            style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:editUser.active?WA_GREEN:"#ef4444",position:"relative",flexShrink:0}}>
+            <div style={{position:"absolute",top:2,left:editUser.active?20:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/>
           </div>
         </div>}
 
-        {/* Company selector for new user */}
-        {!isEdit&&<div style={{marginBottom:12}}>
-          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>CLIENT COMPANY *</div>
-          <select value={data.clinic_id||""} onChange={e=>setData(p=>({...p,clinic_id:e.target.value}))}
+        {/* Company selector — new user only */}
+        {!editUser?.id&&field("CLIENT COMPANY *",
+          <select value={editUser?.clinic_id||""} onChange={e=>setEditUser(p=>({...p,clinic_id:e.target.value}))}
             style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
             <option value="">— Select Company —</option>
-            {clinics.filter(c=>c.active!==false).map(c=><option key={c.id} value={c.id}>{c.name} (#{c.id})</option>)}
+            {clinics.filter(c=>c.active!==false).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-        </div>}
+        )}
 
-        <div style={{marginBottom:12}}>
-          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>USERNAME *</div>
-          {inp(data.username, e=>setData(p=>({...p,username:e.target.value})), "e.g. evera_staff1")}
-        </div>
-        <div>
-          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>{isEdit?"NEW PASSWORD (leave blank to keep)":"PASSWORD *"}</div>
+        {field("USERNAME *", inp(editUser?.username, e=>setEditUser(p=>({...p,username:e.target.value})), "e.g. evera_staff1"))}
+
+        <div style={{marginBottom:4}}>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4,letterSpacing:0.5}}>
+            {editUser?.id?"NEW PASSWORD (leave blank to keep)":"PASSWORD *"}
+          </div>
           <div style={{position:"relative"}}>
-            {inp(isEdit?data.newPassword:data.password, e=>setData(p=>({...p,[isEdit?"newPassword":"password"]:e.target.value})),
-              isEdit?"Enter new password...":"Set password...", showEditPw?"text":"password", {paddingRight:40})}
-            <button onClick={()=>setShowEditPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showEditPw?"🙈":"👁️"}</button>
+            {inp(editUser?.id?editUser.newPassword:editUser?.password,
+              e=>setEditUser(p=>({...p,[editUser?.id?"newPassword":"password"]:e.target.value})),
+              editUser?.id?"Enter new password...":"Set password...", showPw?"text":"password", {paddingRight:40})}
+            <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showPw?"🙈":"👁️"}</button>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
-      <div className="cc" style={{marginBottom:16,padding:16}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.textMuted,marginBottom:12,letterSpacing:0.5}}>🔐 TAB PERMISSIONS</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-          {PERM_TABS.map(p=>(
-            <div key={p.key} onClick={()=>setData(prev=>({...prev,[p.key]:!prev[p.key]}))}
-              style={{padding:"10px 14px",borderRadius:10,border:`1px solid ${data[p.key]?WA_GREEN:T.border}`,
-                background:data[p.key]?`${WA_GREEN}10`:T.card2,cursor:"pointer",
-                display:"flex",alignItems:"center",justifyContent:"space-between",transition:"all .15s"}}>
-              <span style={{fontSize:13,fontWeight:600,color:data[p.key]?WA_GREEN:T.textMuted}}>{p.label}</span>
-              <div style={{width:36,height:20,borderRadius:10,background:data[p.key]?WA_GREEN:T.border,position:"relative",transition:"background .2s",flexShrink:0}}>
-                <div style={{position:"absolute",top:2,left:data[p.key]?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <SectionCard title="🔐 TAB PERMISSIONS">
+        <PermGrid data={editUser||{}} setData={setEditUser}/>
+      </SectionCard>
 
-      <div style={{display:"flex",gap:10}}>
-        <button onClick={onCancel} style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-        <button onClick={onSave} style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 {isEdit?"Save Changes":"Create User"}</button>
+      <div style={{display:"flex",gap:10,marginBottom:20}}>
+        <button onClick={()=>{setView("clients");setEditUser(null);}}
+          style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+          Cancel
+        </button>
+        <button onClick={saveUser}
+          style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+          💾 {editUser?.id?"Save Changes":"Create User"}
+        </button>
       </div>
     </div>
   );
 
-  // ── MAIN CLIENTS VIEW ───────────────────────────────────────────────────────
-  if(view==="onboard") return clinicForm(newClinic, setNewClinic, createClinic, ()=>setView("clients"), "🏢 Onboard New Client");
-  if(view==="editclient") return clinicForm(editClinic, setEditClinic, saveClinic, ()=>setView("clients"), "✏️ Edit Client");
-  if(view==="newuser") return userForm(newUser, setNewUser, createUser, ()=>setView("clients"), "👤 Create New User");
-  if(view==="edituser") return userForm(editUser, setEditUser, saveUser, ()=>setView("clients"), `✏️ Edit User — @${editUser?.username}`, true);
-
+  // ── MAIN CLIENTS LIST ───────────────────────────────────────────────────────
   return (
-    <div style={{maxWidth:900,margin:"0 auto",padding:"0 4px"}}>
+    <div style={{maxWidth:860,margin:"0 auto",padding:"0 4px"}}>
       {msg&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:13,fontWeight:600,color:"#166534"}}>{msg}</div>}
 
-      {/* Header */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
         <div style={{fontWeight:800,fontSize:18}}>🏢 Client Management</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>{setNewUser(p=>({...p,clinic_id:""}));setView("newuser");}}
+          <button onClick={()=>{setEditUser(emptyUser());setView("user_form");}}
             style={{padding:"8px 16px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
             👤 New User
           </button>
-          <button onClick={()=>setView("onboard")}
+          <button onClick={()=>{setEditClinic({...emptyClinic});setView("clinic_form");}}
             style={{padding:"8px 16px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
             + Onboard Client
           </button>
         </div>
       </div>
 
-      {/* Client cards */}
-      {clinics.length===0&&<div className="cc" style={{padding:40,textAlign:"center",color:T.textMuted}}>
-        <div style={{fontSize:40,marginBottom:8}}>🏢</div>
-        <div style={{fontWeight:600,marginBottom:4}}>No clients yet</div>
-        <div style={{fontSize:12}}>Click "+ Onboard Client" to add your first client</div>
-      </div>}
+      {loading&&<div style={{padding:40,textAlign:"center",color:T.textMuted}}>Loading...</div>}
 
-      {clinics.map(clinic=>{
+      {!loading&&clinics.filter(c=>c.active!==false).length===0&&
+        <div className="cc" style={{padding:40,textAlign:"center",color:T.textMuted}}>
+          <div style={{fontSize:40,marginBottom:8}}>🏢</div>
+          <div style={{fontWeight:600,marginBottom:4}}>No clients yet</div>
+          <div style={{fontSize:12}}>Click "+ Onboard Client" to get started</div>
+        </div>}
+
+      {clinics.filter(c=>c.active!==false).map(clinic=>{
         const clinicUsers = users.filter(u=>u.clinic_id===clinic.id);
-        const onlineUsers = clinicUsers.filter(u=>u.active_session);
+        const hasOnline = clinicUsers.some(u=>u.active_session);
+        const usedSeats = clinicUsers.filter(u=>u.active).length;
         return (
           <div key={clinic.id} className="cc" style={{marginBottom:12,padding:0,overflow:"hidden"}}>
-            {/* Clinic header */}
-            <div style={{padding:"14px 16px",background:`${WA_GREEN}08`,borderBottom:`1px solid ${WA_GREEN}20`,display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:48,height:48,borderRadius:12,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                {clinic.logo_url?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:24}}>🏢</span>}
+            {/* Company header */}
+            <div style={{padding:"14px 16px",background:`${WA_GREEN}06`,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:46,height:46,borderRadius:12,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid ${T.border}`}}>
+                {clinic.logo_url
+                  ?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
+                  :<span style={{fontSize:22}}>🏢</span>}
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:800,fontSize:15}}>{clinic.name}</div>
-                <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>
-                  {clinic.industry||"—"} · #{clinic.id} · {clinicUsers.length}/{clinic.max_seats||1} seats
-                  {clinic.contact_email&&` · ${clinic.contact_email}`}
+                <div style={{fontWeight:800,fontSize:15,marginBottom:2}}>{clinic.name}</div>
+                <div style={{fontSize:11,color:T.textMuted}}>
+                  {clinic.industry||"—"} · {usedSeats}/{clinic.max_seats||1} seats used
+                  {clinic.contact_phone&&` · ${clinic.contact_phone}`}
                 </div>
-                <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
-                  <span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:700}}>🤖 {clinic.ai_provider||"anthropic"}</span>
-                  {clinic.ai_api_key&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:700}}>🔑 Key set</span>}
+                <div style={{display:"flex",gap:5,marginTop:5,flexWrap:"wrap"}}>
+                  <span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:`${WA_GREEN}12`,color:WA_GREEN,fontWeight:700}}>
+                    🤖 {PROVIDERS.find(p=>p.id===clinic.ai_provider)?.label||clinic.ai_provider||"anthropic"}
+                  </span>
+                  {clinic.ai_api_key&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:`${WA_GREEN}12`,color:WA_GREEN,fontWeight:700}}>🔑 Key set</span>}
                   {clinic.phone_number_id&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:"#eff6ff",color:"#3b82f6",fontWeight:700}}>📱 WA connected</span>}
-                  {onlineUsers.length>0&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 {onlineUsers.length} online</span>}
+                  {hasOnline&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
                 </div>
               </div>
               <div style={{display:"flex",gap:6,flexShrink:0}}>
-                <button onClick={()=>{setNewUser({username:"",password:"",clinic_id:clinic.id,can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});setView("newuser");}}
+                <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
                   style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                   + User
                 </button>
-                <button onClick={()=>{setEditClinic({...clinic});setView("editclient");}}
+                <button onClick={()=>{setEditClinic({...clinic,website:clinic.contact_email||""});setView("clinic_form");}}
                   style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                   ✏️ Edit
                 </button>
               </div>
             </div>
 
-            {/* Users under this clinic */}
-            {clinicUsers.length===0&&<div style={{padding:"12px 16px",fontSize:12,color:T.textMuted,fontStyle:"italic"}}>
-              No users yet — click "+ User" to add staff
-            </div>}
-            {clinicUsers.map((u,i)=>(
-              <div key={u.id} style={{padding:"10px 16px",paddingLeft:28,borderBottom:i<clinicUsers.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:u.active_session?"#22c55e":u.active?"#94a3b8":"#ef4444"}}/>
-                <div style={{width:32,height:32,borderRadius:8,background:`${WA_GREEN}12`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>👤</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                    <span style={{fontWeight:700,fontSize:13}}>@{u.username}</span>
-                    {u.active_session&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
-                    {!u.active&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:"#fee2e2",color:"#dc2626",fontWeight:700}}>Inactive</span>}
+            {/* Users */}
+            {clinicUsers.length===0
+              ?<div style={{padding:"12px 16px",fontSize:12,color:T.textFaint,fontStyle:"italic"}}>No users yet — click "+ User" to add</div>
+              :clinicUsers.map((u,i)=>(
+                <div key={u.id} style={{padding:"10px 16px",paddingLeft:24,borderBottom:i<clinicUsers.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,
+                    background:u.active_session?"#22c55e":u.active?"#94a3b8":"#ef4444"}}/>
+                  <div style={{width:30,height:30,borderRadius:8,background:`${WA_GREEN}10`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>👤</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:3}}>
+                      <span style={{fontWeight:700,fontSize:13}}>@{u.username}</span>
+                      {u.active_session&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
+                      {!u.active&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:"#fee2e2",color:"#dc2626",fontWeight:700}}>Inactive</span>}
+                    </div>
+                    <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+                      {PERM_TABS.filter(p=>u[p.key]).map(p=>(
+                        <span key={p.key} style={{fontSize:9,padding:"1px 6px",borderRadius:5,
+                          background:`${WA_GREEN}12`,color:WA_GREEN,fontWeight:600,border:`1px solid ${WA_GREEN}20`}}>
+                          {p.label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{display:"flex",gap:3,marginTop:3,flexWrap:"wrap"}}>
-                    {PERM_TABS.filter(p=>u[p.key]).map(p=>(
-                      <span key={p.key} style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:600,border:`1px solid ${WA_GREEN}25`}}>
-                        {p.label.split(" ").slice(1).join(" ")||p.label}
-                      </span>
-                    ))}
+                  <div style={{display:"flex",gap:6,flexShrink:0}}>
+                    <button onClick={()=>{setEditUser({...u,newPassword:""});setView("user_form");}}
+                      style={{padding:"4px 10px",borderRadius:7,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                    <button onClick={()=>deleteUser(u.id)}
+                      style={{padding:"4px 10px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
                   </div>
                 </div>
-                <div style={{display:"flex",gap:6,flexShrink:0}}>
-                  <button onClick={()=>{setEditUser({...u,newPassword:""});setView("edituser");}}
-                    style={{padding:"4px 10px",borderRadius:7,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
-                  <button onClick={()=>deleteUser(u.id)}
-                    style={{padding:"4px 10px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
-                </div>
-              </div>
-            ))}
+              ))
+            }
           </div>
         );
       })}
