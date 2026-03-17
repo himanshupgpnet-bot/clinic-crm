@@ -1577,7 +1577,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const [loading, setLoading] = useState(true);
   const [showNewUser, setShowNewUser] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",wa_phone_number:"",wa_phone_number_id:"",wa_token:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
+  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",wa_phone_number:"",wa_phone_number_id:"",wa_token:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,existing_clinic_id:"",is_staff:false});
   const [editUser, setEditUser] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1628,10 +1628,11 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
     try {
       const r = await fetch(`${API}/api/admin/users`, {method:"POST",headers:authHeaders(),body:JSON.stringify({
         ...newUser,
+        existing_clinic_id: newUser.is_staff ? newUser.existing_clinic_id : null,
         permissions:{can_inbox:newUser.can_inbox,can_leads:newUser.can_leads,can_analytics:newUser.can_analytics,can_testbot:newUser.can_testbot,can_knowledge:newUser.can_knowledge,can_settings:newUser.can_settings,ai_provider:newUser.ai_provider}
       })});
       const d = await r.json();
-      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",wa_phone_number:"",wa_phone_number_id:"",wa_token:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false}); load(); }
+      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",wa_phone_number:"",wa_phone_number_id:"",wa_token:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,existing_clinic_id:"",is_staff:false}); load(); }
       else showMsg("❌ "+d.error);
     } catch { showMsg("❌ Network error"); }
     setSaving(false);
@@ -1784,7 +1785,35 @@ This CANNOT be undone. Are you sure?`)) return;
         {/* ── NEW USER MODAL ── */}
         {showNewUser&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:480,boxShadow:"0 24px 60px rgba(0,0,0,.3)",maxHeight:"90vh",overflowY:"auto"}}>
-            <div style={{fontWeight:800,fontSize:17,marginBottom:20}}>➕ Create New User</div>
+            <div style={{fontWeight:800,fontSize:17,marginBottom:12}}>➕ Create New User</div>
+
+            {/* New company or existing staff toggle */}
+            <div style={{display:"flex",gap:8,marginBottom:16,padding:"12px",borderRadius:12,background:T.card2,border:`1px solid ${T.border}`}}>
+              <div onClick={()=>setNewUser(p=>({...p,is_staff:false,existing_clinic_id:""}))}
+                style={{flex:1,padding:"10px",borderRadius:10,cursor:"pointer",textAlign:"center",background:!newUser.is_staff?WA_GREEN:T.card,color:!newUser.is_staff?"#fff":T.textMuted,fontWeight:700,fontSize:13,transition:"all .15s"}}>
+                🏢 New Company
+              </div>
+              <div onClick={()=>setNewUser(p=>({...p,is_staff:true}))}
+                style={{flex:1,padding:"10px",borderRadius:10,cursor:"pointer",textAlign:"center",background:newUser.is_staff?WA_GREEN:T.card,color:newUser.is_staff?"#fff":T.textMuted,fontWeight:700,fontSize:13,transition:"all .15s"}}>
+                👤 Add Staff to Existing
+              </div>
+            </div>
+
+            {/* If adding staff — pick existing company */}
+            {newUser.is_staff&&<div style={{marginBottom:12,padding:"12px",borderRadius:12,background:`${WA_GREEN}08`,border:`1px solid ${WA_GREEN}30`}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>SELECT COMPANY *</div>
+              <select value={newUser.existing_clinic_id||""} onChange={e=>setNewUser(p=>({...p,existing_clinic_id:e.target.value}))}
+                style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+                <option value="">— Select Company —</option>
+                {users.filter((u,i,arr)=>arr.findIndex(x=>x.clinic_id===u.clinic_id)===i).map(u=>(
+                  <option key={u.clinic_id} value={u.clinic_id}>{u.company_name||u.username} (clinic #{u.clinic_id})</option>
+                ))}
+              </select>
+              <div style={{fontSize:11,color:T.textMuted,marginTop:6}}>
+                This user will see the same inbox and data as other staff in this company.
+              </div>
+            </div>}
+
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
 
               <div>
@@ -1800,10 +1829,10 @@ This CANNOT be undone. Are you sure?`)) return;
                 </div>
               </div>
 
-              <div>
+              {!newUser.is_staff&&<div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME *</div>
                 {inp(newUser.company_name, e=>setNewUser(p=>({...p,company_name:e.target.value})), "Enter company or business name")}
-              </div>
+              </div>}
 
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY LOGO</div>
