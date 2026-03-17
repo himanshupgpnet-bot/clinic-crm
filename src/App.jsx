@@ -1721,11 +1721,11 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
           <div style={{position:"absolute",top:19,left:"calc(16.6% + 4px)",height:2,zIndex:1,
             width:`${clinicStep===0?0:clinicStep===1?50:100}%`,background:WA_GREEN,transition:"width .35s ease"}}/>
           {CLINIC_STEPS.map((s,i)=>(
-            <div key={i} onClick={()=>i<=clinicStep&&setClinicStep(i)}
-              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6,zIndex:2,cursor:i<=clinicStep?"pointer":"default"}}>
+            <div key={i} onClick={()=>setClinicStep(i)}
+              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6,zIndex:2,cursor:"pointer"}}>
               <div style={{width:40,height:40,borderRadius:"50%",
                 background:i<clinicStep?"#22c55e":i===clinicStep?WA_GREEN:T.card2,
-                border:`2px solid ${i<=clinicStep?WA_GREEN:T.border}`,
+                border:`2px solid ${i===clinicStep?WA_GREEN:i<clinicStep?"#22c55e":T.border}`,
                 display:"flex",alignItems:"center",justifyContent:"center",
                 fontWeight:800,fontSize:i<clinicStep?16:14,
                 color:i<=clinicStep?"#fff":T.textFaint,transition:"all .3s",
