@@ -67,6 +67,9 @@ export default function App() {
   const [newQ, setNewQ] = useState(""); const [newA, setNewA] = useState("");
   const [appSettings, setAppSettings] = useState({});
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsDirty, setSettingsDirty] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [pendingTab, setPendingTab] = useState(null);
   const [hoveredSource, setHoveredSource] = useState(null);
   const [highlightedQA, setHighlightedQA] = useState(null);
   const [dragOver, setDragOver] = useState(null);
@@ -94,6 +97,15 @@ export default function App() {
   const [dark, setDark] = useState(false);
 
   const isAdmin = currentUser?.role === "admin";
+
+  function safeSetTab(newTab) {
+    if(settingsDirty && tab==="settings" && newTab!=="settings") {
+      setPendingTab(newTab);
+      setShowUnsavedModal(true);
+    } else {
+      setTab(newTab);
+    }
+  }
   const canSee = (tab) => {
     if (!currentUser) return false;
     if (isAdmin) return true;
@@ -356,6 +368,7 @@ export default function App() {
       if(!r.ok)return;
       const d=await r.json();
       setAppSettings(d);
+      setSettingsDirty(false);
     } catch {}
   }, []);
 
@@ -384,6 +397,7 @@ export default function App() {
   async function loadClientSettings(client) {
     setSettingsClinic(client);
     setClientSettings(null);
+    setSettingsDirty(false);
     try {
       const r = await fetch(`${API}/api/admin/users/${client.id}/settings`, {headers:authHeaders()});
       if(r.ok) {
@@ -572,7 +586,7 @@ export default function App() {
         // Client saving their own settings
         await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
       }
-      setSettingsSaved(true); setTimeout(()=>setSettingsSaved(false),2500);
+      setSettingsSaved(true); setSettingsDirty(false); setTimeout(()=>setSettingsSaved(false),2500);
     } catch{alert("Failed");}
   }
 
@@ -681,8 +695,8 @@ export default function App() {
     return <div style={{marginBottom:14}}>
       <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>{label}</div>
       {hint&&<div style={{fontSize:11,color:T.textFaint,marginBottom:5}}>{hint}</div>}
-      {rows?<textarea value={appSettings[settingKey]||""} rows={rows} onChange={e=>setAppSettings(p=>({...p,[settingKey]:e.target.value}))} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
-      :<input type={type} value={appSettings[settingKey]||""} onChange={e=>setAppSettings(p=>({...p,[settingKey]:e.target.value}))} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>}
+      {rows?<textarea value={appSettings[settingKey]||""} rows={rows} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirty(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+      :<input type={type} value={appSettings[settingKey]||""} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirty(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>}
     </div>;
   }
 
@@ -745,7 +759,7 @@ export default function App() {
         {/* Desktop tabs */}
         <div className="hide-mobile" style={{display:"flex",gap:2}}>
           {TABS.filter(t=>!t.adminOnly||isAdmin).filter(t=>canSee(t.id)).map(t=>(
-            <button key={t.id} className="tb" onClick={()=>setTab(t.id)}
+            <button key={t.id} className="tb" onClick={()=>safeSetTab(t.id)}
               style={{display:"flex",alignItems:"center",gap:4,padding:"6px 10px",borderRadius:18,
                 background:tab===t.id?`${WA_GREEN}18`:"transparent",
                 color:tab===t.id?WA_GREEN:T.textMuted,fontWeight:tab===t.id?700:500,fontSize:12}}>
@@ -805,7 +819,7 @@ export default function App() {
         <div style={{position:"fixed",top:56,left:0,bottom:0,width:260,background:T.sidebar,borderRight:`1px solid ${T.border}`,zIndex:91,display:"flex",flexDirection:"column",padding:12,gap:4,boxShadow:"4px 0 20px rgba(0,0,0,.15)"}}>
           <div style={{fontSize:11,color:T.textFaint,fontWeight:700,padding:"4px 8px",marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Navigation</div>
           {TABS.map(t=>(
-            <button key={t.id} onClick={()=>{setTab(t.id);setMenuOpen(false);}}
+            <button key={t.id} onClick={()=>{safeSetTab(t.id);setMenuOpen(false);}}
               style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",
                 background:tab===t.id?`${WA_GREEN}15`:T.sidebar,
                 color:tab===t.id?WA_GREEN:T.text,fontWeight:tab===t.id?700:400,fontSize:14,textAlign:"left"}}>
@@ -1350,7 +1364,7 @@ export default function App() {
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontSize:13,fontWeight:700,color:appSettings.ai_enabled!=="false"?WA_GREEN:"#ef4444"}}>{appSettings.ai_enabled!=="false"?"ON":"OFF"}</span>
-                    <div onClick={()=>setAppSettings(p=>({...p,ai_enabled:p.ai_enabled==="false"?"true":"false"}))}
+                    <div onClick={()=>{setAppSettings(p=>({...p,ai_enabled:p.ai_enabled==="false"?"true":"false"}));setSettingsDirty(true);}}
                       style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.ai_enabled!=="false"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
                       <div style={{position:"absolute",top:3,left:appSettings.ai_enabled!=="false"?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
                     </div>
@@ -1365,7 +1379,7 @@ export default function App() {
                     {id:"groq",label:"Llama 3",company:"Groq",color:"#f59e0b",free:true},
                   ].map(p=>{
                     const isSelected = appSettings.ai_provider===p.id;
-                    return <div key={p.id} onClick={()=>setAppSettings(prev=>({...prev,ai_provider:p.id}))}
+                    return <div key={p.id} onClick={()=>{setAppSettings(prev=>({...prev,ai_provider:p.id}));setSettingsDirty(true);}}
                       style={{padding:"14px 10px",borderRadius:14,border:`2px solid ${isSelected?p.color:T.border}`,background:isSelected?`${p.color}12`:T.card2,cursor:"pointer",textAlign:"center",position:"relative",transition:"all .15s"}}>
                       {p.free&&<div style={{position:"absolute",top:-8,right:8,background:"#10b981",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:8}}>FREE</div>}
                       {isSelected&&<div style={{position:"absolute",top:-8,left:8,background:p.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:8}}>ACTIVE</div>}
@@ -1378,7 +1392,7 @@ export default function App() {
                 {/* API Key input */}
                 <div style={{marginBottom:8}}>
                   <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>API KEY</div>
-                  <input type="password" value={appSettings.ai_api_key||""} onChange={e=>setAppSettings(p=>({...p,ai_api_key:e.target.value}))}
+                  <input type="password" value={appSettings.ai_api_key||""} onChange={e=>{setAppSettings(p=>({...p,ai_api_key:e.target.value}));setSettingsDirty(true);}}
                     placeholder="Paste API key here..."
                     style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"monospace",boxSizing:"border-box"}}/>
                 </div>
@@ -1400,7 +1414,7 @@ export default function App() {
                     <div style={{fontWeight:700,fontSize:15}}>⏰ Smart Auto Follow-up</div>
                     <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{appSettings.followup_enabled==="true"?"Active — sends automatically when customer goes silent":"Disabled — only manual follow-ups"}</div>
                   </div>
-                  <div onClick={()=>setAppSettings(p=>({...p,followup_enabled:p.followup_enabled==="true"?"false":"true"}))}
+                  <div onClick={()=>{setAppSettings(p=>({...p,followup_enabled:p.followup_enabled==="true"?"false":"true"}));setSettingsDirty(true);}}
                     style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.followup_enabled==="true"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
                     <div style={{position:"absolute",top:3,left:appSettings.followup_enabled==="true"?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
                   </div>
@@ -1420,9 +1434,9 @@ export default function App() {
                     <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:WA_GREEN}}>📨 Follow-up 1</div>
                     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
                       <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
-                      <input type="number" value={appSettings.followup_1_delay||"2"} onChange={e=>setAppSettings(p=>({...p,followup_1_delay:e.target.value}))}
+                      <input type="number" value={appSettings.followup_1_delay||"2"} onChange={e=>{setAppSettings(p=>({...p,followup_1_delay:e.target.value}));setSettingsDirty(true);}}
                         style={{width:70,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,textAlign:"center"}}/>
-                      <select value={appSettings.followup_1_delay_unit||"hours"} onChange={e=>setAppSettings(p=>({...p,followup_1_delay_unit:e.target.value}))}
+                      <select value={appSettings.followup_1_delay_unit||"hours"} onChange={e=>{setAppSettings(p=>({...p,followup_1_delay_unit:e.target.value}));setSettingsDirty(true);}}
                         style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
                         <option value="mins">Minutes</option>
                         <option value="hours">Hours</option>
@@ -1443,9 +1457,9 @@ export default function App() {
                     <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:"#f59e0b"}}>📨 Follow-up 2</div>
                     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
                       <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
-                      <input type="number" value={appSettings.followup_2_delay||"24"} onChange={e=>setAppSettings(p=>({...p,followup_2_delay:e.target.value}))}
+                      <input type="number" value={appSettings.followup_2_delay||"24"} onChange={e=>{setAppSettings(p=>({...p,followup_2_delay:e.target.value}));setSettingsDirty(true);}}
                         style={{width:70,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,textAlign:"center"}}/>
-                      <select value={appSettings.followup_2_delay_unit||"hours"} onChange={e=>setAppSettings(p=>({...p,followup_2_delay_unit:e.target.value}))}
+                      <select value={appSettings.followup_2_delay_unit||"hours"} onChange={e=>{setAppSettings(p=>({...p,followup_2_delay_unit:e.target.value}));setSettingsDirty(true);}}
                         style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
                         <option value="mins">Minutes</option>
                         <option value="hours">Hours</option>
@@ -1475,6 +1489,27 @@ export default function App() {
               </div>
 
             </div>}
+          </div>
+        </div>}
+
+        {/* ══ UNSAVED SETTINGS MODAL ══ */}
+        {showUnsavedModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:380,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+            <div style={{fontSize:24,marginBottom:12,textAlign:"center"}}>⚠️</div>
+            <div style={{fontWeight:800,fontSize:17,marginBottom:8,textAlign:"center"}}>Unsaved Changes</div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:24,textAlign:"center",lineHeight:1.6}}>
+              You have unsaved settings changes.<br/>Do you want to save before leaving?
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>{setShowUnsavedModal(false);setSettingsDirty(false);setTab(pendingTab);setPendingTab(null);}}
+                style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                Discard
+              </button>
+              <button onClick={async()=>{await saveSettings();setShowUnsavedModal(false);setTab(pendingTab);setPendingTab(null);}}
+                style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                💾 Save & Continue
+              </button>
+            </div>
           </div>
         </div>}
 
