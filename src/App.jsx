@@ -1802,7 +1802,11 @@ This CANNOT be undone. Are you sure?`)) return;
                       </div>
                     </div>
                     <div style={{display:"flex",gap:6,flexShrink:0}}>
-                      <button onClick={()=>setEditUser({...u,newPassword:"",ai_api_key:u.ai_api_key||""})}
+                      <button onClick={()=>{
+  // Detect if this is a staff user (same clinic_id as another user but no company_name)
+  const isStaff = users.filter(x=>x.clinic_id===u.clinic_id).length > 1 && !u.company_name;
+  setEditUser({...u,newPassword:"",ai_api_key:u.ai_api_key||"",is_staff_user:isStaff});
+}}
                         style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
                       <button onClick={()=>deleteUser(u.id)}
                         style={{padding:"5px 10px",borderRadius:8,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
@@ -2019,7 +2023,7 @@ This CANNOT be undone. Are you sure?`)) return;
                 {inp(editUser.company_name, e=>setEditUser(p=>({...p,company_name:e.target.value})), "Enter company name")}
               </div>
 
-              <div>
+              {!editUser.is_staff_user&&<div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY LOGO</div>
                 <div style={{display:"flex",alignItems:"center",gap:12}}>
                   <div style={{width:56,height:56,borderRadius:12,border:`2px dashed ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",background:T.card2,flexShrink:0}}>
@@ -2042,8 +2046,8 @@ This CANNOT be undone. Are you sure?`)) return;
                     {editUser.logo_url&&<button onClick={()=>setEditUser(p=>({...p,logo_url:""}))} style={{fontSize:10,color:"#ef4444",border:"none",background:"none",cursor:"pointer",padding:"2px 0",display:"block",marginTop:2}}>✕ Remove</button>}
                   </div>
                 </div>
-              </div>
-              <div>
+              </div>}
+              {!editUser.is_staff_user&&<div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>INDUSTRY</div>
                 <select value={editUser.industry||""} onChange={e=>setEditUser(p=>({...p,industry:e.target.value}))}
                   style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
@@ -2066,7 +2070,7 @@ This CANNOT be undone. Are you sure?`)) return;
                   <option value="Technology & IT">💻 Technology & IT</option>
                   <option value="Other">📦 Other</option>
                 </select>
-              </div>
+              </div>}
 
               {/* New password */}
               <div>
@@ -2077,8 +2081,8 @@ This CANNOT be undone. Are you sure?`)) return;
                 </div>
               </div>
 
-              {/* AI Provider */}
-              <div>
+              {/* AI Provider - only for primary user */}
+              {!editUser.is_staff_user&&<div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>AI PROVIDER</div>
                 <select value={editUser.ai_provider||"anthropic"} onChange={e=>setEditUser(p=>({...p,ai_provider:e.target.value}))}
                   style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
@@ -2086,17 +2090,18 @@ This CANNOT be undone. Are you sure?`)) return;
                 </select>
               </div>
 
-              {/* API Key */}
-              <div>
+              </div>}
+              {/* API Key - only for primary user */}
+              {!editUser.is_staff_user&&<div>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>API KEY</div>
                 <div style={{position:"relative"}}>
                   {inp(editUser.ai_api_key, e=>setEditUser(p=>({...p,ai_api_key:e.target.value})), "Paste API key...", showEditApiKey?"text":"password", {paddingRight:40,fontFamily:"monospace",fontSize:12})}
                   <button onClick={()=>setShowEditApiKey(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showEditApiKey?"🙈":"👁️"}</button>
                 </div>
-              </div>
+              </div>}
 
-              {/* WhatsApp config */}
-              <div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
+              {/* WhatsApp config - only for primary user */}
+              {!editUser.is_staff_user&&<div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
                 <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:10}}>📱 WhatsApp Configuration</div>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   <div>
@@ -2114,7 +2119,7 @@ This CANNOT be undone. Are you sure?`)) return;
                     </div>
                   </div>
                 </div>
-              </div>
+              </div>}
 
               {/* Tab permissions */}
               <div>
