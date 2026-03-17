@@ -1571,615 +1571,380 @@ export default function App() {
 }
 
 // ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
+
+// ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
 function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
-  const [users, setUsers] = useState([]);
+  const [view, setView] = useState("clients"); // "clients" | "onboard" | "editclient" | "users" | "newuser" | "edituser"
   const [clinics, setClinics] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showNewUser, setShowNewUser] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newUser, setNewUser] = useState({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",wa_phone_number:"",wa_phone_number_id:"",wa_token:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,existing_clinic_id:"",is_staff:false});
+  const [selectedClinic, setSelectedClinic] = useState(null);
+  const [editClinic, setEditClinic] = useState(null);
   const [editUser, setEditUser] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [showNewPw, setShowNewPw] = useState(false);
   const [showEditPw, setShowEditPw] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [showEditApiKey, setShowEditApiKey] = useState(false);
-  const [showCurrPw, setShowCurrPw] = useState(false);
-  const [showNewCPw, setShowNewCPw] = useState(false);
-  const [showConfPw, setShowConfPw] = useState(false);
-  const [pwForm, setPwForm] = useState({current_password:"",new_password:"",confirm:""});
-  const [pwMsg, setPwMsg] = useState("");
+  const [msg, setMsg] = useState("");
+  const API = window.location.hostname==="localhost" ? "http://localhost:5000" : "https://clinic-bot-oy48.onrender.com";
 
-  const PROVIDERS = [
-    {id:"anthropic", label:"Claude (Anthropic)", color:"#7c3aed"},
-    {id:"openai",    label:"GPT-4o (OpenAI)",   color:"#10b981"},
-    {id:"groq",      label:"Llama 3 (Groq)",    color:"#f59e0b"},
-  ];
+  const INDUSTRIES = ["Healthcare & Clinic","Dental","Beauty & Salon","Spa & Wellness",
+    "Fitness & Gym","Legal & Law Firm","Real Estate","Education","Restaurant & F&B","Other"];
+  const PROVIDERS = [{id:"anthropic",label:"Claude (Anthropic)"},{id:"openai",label:"GPT (OpenAI)"},{id:"groq",label:"Groq (Fast)"}];
   const PERM_TABS = [
-    {key:"can_inbox",     label:"💬 Inbox",     desc:"See & reply to messages"},
-    {key:"can_leads",     label:"🎯 Leads",     desc:"View lead scoring & pipeline"},
-    {key:"can_analytics", label:"📊 Analytics", desc:"View reports & stats"},
-    {key:"can_testbot",   label:"🤖 Test Bot",  desc:"Chat with AI bot directly"},
-    {key:"can_knowledge", label:"📋 Knowledge", desc:"View knowledge base"},
-    {key:"can_settings",  label:"⚙️ Settings",  desc:"Access basic settings"},
+    {key:"can_inbox",label:"💬 Inbox"},{key:"can_leads",label:"🎯 Leads"},
+    {key:"can_analytics",label:"📊 Analytics"},{key:"can_testbot",label:"🤖 Test Bot"},
+    {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"}
   ];
 
-  async function load() {
+  const [newClinic, setNewClinic] = useState({name:"",industry:"",logo_url:"",whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",contact_email:"",contact_phone:"",max_seats:1});
+  const [newUser, setNewUser] = useState({username:"",password:"",clinic_id:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
+
+  const load = async () => {
     setLoading(true);
     try {
-      const [ur, cr] = await Promise.all([
-        fetch(`${API}/api/admin/users`, {headers:authHeaders()}),
+      const [cr, ur] = await Promise.all([
         fetch(`${API}/api/admin/clinics`, {headers:authHeaders()}),
+        fetch(`${API}/api/admin/users`, {headers:authHeaders()})
       ]);
-      setUsers(await ur.json());
-      setClinics(await cr.json());
-    } catch {}
-    setLoading(false);
-  }
-  useEffect(()=>{ load(); },[]);
+      if(cr.ok) setClinics(await cr.json());
+      if(ur.ok) setUsers(await ur.json());
+    } finally { setLoading(false); }
+  };
 
-  function showMsg(m) { setMsg(m); setTimeout(()=>setMsg(""),3500); }
+  useEffect(()=>{load();},[]);
 
-  async function createUser() {
-    if(!newUser.username||!newUser.password) return showMsg("❌ Username and password required");
-    if(newUser.password.length<6) return showMsg("❌ Password must be at least 6 characters");
-    setSaving(true);
-    try {
-      const r = await fetch(`${API}/api/admin/users`, {method:"POST",headers:authHeaders(),body:JSON.stringify({
-        ...newUser,
-        existing_clinic_id: newUser.is_staff ? newUser.existing_clinic_id : null,
-        permissions:{can_inbox:newUser.can_inbox,can_leads:newUser.can_leads,can_analytics:newUser.can_analytics,can_testbot:newUser.can_testbot,can_knowledge:newUser.can_knowledge,can_settings:newUser.can_settings,ai_provider:newUser.ai_provider}
-      })});
-      const d = await r.json();
-      if(r.ok){ showMsg("✅ User created!"); setShowNewUser(false); setNewUser({username:"",password:"",company_name:"",industry:"",role:"client",clinic_id:1,ai_provider:"anthropic",ai_api_key:"",logo_url:"",wa_phone_number:"",wa_phone_number_id:"",wa_token:"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,existing_clinic_id:"",is_staff:false}); load(); }
-      else showMsg("❌ "+d.error);
-    } catch { showMsg("❌ Network error"); }
-    setSaving(false);
-  }
+  const flash = (m) => { setMsg(m); setTimeout(()=>setMsg(""),3000); };
 
-  async function saveUser() {
-    setSaving(true);
-    try {
-      const payload = {
-        active:       editUser.active,
-        company_name: editUser.company_name,
-        industry:     editUser.industry||"",
-        logo_url:          editUser.logo_url||"",
-        wa_phone_number:    editUser.wa_phone_number||"",
-        wa_phone_number_id: editUser.wa_phone_number_id||"",
-        wa_token:           editUser.wa_token||"",
-        ai_provider:  editUser.ai_provider,
-        ai_api_key:   editUser.ai_api_key||"",
-        permissions: {
-          can_inbox:     editUser.can_inbox,
-          can_leads:     editUser.can_leads,
-          can_analytics: editUser.can_analytics,
-          can_testbot:   editUser.can_testbot,
-          can_knowledge: editUser.can_knowledge,
-          ai_provider:   editUser.ai_provider,
-        }
-      };
-      if(editUser.newPassword) {
-        if(editUser.newPassword.length<6) { showMsg("❌ Password must be at least 6 characters"); setSaving(false); return; }
-        payload.password = editUser.newPassword;
-      }
-      const r = await fetch(`${API}/api/admin/users/${editUser.id}`, {method:"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
-      if(r.ok){ showMsg("✅ User updated!"); setEditUser(null); load(); }
-      else { const d=await r.json(); showMsg("❌ "+d.error); }
-    } catch { showMsg("❌ Network error"); }
-    setSaving(false);
-  }
+  const inp = (val, onChange, ph="", type="text", extra={}) =>
+    <input type={type} value={val||""} onChange={onChange} placeholder={ph}
+      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,
+        background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",...extra}}/>;
 
-  async function deleteUser(id) {
-    if(!confirm("Delete this user? This cannot be undone.")) return;
-    await fetch(`${API}/api/admin/users/${id}`, {method:"DELETE",headers:authHeaders()});
-    showMsg("✅ User deleted"); load();
-  }
+  const createClinic = async () => {
+    if(!newClinic.name.trim()) return alert("Company name required");
+    const r = await fetch(`${API}/api/admin/clinics`, {method:"POST",headers:authHeaders(),body:JSON.stringify(newClinic)});
+    const d = await r.json();
+    if(!r.ok) return alert(d.error||"Failed");
+    flash(`✅ Client "${newClinic.name}" created!`);
+    setNewClinic({name:"",industry:"",logo_url:"",whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",contact_email:"",contact_phone:"",max_seats:1});
+    setView("clients");
+    load();
+  };
 
-  async function resetClinicData(user) {
-    if(!confirm(`⚠️ This will permanently delete ALL contacts, messages and analytics for "${user.company_name||user.username}".
+  const saveClinic = async () => {
+    const r = await fetch(`${API}/api/admin/clinics/${editClinic.id}`, {method:"PATCH",headers:authHeaders(),body:JSON.stringify(editClinic)});
+    if(!r.ok) return alert("Failed to save");
+    flash("✅ Client updated!");
+    setView("clients");
+    load();
+  };
 
-This CANNOT be undone. Are you sure?`)) return;
-    if(!confirm(`Second confirmation — DELETE everything for "${user.company_name||user.username}"?`)) return;
-    try {
-      const r = await fetch(`${API}/api/admin/users/${user.id}/reset-data`, {method:"DELETE",headers:authHeaders()});
-      const d = await r.json();
-      if(r.ok) showMsg(`✅ Reset complete — ${d.deleted_contacts} contacts and ${d.deleted_messages} messages deleted`);
-      else showMsg("❌ "+d.error);
-    } catch { showMsg("❌ Network error"); }
-  }
+  const createUser = async () => {
+    if(!newUser.username.trim()||!newUser.password.trim()) return alert("Username and password required");
+    if(!newUser.clinic_id) return alert("Select a client company");
+    const r = await fetch(`${API}/api/admin/users`, {method:"POST",headers:authHeaders(),body:JSON.stringify({
+      ...newUser, existing_clinic_id: newUser.clinic_id, role:"client",
+      permissions:{can_inbox:newUser.can_inbox,can_leads:newUser.can_leads,can_analytics:newUser.can_analytics,
+        can_testbot:newUser.can_testbot,can_knowledge:newUser.can_knowledge,can_settings:newUser.can_settings}
+    })});
+    const d = await r.json();
+    if(!r.ok) return alert(d.error||"Failed");
+    flash(`✅ User "${newUser.username}" created!`);
+    setNewUser({username:"",password:"",clinic_id:selectedClinic?.id||"",can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
+    setView("clients");
+    load();
+  };
 
-  async function changePassword() {
-    if(!pwForm.current_password||!pwForm.new_password) return setPwMsg("❌ All fields required");
-    if(pwForm.new_password!==pwForm.confirm) return setPwMsg("❌ Passwords do not match");
-    if(pwForm.new_password.length<6) return setPwMsg("❌ Min 6 characters");
-    setSaving(true);
-    try {
-      const r = await fetch(`${API}/api/admin/change-password`, {method:"POST",headers:authHeaders(),body:JSON.stringify(pwForm)});
-      const d = await r.json();
-      if(r.ok){ setPwMsg("✅ Password changed!"); setTimeout(()=>{ setShowChangePassword(false); setPwForm({current_password:"",new_password:"",confirm:""}); setPwMsg(""); },1500); }
-      else setPwMsg("❌ "+d.error);
-    } catch { setPwMsg("❌ Network error"); }
-    setSaving(false);
-  }
+  const saveUser = async () => {
+    const payload = {active:editUser.active};
+    if(editUser.username) payload.username = editUser.username;
+    if(editUser.newPassword) payload.password = editUser.newPassword;
+    PERM_TABS.forEach(p=>{ payload[p.key]=editUser[p.key]; });
+    const r = await fetch(`${API}/api/admin/users/${editUser.id}`, {method:"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
+    if(!r.ok) return alert("Failed to save");
+    flash("✅ User updated!");
+    setEditUser(null);
+    setView("clients");
+    load();
+  };
 
-  const inp = (val, onChange, placeholder, type="text", extra={}) => (
-    <input type={type} value={val||""} onChange={onChange} placeholder={placeholder}
-      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",...extra}}/>
-  );
+  const deleteUser = async (uid) => {
+    if(!confirm("Delete this user?")) return;
+    await fetch(`${API}/api/admin/users/${uid}`, {method:"DELETE",headers:authHeaders()});
+    load();
+  };
 
-  const providerColor = (id) => PROVIDERS.find(p=>p.id===id)?.color||WA_GREEN;
+  const resetData = async (u) => {
+    if(!confirm(`Reset ALL data for ${u.company_name||u.username}?`)) return;
+    await fetch(`${API}/api/admin/users/${u.id}/reset-data`, {method:"DELETE",headers:authHeaders()});
+    flash("✅ Data reset");
+    load();
+  };
 
-  if(loading) return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:T.textMuted,fontSize:14}}>Loading...</div>;
+  if(loading) return <div style={{padding:40,textAlign:"center",color:T.textMuted}}>Loading...</div>;
 
-  return (
-    <div style={{flex:1,overflowY:"auto",padding:16,background:T.bg}}>
-      <div style={{maxWidth:860,margin:"0 auto"}}>
+  // ── CLINIC ONBOARDING FORM ──────────────────────────────────────────────────
+  const clinicForm = (data, setData, onSave, onCancel, title) => (
+    <div style={{maxWidth:600,margin:"0 auto"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+        <button onClick={onCancel} style={{border:"none",background:"none",cursor:"pointer",fontSize:20,color:T.textMuted}}>←</button>
+        <div style={{fontWeight:800,fontSize:18}}>{title}</div>
+      </div>
 
-        {msg&&<div style={{background:msg.startsWith("✅")?"#f0fdf4":"#fef2f2",border:`1px solid ${msg.startsWith("✅")?"#86efac":"#fca5a5"}`,borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:msg.startsWith("✅")?"#166534":"#dc2626"}}>{msg}</div>}
-
-        {/* Header */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+      {/* Company Info */}
+      <div className="cc" style={{marginBottom:12,padding:16}}>
+        <div style={{fontWeight:700,fontSize:13,color:T.textMuted,marginBottom:12,letterSpacing:0.5}}>🏢 COMPANY INFO</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
           <div>
-            <div style={{fontWeight:800,fontSize:20}}>👑 User Management</div>
-            <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>Create and manage client accounts, permissions and API keys</div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>COMPANY NAME *</div>
+            {inp(data.name, e=>setData(p=>({...p,name:e.target.value})), "e.g. Evera Health")}
           </div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>setShowChangePassword(true)} style={{padding:"9px 16px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>🔑 My Password</button>
-            <button onClick={()=>setShowNewUser(true)} style={{padding:"9px 16px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>＋ New User</button>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>INDUSTRY</div>
+              <select value={data.industry||""} onChange={e=>setData(p=>({...p,industry:e.target.value}))}
+                style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+                <option value="">— Select —</option>
+                {INDUSTRIES.map(i=><option key={i} value={i}>{i}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>MAX SEATS</div>
+              {inp(data.max_seats, e=>setData(p=>({...p,max_seats:e.target.value})), "1", "number")}
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>CONTACT EMAIL</div>
+              {inp(data.contact_email, e=>setData(p=>({...p,contact_email:e.target.value})), "email@company.com")}
+            </div>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>CONTACT PHONE</div>
+              {inp(data.contact_phone, e=>setData(p=>({...p,contact_phone:e.target.value})), "+60123456789")}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>COMPANY LOGO URL</div>
+            <div style={{display:"flex",gap:10,alignItems:"center"}}>
+              {data.logo_url&&<img src={data.logo_url} style={{width:44,height:44,borderRadius:10,objectFit:"cover",border:`1px solid ${T.border}`}} alt=""/>}
+              {inp(data.logo_url, e=>setData(p=>({...p,logo_url:e.target.value})), "https://... or paste base64")}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Stats */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
-          {[{icon:"👥",label:"Total Users",value:users.length},{icon:"✅",label:"Active",value:users.filter(u=>u.active).length},{icon:"🔴",label:"Inactive",value:users.filter(u=>!u.active).length}].map(s=>(
-            <div key={s.label} className="cc" style={{textAlign:"center",padding:"14px 10px"}}>
-              <div style={{fontSize:22,marginBottom:4}}>{s.icon}</div>
-              <div style={{fontWeight:800,fontSize:22,color:WA_GREEN}}>{s.value}</div>
-              <div style={{fontSize:11,color:T.textMuted}}>{s.label}</div>
+      {/* WhatsApp */}
+      <div className="cc" style={{marginBottom:12,padding:16}}>
+        <div style={{fontWeight:700,fontSize:13,color:T.textMuted,marginBottom:12,letterSpacing:0.5}}>📱 WHATSAPP</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>WA PHONE NUMBER</div>
+            {inp(data.whatsapp_number, e=>setData(p=>({...p,whatsapp_number:e.target.value})), "+60123456789")}
+          </div>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>PHONE NUMBER ID</div>
+            {inp(data.phone_number_id, e=>setData(p=>({...p,phone_number_id:e.target.value})), "From Meta Business")}
+          </div>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>WA ACCESS TOKEN</div>
+            {inp(data.whatsapp_token, e=>setData(p=>({...p,whatsapp_token:e.target.value})), "EAA...", "password")}
+          </div>
+        </div>
+      </div>
+
+      {/* AI */}
+      <div className="cc" style={{marginBottom:16,padding:16}}>
+        <div style={{fontWeight:700,fontSize:13,color:T.textMuted,marginBottom:12,letterSpacing:0.5}}>🤖 AI CONFIGURATION</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>AI PROVIDER</div>
+            <select value={data.ai_provider||"anthropic"} onChange={e=>setData(p=>({...p,ai_provider:e.target.value}))}
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+              {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>API KEY</div>
+            {inp(data.ai_api_key, e=>setData(p=>({...p,ai_api_key:e.target.value})), "sk-... or paste key", "password")}
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:10}}>
+        <button onClick={onCancel} style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+        <button onClick={onSave} style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save</button>
+      </div>
+    </div>
+  );
+
+  // ── USER FORM ───────────────────────────────────────────────────────────────
+  const userForm = (data, setData, onSave, onCancel, title, isEdit=false) => (
+    <div style={{maxWidth:500,margin:"0 auto"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+        <button onClick={onCancel} style={{border:"none",background:"none",cursor:"pointer",fontSize:20,color:T.textMuted}}>←</button>
+        <div style={{fontWeight:800,fontSize:18}}>{title}</div>
+      </div>
+
+      <div className="cc" style={{marginBottom:12,padding:16}}>
+        {/* Account status for edit */}
+        {isEdit&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:T.card2,marginBottom:12}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:14}}>Account Status</div>
+            <div style={{fontSize:11,color:T.textMuted}}>{data.active?"User can login":"Account disabled"}</div>
+          </div>
+          <div onClick={()=>setData(p=>({...p,active:!p.active}))}
+            style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:data.active?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
+            <div style={{position:"absolute",top:3,left:data.active?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+          </div>
+        </div>}
+
+        {/* Company selector for new user */}
+        {!isEdit&&<div style={{marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>CLIENT COMPANY *</div>
+          <select value={data.clinic_id||""} onChange={e=>setData(p=>({...p,clinic_id:e.target.value}))}
+            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+            <option value="">— Select Company —</option>
+            {clinics.filter(c=>c.active!==false).map(c=><option key={c.id} value={c.id}>{c.name} (#{c.id})</option>)}
+          </select>
+        </div>}
+
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>USERNAME *</div>
+          {inp(data.username, e=>setData(p=>({...p,username:e.target.value})), "e.g. evera_staff1")}
+        </div>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:4}}>{isEdit?"NEW PASSWORD (leave blank to keep)":"PASSWORD *"}</div>
+          <div style={{position:"relative"}}>
+            {inp(isEdit?data.newPassword:data.password, e=>setData(p=>({...p,[isEdit?"newPassword":"password"]:e.target.value})),
+              isEdit?"Enter new password...":"Set password...", showEditPw?"text":"password", {paddingRight:40})}
+            <button onClick={()=>setShowEditPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showEditPw?"🙈":"👁️"}</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="cc" style={{marginBottom:16,padding:16}}>
+        <div style={{fontWeight:700,fontSize:13,color:T.textMuted,marginBottom:12,letterSpacing:0.5}}>🔐 TAB PERMISSIONS</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {PERM_TABS.map(p=>(
+            <div key={p.key} onClick={()=>setData(prev=>({...prev,[p.key]:!prev[p.key]}))}
+              style={{padding:"10px 14px",borderRadius:10,border:`1px solid ${data[p.key]?WA_GREEN:T.border}`,
+                background:data[p.key]?`${WA_GREEN}10`:T.card2,cursor:"pointer",
+                display:"flex",alignItems:"center",justifyContent:"space-between",transition:"all .15s"}}>
+              <span style={{fontSize:13,fontWeight:600,color:data[p.key]?WA_GREEN:T.textMuted}}>{p.label}</span>
+              <div style={{width:36,height:20,borderRadius:10,background:data[p.key]?WA_GREEN:T.border,position:"relative",transition:"background .2s",flexShrink:0}}>
+                <div style={{position:"absolute",top:2,left:data[p.key]?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+              </div>
             </div>
           ))}
         </div>
-
-        {/* Users list — grouped by company */}
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {users.length===0&&<div className="cc" style={{padding:40,textAlign:"center",color:T.textMuted}}>
-            <div style={{fontSize:40,marginBottom:8}}>👤</div>
-            <div style={{fontWeight:600,marginBottom:4}}>No users yet</div>
-            <div style={{fontSize:12}}>Click "+ New User" to create your first client account</div>
-          </div>}
-
-          {/* Group users by clinic_id */}
-          {Object.entries(users.reduce((groups, u) => {
-            const key = u.clinic_id || u.id;
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(u);
-            return groups;
-          }, {})).map(([clinicId, clinicUsers]) => {
-            const primaryUser = clinicUsers[0];
-            const isExpanded = true;
-            return (
-              <div key={clinicId} className="cc" style={{padding:0,overflow:"hidden"}}>
-                {/* Company header */}
-                <div style={{padding:"14px 16px",background:`${WA_GREEN}08`,borderBottom:`1px solid ${WA_GREEN}20`,display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{width:44,height:44,borderRadius:12,overflow:"hidden",background:`${WA_GREEN}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    {primaryUser.logo_url
-                      ?<img src={primaryUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
-                      :<span style={{fontSize:22}}>🏢</span>}
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontWeight:800,fontSize:15}}>{primaryUser.company_name||primaryUser.username}</div>
-                    <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>
-                      {primaryUser.industry||"—"} · Clinic #{clinicId} · {clinicUsers.length} user{clinicUsers.length>1?"s":""}
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                    {clinicUsers.some(u=>u.active_session)&&<span style={{fontSize:10,padding:"3px 10px",borderRadius:8,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
-                    <button onClick={()=>setShowNewUser(true)}
-                      style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                      + Add Staff
-                    </button>
-                  </div>
-                </div>
-
-                {/* Staff members */}
-                {clinicUsers.map((u,i)=>(
-                  <div key={u.id} style={{padding:"12px 16px",borderBottom:i<clinicUsers.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",gap:12,paddingLeft:28}}>
-                    {/* Role indicator */}
-                    <div style={{width:8,height:8,borderRadius:"50%",background:u.active_session?"#22c55e":u.active?"#94a3b8":"#ef4444",flexShrink:0}}/>
-                    <div style={{width:36,height:36,borderRadius:10,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>👤</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                        <span style={{fontWeight:700,fontSize:13}}>{u.username}</span>
-                        {u.active_session&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
-                        <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:6,background:u.active?"#dcfce7":"#fee2e2",color:u.active?"#166534":"#dc2626"}}>{u.active?"Active":"Inactive"}</span>
-                      </div>
-                      <div style={{display:"flex",gap:3,marginTop:5,flexWrap:"wrap"}}>
-                        {PERM_TABS.map(p=>(
-                          <span key={p.key} style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:u[p.key]?`${WA_GREEN}18`:T.card2,color:u[p.key]?WA_GREEN:T.textFaint,fontWeight:600,border:`1px solid ${u[p.key]?WA_GREEN+"30":T.border}`}}>{p.label.split(" ").slice(1).join(" ")||p.label}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={{display:"flex",gap:6,flexShrink:0}}>
-                      <button onClick={()=>{
-  // Detect if this is a staff user (same clinic_id as another user but no company_name)
-  const isStaff = users.filter(x=>x.clinic_id===u.clinic_id).length > 1 && !u.company_name;
-  setEditUser({...u,newPassword:"",ai_api_key:u.ai_api_key||"",is_staff_user:isStaff});
-}}
-                        style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
-                      <button onClick={()=>deleteUser(u.id)}
-                        style={{padding:"5px 10px",borderRadius:8,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
-                      <button onClick={()=>resetClinicData(u)}
-                        style={{padding:"5px 10px",borderRadius:8,border:"1px solid #f9731630",background:"#f9731610",color:"#f97316",fontSize:11,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>🔄</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── NEW USER MODAL ── */}
-        {showNewUser&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:480,boxShadow:"0 24px 60px rgba(0,0,0,.3)",maxHeight:"90vh",overflowY:"auto"}}>
-            <div style={{fontWeight:800,fontSize:17,marginBottom:12}}>➕ Create New User</div>
-
-            {/* New company or existing staff toggle */}
-            <div style={{display:"flex",gap:8,marginBottom:16,padding:"12px",borderRadius:12,background:T.card2,border:`1px solid ${T.border}`}}>
-              <div onClick={()=>setNewUser(p=>({...p,is_staff:false,existing_clinic_id:""}))}
-                style={{flex:1,padding:"10px",borderRadius:10,cursor:"pointer",textAlign:"center",background:!newUser.is_staff?WA_GREEN:T.card,color:!newUser.is_staff?"#fff":T.textMuted,fontWeight:700,fontSize:13,transition:"all .15s"}}>
-                🏢 New Company
-              </div>
-              <div onClick={()=>setNewUser(p=>({...p,is_staff:true}))}
-                style={{flex:1,padding:"10px",borderRadius:10,cursor:"pointer",textAlign:"center",background:newUser.is_staff?WA_GREEN:T.card,color:newUser.is_staff?"#fff":T.textMuted,fontWeight:700,fontSize:13,transition:"all .15s"}}>
-                👤 Add Staff to Existing
-              </div>
-            </div>
-
-            {/* If adding staff — pick existing company */}
-            {newUser.is_staff&&<div style={{marginBottom:12,padding:"12px",borderRadius:12,background:`${WA_GREEN}08`,border:`1px solid ${WA_GREEN}30`}}>
-              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>SELECT COMPANY *</div>
-              <select value={newUser.existing_clinic_id||""} onChange={e=>setNewUser(p=>({...p,existing_clinic_id:e.target.value}))}
-                style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-                <option value="">— Select Company —</option>
-                {users.filter((u,i,arr)=>arr.findIndex(x=>x.clinic_id===u.clinic_id)===i).map(u=>(
-                  <option key={u.clinic_id} value={u.clinic_id}>{u.company_name||u.username} (clinic #{u.clinic_id})</option>
-                ))}
-              </select>
-              <div style={{fontSize:11,color:T.textMuted,marginTop:6}}>
-                This user will see the same inbox and data as other staff in this company.
-              </div>
-            </div>}
-
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>USERNAME *</div>
-                {inp(newUser.username, e=>setNewUser(p=>({...p,username:e.target.value})), "e.g. john_clinic")}
-              </div>
-
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>PASSWORD *</div>
-                <div style={{position:"relative"}}>
-                  {inp(newUser.password, e=>setNewUser(p=>({...p,password:e.target.value})), "Min 6 characters", showNewPw?"text":"password", {paddingRight:40})}
-                  <button onClick={()=>setShowNewPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showNewPw?"🙈":"👁️"}</button>
-                </div>
-              </div>
-
-              {!newUser.is_staff&&<div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME *</div>
-                {inp(newUser.company_name, e=>setNewUser(p=>({...p,company_name:e.target.value})), "Enter company or business name")}
-              </div>}
-
-              {!newUser.is_staff&&<div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY LOGO</div>
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{width:56,height:56,borderRadius:12,border:`2px dashed ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",background:T.card2,flexShrink:0}}>
-                    {newUser.logo_url
-                      ? <img src={newUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}} alt="logo"/>
-                      : <span style={{fontSize:22}}>🏢</span>}
-                  </div>
-                  <div style={{flex:1}}>
-                    <label style={{display:"inline-block",padding:"8px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                      📎 Upload Logo
-                      <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
-                        const file=e.target.files[0]; if(!file) return;
-                        if(file.size>500000){alert("Logo must be under 500KB");return;}
-                        const reader=new FileReader();
-                        reader.onload=ev=>setNewUser(p=>({...p,logo_url:ev.target.result}));
-                        reader.readAsDataURL(file);
-                      }}/>
-                    </label>
-                    <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>PNG, JPG · Max 500KB</div>
-                    {newUser.logo_url&&<button onClick={()=>setNewUser(p=>({...p,logo_url:""}))} style={{fontSize:10,color:"#ef4444",border:"none",background:"none",cursor:"pointer",padding:"2px 0",display:"block",marginTop:2}}>✕ Remove</button>}
-                  </div>
-                </div>
-              </div>}
-
-              {!newUser.is_staff&&<div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>INDUSTRY</div>
-                <select value={newUser.industry||""} onChange={e=>setNewUser(p=>({...p,industry:e.target.value}))}
-                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-                  <option value="">— Select Industry —</option>
-                  <option value="Healthcare & Clinic">🏥 Healthcare & Clinic</option>
-                  <option value="Dental">🦷 Dental</option>
-                  <option value="Beauty & Salon">💅 Beauty & Salon</option>
-                  <option value="Spa & Wellness">🧖 Spa & Wellness</option>
-                  <option value="Fitness & Gym">🏋️ Fitness & Gym</option>
-                  <option value="Legal & Law Firm">⚖️ Legal & Law Firm</option>
-                  <option value="Real Estate">🏠 Real Estate</option>
-                  <option value="Education & Tuition">📚 Education & Tuition</option>
-                  <option value="Restaurant & Food">🍽️ Restaurant & Food</option>
-                  <option value="Retail & E-commerce">🛍️ Retail & E-commerce</option>
-                  <option value="Finance & Accounting">💰 Finance & Accounting</option>
-                  <option value="Insurance">🛡️ Insurance</option>
-                  <option value="Logistics & Delivery">🚚 Logistics & Delivery</option>
-                  <option value="Hotel & Hospitality">🏨 Hotel & Hospitality</option>
-                  <option value="Automotive">🚗 Automotive</option>
-                  <option value="Technology & IT">💻 Technology & IT</option>
-                  <option value="Other">📦 Other</option>
-                </select>
-              </div>}
-
-              <div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
-                <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:8}}>🔐 Tab Permissions</div>
-                <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Choose what this user can access after login:</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  {PERM_TABS.map(p=>(
-                    <div key={p.key} onClick={()=>setNewUser(prev=>({...prev,[p.key]:!prev[p.key]}))}
-                      style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${newUser[p.key]?WA_GREEN:T.border}`,cursor:"pointer",background:newUser[p.key]?`${WA_GREEN}10`:T.card2,transition:"all 0.15s"}}>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:700,color:newUser[p.key]?WA_GREEN:T.text}}>{p.label}</div>
-                        <div style={{fontSize:10,color:T.textMuted,marginTop:1}}>{p.desc}</div>
-                      </div>
-                      <div style={{width:34,height:20,borderRadius:10,background:newUser[p.key]?WA_GREEN:"#d1d5db",position:"relative",transition:"background .2s",flexShrink:0,marginLeft:8}}>
-                        <div style={{position:"absolute",top:3,left:newUser[p.key]?15:3,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{fontSize:10,color:T.textMuted,marginTop:6}}>💡 Admin tab is never visible to client users</div>
-              </div>
-
-              {!newUser.is_staff&&<div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
-                <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:10}}>🤖 AI Configuration</div>
-                <div style={{marginBottom:10}}>
-                  <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>AI PROVIDER</div>
-                  <select value={newUser.ai_provider} onChange={e=>setNewUser(p=>({...p,ai_provider:e.target.value}))}
-                    style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-                    {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>API KEY FOR {newUser.ai_provider.toUpperCase()}</div>
-                  <div style={{position:"relative"}}>
-                    {inp(newUser.ai_api_key, e=>setNewUser(p=>({...p,ai_api_key:e.target.value})), "Paste API key here...", showApiKey?"text":"password", {paddingRight:40,fontFamily:"monospace",fontSize:12})}
-                    <button onClick={()=>setShowApiKey(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showApiKey?"🙈":"👁️"}</button>
-                  </div>
-                  <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>
-                    {newUser.ai_provider==="anthropic"&&"Get from console.anthropic.com → API Keys"}
-                    {newUser.ai_provider==="openai"&&"Get from platform.openai.com → API Keys"}
-                    {newUser.ai_provider==="groq"&&"Get from console.groq.com → API Keys (FREE)"}
-                  </div>
-                </div>
-              </div>}
-
-              {!newUser.is_staff&&<div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
-                <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:4}}>📱 WhatsApp Configuration</div>
-                <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Get these from Meta Business → WhatsApp → API Setup</div>
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>WHATSAPP PHONE NUMBER</div>
-                    {inp(newUser.wa_phone_number, e=>setNewUser(p=>({...p,wa_phone_number:e.target.value})), "e.g. +60111234567")}
-                  </div>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>PHONE NUMBER ID</div>
-                    {inp(newUser.wa_phone_number_id, e=>setNewUser(p=>({...p,wa_phone_number_id:e.target.value})), "e.g. 123456789012345")}
-                    <div style={{fontSize:10,color:T.textMuted,marginTop:3}}>Found in Meta Business → WhatsApp → Getting Started</div>
-                  </div>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>WHATSAPP ACCESS TOKEN</div>
-                    <div style={{position:"relative"}}>
-                      {inp(newUser.wa_token, e=>setNewUser(p=>({...p,wa_token:e.target.value})), "Paste access token...", "password", {paddingRight:40,fontFamily:"monospace",fontSize:12})}
-                    </div>
-                    <div style={{fontSize:10,color:T.textMuted,marginTop:3}}>Permanent token from Meta System User</div>
-                  </div>
-                </div>
-              </div>}
-
-            </div>
-
-            <div style={{display:"flex",gap:10,marginTop:20}}>
-              <button onClick={()=>setShowNewUser(false)} style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={createUser} disabled={saving} style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Creating...":"Create User"}</button>
-            </div>
-          </div>
-        </div>}
-
-        {/* ── EDIT USER MODAL ── */}
-        {editUser&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:480,boxShadow:"0 24px 60px rgba(0,0,0,.3)",maxHeight:"90vh",overflowY:"auto"}}>
-            <div style={{fontWeight:800,fontSize:17,marginBottom:4}}>✏️ Edit User</div>
-            <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>@{editUser.username}</div>
-
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-              {/* Active toggle */}
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:T.card2,border:`1px solid ${T.border}`}}>
-                <div>
-                  <div style={{fontSize:13,fontWeight:700}}>Account Status</div>
-                  <div style={{fontSize:11,color:T.textMuted}}>{editUser.active?"User can login":"User is blocked"}</div>
-                </div>
-                <div onClick={()=>setEditUser(p=>({...p,active:!p.active}))}
-                  style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:editUser.active?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
-                  <div style={{position:"absolute",top:3,left:editUser.active?22:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
-                </div>
-              </div>
-
-              {/* Company name */}
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY / SERVICE NAME</div>
-                {inp(editUser.company_name, e=>setEditUser(p=>({...p,company_name:e.target.value})), "Enter company name")}
-              </div>
-
-              {!editUser.is_staff_user&&<div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>COMPANY LOGO</div>
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{width:56,height:56,borderRadius:12,border:`2px dashed ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",background:T.card2,flexShrink:0}}>
-                    {editUser.logo_url
-                      ? <img src={editUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}} alt="logo"/>
-                      : <span style={{fontSize:22}}>🏢</span>}
-                  </div>
-                  <div style={{flex:1}}>
-                    <label style={{display:"inline-block",padding:"8px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                      📎 Upload Logo
-                      <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
-                        const file=e.target.files[0]; if(!file) return;
-                        if(file.size>500000){alert("Logo must be under 500KB");return;}
-                        const reader=new FileReader();
-                        reader.onload=ev=>setEditUser(p=>({...p,logo_url:ev.target.result}));
-                        reader.readAsDataURL(file);
-                      }}/>
-                    </label>
-                    <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>PNG, JPG · Max 500KB</div>
-                    {editUser.logo_url&&<button onClick={()=>setEditUser(p=>({...p,logo_url:""}))} style={{fontSize:10,color:"#ef4444",border:"none",background:"none",cursor:"pointer",padding:"2px 0",display:"block",marginTop:2}}>✕ Remove</button>}
-                  </div>
-                </div>
-              </div>}
-              {!editUser.is_staff_user&&<div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>INDUSTRY</div>
-                <select value={editUser.industry||""} onChange={e=>setEditUser(p=>({...p,industry:e.target.value}))}
-                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-                  <option value="">— Select Industry —</option>
-                  <option value="Healthcare & Clinic">🏥 Healthcare & Clinic</option>
-                  <option value="Dental">🦷 Dental</option>
-                  <option value="Beauty & Salon">💅 Beauty & Salon</option>
-                  <option value="Spa & Wellness">🧖 Spa & Wellness</option>
-                  <option value="Fitness & Gym">🏋️ Fitness & Gym</option>
-                  <option value="Legal & Law Firm">⚖️ Legal & Law Firm</option>
-                  <option value="Real Estate">🏠 Real Estate</option>
-                  <option value="Education & Tuition">📚 Education & Tuition</option>
-                  <option value="Restaurant & Food">🍽️ Restaurant & Food</option>
-                  <option value="Retail & E-commerce">🛍️ Retail & E-commerce</option>
-                  <option value="Finance & Accounting">💰 Finance & Accounting</option>
-                  <option value="Insurance">🛡️ Insurance</option>
-                  <option value="Logistics & Delivery">🚚 Logistics & Delivery</option>
-                  <option value="Hotel & Hospitality">🏨 Hotel & Hospitality</option>
-                  <option value="Automotive">🚗 Automotive</option>
-                  <option value="Technology & IT">💻 Technology & IT</option>
-                  <option value="Other">📦 Other</option>
-                </select>
-              </div>}
-
-              {/* New password */}
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>NEW PASSWORD (leave blank to keep current)</div>
-                <div style={{position:"relative"}}>
-                  {inp(editUser.newPassword, e=>setEditUser(p=>({...p,newPassword:e.target.value})), "Enter new password...", showEditPw?"text":"password", {paddingRight:40})}
-                  <button onClick={()=>setShowEditPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showEditPw?"🙈":"👁️"}</button>
-                </div>
-              </div>
-
-              {/* AI Provider - only for primary user */}
-              {!editUser.is_staff_user&&<div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>AI PROVIDER</div>
-                <select value={editUser.ai_provider||"anthropic"} onChange={e=>setEditUser(p=>({...p,ai_provider:e.target.value}))}
-                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none"}}>
-                  {PROVIDERS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
-                </select>
-              </div>}
-              {/* API Key - only for primary user */}
-              {!editUser.is_staff_user&&<div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>API KEY</div>
-                <div style={{position:"relative"}}>
-                  {inp(editUser.ai_api_key, e=>setEditUser(p=>({...p,ai_api_key:e.target.value})), "Paste API key...", showEditApiKey?"text":"password", {paddingRight:40,fontFamily:"monospace",fontSize:12})}
-                  <button onClick={()=>setShowEditApiKey(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showEditApiKey?"🙈":"👁️"}</button>
-                </div>
-              </div>}
-
-              {/* WhatsApp config - only for primary user */}
-              {!editUser.is_staff_user&&<div style={{borderTop:`1px dashed ${T.border}`,paddingTop:12}}>
-                <div style={{fontSize:12,fontWeight:800,color:T.text,marginBottom:10}}>📱 WhatsApp Configuration</div>
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>WHATSAPP PHONE NUMBER</div>
-                    {inp(editUser.wa_phone_number, e=>setEditUser(p=>({...p,wa_phone_number:e.target.value})), "e.g. +60111234567")}
-                  </div>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>PHONE NUMBER ID</div>
-                    {inp(editUser.wa_phone_number_id, e=>setEditUser(p=>({...p,wa_phone_number_id:e.target.value})), "e.g. 123456789012345")}
-                  </div>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>WHATSAPP ACCESS TOKEN</div>
-                    <div style={{position:"relative"}}>
-                      {inp(editUser.wa_token||"", e=>setEditUser(p=>({...p,wa_token:e.target.value})), "Paste access token...", "password", {fontFamily:"monospace",fontSize:12})}
-                    </div>
-                  </div>
-                </div>
-              </div>}
-
-              {/* Tab permissions */}
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:8,letterSpacing:0.5}}>TAB PERMISSIONS</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  {PERM_TABS.map(p=>(
-                    <div key={p.key} onClick={()=>setEditUser(prev=>({...prev,[p.key]:!prev[p.key]}))}
-                      style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 12px",borderRadius:10,border:`1px solid ${editUser[p.key]?WA_GREEN:T.border}`,cursor:"pointer",background:editUser[p.key]?`${WA_GREEN}10`:T.card2,transition:"all 0.15s"}}>
-                      <span style={{fontSize:12,fontWeight:600,color:editUser[p.key]?WA_GREEN:T.textMuted}}>{p.label}</span>
-                      <div style={{width:32,height:18,borderRadius:9,background:editUser[p.key]?WA_GREEN:T.border,position:"relative",transition:"background .2s",flexShrink:0}}>
-                        <div style={{position:"absolute",top:2,left:editUser[p.key]?14:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div style={{display:"flex",gap:10,marginTop:20}}>
-              <button onClick={()=>setEditUser(null)} style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={saveUser} disabled={saving} style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Saving...":"Save Changes"}</button>
-            </div>
-          </div>
-        </div>}
-
-        {/* ── CHANGE OWN PASSWORD MODAL ── */}
-        {showChangePassword&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:400,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
-            <div style={{fontWeight:800,fontSize:17,marginBottom:4}}>🔑 Change My Password</div>
-            <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>Update your admin account password</div>
-            {pwMsg&&<div style={{background:pwMsg.startsWith("✅")?"#f0fdf4":"#fef2f2",border:`1px solid ${pwMsg.startsWith("✅")?"#86efac":"#fca5a5"}`,borderRadius:10,padding:"10px 14px",fontSize:13,color:pwMsg.startsWith("✅")?"#166534":"#dc2626",marginBottom:14}}>{pwMsg}</div>}
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>CURRENT PASSWORD</div>
-                <div style={{position:"relative"}}>
-                  {inp(pwForm.current_password, e=>setPwForm(p=>({...p,current_password:e.target.value})), "Enter current password", showCurrPw?"text":"password", {paddingRight:40})}
-                  <button onClick={()=>setShowCurrPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showCurrPw?"🙈":"👁️"}</button>
-                </div>
-              </div>
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>NEW PASSWORD</div>
-                <div style={{position:"relative"}}>
-                  {inp(pwForm.new_password, e=>setPwForm(p=>({...p,new_password:e.target.value})), "Min 6 characters", showNewCPw?"text":"password", {paddingRight:40})}
-                  <button onClick={()=>setShowNewCPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showNewCPw?"🙈":"👁️"}</button>
-                </div>
-              </div>
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>CONFIRM NEW PASSWORD</div>
-                <div style={{position:"relative"}}>
-                  {inp(pwForm.confirm, e=>setPwForm(p=>({...p,confirm:e.target.value})), "Repeat new password", showConfPw?"text":"password", {paddingRight:40})}
-                  <button onClick={()=>setShowConfPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:15,color:T.textMuted}}>{showConfPw?"🙈":"👁️"}</button>
-                </div>
-              </div>
-            </div>
-            <div style={{display:"flex",gap:10,marginTop:20}}>
-              <button onClick={()=>{setShowChangePassword(false);setPwMsg("");}} style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={changePassword} disabled={saving} style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Saving...":"Change Password"}</button>
-            </div>
-          </div>
-        </div>}
-
       </div>
+
+      <div style={{display:"flex",gap:10}}>
+        <button onClick={onCancel} style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+        <button onClick={onSave} style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 {isEdit?"Save Changes":"Create User"}</button>
+      </div>
+    </div>
+  );
+
+  // ── MAIN CLIENTS VIEW ───────────────────────────────────────────────────────
+  if(view==="onboard") return clinicForm(newClinic, setNewClinic, createClinic, ()=>setView("clients"), "🏢 Onboard New Client");
+  if(view==="editclient") return clinicForm(editClinic, setEditClinic, saveClinic, ()=>setView("clients"), "✏️ Edit Client");
+  if(view==="newuser") return userForm(newUser, setNewUser, createUser, ()=>setView("clients"), "👤 Create New User");
+  if(view==="edituser") return userForm(editUser, setEditUser, saveUser, ()=>setView("clients"), `✏️ Edit User — @${editUser?.username}`, true);
+
+  return (
+    <div style={{maxWidth:900,margin:"0 auto",padding:"0 4px"}}>
+      {msg&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:13,fontWeight:600,color:"#166534"}}>{msg}</div>}
+
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+        <div style={{fontWeight:800,fontSize:18}}>🏢 Client Management</div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>{setNewUser(p=>({...p,clinic_id:""}));setView("newuser");}}
+            style={{padding:"8px 16px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+            👤 New User
+          </button>
+          <button onClick={()=>setView("onboard")}
+            style={{padding:"8px 16px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            + Onboard Client
+          </button>
+        </div>
+      </div>
+
+      {/* Client cards */}
+      {clinics.length===0&&<div className="cc" style={{padding:40,textAlign:"center",color:T.textMuted}}>
+        <div style={{fontSize:40,marginBottom:8}}>🏢</div>
+        <div style={{fontWeight:600,marginBottom:4}}>No clients yet</div>
+        <div style={{fontSize:12}}>Click "+ Onboard Client" to add your first client</div>
+      </div>}
+
+      {clinics.map(clinic=>{
+        const clinicUsers = users.filter(u=>u.clinic_id===clinic.id);
+        const onlineUsers = clinicUsers.filter(u=>u.active_session);
+        return (
+          <div key={clinic.id} className="cc" style={{marginBottom:12,padding:0,overflow:"hidden"}}>
+            {/* Clinic header */}
+            <div style={{padding:"14px 16px",background:`${WA_GREEN}08`,borderBottom:`1px solid ${WA_GREEN}20`,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:48,height:48,borderRadius:12,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {clinic.logo_url?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:24}}>🏢</span>}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:800,fontSize:15}}>{clinic.name}</div>
+                <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>
+                  {clinic.industry||"—"} · #{clinic.id} · {clinicUsers.length}/{clinic.max_seats||1} seats
+                  {clinic.contact_email&&` · ${clinic.contact_email}`}
+                </div>
+                <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
+                  <span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:700}}>🤖 {clinic.ai_provider||"anthropic"}</span>
+                  {clinic.ai_api_key&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:700}}>🔑 Key set</span>}
+                  {clinic.phone_number_id&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:"#eff6ff",color:"#3b82f6",fontWeight:700}}>📱 WA connected</span>}
+                  {onlineUsers.length>0&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 {onlineUsers.length} online</span>}
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6,flexShrink:0}}>
+                <button onClick={()=>{setNewUser({username:"",password:"",clinic_id:clinic.id,can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});setView("newuser");}}
+                  style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  + User
+                </button>
+                <button onClick={()=>{setEditClinic({...clinic});setView("editclient");}}
+                  style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  ✏️ Edit
+                </button>
+              </div>
+            </div>
+
+            {/* Users under this clinic */}
+            {clinicUsers.length===0&&<div style={{padding:"12px 16px",fontSize:12,color:T.textMuted,fontStyle:"italic"}}>
+              No users yet — click "+ User" to add staff
+            </div>}
+            {clinicUsers.map((u,i)=>(
+              <div key={u.id} style={{padding:"10px 16px",paddingLeft:28,borderBottom:i<clinicUsers.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:u.active_session?"#22c55e":u.active?"#94a3b8":"#ef4444"}}/>
+                <div style={{width:32,height:32,borderRadius:8,background:`${WA_GREEN}12`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>👤</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:13}}>@{u.username}</span>
+                    {u.active_session&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
+                    {!u.active&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:"#fee2e2",color:"#dc2626",fontWeight:700}}>Inactive</span>}
+                  </div>
+                  <div style={{display:"flex",gap:3,marginTop:3,flexWrap:"wrap"}}>
+                    {PERM_TABS.filter(p=>u[p.key]).map(p=>(
+                      <span key={p.key} style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:600,border:`1px solid ${WA_GREEN}25`}}>
+                        {p.label.split(" ").slice(1).join(" ")||p.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:6,flexShrink:0}}>
+                  <button onClick={()=>{setEditUser({...u,newPassword:""});setView("edituser");}}
+                    style={{padding:"4px 10px",borderRadius:7,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                  <button onClick={()=>deleteUser(u.id)}
+                    style={{padding:"4px 10px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
