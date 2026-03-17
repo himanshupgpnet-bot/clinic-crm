@@ -1394,48 +1394,83 @@ export default function App() {
 
               {/* Follow-up */}
               <div className="cc" style={{marginBottom:14}}>
-                <div style={{background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:T.text}}>
-                  🤖 <strong>Smart AI Follow-up</strong> — Bot reads the actual conversation and writes a personalized message automatically. The messages below are only used as fallback if AI fails.
-                </div>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-                  <div style={{fontWeight:700,fontSize:14}}>⏰ Auto Follow-up</div>
+                {/* Header + toggle */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:15}}>⏰ Smart Auto Follow-up</div>
+                    <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{appSettings.followup_enabled==="true"?"Active — sends automatically when customer goes silent":"Disabled — only manual follow-ups"}</div>
+                  </div>
                   <div onClick={()=>setAppSettings(p=>({...p,followup_enabled:p.followup_enabled==="true"?"false":"true"}))}
-                    style={{width:42,height:24,borderRadius:12,cursor:"pointer",background:appSettings.followup_enabled==="true"?WA_GREEN:T.card2,border:`1px solid ${T.border}`,position:"relative",transition:"background .2s"}}>
-                    <div style={{position:"absolute",top:2,left:appSettings.followup_enabled==="true"?20:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                    style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.followup_enabled==="true"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
+                    <div style={{position:"absolute",top:3,left:appSettings.followup_enabled==="true"?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
                   </div>
                 </div>
-                <div style={{opacity:appSettings.followup_enabled==="true"?1:.4,pointerEvents:appSettings.followup_enabled==="true"?"auto":"none"}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                    <div style={{marginBottom:14}}>
-                      <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>Follow-up 1 Delay</div>
-                      <div style={{display:"flex",gap:6}}>
-                        <input type="number" value={appSettings.followup_1_delay||"2"} onChange={e=>setAppSettings(p=>({...p,followup_1_delay:e.target.value}))}
-                          style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>
-                        <select value={appSettings.followup_1_delay_unit||"hours"} onChange={e=>setAppSettings(p=>({...p,followup_1_delay_unit:e.target.value}))}
-                          style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 10px",color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                          <option value="mins">Mins</option>
-                          <option value="hours">Hours</option>
-                          <option value="days">Days</option>
-                        </select>
-                      </div>
+
+                {/* How it works info */}
+                <div style={{background:`${WA_GREEN}08`,border:`1px solid ${WA_GREEN}25`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:11,color:T.textMuted,lineHeight:1.6}}>
+                  🤖 <strong style={{color:T.text}}>How it works:</strong> AI reads the full conversation → decides if follow-up is needed → writes personalized message in customer's language.<br/>
+                  ⏸️ <strong style={{color:T.text}}>Auto-stops</strong> if customer said thanks/bye/confirmed/booked.<br/>
+                  📋 <strong style={{color:T.text}}>Fallback messages</strong> below are only sent if AI API fails.
+                </div>
+
+                <div style={{opacity:appSettings.followup_enabled==="true"?1:.5,pointerEvents:appSettings.followup_enabled==="true"?"auto":"none"}}>
+
+                  {/* Follow-up 1 */}
+                  <div style={{background:T.card2,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${T.border}`}}>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:WA_GREEN}}>📨 Follow-up 1</div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
+                      <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
+                      <input type="number" value={appSettings.followup_1_delay||"2"} onChange={e=>setAppSettings(p=>({...p,followup_1_delay:e.target.value}))}
+                        style={{width:70,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,textAlign:"center"}}/>
+                      <select value={appSettings.followup_1_delay_unit||"hours"} onChange={e=>setAppSettings(p=>({...p,followup_1_delay_unit:e.target.value}))}
+                        style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
+                        <option value="mins">Minutes</option>
+                        <option value="hours">Hours</option>
+                        <option value="days">Days</option>
+                      </select>
+                      <div style={{fontSize:11,color:T.textMuted}}>of silence</div>
                     </div>
-                    <div style={{marginBottom:14}}>
-                      <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>Follow-up 2 Delay</div>
-                      <div style={{display:"flex",gap:6}}>
-                        <input type="number" value={appSettings.followup_2_delay||"24"} onChange={e=>setAppSettings(p=>({...p,followup_2_delay:e.target.value}))}
-                          style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>
-                        <select value={appSettings.followup_2_delay_unit||"hours"} onChange={e=>setAppSettings(p=>({...p,followup_2_delay_unit:e.target.value}))}
-                          style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 10px",color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                          <option value="mins">Mins</option>
-                          <option value="hours">Hours</option>
-                          <option value="days">Days</option>
-                        </select>
-                      </div>
-                    </div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>FALLBACK MESSAGE (if AI fails)</div>
+                    <textarea value={appSettings.followup_1_message||""} rows={2}
+                      onChange={e=>setAppSettings(p=>({...p,followup_1_message:e.target.value}))}
+                      placeholder="Hi {name}! Just checking in..."
+                      style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Use {"{name}"} for customer name</div>
                   </div>
-                  <SettingInput label="Follow-up 1 Fallback Message" settingKey="followup_1_message" rows={2} hint="Used only if AI fails. Use {name} for customer name. AI will generate smart message based on conversation."/>
-                  <SettingInput label="Follow-up 2 Fallback Message" settingKey="followup_2_message" rows={2} hint="Used only if AI fails. Use {name} for customer name."/>
-                  <SettingInput label="Max follow-ups per customer" settingKey="followup_max" type="number"/>
+
+                  {/* Follow-up 2 */}
+                  <div style={{background:T.card2,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${T.border}`}}>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:"#f59e0b"}}>📨 Follow-up 2</div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
+                      <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
+                      <input type="number" value={appSettings.followup_2_delay||"24"} onChange={e=>setAppSettings(p=>({...p,followup_2_delay:e.target.value}))}
+                        style={{width:70,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,textAlign:"center"}}/>
+                      <select value={appSettings.followup_2_delay_unit||"hours"} onChange={e=>setAppSettings(p=>({...p,followup_2_delay_unit:e.target.value}))}
+                        style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
+                        <option value="mins">Minutes</option>
+                        <option value="hours">Hours</option>
+                        <option value="days">Days</option>
+                      </select>
+                      <div style={{fontSize:11,color:T.textMuted}}>after follow-up 1</div>
+                    </div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>FALLBACK MESSAGE (if AI fails)</div>
+                    <textarea value={appSettings.followup_2_message||""} rows={2}
+                      onChange={e=>setAppSettings(p=>({...p,followup_2_message:e.target.value}))}
+                      placeholder="Hello {name}! We still have slots available..."
+                      style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Use {"{name}"} for customer name</div>
+                  </div>
+
+                  {/* Max follow-ups */}
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{fontSize:12,color:T.text,fontWeight:600}}>Max follow-ups per customer</div>
+                    <select value={appSettings.followup_max||"2"} onChange={e=>setAppSettings(p=>({...p,followup_max:e.target.value}))}
+                      style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
+                      <option value="1">1 follow-up</option>
+                      <option value="2">2 follow-ups</option>
+                    </select>
+                  </div>
+
                 </div>
               </div>
 
