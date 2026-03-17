@@ -26,11 +26,18 @@ const HOUR_LABELS = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am
 const formatMsgTime = (timeStr, dateStr) => {
   if (!timeStr) return "";
   try {
-    // Try to parse as a full datetime using date + time
     if (dateStr && timeStr) {
-      const dt = new Date(`${dateStr} ${timeStr}`);
-      if (!isNaN(dt)) {
-        return dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:true});
+      // Parse as UTC and convert to local browser time
+      // timeStr format: "02:47 AM", dateStr: "2026-03-17"
+      const [timePart, period] = timeStr.split(" ");
+      const [hours, mins] = timePart.split(":");
+      let h = parseInt(hours);
+      if (period === "PM" && h !== 12) h += 12;
+      if (period === "AM" && h === 12) h = 0;
+      // Create UTC date
+      const utcDate = new Date(`${dateStr}T${String(h).padStart(2,"0")}:${mins}:00Z`);
+      if (!isNaN(utcDate)) {
+        return utcDate.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:true});
       }
     }
     return timeStr;
