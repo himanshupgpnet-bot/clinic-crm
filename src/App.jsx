@@ -1712,14 +1712,14 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const labelStyle = {display:"block",fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:6,letterSpacing:0.3};
 
   if(view==="clinic_form") return (
-    <div style={{maxWidth:580,margin:"0 auto"}}>
+    <div style={{maxWidth:580,margin:"0 auto",paddingBottom:20}}>
 
       {/* Step progress */}
       <div style={{background:T.card,borderRadius:16,padding:"20px 24px",marginBottom:14,border:`1px solid ${T.border}`}}>
         <div style={{display:"flex",alignItems:"flex-start",position:"relative"}}>
-          <div style={{position:"absolute",top:19,left:"calc(16.6% + 4px)",right:"calc(16.6% + 4px)",height:2,background:T.border,zIndex:0}}/>
+          <div style={{position:"absolute",top:19,left:"calc(16.6% + 4px)",width:"66.6%",height:2,background:T.border,zIndex:0}}/>
           <div style={{position:"absolute",top:19,left:"calc(16.6% + 4px)",height:2,zIndex:1,
-            width:`${clinicStep===0?0:clinicStep===1?50:100}%`,background:WA_GREEN,transition:"width .35s ease"}}/>
+            width:`${clinicStep===0?0:clinicStep===1?"33.3%":"66.6%"}`,background:WA_GREEN,transition:"width .35s ease"}}/>
           {CLINIC_STEPS.map((s,i)=>(
             <div key={i} onClick={()=>setClinicStep(i)}
               style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6,zIndex:2,cursor:"pointer"}}>
