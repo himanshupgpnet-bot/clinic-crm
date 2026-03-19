@@ -149,7 +149,7 @@ export default function App() {
       });
       const d = await r.json();
       if (r.status === 409 && d.error === "already_logged_in") {
-        setSessionConflict(d);
+        setSessionConflict({...d, last_active_friendly: d.last_active_friendly||"recently"});
         setLoginLoading(false);
         return;
       }
@@ -227,18 +227,30 @@ export default function App() {
             </div>
 
             {/* Session conflict modal */}
-            {sessionConflict&&<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:14,padding:"16px",marginBottom:14}}>
-              <div style={{fontWeight:700,fontSize:14,color:"#c2410c",marginBottom:6}}>⚠️ Already Logged In</div>
-              <div style={{fontSize:12,color:"#78350f",marginBottom:4}}>{sessionConflict.message}</div>
-              <div style={{fontSize:11,color:"#92400e",marginBottom:12}}>Device: {sessionConflict.device_info}</div>
+            {sessionConflict&&<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:14,padding:"18px",marginBottom:14}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                <span style={{fontSize:22}}>🔒</span>
+                <div style={{fontWeight:800,fontSize:15,color:"#92400e"}}>Account Already In Use</div>
+              </div>
+              <div style={{fontSize:13,color:"#78350f",marginBottom:10,lineHeight:1.6}}>
+                This account is currently active on another device.<br/>
+                You need to log out from that device first, or force login here.
+              </div>
+              <div style={{background:"#fef3c7",borderRadius:10,padding:"10px 12px",marginBottom:14,fontSize:12,color:"#92400e"}}>
+                <div>📱 <strong>Device:</strong> {sessionConflict.device_info}</div>
+                <div style={{marginTop:4}}>🕐 <strong>Last active:</strong> {sessionConflict.last_active_friendly||"recently"}</div>
+              </div>
+              <div style={{fontSize:12,color:"#b45309",marginBottom:12,padding:"8px 10px",background:"#fef9c3",borderRadius:8,border:"1px solid #fde68a"}}>
+                ⚠️ Forcing login will immediately log out the other device
+              </div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>setSessionConflict(null)}
-                  style={{flex:1,padding:"8px",borderRadius:10,border:"1px solid #fed7aa",background:"#fff",color:"#c2410c",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                  style={{flex:1,padding:"10px",borderRadius:10,border:"1px solid #fed7aa",background:"#fff",color:"#92400e",fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
                   Cancel
                 </button>
                 <button onClick={()=>{setSessionConflict(null);doLogin(true);}}
-                  style={{flex:2,padding:"8px",borderRadius:10,border:"none",background:"#c2410c",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  Force Login (Logout Other Device)
+                  style={{flex:2,padding:"10px",borderRadius:10,border:"none",background:"#dc2626",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  🔓 Force Login
                 </button>
               </div>
             </div>}
