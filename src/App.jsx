@@ -267,7 +267,10 @@ export default function App() {
                   <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:18,color:"#9ca3af",lineHeight:1,padding:0}}>{showPw?"🙈":"👁️"}</button>
                 </div>
               </div>
-              <button className="sign-btn" onClick={doLogin} disabled={loginLoading}
+              <button type="button" className="sign-btn" 
+                onMouseDown={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
+                onClick={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
+                disabled={loginLoading}
                 style={{width:"100%",padding:"14px",borderRadius:14,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:loginLoading?"wait":"pointer",fontFamily:"inherit",letterSpacing:0.3,boxShadow:"0 6px 24px rgba(79,70,229,0.35)"}}>
                 {loginLoading?"Signing in...":"Sign In →"}
               </button>
