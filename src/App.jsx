@@ -63,9 +63,9 @@ const TABS = [
 
 export default function App() {
   // ── AUTH ──
-  const [authToken, setAuthToken] = useState(()=>localStorage.getItem("crm_token")||"");
-  const [currentUser, setCurrentUser] = useState(()=>{ try{ return JSON.parse(localStorage.getItem("crm_user")||"null"); }catch{return null;} });
-  const [permissions, setPermissions] = useState(()=>{ try{ return JSON.parse(localStorage.getItem("crm_perms")||"null"); }catch{return null;} });
+  const [authToken, setAuthToken] = useState(()=>sessionStorage.getItem("crm_token")||"");
+  const [currentUser, setCurrentUser] = useState(()=>{ try{ return JSON.parse(sessionStorage.getItem("crm_user")||"null"); }catch{return null;} });
+  const [permissions, setPermissions] = useState(()=>{ try{ return JSON.parse(sessionStorage.getItem("crm_perms")||"null"); }catch{return null;} });
   const [loginForm, setLoginForm] = useState({username:"",password:""});
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
@@ -157,9 +157,9 @@ export default function App() {
       setAuthToken(d.token);
       setCurrentUser(d.user);
       setPermissions(d.permissions);
-      localStorage.setItem("crm_token", d.token);
-      localStorage.setItem("crm_user", JSON.stringify(d.user));
-      localStorage.setItem("crm_perms", JSON.stringify(d.permissions));
+      sessionStorage.setItem("crm_token", d.token);
+      sessionStorage.setItem("crm_user", JSON.stringify(d.user));
+      sessionStorage.setItem("crm_perms", JSON.stringify(d.permissions));
       // Notify all other tabs to logout immediately
       try {
         const bc = new BroadcastChannel("crm_session");
@@ -175,7 +175,7 @@ export default function App() {
     try {
       await fetch(`${API}/api/auth/logout`, {method:"POST", headers:authHeaders()});
     } catch {}
-    localStorage.clear();
+    sessionStorage.clear();
     window.location.reload();
   }
 
@@ -421,7 +421,7 @@ export default function App() {
       bc.onmessage = (e) => {
         if(e.data.type === "new_login" && e.data.token !== authToken) {
           // Another tab logged in with new token — this session is now invalid
-          localStorage.clear();
+          sessionStorage.clear();
           alert("⚠️ You have been logged out because this account logged in from another location.");
           window.location.reload();
         }
@@ -436,7 +436,7 @@ export default function App() {
         });
         if(r.status === 401) {
           const d = await r.json().catch(()=>({}));
-          localStorage.clear();
+          sessionStorage.clear();
           alert("⚠️ You have been logged out because this account was accessed from another device.");
           window.location.reload();
         }
@@ -487,7 +487,7 @@ export default function App() {
       const d = await r.json().catch(()=>({}));
       if(d.code === "session_invalid") {
         alert("⚠️ You have been logged out because this account was logged in on another device.");
-        localStorage.clear();
+        sessionStorage.clear();
         window.location.reload();
         return null;
       }
