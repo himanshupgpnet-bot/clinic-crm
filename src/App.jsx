@@ -63,9 +63,9 @@ const TABS = [
 
 export default function App() {
   // ── AUTH ──
-  const [authToken, setAuthToken] = useState(()=>sessionStorage.getItem("crm_token")||"");
-  const [currentUser, setCurrentUser] = useState(()=>{ try{ return JSON.parse(sessionStorage.getItem("crm_user")||"null"); }catch{return null;} });
-  const [permissions, setPermissions] = useState(()=>{ try{ return JSON.parse(sessionStorage.getItem("crm_perms")||"null"); }catch{return null;} });
+  const [authToken, setAuthToken] = useState(()=>localStorage.getItem("crm_token")||"");
+  const [currentUser, setCurrentUser] = useState(()=>{ try{ return JSON.parse(localStorage.getItem("crm_user")||"null"); }catch{return null;} });
+  const [permissions, setPermissions] = useState(()=>{ try{ return JSON.parse(localStorage.getItem("crm_perms")||"null"); }catch{return null;} });
   const [loginForm, setLoginForm] = useState({username:"",password:""});
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
@@ -157,9 +157,15 @@ export default function App() {
       setAuthToken(d.token);
       setCurrentUser(d.user);
       setPermissions(d.permissions);
-      sessionStorage.setItem("crm_token", d.token);
-      sessionStorage.setItem("crm_user", JSON.stringify(d.user));
-      sessionStorage.setItem("crm_perms", JSON.stringify(d.permissions));
+      localStorage.setItem("crm_token", d.token);
+      localStorage.setItem("crm_user", JSON.stringify(d.user));
+      localStorage.setItem("crm_perms", JSON.stringify(d.permissions));
+      // Notify all other tabs to logout immediately
+      try {
+        const bc = new BroadcastChannel("crm_session");
+        bc.postMessage({type:"new_login", token: d.token, username: d.user.username});
+        bc.close();
+      } catch(e) {}
       window.location.reload();
     } catch { setLoginError("Cannot connect to server"); }
     finally { setLoginLoading(false); }
@@ -169,7 +175,7 @@ export default function App() {
     try {
       await fetch(`${API}/api/auth/logout`, {method:"POST", headers:authHeaders()});
     } catch {}
-    sessionStorage.clear();
+    localStorage.clear();
     window.location.reload();
   }
 
@@ -405,24 +411,41 @@ export default function App() {
   useEffect(() => { messagesEndRef.current?.scrollIntoView({behavior:"smooth"}); });
   useEffect(() => { botEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [botConvo]);
 
-  // Poll session validity every 30 seconds
+  // Listen for new login from other tabs — kick out immediately
   useEffect(() => {
     if(!authToken || !currentUser || currentUser.role==="admin") return;
+    let bc;
+    try {
+      bc = new BroadcastChannel("crm_session");
+      bc.onmessage = (e) => {
+        if(e.data.type === "new_login" && e.data.token !== authToken) {
+          // Another tab logged in with new token — this session is now invalid
+          localStorage.clear();
+          alert("⚠️ You have been logged out because this account logged in from another location.");
+          window.location.reload();
+        }
+      };
+    } catch(e) {}
+
+    // Also poll every 30 seconds for cross-device detection
     const checkSession = async () => {
       try {
         const r = await fetch(`${API}/api/auth/me`, {headers:authHeaders()});
         if(r.status === 401) {
           const d = await r.json().catch(()=>({}));
           if(d.code === "session_invalid") {
-            alert("⚠️ You have been logged out because this account was accessed from another location.");
-            sessionStorage.clear();
+            localStorage.clear();
+            alert("⚠️ You have been logged out because this account was accessed from another device.");
             window.location.reload();
           }
         }
       } catch {}
     };
-    const interval = setInterval(checkSession, 30000); // every 30 seconds
-    return () => clearInterval(interval);
+    const interval = setInterval(checkSession, 15000); // every 15 seconds
+    return () => {
+      clearInterval(interval);
+      try { bc?.close(); } catch(e) {}
+    };
   }, [authToken, currentUser]);
 
   const fetchConversations = useCallback(async () => {
@@ -463,7 +486,7 @@ export default function App() {
       const d = await r.json().catch(()=>({}));
       if(d.code === "session_invalid") {
         alert("⚠️ You have been logged out because this account was logged in on another device.");
-        sessionStorage.clear();
+        localStorage.clear();
         window.location.reload();
         return null;
       }
