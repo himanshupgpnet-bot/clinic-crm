@@ -441,6 +441,16 @@ export default function App() {
     // Then every 10 seconds
     const interval = setInterval(checkSession, 10000);
 
+    // Check when tab/app becomes visible again (handles Safari background suspension)
+    const onVisible = () => {
+      if(document.visibilityState === "visible") checkSession();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    // Check when window gets focus (switching back to this window/tab)
+    const onFocus = () => checkSession();
+    window.addEventListener("focus", onFocus);
+
     // BroadcastChannel for same-browser tabs
     let bc;
     try {
@@ -454,6 +464,8 @@ export default function App() {
 
     return () => {
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
       try { bc?.close(); } catch(e) {}
     };
   }, [authToken]);
