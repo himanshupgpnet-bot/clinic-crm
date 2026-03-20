@@ -145,7 +145,7 @@ export default function App() {
     try {
       const r = await fetch(`${API}/api/auth/login`, {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({...loginForm, force})
+        body: JSON.stringify({...loginForm, force, tab_id: tabId})
       });
       const d = await r.json();
       if (r.status === 409 && d.error === "already_logged_in") {
@@ -404,6 +404,26 @@ export default function App() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({behavior:"smooth"}); });
   useEffect(() => { botEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [botConvo]);
+
+  // Poll session validity every 30 seconds
+  useEffect(() => {
+    if(!authToken || !currentUser || currentUser.role==="admin") return;
+    const checkSession = async () => {
+      try {
+        const r = await fetch(`${API}/api/auth/me`, {headers:authHeaders()});
+        if(r.status === 401) {
+          const d = await r.json().catch(()=>({}));
+          if(d.code === "session_invalid") {
+            alert("⚠️ You have been logged out because this account was accessed from another location.");
+            sessionStorage.clear();
+            window.location.reload();
+          }
+        }
+      } catch {}
+    };
+    const interval = setInterval(checkSession, 30000); // every 30 seconds
+    return () => clearInterval(interval);
+  }, [authToken, currentUser]);
 
   const fetchConversations = useCallback(async () => {
     try {
