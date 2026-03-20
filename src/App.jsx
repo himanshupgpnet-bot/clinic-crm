@@ -145,7 +145,7 @@ export default function App() {
     try {
       const r = await fetch(`${API}/api/auth/login`, {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({...loginForm, force, tab_id: tabId})
+        body: JSON.stringify({...loginForm, force})
       });
       const d = await r.json();
       if (r.status === 409 && d.error === "already_logged_in") {
