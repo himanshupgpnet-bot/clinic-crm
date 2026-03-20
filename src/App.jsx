@@ -412,42 +412,51 @@ export default function App() {
   useEffect(() => { messagesEndRef.current?.scrollIntoView({behavior:"smooth"}); });
   useEffect(() => { botEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [botConvo]);
 
-  // Listen for new login from other tabs — kick out immediately
+  // Session guard — runs immediately and every 10 seconds
   useEffect(() => {
     if(!authToken || !currentUser || currentUser.role==="admin") return;
+
+    const kickOut = (msg) => {
+      sessionStorage.clear();
+      alert(msg);
+      window.location.href = window.location.origin + window.location.pathname;
+    };
+
+    const checkSession = async () => {
+      try {
+        const r = await fetch(`${API}/api/auth/heartbeat`, {
+          method:"POST",
+          headers:{"Authorization":`Bearer ${authToken}`,"Content-Type":"application/json"}
+        });
+        if(r.status === 401) {
+          kickOut("⚠️ You have been logged out because this account was accessed from another device or location.");
+        }
+      } catch(e) {
+        // Network error — don't kick out, just skip
+      }
+    };
+
+    // Run immediately on mount
+    checkSession();
+    // Then every 10 seconds
+    const interval = setInterval(checkSession, 10000);
+
+    // BroadcastChannel for same-browser tabs
     let bc;
     try {
       bc = new BroadcastChannel("crm_session");
       bc.onmessage = (e) => {
-        if(e.data.type === "new_login" && e.data.token !== authToken) {
-          // Another tab logged in with new token — this session is now invalid
-          sessionStorage.clear();
-          alert("⚠️ You have been logged out because this account logged in from another location.");
-          window.location.reload();
+        if(e.data.type === "new_login") {
+          kickOut("⚠️ Another login was detected. You have been logged out.");
         }
       };
     } catch(e) {}
 
-    // Poll every 10 seconds for cross-device detection
-    const checkSession = async () => {
-      try {
-        const r = await fetch(`${API}/api/auth/heartbeat`, {
-          method:"POST", headers:authHeaders()
-        });
-        if(r.status === 401) {
-          const d = await r.json().catch(()=>({}));
-          sessionStorage.clear();
-          alert("⚠️ You have been logged out because this account was accessed from another device.");
-          window.location.reload();
-        }
-      } catch {}
-    };
-    const interval = setInterval(checkSession, 10000); // every 10 seconds
     return () => {
       clearInterval(interval);
       try { bc?.close(); } catch(e) {}
     };
-  }, [authToken, currentUser]);
+  }, [authToken]);
 
   const fetchConversations = useCallback(async () => {
     try {
