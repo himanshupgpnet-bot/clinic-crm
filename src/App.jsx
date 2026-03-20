@@ -427,21 +427,21 @@ export default function App() {
       };
     } catch(e) {}
 
-    // Also poll every 30 seconds for cross-device detection
+    // Poll every 10 seconds for cross-device detection
     const checkSession = async () => {
       try {
-        const r = await fetch(`${API}/api/auth/me`, {headers:authHeaders()});
+        const r = await fetch(`${API}/api/auth/heartbeat`, {
+          method:"POST", headers:authHeaders()
+        });
         if(r.status === 401) {
           const d = await r.json().catch(()=>({}));
-          if(d.code === "session_invalid") {
-            localStorage.clear();
-            alert("⚠️ You have been logged out because this account was accessed from another device.");
-            window.location.reload();
-          }
+          localStorage.clear();
+          alert("⚠️ You have been logged out because this account was accessed from another device.");
+          window.location.reload();
         }
       } catch {}
     };
-    const interval = setInterval(checkSession, 15000); // every 15 seconds
+    const interval = setInterval(checkSession, 10000); // every 10 seconds
     return () => {
       clearInterval(interval);
       try { bc?.close(); } catch(e) {}
