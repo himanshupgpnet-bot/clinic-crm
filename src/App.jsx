@@ -436,6 +436,21 @@ export default function App() {
     } catch {}
   }, []);
 
+  // Handle session invalidation globally
+  const apiFetch = useCallback(async (url, options={}) => {
+    const r = await fetch(url, {...options, headers:{...authHeaders(), ...(options.headers||{})}});
+    if(r.status === 401) {
+      const d = await r.json().catch(()=>({}));
+      if(d.code === "session_invalid") {
+        alert("⚠️ You have been logged out because this account was logged in on another device.");
+        sessionStorage.clear();
+        window.location.reload();
+        return null;
+      }
+    }
+    return r;
+  }, [authToken]);
+
   const fetchAnalytics = useCallback(async (from, to, clinicId=null) => {
     setAnalyticsLoading(true);
     try {
