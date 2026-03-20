@@ -245,6 +245,7 @@ export default function App() {
               <div style={{background:"#fef3c7",borderRadius:10,padding:"10px 12px",marginBottom:14,fontSize:12,color:"#92400e"}}>
                 <div>📱 <strong>Device:</strong> {sessionConflict.device_info}</div>
                 <div style={{marginTop:4}}>🕐 <strong>Last active:</strong> {sessionConflict.last_active_friendly||"recently"}</div>
+                <div style={{marginTop:4}}>📅 <strong>Logged in at:</strong> {sessionConflict.logged_in_at ? new Date(sessionConflict.logged_in_at + (sessionConflict.logged_in_at.endsWith("Z")?"":"Z")).toLocaleString([],{dateStyle:"medium",timeStyle:"short"}) : "—"}</div>
               </div>
               <div style={{fontSize:12,color:"#b45309",marginBottom:12,padding:"8px 10px",background:"#fef9c3",borderRadius:8,border:"1px solid #fde68a"}}>
                 ⚠️ Forcing login will immediately log out the other device
