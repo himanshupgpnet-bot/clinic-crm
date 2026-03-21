@@ -1721,16 +1721,27 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
   const emptyUser = (clinic_id="") => ({username:"",password:"",clinic_id,
     can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
 
+  const [sessions, setSessions] = useState([]);
+  const [showSessions, setShowSessions] = useState(false);
+
   const load = async () => {
     setLoading(true);
     try {
-      const [cr,ur] = await Promise.all([
+      const [cr,ur,sr] = await Promise.all([
         fetch(`${API}/api/admin/clinics`,{headers:authHeaders()}),
-        fetch(`${API}/api/admin/users`,{headers:authHeaders()})
+        fetch(`${API}/api/admin/users`,{headers:authHeaders()}),
+        fetch(`${API}/api/admin/sessions`,{headers:authHeaders()})
       ]);
       if(cr.ok) setClinics(await cr.json());
       if(ur.ok) setUsers(await ur.json());
+      if(sr.ok) setSessions(await sr.json());
     } finally { setLoading(false); }
+  };
+
+  const forceLogout = async (userId, username) => {
+    if(!confirm(`Force logout @${username}?`)) return;
+    const r = await fetch(`${API}/api/admin/sessions/${userId}`,{method:"DELETE",headers:authHeaders()});
+    if(r.ok) { flash(`✅ @${username} has been logged out`); load(); }
   };
 
   useEffect(()=>{load();},[]);
@@ -2044,6 +2055,64 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
             + Onboard Client
           </button>
         </div>
+      </div>
+
+      {/* Live Sessions Panel */}
+      <div className="cc" style={{marginBottom:16,padding:0,overflow:"hidden"}}>
+        <div onClick={()=>setShowSessions(p=>!p)}
+          style={{padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",
+            background:sessions.length>0?`${WA_GREEN}06`:T.card}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:10,height:10,borderRadius:"50%",background:sessions.length>0?"#22c55e":"#94a3b8",
+              boxShadow:sessions.length>0?"0 0 0 3px rgba(34,197,94,.2)":"none"}}/>
+            <span style={{fontWeight:700,fontSize:14}}>Live Sessions</span>
+            <span style={{fontSize:12,padding:"2px 8px",borderRadius:6,
+              background:sessions.length>0?"#dcfce7":"#f1f5f9",
+              color:sessions.length>0?"#166534":"#64748b",fontWeight:700}}>
+              {sessions.length} active
+            </span>
+          </div>
+          <span style={{fontSize:12,color:T.textMuted}}>{showSessions?"▲":"▼"}</span>
+        </div>
+
+        {showSessions&&<div>
+          {sessions.length===0
+            ?<div style={{padding:"16px",fontSize:12,color:T.textFaint,textAlign:"center"}}>No active sessions</div>
+            :sessions.map(s=>{
+              const friendly = (s.device_info||"").split(" | ")[0] || "Unknown";
+              const inactiveMins = Math.round(s.inactive_mins||0);
+              const timeAgo = inactiveMins < 1 ? "just now" : inactiveMins < 60 ? `${inactiveMins}m ago` : `${Math.floor(inactiveMins/60)}h ago`;
+              const loggedInTime = s.logged_in_at ? new Date(s.logged_in_at+"Z").toLocaleString([],{dateStyle:"short",timeStyle:"short"}) : "—";
+              return (
+                <div key={s.user_id} style={{padding:"12px 16px",borderTop:`1px solid ${T.border}`,
+                  display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:10,height:10,borderRadius:"50%",flexShrink:0,
+                    background:inactiveMins<2?"#22c55e":inactiveMins<10?"#f59e0b":"#94a3b8"}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <span style={{fontWeight:700,fontSize:13}}>@{s.username}</span>
+                      <span style={{fontSize:11,color:T.textMuted}}>{s.company_name}</span>
+                      {inactiveMins<2&&<span style={{fontSize:10,padding:"1px 6px",borderRadius:5,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Active</span>}
+                    </div>
+                    <div style={{fontSize:11,color:T.textMuted,marginTop:3,display:"flex",gap:10,flexWrap:"wrap"}}>
+                      <span>📱 {friendly}</span>
+                      {(s.location||s.country)&&<span>📍 {[s.location,s.country].filter(Boolean).join(", ")}</span>}
+                      {s.ip_address&&<span>🌐 {s.ip_address}</span>}
+                      <span>🕐 {timeAgo}</span>
+                      <span>🔑 Logged in: {loggedInTime}</span>
+                    </div>
+                  </div>
+                  <button onClick={()=>forceLogout(s.user_id, s.username)}
+                    style={{padding:"6px 12px",borderRadius:8,border:"1px solid #ef444430",
+                      background:"#ef444410",color:"#ef4444",fontSize:11,fontWeight:700,
+                      cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0}}>
+                    🔴 Logout
+                  </button>
+                </div>
+              );
+            })
+          }
+        </div>}
       </div>
 
       {loading&&<div style={{padding:40,textAlign:"center",color:T.textMuted}}>Loading...</div>}
