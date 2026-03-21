@@ -626,6 +626,23 @@ export default function App() {
     }
   }, [tab]);
 
+  // Global auto-refresh every 30s for all users and all tabs
+  useEffect(() => {
+    if(!authToken || !currentUser) return;
+    const autoRefresh = () => {
+      // Always refresh conversations (inbox)
+      fetchConversations();
+      // Refresh current tab data
+      if(tab==="analytics") {
+        fetchAnalytics(dateFrom, dateTo, selectedClinic?.clinic_id||null);
+        if(isAdmin) fetchAdminOverview();
+      }
+      if(isAdmin) fetchAdminOverview();
+    };
+    const interval = setInterval(autoRefresh, 30000);
+    return () => clearInterval(interval);
+  }, [tab, authToken, currentUser]);
+
   function setPreset(p) {
     setDatePreset(p); const t=today();
     if(p==="7d")  { setDateFrom(daysAgo(6));  setDateTo(t); }
