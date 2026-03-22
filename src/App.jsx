@@ -678,6 +678,8 @@ export default function App() {
     const autoRefresh = () => {
       // Always refresh conversations (inbox)
       fetchConversations();
+      // Always refresh settings to keep session_timeout_mins up to date
+      fetchSettings();
       // Refresh current tab data
       if(tab==="analytics") {
         fetchAnalytics(dateFrom, dateTo, selectedClinic?.clinic_id||null);
