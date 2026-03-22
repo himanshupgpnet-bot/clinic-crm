@@ -246,7 +246,7 @@ export default function App() {
               <div style={{background:"#fef3c7",borderRadius:10,padding:"10px 12px",marginBottom:14,fontSize:12,color:"#92400e"}}>
                 <div>📱 <strong>Device:</strong> {sessionConflict.device_info}</div>
                 <div style={{marginTop:4}}>🕐 <strong>Last active:</strong> {sessionConflict.last_active_friendly||"recently"}</div>
-                <div style={{marginTop:4}}>📅 <strong>Logged in at:</strong> {sessionConflict.logged_in_at ? new Date(sessionConflict.logged_in_at + (sessionConflict.logged_in_at.endsWith("Z")?"":"Z")).toLocaleString([],{dateStyle:"medium",timeStyle:"short"}) : "—"}</div>
+                <div style={{marginTop:4}}>📅 <strong>Logged in at:</strong> {sessionConflict.logged_in_at ? new Date(sessionConflict.logged_in_at.replace(" ","T")+"Z").toLocaleString([],{dateStyle:"medium",timeStyle:"short"}) : "—"}</div>
               </div>
               <div style={{fontSize:12,color:"#b45309",marginBottom:12,padding:"8px 10px",background:"#fef9c3",borderRadius:8,border:"1px solid #fde68a"}}>
                 ⚠️ Forcing login will immediately log out the other device
@@ -2195,7 +2195,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
                       const friendly = (s.device_info||"").split(" | ")[0]||"Unknown";
                       const mins = Math.round(s.inactive_mins||0);
                       const timeAgo = mins<1?"just now":mins<60?`${mins}m ago`:`${Math.floor(mins/60)}h ago`;
-                      const loggedIn = s.logged_in_at ? new Date(s.logged_in_at+"Z").toLocaleString([],{dateStyle:"short",timeStyle:"short"}) : "—";
+                      const loggedIn = s.logged_in_at ? new Date(s.logged_in_at.replace(" ","T")+"Z").toLocaleString([],{dateStyle:"short",timeStyle:"short"}) : "—";
                       return <div style={{fontSize:10,color:T.textMuted,display:"flex",gap:8,flexWrap:"wrap"}}>
                         <span>📱 {friendly}</span>
                         {(s.location||s.country)&&<span>📍 {[s.location,s.country].filter(Boolean).join(", ")}</span>}
