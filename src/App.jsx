@@ -448,9 +448,11 @@ export default function App() {
       }
     };
 
-    // Get session timeout from storage (set on login)
-    const timeoutMins = parseInt(sessionStorage.getItem("crm_timeout")||"30");
-    const timeoutMs = timeoutMins * 60 * 1000;
+    // Get session timeout dynamically - re-read every check so admin changes apply immediately
+    const getTimeoutMs = () => {
+      const t = parseInt(sessionStorage.getItem("crm_timeout")||"30");
+      return t * 60 * 1000;
+    };
 
     // Track last user activity
     let lastActivity = Date.now();
@@ -463,8 +465,8 @@ export default function App() {
     checkSession();
     // Then every 10 seconds
     const interval = setInterval(()=>{
-      // Check idle timeout
-      if(Date.now() - lastActivity > timeoutMs && !idleWarningRef.current) {
+      // Check idle timeout - read fresh value each time
+      if(Date.now() - lastActivity > getTimeoutMs() && !idleWarningRef.current) {
         idleWarningRef.current = true;
         setIdleWarning(true);
         return;
@@ -476,7 +478,7 @@ export default function App() {
     const onVisible = () => {
       if(document.visibilityState === "visible") {
         // Check idle timeout on visibility
-        if(Date.now() - lastActivity > timeoutMs && !idleWarningRef.current) {
+        if(Date.now() - lastActivity > getTimeoutMs() && !idleWarningRef.current) {
           idleWarningRef.current = true;
           setIdleWarning(true);
           return;
@@ -538,6 +540,10 @@ export default function App() {
       const d=await r.json();
       setAppSettings(d);
       setSettingsDirty(false);
+      // Always keep session timeout in sync with latest clinic setting
+      if(d.session_timeout_mins) {
+        sessionStorage.setItem("crm_timeout", String(d.session_timeout_mins));
+      }
     } catch {}
   }, []);
 
@@ -788,6 +794,10 @@ export default function App() {
         await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
       }
       setSettingsSaved(true); setSettingsDirty(false); setTimeout(()=>setSettingsSaved(false),2500);
+      // Update session timeout in storage if it changed
+      if(appSettings.session_timeout_mins) {
+        sessionStorage.setItem("crm_timeout", String(appSettings.session_timeout_mins));
+      }
     } catch{alert("Failed");}
   }
 
