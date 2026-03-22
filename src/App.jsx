@@ -63,7 +63,15 @@ const TABS = [
 
 export default function App() {
   // ── AUTH ──
-  const [authToken, setAuthToken] = useState(()=>sessionStorage.getItem("crm_token")||"");
+  const [authToken, setAuthToken] = useState(()=>{
+    // Clear session if logout param present (handles Safari cache)
+    if(window.location.search.includes("logout=")) {
+      sessionStorage.clear();
+      window.history.replaceState({}, "", window.location.pathname);
+      return "";
+    }
+    return sessionStorage.getItem("crm_token")||"";
+  });
   const [currentUser, setCurrentUser] = useState(()=>{ try{ return JSON.parse(sessionStorage.getItem("crm_user")||"null"); }catch{return null;} });
   const [permissions, setPermissions] = useState(()=>{ try{ return JSON.parse(sessionStorage.getItem("crm_perms")||"null"); }catch{return null;} });
   const [loginForm, setLoginForm] = useState({username:"",password:""});
@@ -1690,7 +1698,13 @@ export default function App() {
           countdown={idleCountdown}
           setCountdown={setIdleCountdown}
           onContinue={()=>{setIdleWarning(false);setIdleCountdown(30);idleWarningRef.current=false;}}
-          onLogout={()=>{sessionStorage.clear();window.location.reload();}}
+          onLogout={()=>{
+  sessionStorage.removeItem("crm_token");
+  sessionStorage.removeItem("crm_user");
+  sessionStorage.removeItem("crm_perms");
+  sessionStorage.removeItem("crm_timeout");
+  window.location.href = window.location.href.split("?")[0] + "?logout=" + Date.now();
+}}
           T={T} WA_GREEN={WA_GREEN}
         />}
 
@@ -1727,7 +1741,6 @@ export default function App() {
 
 // ── IDLE WARNING MODAL ────────────────────────────────────────────────────────
 function IdleWarningModal({countdown, setCountdown, onContinue, onLogout, T, WA_GREEN}) {
-  const { useEffect } = React;
   useEffect(()=>{
     if(countdown <= 0){ onLogout(); return; }
     const t = setTimeout(()=>setCountdown(c=>c-1), 1000);
