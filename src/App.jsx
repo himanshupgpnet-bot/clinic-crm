@@ -160,6 +160,7 @@ export default function App() {
       sessionStorage.setItem("crm_token", d.token);
       sessionStorage.setItem("crm_user", JSON.stringify(d.user));
       sessionStorage.setItem("crm_perms", JSON.stringify(d.permissions));
+      sessionStorage.setItem("crm_timeout", String(d.session_timeout_mins||30));
       // Notify all other tabs to logout immediately
       try {
         const bc = new BroadcastChannel("crm_session");
@@ -436,18 +437,45 @@ export default function App() {
       }
     };
 
+    // Get session timeout from storage (set on login)
+    const timeoutMins = parseInt(sessionStorage.getItem("crm_timeout")||"30");
+    const timeoutMs = timeoutMins * 60 * 1000;
+
+    // Track last user activity
+    let lastActivity = Date.now();
+    const onActivity = () => { lastActivity = Date.now(); };
+    ["mousedown","keydown","touchstart","scroll"].forEach(e=>
+      document.addEventListener(e, onActivity, {passive:true})
+    );
+
     // Run immediately on mount
     checkSession();
     // Then every 10 seconds
-    const interval = setInterval(checkSession, 10000);
+    const interval = setInterval(()=>{
+      // Check idle timeout
+      if(Date.now() - lastActivity > timeoutMs) {
+        sessionStorage.clear();
+        alert(`⏰ You have been logged out due to ${timeoutMins} minutes of inactivity.`);
+        window.location.href = window.location.origin + window.location.pathname;
+        return;
+      }
+      checkSession();
+    }, 10000);
 
     // Check when tab/app becomes visible again (handles Safari background suspension)
     const onVisible = () => {
-      if(document.visibilityState === "visible") checkSession();
+      if(document.visibilityState === "visible") {
+        // Check idle timeout on visibility
+        if(Date.now() - lastActivity > timeoutMs) {
+          sessionStorage.clear();
+          alert(`⏰ You have been logged out due to ${timeoutMins} minutes of inactivity.`);
+          window.location.href = window.location.origin + window.location.pathname;
+          return;
+        }
+        checkSession();
+      }
     };
     document.addEventListener("visibilitychange", onVisible);
-
-    // Check when window gets focus (switching back to this window/tab)
     const onFocus = () => checkSession();
     window.addEventListener("focus", onFocus);
 
@@ -466,6 +494,9 @@ export default function App() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
+      ["mousedown","keydown","touchstart","scroll"].forEach(e=>
+        document.removeEventListener(e, onActivity)
+      );
       try { bc?.close(); } catch(e) {}
     };
   }, [authToken]);
@@ -1894,6 +1925,13 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
               <div>
                 <label style={labelStyle}>Max Login Seats</label>
                 <input type="number" min="1" value={editClinic?.max_seats||1} onChange={e=>setEditClinic(p=>({...p,max_seats:e.target.value}))} style={inputStyle}/>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div>
+                <label style={labelStyle}>Session Timeout (minutes)</label>
+                <input type="number" min="1" value={editClinic?.session_timeout_mins||30} onChange={e=>setEditClinic(p=>({...p,session_timeout_mins:e.target.value}))} style={inputStyle}/>
+                <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Auto-logout after this many mins of inactivity</div>
               </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
