@@ -95,6 +95,7 @@ export default function App() {
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [idleWarning, setIdleWarning] = useState(false);
   const [idleCountdown, setIdleCountdown] = useState(30);
+  const idleWarningRef = useRef(false);
   const [pendingTab, setPendingTab] = useState(null);
   const [hoveredSource, setHoveredSource] = useState(null);
   const [highlightedQA, setHighlightedQA] = useState(null);
@@ -455,7 +456,8 @@ export default function App() {
     // Then every 10 seconds
     const interval = setInterval(()=>{
       // Check idle timeout
-      if(Date.now() - lastActivity > timeoutMs) {
+      if(Date.now() - lastActivity > timeoutMs && !idleWarningRef.current) {
+        idleWarningRef.current = true;
         setIdleWarning(true);
         return;
       }
@@ -466,7 +468,8 @@ export default function App() {
     const onVisible = () => {
       if(document.visibilityState === "visible") {
         // Check idle timeout on visibility
-        if(Date.now() - lastActivity > timeoutMs) {
+        if(Date.now() - lastActivity > timeoutMs && !idleWarningRef.current) {
+          idleWarningRef.current = true;
           setIdleWarning(true);
           return;
         }
@@ -1686,8 +1689,8 @@ export default function App() {
         {idleWarning&&<IdleWarningModal
           countdown={idleCountdown}
           setCountdown={setIdleCountdown}
-          onContinue={()=>{setIdleWarning(false);setIdleCountdown(30);}}
-          onLogout={()=>{sessionStorage.clear();window.location.href=window.location.origin+window.location.pathname;}}
+          onContinue={()=>{setIdleWarning(false);setIdleCountdown(30);idleWarningRef.current=false;}}
+          onLogout={()=>{sessionStorage.clear();window.location.reload();}}
           T={T} WA_GREEN={WA_GREEN}
         />}
 
