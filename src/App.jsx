@@ -93,6 +93,8 @@ export default function App() {
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [settingsDirty, setSettingsDirty] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [idleWarning, setIdleWarning] = useState(false);
+  const [idleCountdown, setIdleCountdown] = useState(30);
   const [pendingTab, setPendingTab] = useState(null);
   const [hoveredSource, setHoveredSource] = useState(null);
   const [highlightedQA, setHighlightedQA] = useState(null);
@@ -454,9 +456,7 @@ export default function App() {
     const interval = setInterval(()=>{
       // Check idle timeout
       if(Date.now() - lastActivity > timeoutMs) {
-        sessionStorage.clear();
-        alert(`⏰ You have been logged out due to ${timeoutMins} minutes of inactivity.`);
-        window.location.href = window.location.origin + window.location.pathname;
+        setIdleWarning(true);
         return;
       }
       checkSession();
@@ -467,9 +467,7 @@ export default function App() {
       if(document.visibilityState === "visible") {
         // Check idle timeout on visibility
         if(Date.now() - lastActivity > timeoutMs) {
-          sessionStorage.clear();
-          alert(`⏰ You have been logged out due to ${timeoutMins} minutes of inactivity.`);
-          window.location.href = window.location.origin + window.location.pathname;
+          setIdleWarning(true);
           return;
         }
         checkSession();
@@ -1684,6 +1682,15 @@ export default function App() {
           </div>
         </div>}
 
+        {/* ══ IDLE WARNING MODAL ══ */}
+        {idleWarning&&<IdleWarningModal
+          countdown={idleCountdown}
+          setCountdown={setIdleCountdown}
+          onContinue={()=>{setIdleWarning(false);setIdleCountdown(30);}}
+          onLogout={()=>{sessionStorage.clear();window.location.href=window.location.origin+window.location.pathname;}}
+          T={T} WA_GREEN={WA_GREEN}
+        />}
+
         {/* ══ UNSAVED SETTINGS MODAL ══ */}
         {showUnsavedModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:380,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
@@ -1714,6 +1721,67 @@ export default function App() {
 }
 
 // ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
+
+// ── IDLE WARNING MODAL ────────────────────────────────────────────────────────
+function IdleWarningModal({countdown, setCountdown, onContinue, onLogout, T, WA_GREEN}) {
+  const { useEffect } = React;
+  useEffect(()=>{
+    if(countdown <= 0){ onLogout(); return; }
+    const t = setTimeout(()=>setCountdown(c=>c-1), 1000);
+    return ()=>clearTimeout(t);
+  },[countdown]);
+
+  const pct = (countdown/30)*100;
+  const color = countdown>10?"#22c55e":countdown>5?"#f59e0b":"#ef4444";
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:9999,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(4px)"}}>
+      <div style={{background:T.card,borderRadius:24,padding:32,width:"100%",maxWidth:360,
+        boxShadow:"0 24px 60px rgba(0,0,0,.4)",textAlign:"center"}}>
+
+        {/* Countdown circle */}
+        <div style={{position:"relative",width:100,height:100,margin:"0 auto 20px"}}>
+          <svg width="100" height="100" style={{transform:"rotate(-90deg)"}}>
+            <circle cx="50" cy="50" r="44" fill="none" stroke={T.border} strokeWidth="8"/>
+            <circle cx="50" cy="50" r="44" fill="none" stroke={color} strokeWidth="8"
+              strokeDasharray={`${2*Math.PI*44}`}
+              strokeDashoffset={`${2*Math.PI*44*(1-pct/100)}`}
+              style={{transition:"stroke-dashoffset 1s linear, stroke .3s"}}
+              strokeLinecap="round"/>
+          </svg>
+          <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",
+            justifyContent:"center",flexDirection:"column"}}>
+            <div style={{fontSize:28,fontWeight:800,color}}>{countdown}</div>
+            <div style={{fontSize:10,color:T.textMuted}}>secs</div>
+          </div>
+        </div>
+
+        <div style={{fontSize:22,marginBottom:8}}>⏰</div>
+        <div style={{fontWeight:800,fontSize:18,marginBottom:8,color:T.text}}>Still there?</div>
+        <div style={{fontSize:13,color:T.textMuted,marginBottom:24,lineHeight:1.6}}>
+          You've been inactive for a while.<br/>
+          You'll be logged out in <strong style={{color}}>{countdown} seconds</strong>.
+        </div>
+
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onLogout}
+            style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,
+              background:"transparent",color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+            Logout
+          </button>
+          <button onClick={onContinue}
+            style={{flex:2,padding:"12px",borderRadius:12,border:"none",
+              background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,
+              color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              boxShadow:"0 4px 14px rgba(37,211,102,.35)"}}>
+            ✅ I'm still here!
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── ADMIN SUB-COMPONENTS (defined outside to prevent focus loss) ─────────────
 function SectionCard({title, children, T}) {
