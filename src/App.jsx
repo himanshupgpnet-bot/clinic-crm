@@ -8,9 +8,9 @@ const WA_DARK  = "#128C7E";
 const WA_BG    = "#ECE5DD";
 
 const LEAD_CFG = {
-  hot:  { label:"🔥 Hot",  color:"#ef4444", bg:"#fef2f2", dark:"#2d1515", border:"#fca5a5" },
-  warm: { label:"🟡 Warm", color:"#f59e0b", bg:"#fffbeb", dark:"#2d2010", border:"#fcd34d" },
-  cold: { label:"🔵 Cold", color:"#3b82f6", bg:"#eff6ff", dark:"#0f1e35", border:"#93c5fd" },
+  hot:  { label:"🔥 High Intent",  color:"#ef4444", bg:"#fef2f2", dark:"#2d1515", border:"#fca5a5" },
+  warm: { label:"🟡 Interested", color:"#f59e0b", bg:"#fffbeb", dark:"#2d2010", border:"#fcd34d" },
+  cold: { label:"🔵 Browsing", color:"#3b82f6", bg:"#eff6ff", dark:"#0f1e35", border:"#93c5fd" },
 };
 const PIPELINE = [
   { id:"new",         label:"🆕 New",        color:"#6b7280", bg:"#f3f4f6", dark:"#1f2937" },
@@ -1101,7 +1101,7 @@ export default function App() {
                       <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>{c.botActive&&<span style={{color:WA_GREEN,marginRight:2}}>🤖</span>}{c.lastMessage||"No messages"}</span>
                       {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{c.unread}</span>}
                     </div>
-                    <LeadBadge lead={c.lead} score={c.leadScore} reason={c.leadReason} small/>
+                    {c.needsHuman&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:5,background:"#fef2f2",color:"#ef4444",fontWeight:700,border:"1px solid #fca5a5"}}>🚨 Needs Human</span>}
                   </div>
                 </div>
               ))}
