@@ -1762,7 +1762,13 @@ export default function App() {
               You have unsaved settings changes.<br/>Do you want to save before leaving?
             </div>
             <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>{setShowUnsavedModal(false);setSettingsDirty(false);setTab(pendingTab);setPendingTab(null);}}
+              <button onClick={()=>{
+                setShowUnsavedModal(false);
+                setSettingsDirty(false);
+                setTab(pendingTab);
+                setPendingTab(null);
+                fetchSettings(); // Reload original settings from DB
+              }}
                 style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
                 Discard
               </button>
