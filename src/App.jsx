@@ -1101,7 +1101,7 @@ export default function App() {
                       <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>{c.botActive&&<span style={{color:WA_GREEN,marginRight:2}}>🤖</span>}{c.lastMessage||"No messages"}</span>
                       {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{c.unread}</span>}
                     </div>
-                    {c.needsHuman&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:5,background:"#fef2f2",color:"#ef4444",fontWeight:700,border:"1px solid #fca5a5"}}>🚨 Needs Human</span>}
+                    {c.needsHuman&&<span title={c.humanReason||"Human intervention required"} style={{fontSize:9,padding:"2px 6px",borderRadius:5,background:"#fef2f2",color:"#ef4444",fontWeight:700,border:"1px solid #fca5a5",cursor:"help"}}>🚨 Needs Human</span>}
                   </div>
                 </div>
               ))}
@@ -1133,6 +1133,14 @@ export default function App() {
                   <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
                 </div>
               </div>
+              {selected.needsHuman&&!selected.botActive&&<div style={{background:"#fef2f2",borderBottom:"1px solid #fca5a5",padding:"8px 14px",fontSize:12,color:"#991b1b",display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:16}}>🚨</span>
+                <div>
+                  <strong>Human Intervention Required</strong>
+                  {selected.humanReason&&<span style={{marginLeft:6,fontWeight:400}}>{selected.humanReason}</span>}
+                  <span style={{marginLeft:8,fontSize:11,color:"#b91c1c"}}>Bot has been paused — please reply manually</span>
+                </div>
+              </div>}
               {selected.botActive&&<div style={{background:`${WA_GREEN}12`,borderBottom:`1px solid ${WA_GREEN}25`,padding:"4px 14px",fontSize:11,color:WA_DARK}}>🤖 Bot is handling this — toggle off to reply manually</div>}
               {(selected.lead==="hot"||selected.lead==="warm")&&<div style={{background:selected.lead==="hot"?"#fef2f2":"#fffbeb",borderBottom:`1px solid ${selected.lead==="hot"?"#fca5a5":"#fcd34d"}`,padding:"4px 14px",fontSize:11,color:selected.lead==="hot"?"#ef4444":"#f59e0b",display:"flex",alignItems:"center",gap:6}}>
                 {selected.lead==="hot"?"🔥":"🟡"} <strong>{selected.lead==="hot"?"Hot":"Warm"} Lead:</strong> {selected.leadReason||"Keyword match"}
