@@ -540,9 +540,19 @@ export default function App() {
       const d=await r.json();
       setAppSettings(d);
       setSettingsDirty(false);
-      // Always keep session timeout in sync with latest clinic setting
       if(d.session_timeout_mins) {
         sessionStorage.setItem("crm_timeout", String(d.session_timeout_mins));
+      }
+    } catch {}
+  }, []);
+
+  // Load clinic users for assignment dropdown
+  const fetchClinicUsers = useCallback(async () => {
+    try {
+      const r = await fetch(`${API}/api/users`, {headers:authHeaders()});
+      if(r.ok) {
+        const d = await r.json();
+        window._clinicUsers = d;
       }
     } catch {}
   }, []);
@@ -651,7 +661,7 @@ export default function App() {
   const pollRef = useRef(null);
 
   useEffect(() => {
-    fetchConversations(); fetchKnowledge(); fetchSettings();
+    fetchConversations(); fetchKnowledge(); fetchSettings(); fetchClinicUsers();
   }, []);
 
   useEffect(() => {
@@ -1210,8 +1220,8 @@ export default function App() {
             ))}
           </div>}
 
-          {/* Leads content */}
-          <div style={{flex:1,overflowY:"auto",padding:16}}>
+          {/* Leads content - New Lead-based Kanban */}
+          <div style={{flex:1,overflow:"auto",padding:16}}>
             {isAdmin&&leadsClinic&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,padding:"10px 14px",borderRadius:12,background:T.card,border:`1px solid ${T.border}`}}>
               <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 {leadsClinic.logo_url?<img src={leadsClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
@@ -1219,47 +1229,139 @@ export default function App() {
               <div style={{fontWeight:700,fontSize:14}}>{leadsClinic.company_name||leadsClinic.username}</div>
               <button onClick={()=>setLeadsClinic(null)} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>← All</button>
             </div>}
-            <div style={{flex:1}}>
-          <div style={{marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
-            <div><div style={{fontWeight:700,fontSize:17}}>🎯 Lead Pipeline</div><div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Drag cards between stages</div></div>
-            <div style={{display:"flex",gap:8}}>
-              <div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#ef4444",fontWeight:700}}>🔥 {hotCount} Hot</div>
-              <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#f59e0b",fontWeight:700}}>🟡 {warmCount} Warm</div>
+
+            {/* Header */}
+            <div style={{marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+              <div>
+                <div style={{fontWeight:800,fontSize:17}}>🎯 Lead Board</div>
+                <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>AI-classified leads · Assign to team · Track performance</div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#ef4444",fontWeight:700}}>🔥 {hotCount} Hot</div>
+                <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#f59e0b",fontWeight:700}}>🟡 {warmCount} Warm</div>
+              </div>
             </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12}}>
-            {PIPELINE.map(stage=>{
-              const sc=contacts.filter(c=>(c.pipelineStage||"new")===stage.id);
-              return <div key={stage.id} className={`kc ${dragOver===stage.id?"over":""}`}
-                style={{background:dark?stage.dark+"40":stage.bg,border:`2px dashed ${stage.color}40`,padding:12}}
-                onDragOver={e=>{e.preventDefault();setDragOver(stage.id);}} onDragLeave={()=>setDragOver(null)} onDrop={e=>onDrop(e,stage.id)}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                  <div style={{fontWeight:700,fontSize:13,color:stage.color}}>{stage.label}</div>
-                  <div style={{background:stage.color,color:"#fff",borderRadius:12,padding:"1px 8px",fontSize:11,fontWeight:700}}>{sc.length}</div>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {sc.map(c=>(
-                    <div key={c.id} className="kcard" draggable onDragStart={e=>onDragStart(e,c.id)} onClick={()=>{setTab("crm");selectContact(c);}}
-                      style={{background:T.card,borderRadius:10,padding:12,border:`1px solid ${T.border}`,borderLeft:`3px solid ${LEAD_CFG[c.lead]?.color||"#6b7280"}`}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                        <div style={{width:30,height:30,borderRadius:"50%",background:getColor(c.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff"}}>{c.avatar||"?"}</div>
-                        <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div><div style={{fontSize:10,color:T.textFaint}}>{c.phone}</div></div>
+
+            {/* 4 Lead Columns */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(240px,1fr))",gap:14,minWidth:960}}>
+              {[
+                {id:"hot",  label:"🔥 Hot Leads",  sub:"Ready to close",    color:"#ef4444", bg:"#fef2f2", dark:"#2d1515", border:"#fca5a5"},
+                {id:"warm", label:"🟡 Warm Leads", sub:"Needs nurturing",   color:"#f59e0b", bg:"#fffbeb", dark:"#2d2010", border:"#fcd34d"},
+                {id:"cold", label:"🔵 Browsing",   sub:"Low priority",      color:"#3b82f6", bg:"#eff6ff", dark:"#0f1e35", border:"#93c5fd"},
+                {id:"done", label:"✅ Done",        sub:"Auto-archives 24h", color:"#22c55e", bg:"#f0fdf4", dark:"#0f2d1a", border:"#86efac"},
+              ].map(col=>{
+                const colContacts = contacts.filter(c=>{
+                  if(col.id==="done") return (c.pipelineStage||"new")==="done";
+                  return c.lead===col.id && (c.pipelineStage||"new")!=="done";
+                });
+                return (
+                  <div key={col.id} style={{background:dark?col.dark+"60":col.bg,borderRadius:14,border:`1.5px solid ${col.border}`,overflow:"hidden"}}>
+                    {/* Column header */}
+                    <div style={{padding:"12px 14px",borderBottom:`1px solid ${col.border}`,background:dark?col.dark+"80":col.bg}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                        <div style={{fontWeight:800,fontSize:13,color:col.color}}>{col.label}</div>
+                        <div style={{background:col.color,color:"#fff",borderRadius:10,padding:"1px 8px",fontSize:11,fontWeight:700,minWidth:22,textAlign:"center"}}>{colContacts.length}</div>
                       </div>
-                      <LeadBadge lead={c.lead} score={c.leadScore} reason={c.leadReason} small/>
-                      {c.lastMessage&&<div style={{fontSize:10,color:T.textFaint,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:6,fontStyle:"italic"}}>"{c.lastMessage}"</div>}
-                      <div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
-                        {(c.lead==="hot"||c.lead==="warm")&&stage.id!=="done"&&<button onClick={e=>{e.stopPropagation();sendFollowup(c.id,1);}} disabled={sendingFollowup===c.id} style={{padding:"3px 8px",borderRadius:10,border:"none",background:c.lead==="hot"?"#ef444420":"#f59e0b20",color:c.lead==="hot"?"#ef4444":"#f59e0b",fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>{sendingFollowup===c.id?"⏳":"📤 Follow-up"}</button>}
-                        <button onClick={e=>{e.stopPropagation();setArchiveConfirm(c.id);}} style={{padding:"3px 8px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:"#f59e0b",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📦</button>
-                      </div>
+                      <div style={{fontSize:10,color:col.color,opacity:.7,marginTop:2}}>{col.sub}</div>
                     </div>
-                  ))}
-                  {sc.length===0&&<div style={{textAlign:"center",padding:"20px 0",color:T.textFaint,fontSize:11}}>Drop cards here</div>}
-                </div>
-              </div>;
-            })}
-          </div>
-                </div>
+
+                    {/* Cards */}
+                    <div style={{padding:"10px",display:"flex",flexDirection:"column",gap:8,maxHeight:"calc(100vh - 280px)",overflowY:"auto"}}>
+                      {colContacts.length===0&&<div style={{textAlign:"center",padding:"24px 0",color:col.color,opacity:.4,fontSize:12}}>No leads here</div>}
+                      {colContacts.map(c=>{
+                        const assignedUser = contacts._users?.find(u=>u.id===c.assignedTo);
+                        const silentMins = c.lastTime ? Math.round((Date.now()-new Date(c.lastTime).getTime())/60000) : null;
+                        const silentText = silentMins ? silentMins<60?`${silentMins}m ago`:silentMins<1440?`${Math.floor(silentMins/60)}h ago`:`${Math.floor(silentMins/1440)}d ago` : "";
+                        return (
+                          <div key={c.id} onClick={()=>{setTab("crm");selectContact(c);}}
+                            style={{background:T.card,borderRadius:10,padding:12,border:`1px solid ${T.border}`,
+                              borderLeft:`3px solid ${col.color}`,cursor:"pointer",
+                              boxShadow:"0 1px 4px rgba(0,0,0,.06)",transition:"box-shadow .15s"}}
+                            onMouseEnter={e=>e.currentTarget.style.boxShadow="0 3px 12px rgba(0,0,0,.12)"}
+                            onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,.06)"}>
+
+                            {/* Name + avatar */}
+                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                              <div style={{width:32,height:32,borderRadius:"50%",background:getColor(c.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{c.avatar||"?"}</div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontWeight:700,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||"Unknown"}</div>
+                                <div style={{fontSize:10,color:T.textFaint}}>{c.phone} {silentText&&<span>· {silentText}</span>}</div>
+                              </div>
+                              {c.needsHuman&&<span style={{fontSize:14}} title="Needs Human">🚨</span>}
+                            </div>
+
+                            {/* Lead score */}
+                            {col.id!=="done"&&c.leadScore>0&&<div style={{marginBottom:8}}>
+                              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                                <span style={{fontSize:10,color:T.textMuted}}>Intent score</span>
+                                <span style={{fontSize:10,fontWeight:700,color:col.color}}>{c.leadScore}/100</span>
+                              </div>
+                              <div style={{height:4,borderRadius:2,background:T.border}}>
+                                <div style={{height:4,borderRadius:2,width:`${c.leadScore}%`,background:col.color,transition:"width .3s"}}/>
+                              </div>
+                            </div>}
+
+                            {/* Last message */}
+                            {c.lastMessage&&<div style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:8,fontStyle:"italic"}}>"{c.lastMessage}"</div>}
+
+                            {/* Next action — only for hot/warm */}
+                            {(col.id==="hot"||col.id==="warm")&&<div style={{marginBottom:8}}>
+                              <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,fontWeight:700,
+                                background:col.id==="hot"?"#fef9c3":col.id==="warm"?"#eff6ff":"#f1f5f9",
+                                color:col.id==="hot"?"#854d0e":col.id==="warm"?"#1d4ed8":"#475569",
+                                border:`1px solid ${col.id==="hot"?"#fde047":col.id==="warm"?"#bfdbfe":"#cbd5e1"}`}}>
+                                {col.id==="hot"?"⚡ Call them now":"📋 Send more info"}
+                              </span>
+                            </div>}
+
+                            {/* Assign to staff */}
+                            {col.id!=="done"&&col.id!=="cold"&&<div onClick={e=>e.stopPropagation()} style={{marginBottom:6}}>
+                              <select
+                                value={c.assignedTo||""}
+                                onChange={async e=>{
+                                  const uid = e.target.value;
+                                  await fetch(`${API}/api/conversations/${c.id}/assign`,{
+                                    method:"PATCH",headers:authHeaders(),
+                                    body:JSON.stringify({assigned_to:uid||null})
+                                  });
+                                  fetchConversations();
+                                }}
+                                style={{width:"100%",fontSize:10,padding:"4px 8px",borderRadius:8,
+                                  border:`1px solid ${T.border}`,background:T.card2,color:T.text,
+                                  fontFamily:"inherit",cursor:"pointer"}}>
+                                <option value="">👤 Unassigned</option>
+                                {(window._clinicUsers||[]).map(u=>(
+                                  <option key={u.id} value={u.id}>@{u.username}</option>
+                                ))}
+                              </select>
+                            </div>}
+
+                            {/* Action buttons */}
+                            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                              {(col.id==="hot"||col.id==="warm")&&<button
+                                onClick={e=>{e.stopPropagation();sendFollowup(c.id,1);}}
+                                disabled={sendingFollowup===c.id}
+                                style={{flex:1,padding:"4px",borderRadius:8,border:"none",
+                                  background:col.id==="hot"?"#ef444420":"#f59e0b20",
+                                  color:col.id==="hot"?"#ef4444":"#f59e0b",
+                                  fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+                                {sendingFollowup===c.id?"⏳":"📤 Follow-up"}
+                              </button>}
+                              <button onClick={e=>{e.stopPropagation();setPipelineStage(c.id,"done");}}
+                                style={{padding:"4px 8px",borderRadius:8,border:`1px solid ${T.border}`,
+                                  background:T.card2,color:"#22c55e",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>
+                                ✅ Done
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          </div>
         </div>}
 
         {/* ══ ANALYTICS TAB ══ */}
