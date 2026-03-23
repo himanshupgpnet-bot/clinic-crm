@@ -1006,7 +1006,14 @@ export default function App() {
           {/* User info + logout */}
           <div style={{display:"flex",alignItems:"center",gap:6,padding:"3px 10px",borderRadius:18,background:T.card2,border:`1px solid ${T.border}`}}>
             <span style={{fontSize:11,color:T.textMuted}}>{isAdmin?"👑":"👤"} {currentUser?.username}</span>
-            <button onClick={doLogout} style={{padding:"2px 8px",borderRadius:10,border:"none",background:"#ef444420",color:"#ef4444",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Logout</button>
+            <button onClick={()=>setConfirmModal({
+              title:"Log Out?",
+              message:"Are you sure you want to log out of Nexora CRM?",
+              icon:"🔐",
+              danger:false,
+              confirmText:"Yes, Log Out",
+              onConfirm:()=>doLogout()
+            })} style={{padding:"2px 8px",borderRadius:10,border:"none",background:"#ef444420",color:"#ef4444",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Logout</button>
           </div>
           {/* Notification Bell */}
           <div style={{position:"relative"}}>
@@ -1070,9 +1077,9 @@ export default function App() {
               {isAdmin&&adminOverview.length>0&&<div style={{marginBottom:8}}>
                 <select value={inboxClinic||""} onChange={e=>{setInboxClinic(e.target.value||null);}}
                   style={{width:"100%",padding:"6px 10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
-                  <option value="">🌐 All Clients</option>
-                  {adminOverview.map(c=>(
-                    <option key={c.id} value={c.clinic_id}>{c.company_name||c.username}</option>
+                  {/* Deduplicate by clinic_id — show only clinic names */}
+                  {[...new Map(adminOverview.filter(c=>c.company_name).map(c=>[c.clinic_id,c])).values()].map(c=>(
+                    <option key={c.clinic_id} value={c.clinic_id}>{c.company_name}</option>
                   ))}
                 </select>
               </div>}
@@ -1879,7 +1886,7 @@ export default function App() {
         </div>}
 
         {/* ══ ADMIN TAB ══ */}
-        {tab==="admin"&&isAdmin&&<AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark}/>}
+        {tab==="admin"&&isAdmin&&<AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal}/>}
 
       </div>
     </div>
@@ -2029,7 +2036,7 @@ function PermGrid({data, setData, PERM_TABS, WA_GREEN, T}) {
 }
 
 // ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
-function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
+function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const [view, setView] = useState("clients");
   const [clinics, setClinics] = useState([]);
   const [users, setUsers] = useState([]);
