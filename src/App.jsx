@@ -104,6 +104,7 @@ export default function App() {
   const [idleWarning, setIdleWarning] = useState(false);
   const [idleCountdown, setIdleCountdown] = useState(30);
   const idleWarningRef = useRef(false);
+  const [confirmModal, setConfirmModal] = useState(null); // {title, message, icon, danger, onConfirm}
   const [pendingTab, setPendingTab] = useState(null);
   const [hoveredSource, setHoveredSource] = useState(null);
   const [highlightedQA, setHighlightedQA] = useState(null);
@@ -1832,6 +1833,9 @@ export default function App() {
           </div>
         </div>}
 
+        {/* ══ CONFIRM MODAL ══ */}
+        <ConfirmModal modal={confirmModal} onClose={()=>setConfirmModal(null)} T={T} WA_GREEN={WA_GREEN}/>
+
         {/* ══ IDLE WARNING MODAL ══ */}
         {idleWarning&&<IdleWarningModal
           countdown={idleCountdown}
@@ -1937,6 +1941,58 @@ function IdleWarningModal({countdown, setCountdown, onContinue, onLogout, T, WA_
               color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
               boxShadow:"0 4px 14px rgba(37,211,102,.35)"}}>
             ✅ I'm still here!
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CONFIRM MODAL ─────────────────────────────────────────────────────────────
+function ConfirmModal({modal, onClose, T, WA_GREEN}) {
+  if(!modal) return null;
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:9998,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(4px)"}}>
+      <div style={{background:T.card,borderRadius:24,padding:32,width:"100%",maxWidth:380,
+        boxShadow:"0 24px 60px rgba(0,0,0,.4)",textAlign:"center",animation:"fadeInUp .2s ease"}}>
+
+        {/* Icon */}
+        <div style={{width:64,height:64,borderRadius:"50%",margin:"0 auto 16px",
+          background:modal.danger?"#fef2f2":"#eff6ff",
+          border:`2px solid ${modal.danger?"#fca5a5":"#bfdbfe"}`,
+          display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>
+          {modal.icon||"⚠️"}
+        </div>
+
+        {/* Title */}
+        <div style={{fontWeight:800,fontSize:18,marginBottom:8,color:T.text}}>{modal.title}</div>
+
+        {/* Message */}
+        <div style={{fontSize:13,color:T.textMuted,marginBottom:24,lineHeight:1.7,whiteSpace:"pre-line"}}>
+          {modal.message}
+        </div>
+
+        {/* Warning badge for danger */}
+        {modal.danger&&<div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:10,
+          padding:"8px 14px",marginBottom:20,fontSize:12,color:"#dc2626",fontWeight:600}}>
+          ⚠️ This action cannot be undone
+        </div>}
+
+        {/* Buttons */}
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onClose}
+            style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${T.border}`,
+              background:T.card2,color:T.textMuted,fontSize:14,cursor:"pointer",
+              fontFamily:"inherit",fontWeight:600}}>
+            Cancel
+          </button>
+          <button onClick={()=>{modal.onConfirm();onClose();}}
+            style={{flex:2,padding:"12px",borderRadius:12,border:"none",
+              background:modal.danger?"linear-gradient(135deg,#ef4444,#dc2626)":WA_GREEN,
+              color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              boxShadow:modal.danger?"0 4px 14px rgba(239,68,68,.35)":"0 4px 14px rgba(37,211,102,.35)"}}>
+            {modal.confirmText||"Confirm"}
           </button>
         </div>
       </div>
@@ -2393,17 +2449,20 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
                   ✏️ Edit
                 </button>
                 <button onClick={async()=>{
-                  if(!confirm(`⚠️ Reset ALL data for ${clinic.name}?
+                  setConfirmModal({
+                    title: `Reset ${clinic.name}?`,
+                    message: `This will permanently delete all contacts, chats, leads and analytics for this client.
 
-This will permanently delete:
-• All contacts & chats
-• All leads & analytics
-• All follow-up history
-
-This cannot be undone!`)) return;
-                  const r = await fetch(`${API}/api/admin/clinics/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
-                  if(r.ok){const d=await r.json(); alert(`✅ Reset complete — ${d.deleted_contacts} contacts deleted`); load();}
-                  else alert("❌ Reset failed");
+This cannot be undone.`,
+                    icon: "🗑️",
+                    danger: true,
+                    confirmText: "Yes, Reset Everything",
+                    onConfirm: async () => {
+                      const r = await fetch(`${API}/api/admin/clinics/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
+                      if(r.ok){const d=await r.json(); flash(`✅ Reset complete — ${d.deleted_contacts} contacts deleted`); load();}
+                      else flash("❌ Reset failed");
+                    }
+                  });
                 }}
                   style={{padding:"6px 12px",borderRadius:8,border:"1px solid #ef444430",background:"#ef444408",color:"#ef4444",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                   🗑️ Reset
