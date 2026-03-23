@@ -1721,15 +1721,7 @@ export default function App() {
                     <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Use {"{name}"} for customer name</div>
                   </div>
 
-                  {/* Max follow-ups */}
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{fontSize:12,color:T.text,fontWeight:600}}>Max follow-ups per customer</div>
-                    <select value={appSettings.followup_max||"2"} onChange={e=>setAppSettings(p=>({...p,followup_max:e.target.value}))}
-                      style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
-                      <option value="1">1 follow-up</option>
-                      <option value="2">2 follow-ups</option>
-                    </select>
-                  </div>
+
 
                 </div>
               </div>
