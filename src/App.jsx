@@ -1041,7 +1041,7 @@ export default function App() {
         <div onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,background:T.overlay,zIndex:90}}/>
         <div style={{position:"fixed",top:56,left:0,bottom:0,width:260,background:T.sidebar,borderRight:`1px solid ${T.border}`,zIndex:91,display:"flex",flexDirection:"column",padding:12,gap:4,boxShadow:"4px 0 20px rgba(0,0,0,.15)"}}>
           <div style={{fontSize:11,color:T.textFaint,fontWeight:700,padding:"4px 8px",marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Navigation</div>
-          {TABS.map(t=>(
+          {TABS.filter(t=>canSee(t.id)).map(t=>(
             <button key={t.id} onClick={()=>{safeSetTab(t.id);setMenuOpen(false);}}
               style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",
                 background:tab===t.id?`${WA_GREEN}15`:T.sidebar,
