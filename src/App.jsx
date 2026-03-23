@@ -1117,6 +1117,15 @@ export default function App() {
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <span style={{fontWeight:700,fontSize:14}}>{selected.name}</span>
                       <LeadBadge lead={selected.lead} score={selected.leadScore} reason={selected.leadReason}/>
+                      {/* Next Action Suggestion */}
+                      {selected.needsHuman
+                        ? <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:"#fef2f2",color:"#dc2626",fontWeight:700,border:"1px solid #fca5a5"}}>🚨 Doctor needs to respond</span>
+                        : selected.lead==="hot"
+                        ? <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:"#fef9c3",color:"#854d0e",fontWeight:700,border:"1px solid #fde047"}}>⚡ Call them now</span>
+                        : selected.lead==="warm"
+                        ? <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:"#eff6ff",color:"#1d4ed8",fontWeight:700,border:"1px solid #bfdbfe"}}>📋 Send more info</span>
+                        : <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:"#f1f5f9",color:"#475569",fontWeight:700,border:"1px solid #cbd5e1"}}>📧 Add to newsletter</span>
+                      }
                     </div>
                     <div style={{fontSize:11,color:T.textMuted}}>{selected.phone}</div>
                   </div>
