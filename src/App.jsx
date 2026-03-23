@@ -1660,8 +1660,16 @@ export default function App() {
                 <div style={{opacity:appSettings.followup_enabled==="true"?1:.5,pointerEvents:appSettings.followup_enabled==="true"?"auto":"none"}}>
 
                   {/* Follow-up 1 */}
-                  <div style={{background:T.card2,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${T.border}`}}>
-                    <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:WA_GREEN}}>📨 Follow-up 1</div>
+                  <div style={{background:T.card2,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${appSettings.followup_1_enabled!=="false"?WA_GREEN:T.border}`}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                      <div style={{fontWeight:700,fontSize:13,color:appSettings.followup_1_enabled!=="false"?WA_GREEN:T.textMuted}}>
+                        📨 Follow-up 1 {appSettings.followup_1_enabled!=="false"?"✅ Enabled":"⏸️ Disabled"}
+                      </div>
+                      <div onClick={()=>{setAppSettings(p=>({...p,followup_1_enabled:p.followup_1_enabled==="false"?"true":"false"}));setSettingsDirty(true);}}
+                        style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:appSettings.followup_1_enabled!=="false"?WA_GREEN:"#94a3b8",position:"relative",transition:"background .2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:2,left:appSettings.followup_1_enabled!=="false"?22:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+                      </div>
+                    </div>
                     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
                       <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
                       <input type="number" value={appSettings.followup_1_delay||"2"} onChange={e=>{setAppSettings(p=>({...p,followup_1_delay:e.target.value}));setSettingsDirty(true);}}
@@ -1683,8 +1691,16 @@ export default function App() {
                   </div>
 
                   {/* Follow-up 2 */}
-                  <div style={{background:T.card2,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${T.border}`}}>
-                    <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:"#f59e0b"}}>📨 Follow-up 2</div>
+                  <div style={{background:T.card2,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${appSettings.followup_2_enabled==="true"?"#f59e0b":T.border}`}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                      <div style={{fontWeight:700,fontSize:13,color:appSettings.followup_2_enabled==="true"?"#f59e0b":T.textMuted}}>
+                        📨 Follow-up 2 {appSettings.followup_2_enabled==="true"?"✅ Enabled":"⏸️ Disabled"}
+                      </div>
+                      <div onClick={()=>{setAppSettings(p=>({...p,followup_2_enabled:p.followup_2_enabled==="true"?"false":"true"}));setSettingsDirty(true);}}
+                        style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:appSettings.followup_2_enabled==="true"?"#f59e0b":"#94a3b8",position:"relative",transition:"background .2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:2,left:appSettings.followup_2_enabled==="true"?22:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+                      </div>
+                    </div>
                     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
                       <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
                       <input type="number" value={appSettings.followup_2_delay||"24"} onChange={e=>{setAppSettings(p=>({...p,followup_2_delay:e.target.value}));setSettingsDirty(true);}}
