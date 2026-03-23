@@ -2392,6 +2392,22 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark}) {
                   style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                   ✏️ Edit
                 </button>
+                <button onClick={async()=>{
+                  if(!confirm(`⚠️ Reset ALL data for ${clinic.name}?
+
+This will permanently delete:
+• All contacts & chats
+• All leads & analytics
+• All follow-up history
+
+This cannot be undone!`)) return;
+                  const r = await fetch(`${API}/api/admin/clinics/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
+                  if(r.ok){const d=await r.json(); alert(`✅ Reset complete — ${d.deleted_contacts} contacts deleted`); load();}
+                  else alert("❌ Reset failed");
+                }}
+                  style={{padding:"6px 12px",borderRadius:8,border:"1px solid #ef444430",background:"#ef444408",color:"#ef4444",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  🗑️ Reset
+                </button>
               </div>
             </div>
 
