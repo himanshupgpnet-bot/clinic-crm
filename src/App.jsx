@@ -1573,7 +1573,7 @@ export default function App() {
                   </div>}
 
                   {/* Follow-up Stats */}
-                  {analytics.totals?.followups>0&&<div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
+                  {analytics.totals?.followups>0&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
                     <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📤 Follow-up Performance</div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                       <div style={{textAlign:"center",padding:"12px",background:T.card2,borderRadius:10}}>
@@ -1582,8 +1582,51 @@ export default function App() {
                       </div>
                       <div style={{textAlign:"center",padding:"12px",background:T.card2,borderRadius:10}}>
                         <div style={{fontSize:24,fontWeight:800,color:"#f59e0b"}}>{analytics.totals?.botMessages||0}</div>
-                        <div style={{fontSize:11,color:T.textMuted}}>AI Generated</div>
+                        <div style={{fontSize:11,color:T.textMuted}}>Bot Messages</div>
                       </div>
+                    </div>
+                  </div>}
+
+                  {/* Staff Performance */}
+                  {analytics.staffStats&&analytics.staffStats.length>0&&<div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:14}}>👥 Staff Performance</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      {analytics.staffStats.map(s=>{
+                        const total = s.assigned_count||0;
+                        const done = s.done_count||0;
+                        const rate = total>0?Math.round(done/total*100):0;
+                        return (
+                          <div key={s.id} style={{padding:"12px 14px",background:T.card2,borderRadius:10,border:`1px solid ${T.border}`}}>
+                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <div style={{width:32,height:32,borderRadius:"50%",background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>
+                                  {s.username?.charAt(0)?.toUpperCase()||"?"}
+                                </div>
+                                <div>
+                                  <div style={{fontWeight:700,fontSize:13}}>@{s.username}</div>
+                                  <div style={{fontSize:10,color:T.textMuted}}>{total} assigned · {done} closed</div>
+                                </div>
+                              </div>
+                              <div style={{textAlign:"right"}}>
+                                <div style={{fontSize:18,fontWeight:800,color:rate>=50?WA_GREEN:"#f59e0b"}}>{rate}%</div>
+                                <div style={{fontSize:10,color:T.textMuted}}>close rate</div>
+                              </div>
+                            </div>
+                            {/* Progress bar */}
+                            <div style={{height:6,borderRadius:3,background:T.border}}>
+                              <div style={{height:6,borderRadius:3,width:`${rate}%`,
+                                background:rate>=70?WA_GREEN:rate>=40?"#f59e0b":"#ef4444",
+                                transition:"width .3s"}}/>
+                            </div>
+                            {/* Mini stats */}
+                            <div style={{display:"flex",gap:12,marginTop:8,fontSize:10,color:T.textMuted}}>
+                              <span>🔥 {s.hot_count||0} hot</span>
+                              <span>🟡 {s.warm_count||0} warm</span>
+                              <span>✅ {s.done_count||0} done</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>}
                 </>}
