@@ -580,6 +580,7 @@ export default function App() {
     setAnalyticsLoading(true);
     try {
       const cParam = clinicId ? `&clinic_id=${clinicId}` : "";
+      console.log("📊 fetchAnalytics clinic_id=", clinicId, "url=", `/api/analytics?from=${from}&to=${to}${cParam}`);
       const r = await fetch(`${API}/api/analytics?from=${from}&to=${to}${cParam}`, {headers:authHeaders()});
       if(r.ok) setAnalytics(await r.json());
     } catch {}
@@ -1395,7 +1396,7 @@ export default function App() {
             {overviewLoading&&<div style={{padding:16,textAlign:"center",fontSize:12,color:T.textMuted}}>Loading...</div>}
             {adminOverview.map(c=>(
               <div key={c.id} onClick={()=>{setSelectedClinic(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}
-                style={{padding:"10px 14px",cursor:"pointer",background:selectedClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:selectedClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+                style={{padding:"10px 14px",cursor:"pointer",background:selectedClinic?.clinic_id===c.clinic_id?`${WA_GREEN}15`:"transparent",borderLeft:selectedClinic?.clinic_id===c.clinic_id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
                 </div>
