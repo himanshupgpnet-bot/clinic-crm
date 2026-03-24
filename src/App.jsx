@@ -114,6 +114,11 @@ export default function App() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [adminOverview, setAdminOverview] = useState([]);
   const [selectedClinic, setSelectedClinic] = useState(null);
+  const selectedClinicRef = useRef(null);
+  const setSelectedClinicWithRef = (c) => {
+    selectedClinicRef.current = c;
+    setSelectedClinic(c);
+  };
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [leadsClinic, setLeadsClinic] = useState(null);
   const [settingsClinic, setSettingsClinic] = useState(null);
@@ -679,7 +684,7 @@ export default function App() {
 
   useEffect(() => {
     if(tab==="analytics") {
-      fetchAnalytics(dateFrom, dateTo, selectedClinic?.clinic_id||null);
+      fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
     }
     if((tab==="crm"||tab==="leads"||tab==="settings"||tab==="kb") && isAdmin && adminOverview.length===0) {
@@ -697,7 +702,8 @@ export default function App() {
       fetchSettings();
       // Refresh current tab data
       if(tab==="analytics") {
-        fetchAnalytics(dateFrom, dateTo, selectedClinic?.clinic_id||null);
+        // Use ref to get current selectedClinic value
+        fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
         if(isAdmin) fetchAdminOverview();
       }
       if(isAdmin) fetchAdminOverview();
@@ -1385,7 +1391,7 @@ export default function App() {
           {/* Admin sidebar — client list */}
           {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Clients</div>
-            <div onClick={()=>{setSelectedClinic(null);fetchAnalytics(dateFrom,dateTo,null);fetchAdminOverview();}}
+            <div onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);fetchAdminOverview();}}
               style={{padding:"10px 14px",cursor:"pointer",background:!selectedClinic?`${WA_GREEN}15`:"transparent",borderLeft:!selectedClinic?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:28,height:28,borderRadius:8,background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🌐</div>
               <div>
@@ -1395,7 +1401,7 @@ export default function App() {
             </div>
             {overviewLoading&&<div style={{padding:16,textAlign:"center",fontSize:12,color:T.textMuted}}>Loading...</div>}
             {adminOverview.map(c=>(
-              <div key={c.id} onClick={()=>{setSelectedClinic(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}
+              <div key={c.id} onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}
                 style={{padding:"10px 14px",cursor:"pointer",background:selectedClinic?.clinic_id===c.clinic_id?`${WA_GREEN}15`:"transparent",borderLeft:selectedClinic?.clinic_id===c.clinic_id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
@@ -1421,7 +1427,7 @@ export default function App() {
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12,marginBottom:20}}>
                   {adminOverview.map(c=>(
                     <div key={c.id} className="cc" style={{padding:16,cursor:"pointer"}}
-                      onClick={()=>{setSelectedClinic(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}>
+                      onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                         <div style={{width:36,height:36,borderRadius:10,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                           {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:18}}>🏢</span>}
@@ -1464,7 +1470,7 @@ export default function App() {
                   <div style={{fontWeight:800,fontSize:15}}>{selectedClinic.company_name||selectedClinic.username}</div>
                   <div style={{fontSize:11,color:T.textMuted}}>{selectedClinic.industry||""}</div>
                 </div>
-                <button onClick={()=>{setSelectedClinic(null);fetchAnalytics(dateFrom,dateTo,null);}} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← All Clients</button>
+                <button onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);}} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← All Clients</button>
               </div>}
 
               {/* Show detailed analytics when client selected or for client user */}
