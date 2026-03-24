@@ -1818,59 +1818,270 @@ export default function App() {
               </div>
             </div>}
 
-            {(!isAdmin||kbClinic)&&<div style={{maxWidth:800}}>
-              {/* System Prompt */}
-              <div className="cc" style={{marginBottom:16}}>
-                <div style={{fontWeight:700,fontSize:14,marginBottom:10}}>⚙️ System Prompt (Bot personality)</div>
-                <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={6}
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical"}}/>
-                <button onClick={async()=>{await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({prompt:systemPrompt})});alert("Saved! ✅");}}
-                  style={{marginTop:10,padding:"8px 20px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save Prompt</button>
-              </div>
+            {(!isAdmin||kbClinic)&&<div style={{maxWidth:860}}>
 
-              {/* Add new Q&A */}
-              <div className="cc" style={{marginBottom:16}}>
-                <div style={{fontWeight:700,fontSize:14,marginBottom:10}}>➕ Add New Q&A</div>
-                <input value={newQ} onChange={e=>setNewQ(e.target.value)} placeholder="Question..."
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,marginBottom:8}}/>
-                <textarea value={newA} onChange={e=>setNewA(e.target.value)} placeholder="Answer..." rows={3}
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8}}/>
-                <button onClick={async()=>{
-                  try{await fetch(`${API}/api/knowledge/qa`,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});setNewQ("");setNewA("");fetchKnowledge();}catch{}
-                }} style={{padding:"8px 20px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Add Q&A</button>
-              </div>
-
-              {/* Q&A list */}
-              <div style={{fontSize:12,color:T.textMuted,marginBottom:8}}>{qaData.length} Q&A pairs</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {qaData.map((qa,i)=>(
-                  <div key={qa.id} className="cc" ref={el=>qaRefs.current[qa.id]=el}
-                    style={{padding:14,borderLeft:highlightedQA===qa.id?`3px solid ${WA_GREEN}`:"3px solid transparent"}}>
-                    {editingId===qa.id
-                      ?<div>
-                        <input value={editQ} onChange={e=>setEditQ(e.target.value)}
-                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,marginBottom:8}}/>
-                        <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={3}
-                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8}}/>
-                        <div style={{display:"flex",gap:7}}>
-                          <button onClick={()=>saveEdit(qa.id)} style={{padding:"6px 14px",borderRadius:14,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
-                          <button onClick={()=>setEditingId(null)} style={{padding:"6px 14px",borderRadius:14,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-                        </div>
-                      </div>
-                      :<div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                        <div style={{width:24,height:24,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{i+1}</div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:600,fontSize:13,marginBottom:3}}>{qa.question}</div>
-                          <div style={{fontSize:12,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
-                        </div>
-                        <div style={{display:"flex",gap:4,flexShrink:0}}>
-                          <button onClick={()=>{setEditingId(qa.id);setEditQ(qa.question);setEditA(qa.answer);}} style={{padding:"4px 10px",borderRadius:12,border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
-                          <button onClick={()=>deleteQA(qa.id)} style={{padding:"4px 10px",borderRadius:12,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
-                        </div>
-                      </div>}
+              {/* KB Health Score Banner */}
+              <div style={{background:`linear-gradient(135deg,#0f172a,#1e3a5f)`,borderRadius:16,padding:"20px 24px",marginBottom:16,color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+                <div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Knowledge Base</div>
+                  <div style={{fontSize:24,fontWeight:900}}>{qaData.length} Q&A Pairs</div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginTop:4}}>
+                    {qaData.length<10?"⚠️ Low coverage — add more Q&A":qaData.length<20?"📈 Good — keep adding":qaData.length<40?"✅ Strong KB":"🚀 Excellent KB"}
                   </div>
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  {[
+                    {label:"Coverage",val:Math.min(100,Math.round(qaData.length/40*100))+"%",color:"#86efac"},
+                    {label:"Q&A Pairs",val:qaData.length,color:"#93c5fd"},
+                  ].map(s=>(
+                    <div key={s.label} style={{textAlign:"center",padding:"10px 16px",background:"rgba(255,255,255,.08)",borderRadius:12}}>
+                      <div style={{fontSize:22,fontWeight:800,color:s.color}}>{s.val}</div>
+                      <div style={{fontSize:10,color:"rgba(255,255,255,.5)",marginTop:2}}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4 Smart Tabs */}
+              {(()=>{
+                const [kbTab,setKbTab] = window._kbTabState || [0,()=>{}];
+                // Use local state via hack
+                const KBTabState = window._kbTabState || (window._kbTabState = (() => {
+                  let v=0,subs=[];
+                  return {
+                    get:()=>v,
+                    set:(n)=>{v=n;subs.forEach(f=>f(n));},
+                    sub:(f)=>subs.push(f)
+                  };
+                })());
+                return null;
+              })()}
+              {(()=>{
+                if(!window._kbTab) window._kbTab=0;
+                return null;
+              })()}
+
+              {/* Tab navigation */}
+              <div style={{display:"flex",gap:4,marginBottom:16,background:T.card2,borderRadius:12,padding:4,border:`1px solid ${T.border}`}}>
+                {["📝 Q&A Library","🔍 Test Bot","🚨 Knowledge Gaps","📥 Bulk Import","🤖 AI Suggest"].map((t,i)=>(
+                  <button key={i} id={`kbtab-${i}`}
+                    onClick={()=>{
+                      document.querySelectorAll('[id^="kbtab-"]').forEach((el,j)=>{
+                        el.style.background = j===i ? WA_GREEN : "transparent";
+                        el.style.color = j===i ? "#fff" : "";
+                        el.style.fontWeight = j===i ? "700" : "400";
+                      });
+                      document.querySelectorAll('[id^="kbpanel-"]').forEach((el,j)=>{
+                        el.style.display = j===i ? "block" : "none";
+                      });
+                    }}
+                    style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",
+                      background:i===0?WA_GREEN:"transparent",
+                      color:i===0?"#fff":T.text,
+                      fontSize:11,fontWeight:i===0?700:400,cursor:"pointer",fontFamily:"inherit",
+                      transition:"all .15s"}}>
+                    {t}
+                  </button>
                 ))}
               </div>
+
+              {/* PANEL 0 — Q&A Library */}
+              <div id="kbpanel-0">
+                {/* System Prompt */}
+                <div className="cc" style={{marginBottom:12}}>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>⚙️ Bot Personality & Instructions</div>
+                  <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={5}
+                    style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                  <button onClick={async()=>{
+                    await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({prompt:systemPrompt})});
+                    alert("Saved! ✅");
+                  }} style={{marginTop:8,padding:"7px 18px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save Prompt</button>
+                </div>
+
+                {/* Add new Q&A */}
+                <div className="cc" style={{marginBottom:12}}>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>➕ Add Q&A</div>
+                  <input value={newQ} onChange={e=>setNewQ(e.target.value)} placeholder="Customer question..."
+                    style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/>
+                  <textarea value={newA} onChange={e=>setNewA(e.target.value)} placeholder="Bot answer..." rows={2}
+                    style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8,boxSizing:"border-box"}}/>
+                  <button onClick={async()=>{
+                    if(!newQ.trim()||!newA.trim())return;
+                    await fetch(`${API}/api/knowledge/qa`,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
+                    setNewQ("");setNewA("");fetchKnowledge();
+                  }} style={{padding:"7px 18px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>➕ Add</button>
+                </div>
+
+                {/* Q&A List */}
+                <div style={{fontSize:11,color:T.textMuted,marginBottom:8,fontWeight:600}}>{qaData.length} entries in knowledge base</div>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {qaData.map((qa,i)=>(
+                    <div key={qa.id} className="cc" ref={el=>qaRefs.current[qa.id]=el}
+                      style={{padding:12,borderLeft:highlightedQA===qa.id?`3px solid ${WA_GREEN}`:"3px solid transparent"}}>
+                      {editingId===qa.id
+                        ?<div>
+                          <input value={editQ} onChange={e=>setEditQ(e.target.value)}
+                            style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/>
+                          <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={2}
+                            style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8,boxSizing:"border-box"}}/>
+                          <div style={{display:"flex",gap:6}}>
+                            <button onClick={()=>saveEdit(qa.id)} style={{padding:"5px 14px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+                            <button onClick={()=>setEditingId(null)} style={{padding:"5px 14px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                          </div>
+                        </div>
+                        :<div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                          <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{i+1}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:700,fontSize:12,marginBottom:2,color:T.text}}>{qa.question}</div>
+                            <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
+                          </div>
+                          <div style={{display:"flex",gap:3,flexShrink:0}}>
+                            <button onClick={()=>{setEditingId(qa.id);setEditQ(qa.question);setEditA(qa.answer);}} style={{padding:"3px 8px",borderRadius:8,border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                            <button onClick={()=>deleteQA(qa.id)} style={{padding:"3px 8px",borderRadius:8,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                          </div>
+                        </div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* PANEL 1 — Test Bot */}
+              <div id="kbpanel-1" style={{display:"none"}}>
+                <div className="cc">
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>🔍 Test Bot Knowledge</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>Ask a question and see exactly what KB entry the bot uses and how it responds</div>
+                  <div style={{display:"flex",gap:8,marginBottom:12}}>
+                    <input id="kb-test-input" placeholder="e.g. How much is consultation?" 
+                      style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"9px 14px",color:T.text,fontSize:13,fontFamily:"inherit"}}
+                      onKeyDown={async e=>{
+                        if(e.key!=="Enter") return;
+                        const q = e.target.value.trim();
+                        if(!q) return;
+                        const res = document.getElementById("kb-test-result");
+                        res.innerHTML = "<div style='color:#888;font-size:12px'>Testing...</div>";
+                        const r = await fetch(`${API}/api/knowledge/test`,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:q})});
+                        const d = await r.json();
+                        if(d.error){res.innerHTML=`<div style='color:#ef4444'>${d.error}</div>`;return;}
+                        res.innerHTML = `
+                          <div style='margin-bottom:12px'>
+                            <div style='font-size:11px;color:#888;margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:1px'>Bot Response</div>
+                            <div style='background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;font-size:13px;line-height:1.6'>${d.answer}</div>
+                          </div>
+                          <div>
+                            <div style='font-size:11px;color:#888;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:1px'>KB Entries Used (${d.kb_used?.length||0})</div>
+                            ${d.kb_used?.length ? d.kb_used.map(k=>`
+                              <div style='background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:6px;font-size:11px'>
+                                <div style='font-weight:700;color:#1d4ed8;margin-bottom:3px'>Q: ${k.question}</div>
+                                <div style='color:#374151'>A: ${k.answer}</div>
+                              </div>`).join("") 
+                            : "<div style='color:#f59e0b;font-size:12px'>⚠️ No KB entries matched — bot is guessing! Add a Q&A for this topic.</div>"}
+                          </div>`;
+                      }}/>
+                    <button onClick={()=>{
+                      const el = document.getElementById("kb-test-input");
+                      if(el) el.dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
+                    }} style={{padding:"9px 18px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Test ➤</button>
+                  </div>
+                  <div id="kb-test-result"/>
+                </div>
+              </div>
+
+              {/* PANEL 2 — Knowledge Gaps */}
+              <div id="kbpanel-2" style={{display:"none"}}>
+                <div className="cc">
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13}}>🚨 Knowledge Gaps</div>
+                      <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Questions customers asked that may not be in your KB</div>
+                    </div>
+                    <button onClick={async()=>{
+                      const res = document.getElementById("gaps-result");
+                      res.innerHTML = "<div style='color:#888;font-size:12px;padding:12px'>Analysing recent conversations...</div>";
+                      const r = await fetch(`${API}/api/knowledge/gaps`,{headers:authHeaders()});
+                      const d = await r.json();
+                      if(!d.gaps?.length){res.innerHTML="<div style='color:#22c55e;padding:12px;font-size:13px'>✅ No obvious gaps found!</div>";return;}
+                      res.innerHTML = d.gaps.map(g=>`
+                        <div style='padding:12px;border:1px solid #fcd34d;border-radius:10px;background:#fffbeb;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px'>
+                          <div style='flex:1'>
+                            <div style='font-size:12px;font-weight:700;color:#92400e;margin-bottom:3px'>"${g.question}"</div>
+                            <div style='font-size:10px;color:#b45309'>${g.name||g.phone} · ${g.date}</div>
+                          </div>
+                          <button onclick='(async()=>{
+                            document.querySelector("#kbtab-0").click();
+                            setTimeout(()=>{
+                              const qEl=document.querySelectorAll("input")[1];
+                              if(qEl){qEl.value="${g.question.replace(/"/g,"'")}";qEl.dispatchEvent(new Event("input",{bubbles:true}));}
+                            },100);
+                          })()' style='padding:4px 10px;border-radius:8px;border:none;background:#f59e0b;color:#fff;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0'>+ Add to KB</button>
+                        </div>`).join("");
+                    }} style={{padding:"7px 14px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🔍 Scan Now</button>
+                  </div>
+                  <div id="gaps-result"><div style={{color:T.textFaint,fontSize:12,textAlign:"center",padding:24}}>Click "Scan Now" to find gaps</div></div>
+                </div>
+              </div>
+
+              {/* PANEL 3 — Bulk Import */}
+              <div id="kbpanel-3" style={{display:"none"}}>
+                <div className="cc">
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>📥 Bulk Import via AI</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>Paste any FAQ text, website content, or document — AI extracts Q&A pairs automatically</div>
+                  <textarea id="bulk-import-text" rows={8} placeholder="Paste your FAQ, website content, or any text here...&#10;&#10;Example:&#10;Our clinic is open Tuesday to Sunday, 9AM to 7PM.&#10;Consultation fee is RM100.&#10;We treat diabetes, kidney disease, and arthritis..."
+                    style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
+                  <button onClick={async()=>{
+                    const text = document.getElementById("bulk-import-text").value.trim();
+                    if(!text) return;
+                    const res = document.getElementById("bulk-result");
+                    res.innerHTML = "<div style='color:#888;font-size:12px'>🤖 AI is extracting Q&A pairs...</div>";
+                    const r = await fetch(`${API}/api/knowledge/bulk-import`,{method:"POST",headers:authHeaders(),body:JSON.stringify({text})});
+                    const d = await r.json();
+                    if(d.error){res.innerHTML=`<div style='color:#ef4444'>${d.error}</div>`;return;}
+                    res.innerHTML = `<div style='color:#22c55e;font-weight:700;margin-bottom:10px'>✅ Imported ${d.imported} Q&A pairs!</div>` +
+                      (d.pairs||[]).map(p=>`<div style='padding:8px 10px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:6px;font-size:11px'><div style='font-weight:700;color:#15803d'>Q: ${p.question}</div><div style='color:#374151;margin-top:2px'>A: ${p.answer}</div></div>`).join("");
+                    fetchKnowledge();
+                  }} style={{padding:"8px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🤖 Extract Q&A with AI</button>
+                  <div id="bulk-result" style={{marginTop:12}}/>
+                </div>
+              </div>
+
+              {/* PANEL 4 — AI Suggest */}
+              <div id="kbpanel-4" style={{display:"none"}}>
+                <div className="cc">
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13}}>🤖 AI Suggestions</div>
+                      <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>AI analyses recent conversations and suggests missing Q&A pairs</div>
+                    </div>
+                    <button onClick={async()=>{
+                      const res = document.getElementById("suggest-result");
+                      res.innerHTML = "<div style='color:#888;font-size:12px;padding:12px'>🤖 Analysing conversations...</div>";
+                      const r = await fetch(`${API}/api/knowledge/suggest`,{method:"POST",headers:authHeaders()});
+                      const d = await r.json();
+                      if(d.error){res.innerHTML=`<div style='color:#ef4444;padding:12px'>${d.error}</div>`;return;}
+                      if(!d.suggestions?.length){res.innerHTML="<div style='padding:12px;font-size:13px;color:#22c55e'>✅ Your KB looks complete!</div>";return;}
+                      res.innerHTML = d.suggestions.map(s=>`
+                        <div style='padding:12px;border:1px solid #c4b5fd;border-radius:10px;background:#faf5ff;margin-bottom:8px'>
+                          <div style='display:flex;align-items:flex-start;justify-content:space-between;gap:10px'>
+                            <div style='flex:1'>
+                              <div style='font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:4px'>${s.priority==="high"?"🔴 High Priority":"🟡 Medium Priority"}</div>
+                              <div style='font-size:13px;font-weight:700;color:#1f2937;margin-bottom:3px'>${s.question}</div>
+                              <div style='font-size:11px;color:#6b7280;font-style:italic'>${s.answer}</div>
+                            </div>
+                            <button onclick='(async()=>{
+                              const q="${s.question.replace(/"/g,"'")}";
+                              document.querySelector("#kbtab-0").click();
+                              setTimeout(()=>{
+                                const inputs=document.querySelectorAll("input");
+                                if(inputs[1]){inputs[1].value=q;inputs[1].dispatchEvent(new Event("input",{bubbles:true}));}
+                              },100);
+                            })()' style='padding:5px 10px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0'>+ Add</button>
+                          </div>
+                        </div>`).join("");
+                    }} style={{padding:"7px 14px",borderRadius:10,border:"none",background:"#7c3aed",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🤖 Generate Suggestions</button>
+                  </div>
+                  <div id="suggest-result"><div style={{color:T.textFaint,fontSize:12,textAlign:"center",padding:24}}>Click "Generate Suggestions" to start</div></div>
+                </div>
+              </div>
+
             </div>}
           </div>
         </div>}
