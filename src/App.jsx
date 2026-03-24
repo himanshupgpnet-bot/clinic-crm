@@ -119,6 +119,8 @@ export default function App() {
     selectedClinicRef.current = c;
     setSelectedClinic(c);
   };
+  // For admin viewing KB/Settings of a specific client
+  const [adminViewClinic, setAdminViewClinic] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [leadsClinic, setLeadsClinic] = useState(null);
   const [settingsClinic, setSettingsClinic] = useState(null);
@@ -535,13 +537,21 @@ export default function App() {
     finally { setLoading(false); }
   }, [selected]);
 
-  const fetchKnowledge = useCallback(async () => {
-    try { const r=await fetch(`${API}/api/knowledge`, {headers:authHeaders()}); if(!r.ok)return; const d=await r.json(); setQaData(d.qa||[]); setSystemPrompt(d.systemPrompt||""); } catch {}
+  const fetchKnowledge = useCallback(async (clinicId=null) => {
+    try {
+      const cParam = clinicId ? `?clinic_id=${clinicId}` : "";
+      const r=await fetch(`${API}/api/knowledge${cParam}`, {headers:authHeaders()});
+      if(!r.ok)return;
+      const d=await r.json();
+      setQaData(d.qa||[]);
+      setSystemPrompt(d.systemPrompt||"");
+    } catch {}
   }, []);
 
-  const fetchSettings = useCallback(async () => {
+  const fetchSettings = useCallback(async (clinicId=null) => {
     try {
-      const r=await fetch(`${API}/api/settings`, {headers:authHeaders()});
+      const cParam = clinicId ? `?clinic_id=${clinicId}` : "";
+      const r=await fetch(`${API}/api/settings${cParam}`, {headers:authHeaders()});
       if(!r.ok)return;
       const d=await r.json();
       setAppSettings(d);
@@ -609,7 +619,7 @@ export default function App() {
     setClientSettings(null);
     setSettingsDirty(false);
     try {
-      const r = await fetch(`${API}/api/admin/users/${client.id}/settings`, {headers:authHeaders()});
+      const r = await fetch(`${API}/api/admin/clinics/${client.clinic_id}/settings`, {headers:authHeaders()});
       if(r.ok) {
         const d = await r.json();
         setClientSettings(d);
@@ -642,14 +652,13 @@ export default function App() {
     setKbClinic(client);
     // Fetch this client's knowledge into qaData and systemPrompt
     try {
-      const r = await fetch(`${API}/api/admin/users/${client.id}/knowledge`, {headers:authHeaders()});
+      const r = await fetch(`${API}/api/admin/clinics/${client.clinic_id}/knowledge`, {headers:authHeaders()});
       if(r.ok) {
         const d = await r.json();
         setQaData(d.qa||[]);
         setSystemPrompt(d.systemPrompt||"");
       }
     } catch(e) {
-      // Fallback — fetch via standard endpoint with clinic param
       try {
         const r2 = await fetch(`${API}/api/knowledge?clinic_id=${client.clinic_id}`, {headers:authHeaders()});
         if(r2.ok) { const d=await r2.json(); setQaData(d.qa||[]); setSystemPrompt(d.systemPrompt||""); }
@@ -792,7 +801,7 @@ export default function App() {
     try {
       if(isAdmin && settingsClinic) {
         // Save ALL settings to this specific client's account
-        await fetch(`${API}/api/admin/users/${settingsClinic.id}/settings`, {
+        await fetch(`${API}/api/admin/clinics/${settingsClinic.clinic_id}/settings`, {
           method:"PATCH", headers:authHeaders(),
           body:JSON.stringify({
             ai_provider:          appSettings.ai_provider,
