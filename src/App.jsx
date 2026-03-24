@@ -547,13 +547,16 @@ export default function App() {
     } catch {}
   }, []);
 
+  const [clinicUsers, setClinicUsers] = useState([]);
+
   // Load clinic users for assignment dropdown
   const fetchClinicUsers = useCallback(async () => {
     try {
       const r = await fetch(`${API}/api/users`, {headers:authHeaders()});
       if(r.ok) {
         const d = await r.json();
-        window._clinicUsers = d;
+        setClinicUsers(d);
+        window._clinicUsers = d; // keep for backward compat
       }
     } catch {}
   }, []);
@@ -1327,18 +1330,21 @@ export default function App() {
                               <select
                                 value={c.assignedTo!=null?String(c.assignedTo):""}
                                 onChange={async e=>{
+                                  e.stopPropagation();
                                   const uid = e.target.value ? parseInt(e.target.value) : null;
-                                  await fetch(`${API}/api/conversations/${c.id}/assign`,{
-                                    method:"PATCH",headers:authHeaders(),
+                                  const phone = c.id; // c.id is the phone number
+                                  const r = await fetch(`${API}/api/conversations/${phone}/assign`,{
+                                    method:"PATCH",
+                                    headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`},
                                     body:JSON.stringify({assigned_to:uid})
                                   });
-                                  fetchConversations();
+                                  if(r.ok) fetchConversations();
                                 }}
                                 style={{width:"100%",fontSize:10,padding:"4px 8px",borderRadius:8,
                                   border:`1px solid ${T.border}`,background:T.card2,color:T.text,
                                   fontFamily:"inherit",cursor:"pointer"}}>
                                 <option value="">👤 Unassigned</option>
-                                {(window._clinicUsers||[]).map(u=>(
+                                {clinicUsers.map(u=>(
                                   <option key={u.id} value={String(u.id)}>@{u.username}</option>
                                 ))}
                               </select>
