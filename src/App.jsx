@@ -1325,12 +1325,12 @@ export default function App() {
                             {/* Assign to staff */}
                             {col.id!=="done"&&col.id!=="cold"&&<div onClick={e=>e.stopPropagation()} style={{marginBottom:6}}>
                               <select
-                                value={c.assignedTo||""}
+                                value={c.assignedTo!=null?String(c.assignedTo):""}
                                 onChange={async e=>{
-                                  const uid = e.target.value;
+                                  const uid = e.target.value ? parseInt(e.target.value) : null;
                                   await fetch(`${API}/api/conversations/${c.id}/assign`,{
                                     method:"PATCH",headers:authHeaders(),
-                                    body:JSON.stringify({assigned_to:uid||null})
+                                    body:JSON.stringify({assigned_to:uid})
                                   });
                                   fetchConversations();
                                 }}
@@ -1339,7 +1339,7 @@ export default function App() {
                                   fontFamily:"inherit",cursor:"pointer"}}>
                                 <option value="">👤 Unassigned</option>
                                 {(window._clinicUsers||[]).map(u=>(
-                                  <option key={u.id} value={u.id}>@{u.username}</option>
+                                  <option key={u.id} value={String(u.id)}>@{u.username}</option>
                                 ))}
                               </select>
                             </div>}
@@ -1480,15 +1480,109 @@ export default function App() {
                 {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:T.textFaint}}>Loading analytics...</div>}
 
                 {!analyticsLoading&&analytics&&<>
+                  {/* Summary Banner */}
                   {analytics.growth&&<div style={{background:`linear-gradient(135deg,${WA_GREEN}15,${WA_DARK}10)`,border:`1px solid ${WA_GREEN}30`,borderRadius:14,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
                     <div style={{fontSize:28}}>📈</div>
                     <div style={{flex:1}}>
-                      <div style={{fontWeight:700,fontSize:15,color:T.text}}>Period Summary: {analytics.dateFrom} → {analytics.dateTo}</div>
+                      <div style={{fontWeight:700,fontSize:15,color:T.text}}>{analytics.dateFrom} → {analytics.dateTo}</div>
                       <div style={{fontSize:13,color:T.textMuted,marginTop:4}}>
-                        <strong style={{color:WA_GREEN}}>{analytics.growth.thisperiod}</strong> people messaged the bot ·
-                        <strong style={{color:"#ef4444"}}> {analytics.totals?.hot}</strong> hot leads ·
-                        <strong style={{color:"#10b981"}}> {analytics.growth.conversionRate}%</strong> conversion rate
-                        {analytics.growth.pct!==0&&<span style={{marginLeft:8,background:analytics.growth.pct>0?"#dcfce7":"#fef2f2",color:analytics.growth.pct>0?WA_GREEN:"#ef4444",borderRadius:10,padding:"2px 8px",fontSize:12,fontWeight:700}}>{analytics.growth.pct>0?"▲":"▼"} {Math.abs(analytics.growth.pct)}% vs prev period</span>}
+                        <strong style={{color:WA_GREEN}}>{analytics.growth.thisperiod}</strong> new contacts ·
+                        <strong style={{color:"#ef4444"}}> {analytics.totals?.hot||0}</strong> hot leads ·
+                        <strong style={{color:"#10b981"}}> {analytics.growth.conversionRate}%</strong> conversion
+                        {analytics.growth.pct!==0&&<span style={{marginLeft:8,background:analytics.growth.pct>0?"#dcfce7":"#fef2f2",color:analytics.growth.pct>0?WA_GREEN:"#ef4444",borderRadius:10,padding:"2px 8px",fontSize:12,fontWeight:700}}>{analytics.growth.pct>0?"▲":"▼"} {Math.abs(analytics.growth.pct)}% vs prev</span>}
+                      </div>
+                    </div>
+                  </div>}
+
+                  {/* KPI Cards */}
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:16}}>
+                    {[
+                      {label:"Total Contacts", value:analytics.totals?.contacts||0, icon:"👥", color:"#6366f1"},
+                      {label:"🔥 Hot Leads",   value:analytics.totals?.hot||0,   icon:"🔥", color:"#ef4444"},
+                      {label:"🟡 Warm Leads",  value:analytics.totals?.warm||0,  icon:"🟡", color:"#f59e0b"},
+                      {label:"🔵 Browsing",    value:(analytics.totals?.contacts||0)-(analytics.totals?.hot||0)-(analytics.totals?.warm||0),  icon:"🔵", color:"#3b82f6"},
+                      {label:"Bot Messages",   value:analytics.totals?.botMessages||0, icon:"🤖", color:WA_GREEN},
+                      {label:"Conversion %",   value:`${analytics.growth?.conversionRate||0}%`, icon:"🎯", color:"#10b981"},
+                    ].map(k=>(
+                      <div key={k.label} style={{background:T.card,borderRadius:12,padding:"14px 12px",border:`1px solid ${T.border}`,textAlign:"center"}}>
+                        <div style={{fontSize:22,marginBottom:4}}>{k.icon}</div>
+                        <div style={{fontSize:22,fontWeight:800,color:k.color}}>{k.value}</div>
+                        <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{k.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Lead Distribution Bar */}
+                  {(()=>{
+                    const total = (analytics.totals?.hot||0)+(analytics.totals?.warm||0)+((analytics.totals?.contacts||0)-(analytics.totals?.hot||0)-(analytics.totals?.warm||0));
+                    if(!total) return null;
+                    const hotPct = Math.round((analytics.totals?.hot||0)/total*100);
+                    const warmPct = Math.round((analytics.totals?.warm||0)/total*100);
+                    const coldPct = 100-hotPct-warmPct;
+                    return <div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
+                      <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📊 Lead Distribution</div>
+                      <div style={{display:"flex",borderRadius:8,overflow:"hidden",height:28,marginBottom:10}}>
+                        {hotPct>0&&<div style={{width:`${hotPct}%`,background:"#ef4444",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>{hotPct}%</div>}
+                        {warmPct>0&&<div style={{width:`${warmPct}%`,background:"#f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>{warmPct}%</div>}
+                        {coldPct>0&&<div style={{width:`${coldPct}%`,background:"#3b82f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>{coldPct}%</div>}
+                      </div>
+                      <div style={{display:"flex",gap:16,fontSize:11,color:T.textMuted}}>
+                        <span><span style={{color:"#ef4444"}}>●</span> Hot {analytics.totals?.hot||0}</span>
+                        <span><span style={{color:"#f59e0b"}}>●</span> Warm {analytics.totals?.warm||0}</span>
+                        <span><span style={{color:"#3b82f6"}}>●</span> Cold {(analytics.totals?.contacts||0)-(analytics.totals?.hot||0)-(analytics.totals?.warm||0)}</span>
+                      </div>
+                    </div>;
+                  })()}
+
+                  {/* Daily Messages Chart */}
+                  {analytics.messagesPerDay&&analytics.messagesPerDay.length>0&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📅 Daily Messages</div>
+                    <div style={{display:"flex",alignItems:"flex-end",gap:3,height:80,overflow:"hidden"}}>
+                      {(()=>{
+                        const msgs = analytics.messagesPerDay.slice(-14);
+                        const max = Math.max(...msgs.map(d=>d.total||0),1);
+                        return msgs.map((d,i)=>(
+                          <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                            <div style={{width:"100%",background:WA_GREEN,borderRadius:"3px 3px 0 0",
+                              height:`${Math.max(4,((d.total||0)/max)*70)}px`,
+                              opacity:0.7+((d.count||0)/max)*0.3,transition:"height .3s"}}
+                              title={`${d.date}: ${d.total||0} messages`}/>
+                            {msgs.length<=7&&<div style={{fontSize:8,color:T.textFaint,transform:"rotate(-45deg)",whiteSpace:"nowrap"}}>{d.date?.slice(5)}</div>}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>}
+
+                  {/* Peak Hours */}
+                  {analytics.peak_hours&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>⏰ Peak Activity Hours</div>
+                    <div style={{display:"flex",alignItems:"flex-end",gap:2,height:50}}>
+                      {Array.from({length:24},(_,h)=>{
+                        const count = (analytics.peakHours||[]).find(p=>p.hour===h)?.count||0;
+                        const max = Math.max(...(analytics.peakHours||[]).map(p=>p.count),1);
+                        return <div key={h} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
+                          <div style={{width:"100%",background:count>0?WA_GREEN:T.border,borderRadius:"2px 2px 0 0",
+                            height:`${Math.max(2,(count/max)*46)}px`,
+                            opacity:count>0?0.6+(count/max)*0.4:0.3}}
+                            title={`${h}:00 — ${count} messages`}/>
+                          {h%6===0&&<div style={{fontSize:8,color:T.textFaint}}>{h}h</div>}
+                        </div>;
+                      })}
+                    </div>
+                  </div>}
+
+                  {/* Follow-up Stats */}
+                  {analytics.totals?.followups>0&&<div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📤 Follow-up Performance</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      <div style={{textAlign:"center",padding:"12px",background:T.card2,borderRadius:10}}>
+                        <div style={{fontSize:24,fontWeight:800,color:WA_GREEN}}>{analytics.totals?.followups||0}</div>
+                        <div style={{fontSize:11,color:T.textMuted}}>Total Sent</div>
+                      </div>
+                      <div style={{textAlign:"center",padding:"12px",background:T.card2,borderRadius:10}}>
+                        <div style={{fontSize:24,fontWeight:800,color:"#f59e0b"}}>{analytics.totals?.botMessages||0}</div>
+                        <div style={{fontSize:11,color:T.textMuted}}>AI Generated</div>
                       </div>
                     </div>
                   </div>}
