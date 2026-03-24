@@ -1160,12 +1160,12 @@ export default function App() {
                   <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
                 </div>
               </div>
-              {selected.needsHuman&&!selected.botActive&&<div style={{background:"#fef2f2",borderBottom:"1px solid #fca5a5",padding:"8px 14px",fontSize:12,color:"#991b1b",display:"flex",alignItems:"center",gap:8}}>
+              {selected.needsHuman&&<div style={{background:"#fef2f2",borderBottom:"1px solid #fca5a5",padding:"8px 14px",fontSize:12,color:"#991b1b",display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:16}}>🚨</span>
                 <div>
-                  <strong>Human Intervention Required</strong>
+                  <strong>Human Intervention Recommended</strong>
                   {selected.humanReason&&<span style={{marginLeft:6,fontWeight:400}}>{selected.humanReason}</span>}
-                  <span style={{marginLeft:8,fontSize:11,color:"#b91c1c"}}>Bot has been paused — please reply manually</span>
+                  <span style={{marginLeft:8,fontSize:11,color:"#b91c1c"}}>Bot is still active — you can reply manually or let bot continue</span>
                 </div>
               </div>}
               {selected.botActive&&<div style={{background:`${WA_GREEN}12`,borderBottom:`1px solid ${WA_GREEN}25`,padding:"4px 14px",fontSize:11,color:WA_DARK}}>🤖 Bot is handling this — toggle off to reply manually</div>}
