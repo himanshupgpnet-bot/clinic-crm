@@ -1502,155 +1502,235 @@ export default function App() {
                 {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:T.textFaint}}>Loading analytics...</div>}
 
                 {!analyticsLoading&&analytics&&<>
-                  {/* Summary Banner */}
-                  {analytics.growth&&<div style={{background:`linear-gradient(135deg,${WA_GREEN}15,${WA_DARK}10)`,border:`1px solid ${WA_GREEN}30`,borderRadius:14,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-                    <div style={{fontSize:28}}>📈</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontWeight:700,fontSize:15,color:T.text}}>{analytics.dateFrom} → {analytics.dateTo}</div>
-                      <div style={{fontSize:13,color:T.textMuted,marginTop:4}}>
-                        <strong style={{color:WA_GREEN}}>{analytics.growth.thisperiod}</strong> new contacts ·
-                        <strong style={{color:"#ef4444"}}> {analytics.totals?.hot||0}</strong> hot leads ·
-                        <strong style={{color:"#10b981"}}> {analytics.growth.conversionRate}%</strong> conversion
-                        {analytics.growth.pct!==0&&<span style={{marginLeft:8,background:analytics.growth.pct>0?"#dcfce7":"#fef2f2",color:analytics.growth.pct>0?WA_GREEN:"#ef4444",borderRadius:10,padding:"2px 8px",fontSize:12,fontWeight:700}}>{analytics.growth.pct>0?"▲":"▼"} {Math.abs(analytics.growth.pct)}% vs prev</span>}
+                  {/* Hero Banner */}
+                  {analytics.growth&&<div style={{background:`linear-gradient(135deg,#0f172a,#1e3a5f)`,borderRadius:16,padding:"24px 28px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
+                    <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,.04)"}}/>
+                    <div style={{position:"absolute",bottom:-30,right:60,width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,.03)"}}/>
+                    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:16,position:"relative"}}>
+                      <div>
+                        <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginBottom:4,letterSpacing:1,textTransform:"uppercase"}}>Period: {analytics.dateFrom} → {analytics.dateTo}</div>
+                        <div style={{fontSize:28,fontWeight:800,marginBottom:4}}>{analytics.growth.thisperiod} <span style={{fontSize:16,fontWeight:400,color:"rgba(255,255,255,.7)"}}>new conversations</span></div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"rgba(255,255,255,.8)"}}>
+                          {analytics.growth.pct!==0&&<span style={{background:analytics.growth.pct>0?"rgba(34,197,94,.2)":"rgba(239,68,68,.2)",color:analytics.growth.pct>0?"#86efac":"#fca5a5",borderRadius:20,padding:"2px 10px",fontWeight:700,fontSize:12}}>
+                            {analytics.growth.pct>0?"▲":"▼"} {Math.abs(analytics.growth.pct)}% vs previous period
+                          </span>}
+                          <span style={{color:"rgba(255,255,255,.5)"}}>·</span>
+                          <span>Bot handled <strong style={{color:"#86efac"}}>{analytics.totals?.botMessages||0}</strong> messages automatically</span>
+                        </div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:42,fontWeight:900,color:WA_GREEN}}>{analytics.growth.conversionRate}%</div>
+                        <div style={{fontSize:12,color:"rgba(255,255,255,.6)"}}>Conversion Rate</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:2}}>Contacts → Hot Leads</div>
                       </div>
                     </div>
                   </div>}
 
-                  {/* KPI Cards */}
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:16}}>
-                    {[
-                      {label:"Total Contacts", value:analytics.totals?.contacts||0, icon:"👥", color:"#6366f1"},
-                      {label:"🔥 Hot Leads",   value:analytics.totals?.hot||0,   icon:"🔥", color:"#ef4444"},
-                      {label:"🟡 Warm Leads",  value:analytics.totals?.warm||0,  icon:"🟡", color:"#f59e0b"},
-                      {label:"🔵 Browsing",    value:(analytics.totals?.contacts||0)-(analytics.totals?.hot||0)-(analytics.totals?.warm||0),  icon:"🔵", color:"#3b82f6"},
-                      {label:"Bot Messages",   value:analytics.totals?.botMessages||0, icon:"🤖", color:WA_GREEN},
-                      {label:"Conversion %",   value:`${analytics.growth?.conversionRate||0}%`, icon:"🎯", color:"#10b981"},
-                    ].map(k=>(
-                      <div key={k.label} style={{background:T.card,borderRadius:12,padding:"14px 12px",border:`1px solid ${T.border}`,textAlign:"center"}}>
-                        <div style={{fontSize:22,marginBottom:4}}>{k.icon}</div>
-                        <div style={{fontSize:22,fontWeight:800,color:k.color}}>{k.value}</div>
-                        <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{k.label}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Lead Distribution Bar */}
+                  {/* ── PITCH-READY ANALYTICS DASHBOARD ──────────── */}
                   {(()=>{
-                    const total = (analytics.totals?.hot||0)+(analytics.totals?.warm||0)+((analytics.totals?.contacts||0)-(analytics.totals?.hot||0)-(analytics.totals?.warm||0));
-                    if(!total) return null;
-                    const hotPct = Math.round((analytics.totals?.hot||0)/total*100);
-                    const warmPct = Math.round((analytics.totals?.warm||0)/total*100);
-                    const coldPct = 100-hotPct-warmPct;
-                    return <div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
-                      <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📊 Lead Distribution</div>
-                      <div style={{display:"flex",borderRadius:8,overflow:"hidden",height:28,marginBottom:10}}>
-                        {hotPct>0&&<div style={{width:`${hotPct}%`,background:"#ef4444",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>{hotPct}%</div>}
-                        {warmPct>0&&<div style={{width:`${warmPct}%`,background:"#f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>{warmPct}%</div>}
-                        {coldPct>0&&<div style={{width:`${coldPct}%`,background:"#3b82f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>{coldPct}%</div>}
+                    const total   = analytics.totals?.contacts||0;
+                    const hot     = analytics.totals?.hot||0;
+                    const warm    = analytics.totals?.warm||0;
+                    const cold    = Math.max(0,total-hot-warm);
+                    const done    = analytics.totals?.done||0;
+                    const botMsgs = analytics.totals?.botMessages||0;
+                    const userMsgs= analytics.totals?.userMessages||0;
+                    const totalMsgs = botMsgs+userMsgs;
+                    const botRate = totalMsgs>0?Math.round(botMsgs/totalMsgs*100):0;
+                    const followups = analytics.totals?.followups||0;
+                    const convRate  = analytics.growth?.conversionRate||0;
+
+                    return <>
+                      {/* ROW 1 — KPI Cards */}
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
+                        {[
+                          {label:"Total Contacts",  value:total,         sub:"All conversations",     color:"#6366f1",icon:"👥",bg:"#eef2ff"},
+                          {label:"Hot Leads",       value:hot,           sub:`${convRate}% conversion rate`, color:"#ef4444",icon:"🔥",bg:"#fef2f2"},
+                          {label:"Bookings Closed", value:done,          sub:"Pipeline done",          color:"#22c55e",icon:"✅",bg:"#f0fdf4"},
+                          {label:"Bot Automation",  value:`${botRate}%`, sub:`${botMsgs} msgs handled`,color:WA_GREEN, icon:"🤖",bg:`${WA_GREEN}12`},
+                        ].map(k=>(
+                          <div key={k.label} style={{background:T.card,borderRadius:14,padding:"16px 14px",border:`1px solid ${T.border}`,position:"relative",overflow:"hidden"}}>
+                            <div style={{position:"absolute",top:10,right:10,width:36,height:36,borderRadius:10,background:k.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{k.icon}</div>
+                            <div style={{fontSize:30,fontWeight:900,color:k.color,lineHeight:1}}>{k.value}</div>
+                            <div style={{fontSize:12,fontWeight:700,color:T.text,marginTop:4}}>{k.label}</div>
+                            <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{k.sub}</div>
+                          </div>
+                        ))}
                       </div>
-                      <div style={{display:"flex",gap:16,fontSize:11,color:T.textMuted}}>
-                        <span><span style={{color:"#ef4444"}}>●</span> Hot {analytics.totals?.hot||0}</span>
-                        <span><span style={{color:"#f59e0b"}}>●</span> Warm {analytics.totals?.warm||0}</span>
-                        <span><span style={{color:"#3b82f6"}}>●</span> Cold {(analytics.totals?.contacts||0)-(analytics.totals?.hot||0)-(analytics.totals?.warm||0)}</span>
+
+                      {/* ROW 2 — Funnel + Bot Donut */}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+                        {/* Lead Funnel */}
+                        <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
+                          <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>🎯 Conversion Funnel</div>
+                          <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>First message → booked consultation</div>
+                          {[
+                            {label:"New Contacts",  value:total, color:"#6366f1", pct:100},
+                            {label:"Warm Interest", value:warm,  color:"#f59e0b", pct:total>0?Math.round(warm/total*100):0},
+                            {label:"Hot Intent",    value:hot,   color:"#ef4444", pct:total>0?Math.round(hot/total*100):0},
+                            {label:"✅ Converted",  value:done,  color:"#22c55e", pct:total>0?Math.round(done/total*100):0},
+                          ].map(f=>(
+                            <div key={f.label} style={{marginBottom:10}}>
+                              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3,fontSize:11}}>
+                                <span style={{fontWeight:600,color:T.text}}>{f.label}</span>
+                                <span style={{color:f.color,fontWeight:700}}>{f.value} · {f.pct}%</span>
+                              </div>
+                              <div style={{height:7,borderRadius:4,background:T.border}}>
+                                <div style={{height:7,borderRadius:4,width:`${f.pct}%`,background:f.color,transition:"width .6s ease"}}/>
+                              </div>
+                            </div>
+                          ))}
+                          <div style={{marginTop:10,padding:"8px 12px",background:`${WA_GREEN}08`,borderRadius:10,border:`1px solid ${WA_GREEN}20`,fontSize:10,color:T.textMuted}}>
+                            🤖 AI tagged <strong style={{color:WA_GREEN}}>{hot+warm}</strong> potential patients from {total} conversations
+                          </div>
+                        </div>
+
+                        {/* Bot Performance Donut */}
+                        <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
+                          <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>🤖 Bot Performance</div>
+                          <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>Automation saves your team hours daily</div>
+                          <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:16}}>
+                            <div style={{position:"relative",width:90,height:90,flexShrink:0}}>
+                              <svg width="90" height="90" style={{transform:"rotate(-90deg)"}}>
+                                <circle cx="45" cy="45" r="36" fill="none" stroke={T.border} strokeWidth="10"/>
+                                <circle cx="45" cy="45" r="36" fill="none" stroke={WA_GREEN} strokeWidth="10"
+                                  strokeDasharray={`${2*Math.PI*36}`}
+                                  strokeDashoffset={`${2*Math.PI*36*(1-botRate/100)}`}
+                                  strokeLinecap="round" style={{transition:"stroke-dashoffset .8s ease"}}/>
+                              </svg>
+                              <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
+                                <div style={{fontSize:18,fontWeight:900,color:WA_GREEN,lineHeight:1}}>{botRate}%</div>
+                                <div style={{fontSize:8,color:T.textMuted}}>auto</div>
+                              </div>
+                            </div>
+                            <div style={{flex:1,display:"flex",flexDirection:"column",gap:8}}>
+                              {[
+                                {label:"Bot replies",     value:botMsgs,  color:WA_GREEN},
+                                {label:"Customer msgs",   value:userMsgs, color:"#6366f1"},
+                                {label:"Follow-ups sent", value:followups, color:"#f59e0b"},
+                              ].map(s=>(
+                                <div key={s.label} style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+                                  <span style={{color:T.textMuted}}><span style={{color:s.color}}>●</span> {s.label}</span>
+                                  <strong style={{color:s.color}}>{s.value}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div style={{padding:"8px 12px",background:"#eff6ff",borderRadius:10,border:"1px solid #bfdbfe",fontSize:10,color:"#1d4ed8"}}>
+                            💡 Bot saves approx <strong>{Math.round(botMsgs*2/60)} hrs</strong> of manual replies this period
+                          </div>
+                        </div>
                       </div>
-                    </div>;
+
+                      {/* ROW 3 — Daily Messages Bar Chart */}
+                      {analytics.messagesPerDay?.length>0&&<div style={{background:T.card,borderRadius:14,padding:18,marginBottom:16,border:`1px solid ${T.border}`}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                          <div>
+                            <div style={{fontWeight:800,fontSize:14}}>📅 Daily Activity</div>
+                            <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Bot vs customer messages per day</div>
+                          </div>
+                          <div style={{display:"flex",gap:14,fontSize:11,color:T.textMuted}}>
+                            <span><span style={{color:WA_GREEN,fontWeight:700}}>■</span> Bot</span>
+                            <span><span style={{color:"#6366f1",fontWeight:700}}>■</span> Customer</span>
+                          </div>
+                        </div>
+                        <div style={{display:"flex",alignItems:"flex-end",gap:3,height:100,paddingBottom:4}}>
+                          {analytics.messagesPerDay.slice(-21).map((d,i)=>{
+                            const maxV=Math.max(...analytics.messagesPerDay.slice(-21).map(x=>x.total||0),1);
+                            return (
+                              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:1}} title={`${d.date}: ${d.total||0} total`}>
+                                <div style={{width:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",height:90}}>
+                                  <div style={{width:"100%",minHeight:2,background:"#6366f1",borderRadius:"2px 2px 0 0",opacity:.75,height:`${Math.max(2,((d.user||0)/maxV)*86)}px`}}/>
+                                  <div style={{width:"100%",minHeight:2,background:WA_GREEN,opacity:.9,height:`${Math.max(2,((d.bot||0)/maxV)*86)}px`}}/>
+                                </div>
+                                {analytics.messagesPerDay.slice(-21).length<=10&&<div style={{fontSize:7,color:T.textFaint,marginTop:2}}>{d.date?.slice(5)}</div>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>}
+
+                      {/* ROW 4 — Peak Hours + Lead Quality */}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+                        {/* Peak Hours */}
+                        <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
+                          <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>⏰ Peak Activity Hours</div>
+                          <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>When customers message most</div>
+                          <div style={{display:"flex",alignItems:"flex-end",gap:2,height:60}}>
+                            {Array.from({length:24},(_,h)=>{
+                              const cnt=(analytics.peakHours||[]).find(p=>p.hour===h)?.count||0;
+                              const maxH=Math.max(...(analytics.peakHours||[]).map(p=>p.count),1);
+                              const isPeak=cnt===maxH&&cnt>0;
+                              return <div key={h} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}} title={`${h}:00 — ${cnt} msgs`}>
+                                <div style={{width:"100%",background:isPeak?WA_GREEN:cnt>0?`${WA_GREEN}50`:T.border,borderRadius:"2px 2px 0 0",height:`${Math.max(2,(cnt/maxH)*55)}px`}}/>
+                                {h%6===0&&<div style={{fontSize:7,color:T.textFaint,marginTop:2}}>{h}h</div>}
+                              </div>;
+                            })}
+                          </div>
+                          {(()=>{const p=(analytics.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});return p.count>0&&<div style={{marginTop:10,fontSize:11,color:T.textMuted}}>Peak: <strong style={{color:WA_GREEN}}>{p.hour}:00–{p.hour+1}:00</strong> · {p.count} messages</div>;})()}
+                        </div>
+
+                        {/* Lead Quality */}
+                        <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
+                          <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>📊 Lead Quality Split</div>
+                          <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>AI classification breakdown</div>
+                          {[
+                            {label:"🔥 High Intent", value:hot,  pct:total>0?Math.round(hot/total*100):0,  color:"#ef4444"},
+                            {label:"🟡 Interested",  value:warm, pct:total>0?Math.round(warm/total*100):0, color:"#f59e0b"},
+                            {label:"🔵 Browsing",    value:cold, pct:total>0?Math.round(cold/total*100):0, color:"#3b82f6"},
+                          ].map(l=>(
+                            <div key={l.label} style={{marginBottom:10}}>
+                              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
+                                <span style={{fontWeight:600}}>{l.label}</span>
+                                <span style={{color:l.color,fontWeight:700}}>{l.value} ({l.pct}%)</span>
+                              </div>
+                              <div style={{height:7,borderRadius:4,background:T.border}}>
+                                <div style={{height:7,borderRadius:4,width:`${l.pct}%`,background:l.color}}/>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ROW 5 — Staff Leaderboard */}
+                      {analytics.staffStats?.length>0&&<div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
+                        <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>👥 Team Leaderboard</div>
+                        <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>Who handled what this period</div>
+                        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+                          {analytics.staffStats.map((s,i)=>{
+                            const rate=s.assigned_count>0?Math.round((s.done_count||0)/s.assigned_count*100):0;
+                            const medals=["🥇","🥈","🥉"];
+                            return (
+                              <div key={s.id} style={{padding:"14px",background:T.card2,borderRadius:12,border:`1px solid ${T.border}`}}>
+                                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                                  <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff",flexShrink:0}}>
+                                    {medals[i]||s.username?.charAt(0)?.toUpperCase()||"?"}
+                                  </div>
+                                  <div>
+                                    <div style={{fontWeight:700,fontSize:13}}>@{s.username}</div>
+                                    <div style={{fontSize:10,color:T.textMuted}}>{s.assigned_count||0} assigned</div>
+                                  </div>
+                                  <div style={{marginLeft:"auto",textAlign:"right"}}>
+                                    <div style={{fontSize:18,fontWeight:900,color:rate>=50?WA_GREEN:"#f59e0b"}}>{rate}%</div>
+                                    <div style={{fontSize:9,color:T.textMuted}}>close rate</div>
+                                  </div>
+                                </div>
+                                <div style={{height:5,borderRadius:3,background:T.border,marginBottom:8}}>
+                                  <div style={{height:5,borderRadius:3,width:`${rate}%`,background:rate>=70?WA_GREEN:rate>=40?"#f59e0b":"#ef4444"}}/>
+                                </div>
+                                <div style={{display:"flex",gap:8,fontSize:10,color:T.textMuted}}>
+                                  <span>🔥 {s.hot_count||0}</span>
+                                  <span>🟡 {s.warm_count||0}</span>
+                                  <span>✅ {s.done_count||0}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>}
+                    </>;
                   })()}
-
-                  {/* Daily Messages Chart */}
-                  {analytics.messagesPerDay&&analytics.messagesPerDay.length>0&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
-                    <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📅 Daily Messages</div>
-                    <div style={{display:"flex",alignItems:"flex-end",gap:3,height:80,overflow:"hidden"}}>
-                      {(()=>{
-                        const msgs = analytics.messagesPerDay.slice(-14);
-                        const max = Math.max(...msgs.map(d=>d.total||0),1);
-                        return msgs.map((d,i)=>(
-                          <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                            <div style={{width:"100%",background:WA_GREEN,borderRadius:"3px 3px 0 0",
-                              height:`${Math.max(4,((d.total||0)/max)*70)}px`,
-                              opacity:0.7+((d.count||0)/max)*0.3,transition:"height .3s"}}
-                              title={`${d.date}: ${d.total||0} messages`}/>
-                            {msgs.length<=7&&<div style={{fontSize:8,color:T.textFaint,transform:"rotate(-45deg)",whiteSpace:"nowrap"}}>{d.date?.slice(5)}</div>}
-                          </div>
-                        ));
-                      })()}
-                    </div>
-                  </div>}
-
-                  {/* Peak Hours */}
-                  {analytics.peak_hours&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
-                    <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>⏰ Peak Activity Hours</div>
-                    <div style={{display:"flex",alignItems:"flex-end",gap:2,height:50}}>
-                      {Array.from({length:24},(_,h)=>{
-                        const count = (analytics.peakHours||[]).find(p=>p.hour===h)?.count||0;
-                        const max = Math.max(...(analytics.peakHours||[]).map(p=>p.count),1);
-                        return <div key={h} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
-                          <div style={{width:"100%",background:count>0?WA_GREEN:T.border,borderRadius:"2px 2px 0 0",
-                            height:`${Math.max(2,(count/max)*46)}px`,
-                            opacity:count>0?0.6+(count/max)*0.4:0.3}}
-                            title={`${h}:00 — ${count} messages`}/>
-                          {h%6===0&&<div style={{fontSize:8,color:T.textFaint}}>{h}h</div>}
-                        </div>;
-                      })}
-                    </div>
-                  </div>}
-
-                  {/* Follow-up Stats */}
-                  {analytics.totals?.followups>0&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
-                    <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📤 Follow-up Performance</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                      <div style={{textAlign:"center",padding:"12px",background:T.card2,borderRadius:10}}>
-                        <div style={{fontSize:24,fontWeight:800,color:WA_GREEN}}>{analytics.totals?.followups||0}</div>
-                        <div style={{fontSize:11,color:T.textMuted}}>Total Sent</div>
-                      </div>
-                      <div style={{textAlign:"center",padding:"12px",background:T.card2,borderRadius:10}}>
-                        <div style={{fontSize:24,fontWeight:800,color:"#f59e0b"}}>{analytics.totals?.botMessages||0}</div>
-                        <div style={{fontSize:11,color:T.textMuted}}>Bot Messages</div>
-                      </div>
-                    </div>
-                  </div>}
-
-                  {/* Staff Performance */}
-                  {analytics.staffStats&&analytics.staffStats.length>0&&<div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
-                    <div style={{fontWeight:700,fontSize:13,marginBottom:14}}>👥 Staff Performance</div>
-                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                      {analytics.staffStats.map(s=>{
-                        const total = s.assigned_count||0;
-                        const done = s.done_count||0;
-                        const rate = total>0?Math.round(done/total*100):0;
-                        return (
-                          <div key={s.id} style={{padding:"12px 14px",background:T.card2,borderRadius:10,border:`1px solid ${T.border}`}}>
-                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <div style={{width:32,height:32,borderRadius:"50%",background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>
-                                  {s.username?.charAt(0)?.toUpperCase()||"?"}
-                                </div>
-                                <div>
-                                  <div style={{fontWeight:700,fontSize:13}}>@{s.username}</div>
-                                  <div style={{fontSize:10,color:T.textMuted}}>{total} assigned · {done} closed</div>
-                                </div>
-                              </div>
-                              <div style={{textAlign:"right"}}>
-                                <div style={{fontSize:18,fontWeight:800,color:rate>=50?WA_GREEN:"#f59e0b"}}>{rate}%</div>
-                                <div style={{fontSize:10,color:T.textMuted}}>close rate</div>
-                              </div>
-                            </div>
-                            {/* Progress bar */}
-                            <div style={{height:6,borderRadius:3,background:T.border}}>
-                              <div style={{height:6,borderRadius:3,width:`${rate}%`,
-                                background:rate>=70?WA_GREEN:rate>=40?"#f59e0b":"#ef4444",
-                                transition:"width .3s"}}/>
-                            </div>
-                            {/* Mini stats */}
-                            <div style={{display:"flex",gap:12,marginTop:8,fontSize:10,color:T.textMuted}}>
-                              <span>🔥 {s.hot_count||0} hot</span>
-                              <span>🟡 {s.warm_count||0} warm</span>
-                              <span>✅ {s.done_count||0} done</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>}
+                </>}
                 </>}
               </>}
 
