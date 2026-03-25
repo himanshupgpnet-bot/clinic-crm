@@ -566,12 +566,16 @@ export default function App() {
 
   // Refresh permissions from server (in case admin changed them)
   const refreshPermissions = useCallback(async () => {
-    if(!authToken || isAdmin) return; // Admin always has full access
+    if(!authToken || isAdmin) return;
     try {
       const r = await fetch(`${API}/api/auth/me`, {headers:authHeaders()});
       if(r.ok) {
         const d = await r.json();
-        if(d.permissions) setPermissions(d.permissions);
+        if(d.permissions) {
+          setPermissions(d.permissions);
+          // Always update sessionStorage so reload uses fresh perms
+          sessionStorage.setItem("crm_perms", JSON.stringify(d.permissions));
+        }
       }
     } catch {}
   }, [authToken, isAdmin]);
@@ -2574,9 +2578,14 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             can_knowledge:editUser.can_knowledge,can_settings:editUser.can_settings}}
       : {username:editUser.username, active:editUser.active,
           ...(editUser.newPassword?{password:editUser.newPassword}:{}),
-          can_inbox:editUser.can_inbox,can_leads:editUser.can_leads,
-          can_analytics:editUser.can_analytics,can_testbot:editUser.can_testbot,
-          can_knowledge:editUser.can_knowledge,can_settings:editUser.can_settings};
+          permissions:{
+            can_inbox:editUser.can_inbox,
+            can_leads:editUser.can_leads,
+            can_analytics:editUser.can_analytics,
+            can_testbot:editUser.can_testbot,
+            can_knowledge:editUser.can_knowledge,
+            can_settings:editUser.can_settings
+          }};
     const url = isNew ? `${API}/api/admin/users` : `${API}/api/admin/users/${editUser.id}`;
     const r = await fetch(url,{method:isNew?"POST":"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
     const d = await r.json();
