@@ -564,6 +564,18 @@ export default function App() {
 
   const [clinicUsers, setClinicUsers] = useState([]);
 
+  // Refresh permissions from server (in case admin changed them)
+  const refreshPermissions = useCallback(async () => {
+    if(!authToken || isAdmin) return; // Admin always has full access
+    try {
+      const r = await fetch(`${API}/api/auth/me`, {headers:authHeaders()});
+      if(r.ok) {
+        const d = await r.json();
+        if(d.permissions) setPermissions(d.permissions);
+      }
+    } catch {}
+  }, [authToken, isAdmin]);
+
   // Load clinic users for assignment dropdown
   const fetchClinicUsers = useCallback(async () => {
     try {
@@ -680,7 +692,7 @@ export default function App() {
   const pollRef = useRef(null);
 
   useEffect(() => {
-    fetchConversations(); fetchKnowledge(); fetchSettings(); fetchClinicUsers();
+    fetchConversations(); fetchKnowledge(); fetchSettings(); fetchClinicUsers(); refreshPermissions();
   }, []);
 
   useEffect(() => {
@@ -1842,24 +1854,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 4 Smart Tabs */}
-              {(()=>{
-                const [kbTab,setKbTab] = window._kbTabState || [0,()=>{}];
-                // Use local state via hack
-                const KBTabState = window._kbTabState || (window._kbTabState = (() => {
-                  let v=0,subs=[];
-                  return {
-                    get:()=>v,
-                    set:(n)=>{v=n;subs.forEach(f=>f(n));},
-                    sub:(f)=>subs.push(f)
-                  };
-                })());
-                return null;
-              })()}
-              {(()=>{
-                if(!window._kbTab) window._kbTab=0;
-                return null;
-              })()}
+
 
               {/* Tab navigation */}
               <div style={{display:"flex",gap:4,marginBottom:16,background:T.card2,borderRadius:12,padding:4,border:`1px solid ${T.border}`}}>
