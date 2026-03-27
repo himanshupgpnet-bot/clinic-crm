@@ -2582,18 +2582,42 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
     {node}
   </div>, [T]);
 
+  const [kbBuilding, setKbBuilding] = useState(false);
+  const [kbBuildMsg, setKbBuildMsg] = useState("");
+
   const saveClinic = async () => {
     if(!editClinic.name?.trim()) return alert("Company name required");
     const isNew = !editClinic.id;
     const url = isNew ? `${API}/api/admin/clinics` : `${API}/api/admin/clinics/${editClinic.id}`;
     const method = isNew ? "POST" : "PATCH";
+    const website = editClinic.website?.trim();
+
+    // Show KB building indicator for new clinics with website
+    if(isNew && website) {
+      setKbBuilding(true);
+      setKbBuildMsg("🌐 Fetching website content...");
+      setTimeout(()=>setKbBuildMsg("🤖 AI is extracting Q&A pairs..."), 2000);
+      setTimeout(()=>setKbBuildMsg("📚 Building knowledge base..."), 5000);
+    }
+
     const r = await fetch(url,{method,headers:authHeaders(),body:JSON.stringify({
       ...editClinic,
-      contact_email: editClinic.website  // reuse contact_email field for website
+      website: website,
+      contact_email: website
     })});
     const d = await r.json();
+    setKbBuilding(false);
     if(!r.ok) return alert(d.error||"Failed");
-    flash(isNew ? `✅ "${editClinic.name}" onboarded!` : "✅ Client updated!");
+
+    // Show KB result
+    if(isNew && d.kb_status && d.kb_status.startsWith("built_")) {
+      const count = d.kb_status.split("_")[1];
+      flash(`✅ "${editClinic.name}" onboarded! 📚 ${count} Q&A pairs auto-built from website`);
+    } else if(isNew && website) {
+      flash(`✅ "${editClinic.name}" onboarded! (KB will build in background)`);
+    } else {
+      flash(isNew ? `✅ "${editClinic.name}" onboarded!` : "✅ Client updated!");
+    }
     setView("clients"); setEditClinic(null); load();
   };
 
@@ -2647,6 +2671,19 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
 
   if(view==="clinic_form") return (
     <div style={{maxWidth:580,margin:"0 auto",paddingBottom:20}}>
+      {/* KB Building overlay */}
+      {kbBuilding&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
+        <div style={{background:"#1e293b",borderRadius:20,padding:"32px 40px",textAlign:"center",maxWidth:340}}>
+          <div style={{fontSize:40,marginBottom:12}}>🤖</div>
+          <div style={{fontWeight:800,fontSize:18,color:"#fff",marginBottom:8}}>Building Knowledge Base</div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,.7)",marginBottom:20,lineHeight:1.6}}>{kbBuildMsg}</div>
+          <div style={{height:4,borderRadius:2,background:"rgba(255,255,255,.1)",overflow:"hidden"}}>
+            <div style={{height:4,borderRadius:2,background:WA_GREEN,animation:"kbprogress 8s linear forwards"}}/>
+          </div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:12}}>This may take 10-20 seconds...</div>
+        </div>
+        <style>{`@keyframes kbprogress{from{width:0%}to{width:95%}}`}</style>
+      </div>}
 
       {/* Step progress */}
       <div style={{background:T.card,borderRadius:16,padding:"20px 24px",marginBottom:14,border:`1px solid ${T.border}`}}>
