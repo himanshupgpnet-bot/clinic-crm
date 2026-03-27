@@ -6,8 +6,8 @@ const CRM_VERSION = "2.9.1";
 
 // Responsive hook
 function useWindowSize() {
-  const [size, setSize] = React.useState({w:window.innerWidth,h:window.innerHeight});
-  React.useEffect(()=>{
+  const [size, setSize] = useState({w:window.innerWidth,h:window.innerHeight});
+  useEffect(()=>{
     const fn = ()=>setSize({w:window.innerWidth,h:window.innerHeight});
     window.addEventListener("resize",fn);
     return ()=>window.removeEventListener("resize",fn);
