@@ -3,6 +3,17 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 
 const API = "https://clinic-bot-oy48.onrender.com";
 const CRM_VERSION = "2.9.1";
+
+// Responsive hook
+function useWindowSize() {
+  const [size, setSize] = React.useState({w:window.innerWidth,h:window.innerHeight});
+  React.useEffect(()=>{
+    const fn = ()=>setSize({w:window.innerWidth,h:window.innerHeight});
+    window.addEventListener("resize",fn);
+    return ()=>window.removeEventListener("resize",fn);
+  },[]);
+  return size;
+}
 const WA_GREEN = "#25D366";
 const WA_DARK  = "#128C7E";
 const WA_BG    = "#ECE5DD";
@@ -63,6 +74,11 @@ const TABS = [
 
 export default function App() {
   // ── AUTH ──
+  const {w:winW} = useWindowSize();
+  const isMobile = winW < 640;
+  const isTablet = winW >= 640 && winW < 1024;
+  const isSmall  = winW < 1024; // mobile + tablet
+
   const [authToken, setAuthToken] = useState(()=>{
     // Clear session if logout param present (handles Safari cache)
     if(window.location.search.includes("logout=")) {
@@ -978,7 +994,20 @@ export default function App() {
         .kc{border-radius:12px;min-height:200px;transition:background .15s}.kc.over{background:${dark?"#1a2e23":"#dcfce7"}!important}
         .kcard{cursor:grab;transition:transform .15s,box-shadow .15s}.kcard:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.15)}.kcard:active{cursor:grabbing}
         .cc{background:${T.card};border:1px solid ${T.border};border-radius:14px;padding:20px;margin-bottom:16px}
-        @media(max-width:768px){.hide-mobile{display:none!important}.mobile-full{width:100%!important}}
+        @media(max-width:639px){
+          .hide-mobile{display:none!important}
+          .mobile-full{width:100%!important}
+          .cc{padding:14px!important}
+          .kc{min-height:120px!important}
+          input,textarea,select{font-size:16px!important} /* prevent iOS zoom */
+        }
+        @media(max-width:1023px){
+          .hide-tablet{display:none!important}
+          .tablet-full{width:100%!important}
+        }
+        @media(min-width:640px) and (max-width:1023px){
+          .tablet-stack{flex-direction:column!important}
+        }
       `}</style>
 
       {/* ARCHIVE CONFIRM MODAL */}
@@ -1106,7 +1135,8 @@ export default function App() {
 
         {/* ══ CRM TAB ══ */}
         {tab==="crm"&&<>
-          <div style={{width:300,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0}}>
+          <div style={{width:isMobile?"100%":isTablet?260:300,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,
+            ...(isMobile&&selected?{display:"none"}:{})}}>
             <div style={{padding:"10px 10px 8px",borderBottom:`1px solid ${T.border}`}}>
               {/* Admin client selector dropdown */}
               {isAdmin&&adminOverview.length>0&&<div style={{marginBottom:8}}>
@@ -1242,7 +1272,7 @@ export default function App() {
         {tab==="leads"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
           {/* Admin sidebar — client picker */}
-          {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
+          {isAdmin&&!isMobile&&<div style={{width:isTablet?180:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Clients</div>
             <div onClick={()=>setLeadsClinic(null)}
               style={{padding:"10px 14px",cursor:"pointer",background:!leadsClinic?`${WA_GREEN}15`:"transparent",borderLeft:!leadsClinic?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
@@ -1286,7 +1316,7 @@ export default function App() {
             </div>
 
             {/* 4 Lead Columns */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(240px,1fr))",gap:14,minWidth:960}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(4,minmax(220px,1fr))",gap:12,minWidth:isMobile?"auto":isTablet?"auto":900}}>
               {[
                 {id:"hot",  label:"🔥 Hot Leads",  sub:"Ready to close",    color:"#ef4444", bg:"#fef2f2", dark:"#2d1515", border:"#fca5a5"},
                 {id:"warm", label:"🟡 Warm Leads", sub:"Needs nurturing",   color:"#f59e0b", bg:"#fffbeb", dark:"#2d2010", border:"#fcd34d"},
@@ -1558,7 +1588,7 @@ export default function App() {
 
                     return <>
                       {/* ROW 1 — KPI Cards */}
-                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
+                      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":isTablet?"1fr 1fr":"repeat(4,1fr)",gap:10,marginBottom:16}}>
                         {[
                           {label:"Total Contacts",  value:total,         sub:"All conversations",     color:"#6366f1",icon:"👥",bg:"#eef2ff"},
                           {label:"Hot Leads",       value:hot,           sub:`${convRate}% conversion rate`, color:"#ef4444",icon:"🔥",bg:"#fef2f2"},
@@ -1575,7 +1605,7 @@ export default function App() {
                       </div>
 
                       {/* ROW 2 — Funnel + Bot Donut */}
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+                      <div style={{display:"grid",gridTemplateColumns:isSmall?"1fr":"1fr 1fr",gap:12,marginBottom:16}}>
                         {/* Lead Funnel */}
                         <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
                           <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>🎯 Conversion Funnel</div>
@@ -1667,7 +1697,7 @@ export default function App() {
                       </div>}
 
                       {/* ROW 4 — Peak Hours + Lead Quality */}
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+                      <div style={{display:"grid",gridTemplateColumns:isSmall?"1fr":"1fr 1fr",gap:12,marginBottom:16}}>
                         {/* Peak Hours */}
                         <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
                           <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>⏰ Peak Activity Hours</div>
@@ -1712,7 +1742,7 @@ export default function App() {
                       {analytics.staffStats?.length>0&&<div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
                         <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>👥 Team Leaderboard</div>
                         <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>Who handled what this period</div>
-                        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+                        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
                           {analytics.staffStats.map((s,i)=>{
                             const rate=s.assigned_count>0?Math.round((s.done_count||0)/s.assigned_count*100):0;
                             const medals=["🥇","🥈","🥉"];
@@ -1834,7 +1864,7 @@ export default function App() {
               </div>
             </div>}
 
-            {(!isAdmin||kbClinic)&&<div style={{maxWidth:860}}>
+            {(!isAdmin||kbClinic)&&<div style={{maxWidth:860,width:"100%"}}>
 
               {/* KB Health Score Banner */}
               <div style={{background:`linear-gradient(135deg,#0f172a,#1e3a5f)`,borderRadius:16,padding:"20px 24px",marginBottom:16,color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
@@ -2116,7 +2146,7 @@ export default function App() {
               <div style={{fontSize:13}}>Choose from the sidebar to edit their settings</div>
             </div>}
 
-            {(!isAdmin||settingsClinic)&&<div style={{maxWidth:720,margin:"0 auto"}}>
+            {(!isAdmin||settingsClinic)&&<div style={{maxWidth:720,margin:"0 auto",width:"100%"}}>
 
               {/* Client header bar */}
               {isAdmin&&settingsClinic&&<div style={{padding:"12px 16px",background:`${WA_GREEN}10`,borderRadius:12,border:`1px solid ${WA_GREEN}30`,marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
