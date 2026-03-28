@@ -2051,23 +2051,72 @@ export default function App() {
 
               {/* PANEL 3 — Bulk Import */}
               <div id="kbpanel-3" style={{display:"none"}}>
+                {/* URL Import */}
+                <div className="cc" style={{marginBottom:12,border:`2px solid ${WA_GREEN}30`,background:`${WA_GREEN}05`}}>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>🌐 Import from Website URL</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>
+                    Enter your website URL — AI crawls every page and extracts all Q&A automatically. 
+                    Works great for clinics with service pages, FAQs, and about pages.
+                  </div>
+                  <div style={{display:"flex",gap:8,marginBottom:8}}>
+                    <input id="kb-url-input" placeholder="https://yourwebsite.com" 
+                      style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"9px 14px",color:T.text,fontSize:13,fontFamily:"inherit"}}/>
+                    <button onClick={async()=>{
+                      const url = document.getElementById("kb-url-input").value.trim();
+                      if(!url||!url.startsWith("http")) return alert("Please enter a valid URL starting with https://");
+                      const clearEx = document.getElementById("kb-url-clear").checked;
+                      const res = document.getElementById("url-import-result");
+                      res.innerHTML = `<div style='background:#1e293b;border-radius:12px;padding:16px;color:#fff;text-align:center'>
+                        <div style='font-size:28px;margin-bottom:8px'>🤖</div>
+                        <div style='font-weight:700;margin-bottom:4px'>Crawling website...</div>
+                        <div style='font-size:11px;color:rgba(255,255,255,.6)'>Reading all pages and extracting Q&A<br/>This takes 20-60 seconds</div>
+                      </div>`;
+                      const clinicId = kbClinic?.clinic_id || null;
+                      const body = {url, clear_existing:clearEx};
+                      if(clinicId) body.clinic_id = clinicId;
+                      const r = await fetch(`${API}/api/knowledge/build-from-url`,{method:"POST",headers:authHeaders(),body:JSON.stringify(body)});
+                      const d = await r.json();
+                      if(d.error){res.innerHTML=`<div style='color:#ef4444;padding:12px'>${d.error}</div>`;return;}
+                      document.getElementById("kb-url-input").value = ""; // Clear URL input
+                      document.getElementById("kb-url-clear").checked = false;
+                      res.innerHTML = `<div style='background:#f0fdf4;border:2px solid #86efac;border-radius:12px;padding:16px;text-align:center'>
+                        <div style='font-size:28px;margin-bottom:8px'>🎉</div>
+                        <div style='font-size:20px;font-weight:900;color:#15803d'>${d.built} Q&A Pairs Built!</div>
+                        <div style='font-size:12px;color:#374151;margin-top:6px'>From ${d.url}</div>
+                        <div style='font-size:11px;color:#6b7280;margin-top:4px'>Switch to 📝 Q&A Library tab to review</div>
+                      </div>`;
+                      fetchKnowledge();
+                    }} style={{padding:"9px 18px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                      🌐 Build KB from Website
+                    </button>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:T.textMuted}}>
+                    <input type="checkbox" id="kb-url-clear" style={{width:14,height:14}}/>
+                    <label htmlFor="kb-url-clear">Clear existing KB first (fresh rebuild)</label>
+                  </div>
+                  <div id="url-import-result" style={{marginTop:12}}/>
+                </div>
+
+                {/* Text Import */}
                 <div className="cc">
-                  <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>📥 Bulk Import via AI</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>Paste any FAQ text, website content, or document — AI extracts Q&A pairs automatically</div>
-                  <textarea id="bulk-import-text" rows={8} placeholder="Paste your FAQ, website content, or any text here...&#10;&#10;Example:&#10;Our clinic is open Tuesday to Sunday, 9AM to 7PM.&#10;Consultation fee is RM100.&#10;We treat diabetes, kidney disease, and arthritis..."
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>📋 Import from Text / FAQ</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>Paste any FAQ, brochure, or document text — AI extracts Q&A pairs</div>
+                  <textarea id="bulk-import-text" rows={6} placeholder="Paste FAQ or any text here...&#10;&#10;Example:&#10;Our clinic is open Tue-Sun 9AM-6PM.&#10;Consultation fee is RM100.&#10;We treat diabetes, kidney disease..."
                     style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
                   <button onClick={async()=>{
-                    const text = document.getElementById("bulk-import-text").value.trim();
+                    const textEl = document.getElementById("bulk-import-text");
+                    const text = textEl.value.trim();
                     if(!text) return;
                     const res = document.getElementById("bulk-result");
-                    res.innerHTML = "<div style='color:#888;font-size:12px'>🤖 AI is extracting Q&A pairs...</div>";
+                    res.innerHTML = "<div style='color:#888;font-size:12px'>🤖 Extracting Q&A pairs...</div>";
                     const r = await fetch(`${API}/api/knowledge/bulk-import`,{method:"POST",headers:authHeaders(),body:JSON.stringify({text})});
                     const d = await r.json();
                     if(d.error){res.innerHTML=`<div style='color:#ef4444'>${d.error}</div>`;return;}
+                    textEl.value = ""; // Clear textarea after successful import
                     res.innerHTML = `<div style='color:#22c55e;font-weight:700;margin-bottom:10px'>✅ Imported ${d.imported} Q&A pairs!</div>` +
                       (d.pairs||[]).map(p=>`<div style='padding:8px 10px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:6px;font-size:11px'><div style='font-weight:700;color:#15803d'>Q: ${p.question}</div><div style='color:#374151;margin-top:2px'>A: ${p.answer}</div></div>`).join("");
                     fetchKnowledge();
-                  }} style={{padding:"8px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🤖 Extract Q&A with AI</button>
+                  }} style={{padding:"8px 18px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🤖 Extract Q&A</button>
                   <div id="bulk-result" style={{marginTop:12}}/>
                 </div>
               </div>
