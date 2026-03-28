@@ -1946,12 +1946,54 @@ export default function App() {
                       if(d.error){res.innerHTML=`<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px;margin-top:10px'>${d.error}</div>`;return;}
                       urlEl.value="";
                       document.getElementById("kb-url-clear").checked=false;
-                      res.innerHTML = `<div style='background:#f0fdf4;border:2px solid #86efac;border-radius:12px;padding:16px;text-align:center;margin-top:10px'>
-                        <div style='font-size:24px;margin-bottom:6px'>🎉</div>
-                        <div style='font-size:18px;font-weight:900;color:#15803d'>${d.built} Q&A Pairs Added!</div>
-                        <div style='font-size:11px;color:#374151;margin-top:4px'>Scroll down to see your new knowledge entries</div>
-                      </div>`;
-                      fetchKnowledge();
+
+                      // Poll for completion
+                      const jobId = d.job_id;
+                      const dots = [".", "..", "..."];
+                      let dotIdx = 0;
+                      const poll = setInterval(async()=>{
+                        dotIdx++;
+                        const msgs = [
+                          "🌐 Reading your website pages",
+                          "📄 Extracting service details",
+                          "🤖 AI building Q&A pairs",
+                          "📚 Saving to knowledge base",
+                          "⏳ Almost done"
+                        ];
+                        const msg = msgs[Math.min(Math.floor(dotIdx/3), msgs.length-1)];
+                        res.innerHTML = `<div style='background:#1e293b;border-radius:12px;padding:16px;color:#fff;text-align:center;margin-top:10px'>
+                          <div style='font-size:24px;margin-bottom:8px'>🤖</div>
+                          <div style='font-weight:700;font-size:14px;margin-bottom:4px'>${msg}${dots[dotIdx%3]}</div>
+                          <div style='font-size:11px;color:rgba(255,255,255,.6)'>This takes 30–90 seconds depending on site size</div>
+                          <div style='height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:12px;overflow:hidden'>
+                            <div style='height:3px;background:#25D366;border-radius:2px;width:${Math.min(95,dotIdx*5)}%;transition:width .5s'></div>
+                          </div>
+                        </div>`;
+                        try {
+                          const pr = await fetch(`${API}/api/knowledge/build-status/${jobId}`,{headers:authHeaders()});
+                          const pd = await pr.json();
+                          if(pd.status==="done"){
+                            clearInterval(poll);
+                            res.innerHTML = `<div style='background:#f0fdf4;border:2px solid #86efac;border-radius:12px;padding:16px;text-align:center;margin-top:10px'>
+                              <div style='font-size:24px;margin-bottom:6px'>🎉</div>
+                              <div style='font-size:18px;font-weight:900;color:#15803d'>${pd.built} Q&A Pairs Added!</div>
+                              <div style='font-size:11px;color:#374151;margin-top:4px'>Scroll down to see your new knowledge entries</div>
+                            </div>`;
+                            fetchKnowledge();
+                          } else if(pd.status==="error"){
+                            clearInterval(poll);
+                            res.innerHTML = `<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px;margin-top:10px'>❌ ${pd.error||"Build failed"}</div>`;
+                          }
+                        } catch{}
+                      }, 3000);
+
+                      // Safety timeout after 3 mins
+                      setTimeout(()=>{
+                        clearInterval(poll);
+                        res.innerHTML += `<div style='font-size:11px;color:#6b7280;margin-top:8px;text-align:center'>Still running in background — refresh KB in a minute to see results</div>`;
+                        fetchKnowledge();
+                      }, 180000);
+
                     } catch(e) {
                       res.innerHTML = `<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px;margin-top:10px'>Failed: ${e.message}</div>`;
                     }
