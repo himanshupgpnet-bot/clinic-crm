@@ -2639,7 +2639,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
     const isNew = !editClinic.id;
     const url = isNew ? `${API}/api/admin/clinics` : `${API}/api/admin/clinics/${editClinic.id}`;
     const method = isNew ? "POST" : "PATCH";
-    const website = editClinic.website?.trim();
+    const website = (editClinic.website_url||editClinic.website||"").trim();
 
     // Show KB building indicator for new clinics with website
     if(isNew && website) {
@@ -2651,8 +2651,8 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
 
     const r = await fetch(url,{method,headers:authHeaders(),body:JSON.stringify({
       ...editClinic,
-      website: website,
-      contact_email: website
+      website_url: website,
+      contact_email: editClinic.contact_email||""
     })});
     const d = await r.json();
     setKbBuilding(false);
@@ -2798,7 +2798,8 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div>
                 <label style={labelStyle}>Website</label>
-                <input value={editClinic?.website||editClinic?.contact_email||""} onChange={e=>setEditClinic(p=>({...p,website:e.target.value}))} placeholder="https://company.com" style={inputStyle}/>
+                <input value={editClinic?.website_url||editClinic?.website||""} onChange={e=>setEditClinic(p=>({...p,website_url:e.target.value,website:e.target.value}))} placeholder="https://company.com" style={inputStyle}/>
+                <div style={{fontSize:10,color:WA_GREEN,marginTop:4,fontWeight:600}}>🤖 AI will auto-build KB from this URL when onboarding</div>
               </div>
               <div>
                 <label style={labelStyle}>Contact Phone</label>
