@@ -570,11 +570,15 @@ export default function App() {
       const r=await fetch(`${API}/api/settings${cParam}`, {headers:authHeaders()});
       if(!r.ok)return;
       const d=await r.json();
-      // Only update if not dirty OR forced (after save/discard)
-      if(!settingsDirty || force) {
+      if(force) {
+        // Forced reload (after save/discard) — always update
         setAppSettings(d);
         setSettingsDirty(false);
+      } else if(!settingsDirty) {
+        // Only auto-update if user has no unsaved changes
+        setAppSettings(d);
       }
+      // Always update timeout
       if(d.session_timeout_mins) {
         sessionStorage.setItem("crm_timeout", String(d.session_timeout_mins));
       }
@@ -2516,7 +2520,7 @@ export default function App() {
                 setSettingsDirty(false);
                 setTab(pendingTab);
                 setPendingTab(null);
-                fetchSettings(); // Reload original settings from DB
+                fetchSettings(null, true); // Force reload from DB
               }}
                 style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
                 Discard
