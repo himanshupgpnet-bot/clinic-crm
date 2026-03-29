@@ -564,17 +564,16 @@ export default function App() {
     } catch {}
   }, []);
 
-  const fetchSettings = useCallback(async (clinicId=null) => {
-    // Don't overwrite settings if user is actively editing Telegram fields
-    if(window._tgEditing) return;
+  const fetchSettings = useCallback(async (clinicId=null, force=false) => {
     try {
       const cParam = clinicId ? `?clinic_id=${clinicId}` : "";
       const r=await fetch(`${API}/api/settings${cParam}`, {headers:authHeaders()});
       if(!r.ok)return;
       const d=await r.json();
-      // Don't overwrite if settings are dirty (user has unsaved changes)
-      if(!settingsDirty) {
+      // Only update if not dirty OR forced (after save/discard)
+      if(!settingsDirty || force) {
         setAppSettings(d);
+        setSettingsDirty(false);
       }
       if(d.session_timeout_mins) {
         sessionStorage.setItem("crm_timeout", String(d.session_timeout_mins));
@@ -855,6 +854,12 @@ export default function App() {
             followup_2_delay_unit:appSettings.followup_2_delay_unit||"hours",
             followup_2_message:   appSettings.followup_2_message||"",
             followup_max:         appSettings.followup_max||"2",
+            telegram_token:        appSettings.telegram_token||"",
+            telegram_chat_id:      appSettings.telegram_chat_id||"",
+            telegram_notify_hot:   appSettings.telegram_notify_hot||"true",
+            telegram_notify_warm:  appSettings.telegram_notify_warm||"false",
+            telegram_notify_human: appSettings.telegram_notify_human||"true",
+            telegram_notify_booking: appSettings.telegram_notify_booking||"true",
           })
         });
       } else {
@@ -2196,11 +2201,7 @@ export default function App() {
                     ⚠️ Not configured — add your Bot Token and Chat ID below
                   </div>}
 
-                {(()=>{
-                  const [showTgToken, setShowTgToken] = window._tgShow || (window._tgShow = [false, v => { window._tgShow[0]=v; }]);
-                  const [showTgChat, setShowTgChat] = window._tgChat || (window._tgChat = [false, v => { window._tgChat[0]=v; }]);
-                  return null;
-                })()}
+
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
                   <div>
                     <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>Bot Token</div>
@@ -2208,17 +2209,9 @@ export default function App() {
                       <input
                         id="tg-token-input"
                         type="password"
-                        defaultValue={appSettings.telegram_token||""}
-                        onFocus={()=>{
-                          // Stop auto-refresh overwriting while typing
-                          window._tgEditing = true;
-                        }}
-                        onBlur={e=>{
-                          setAppSettings(p=>({...p,telegram_token:e.target.value}));
-                          setSettingsDirty(true);
-                          window._tgEditing = false;
-                        }}
+                        value={appSettings.telegram_token||""}
                         onChange={e=>{
+                          setAppSettings(p=>({...p,telegram_token:e.target.value}));
                           setSettingsDirty(true);
                         }}
                         placeholder="8664616537:AAGE9wn..."
@@ -2241,14 +2234,11 @@ export default function App() {
                       <input
                         id="tg-chat-input"
                         type="password"
-                        defaultValue={appSettings.telegram_chat_id||""}
-                        onFocus={()=>{ window._tgEditing = true; }}
-                        onBlur={e=>{
+                        value={appSettings.telegram_chat_id||""}
+                        onChange={e=>{
                           setAppSettings(p=>({...p,telegram_chat_id:e.target.value}));
                           setSettingsDirty(true);
-                          window._tgEditing = false;
                         }}
-                        onChange={e=>{ setSettingsDirty(true); }}
                         placeholder="-5277820778"
                         style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 36px 8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
                       <button
@@ -2308,8 +2298,25 @@ export default function App() {
                     // Then test
                     const r = await fetch(`${API}/api/settings/test-telegram`,{method:"POST",headers:authHeaders()});
                     const d = await r.json();
-                    if(d.ok) alert("✅ Test message sent! Check your Telegram group.");
-                    else alert("❌ Failed: " + (d.error||"Check your token and chat ID"));
+                    if(d.ok) {
+                      setConfirmModal({
+                        title:"Test Sent! ✅",
+                        message:"Check your Telegram group — you should see a message from your bot right now.",
+                        icon:"📨",
+                        danger:false,
+                        confirmText:"Got it!",
+                        onConfirm:()=>{}
+                      });
+                    } else {
+                      setConfirmModal({
+                        title:"Failed to Send ❌",
+                        message:"Could not send to Telegram. Please check: Bot Token is correct, Chat ID starts with -, Bot is added to group as Admin, and Settings are saved.",
+                        icon:"⚠️",
+                        danger:true,
+                        confirmText:"OK, I'll check",
+                        onConfirm:()=>{}
+                      });
+                    }
                   }}
                   style={{padding:"8px 18px",borderRadius:10,border:"none",background:"#0088cc",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
                   📨 Send Test Message
