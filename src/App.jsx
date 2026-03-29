@@ -116,6 +116,11 @@ export default function App() {
   const [appSettings, setAppSettings] = useState({});
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [settingsDirty, setSettingsDirty] = useState(false);
+  const settingsDirtyRef = useRef(false);
+  const setSettingsDirtyWithRef = (val) => {
+    settingsDirtyRef.current = val;
+    setSettingsDirty(val);
+  };
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [idleWarning, setIdleWarning] = useState(false);
   const [idleCountdown, setIdleCountdown] = useState(30);
@@ -571,19 +576,17 @@ export default function App() {
       if(!r.ok)return;
       const d=await r.json();
       if(force) {
-        // Forced reload (after save/discard) — always update
         setAppSettings(d);
-        setSettingsDirty(false);
-      } else if(!settingsDirty) {
-        // Only auto-update if user has no unsaved changes
+        setSettingsDirtyWithRef(false);
+      } else if(!settingsDirtyRef.current) {
+        // Use ref — always has current value, never stale
         setAppSettings(d);
       }
-      // Always update timeout
       if(d.session_timeout_mins) {
         sessionStorage.setItem("crm_timeout", String(d.session_timeout_mins));
       }
     } catch {}
-  }, [settingsDirty]);
+  }, []);
 
   const [clinicUsers, setClinicUsers] = useState([]);
 
@@ -656,7 +659,7 @@ export default function App() {
   async function loadClientSettings(client) {
     setSettingsClinic(client);
     setClientSettings(null);
-    setSettingsDirty(false);
+    setSettingsDirtyWithRef(false);
     try {
       const r = await fetch(`${API}/api/admin/clinics/${client.clinic_id}/settings`, {headers:authHeaders()});
       if(r.ok) {
@@ -870,7 +873,7 @@ export default function App() {
         // Client saving their own settings
         await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
       }
-      setSettingsSaved(true); setSettingsDirty(false); setTimeout(()=>setSettingsSaved(false),2500);
+      setSettingsSaved(true); setSettingsDirtyWithRef(false); setTimeout(()=>setSettingsSaved(false),2500);
       // Update session timeout in storage if it changed
       if(appSettings.session_timeout_mins) {
         sessionStorage.setItem("crm_timeout", String(appSettings.session_timeout_mins));
@@ -983,8 +986,8 @@ export default function App() {
     return <div style={{marginBottom:14}}>
       <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>{label}</div>
       {hint&&<div style={{fontSize:11,color:T.textFaint,marginBottom:5}}>{hint}</div>}
-      {rows?<textarea value={appSettings[settingKey]||""} rows={rows} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirty(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
-      :<input type={type} value={appSettings[settingKey]||""} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirty(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>}
+      {rows?<textarea value={appSettings[settingKey]||""} rows={rows} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirtyWithRef(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+      :<input type={type} value={appSettings[settingKey]||""} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirtyWithRef(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>}
     </div>;
   }
 
@@ -2216,7 +2219,7 @@ export default function App() {
                         value={appSettings.telegram_token||""}
                         onChange={e=>{
                           setAppSettings(p=>({...p,telegram_token:e.target.value}));
-                          setSettingsDirty(true);
+                          setSettingsDirtyWithRef(true);
                         }}
                         placeholder="8664616537:AAGE9wn..."
                         style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 36px 8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
@@ -2241,7 +2244,7 @@ export default function App() {
                         value={appSettings.telegram_chat_id||""}
                         onChange={e=>{
                           setAppSettings(p=>({...p,telegram_chat_id:e.target.value}));
-                          setSettingsDirty(true);
+                          setSettingsDirtyWithRef(true);
                         }}
                         placeholder="-5277820778"
                         style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 36px 8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
@@ -2268,7 +2271,7 @@ export default function App() {
                     {key:"telegram_notify_human",  label:"🚨 Human needed",           def:"true",  desc:"Complex medical question"},
                     {key:"telegram_notify_booking",label:"📅 Booking intent detected", def:"true",  desc:"Customer wants appointment"},
                   ].map(t=>(
-                    <div key={t.key} onClick={()=>{setAppSettings(p=>({...p,[t.key]:p[t.key]==="false"?"true":"false"}));setSettingsDirty(true);}}
+                    <div key={t.key} onClick={()=>{setAppSettings(p=>({...p,[t.key]:p[t.key]==="false"?"true":"false"}));setSettingsDirtyWithRef(true);}}
                       style={{padding:"10px 12px",borderRadius:10,border:`1px solid ${(appSettings[t.key]||t.def)!=="false"?WA_GREEN:T.border}`,
                         background:(appSettings[t.key]||t.def)!=="false"?`${WA_GREEN}08`:T.card2,
                         cursor:"pointer",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}>
@@ -2298,7 +2301,7 @@ export default function App() {
                     // Save first
                     await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),
                       body:JSON.stringify({...appSettings,telegram_token:token,telegram_chat_id:chatId})});
-                    setSettingsDirty(false);
+                    setSettingsDirtyWithRef(false);
                     // Then test
                     const r = await fetch(`${API}/api/settings/test-telegram`,{method:"POST",headers:authHeaders()});
                     const d = await r.json();
@@ -2352,7 +2355,7 @@ export default function App() {
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontSize:13,fontWeight:700,color:appSettings.ai_enabled!=="false"?WA_GREEN:"#ef4444"}}>{appSettings.ai_enabled!=="false"?"ON":"OFF"}</span>
-                    <div onClick={()=>{setAppSettings(p=>({...p,ai_enabled:p.ai_enabled==="false"?"true":"false"}));setSettingsDirty(true);}}
+                    <div onClick={()=>{setAppSettings(p=>({...p,ai_enabled:p.ai_enabled==="false"?"true":"false"}));setSettingsDirtyWithRef(true);}}
                       style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.ai_enabled!=="false"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
                       <div style={{position:"absolute",top:3,left:appSettings.ai_enabled!=="false"?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
                     </div>
@@ -2367,7 +2370,7 @@ export default function App() {
                     {id:"groq",label:"Llama 3",company:"Groq",color:"#f59e0b",free:true},
                   ].map(p=>{
                     const isSelected = appSettings.ai_provider===p.id;
-                    return <div key={p.id} onClick={()=>{setAppSettings(prev=>({...prev,ai_provider:p.id}));setSettingsDirty(true);}}
+                    return <div key={p.id} onClick={()=>{setAppSettings(prev=>({...prev,ai_provider:p.id}));setSettingsDirtyWithRef(true);}}
                       style={{padding:"14px 10px",borderRadius:14,border:`2px solid ${isSelected?p.color:T.border}`,background:isSelected?`${p.color}12`:T.card2,cursor:"pointer",textAlign:"center",position:"relative",transition:"all .15s"}}>
                       {p.free&&<div style={{position:"absolute",top:-8,right:8,background:"#10b981",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:8}}>FREE</div>}
                       {isSelected&&<div style={{position:"absolute",top:-8,left:8,background:p.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:8}}>ACTIVE</div>}
@@ -2380,7 +2383,7 @@ export default function App() {
                 {/* API Key input */}
                 <div style={{marginBottom:8}}>
                   <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,letterSpacing:0.5}}>API KEY</div>
-                  <input type="password" value={appSettings.ai_api_key||""} onChange={e=>{setAppSettings(p=>({...p,ai_api_key:e.target.value}));setSettingsDirty(true);}}
+                  <input type="password" value={appSettings.ai_api_key||""} onChange={e=>{setAppSettings(p=>({...p,ai_api_key:e.target.value}));setSettingsDirtyWithRef(true);}}
                     placeholder="Paste API key here..."
                     style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"monospace",boxSizing:"border-box"}}/>
                 </div>
@@ -2402,7 +2405,7 @@ export default function App() {
                     <div style={{fontWeight:700,fontSize:15}}>⏰ Smart Auto Follow-up</div>
                     <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{appSettings.followup_enabled==="true"?"Active — sends automatically when customer goes silent":"Disabled — only manual follow-ups"}</div>
                   </div>
-                  <div onClick={()=>{setAppSettings(p=>({...p,followup_enabled:p.followup_enabled==="true"?"false":"true"}));setSettingsDirty(true);}}
+                  <div onClick={()=>{setAppSettings(p=>({...p,followup_enabled:p.followup_enabled==="true"?"false":"true"}));setSettingsDirtyWithRef(true);}}
                     style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.followup_enabled==="true"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
                     <div style={{position:"absolute",top:3,left:appSettings.followup_enabled==="true"?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
                   </div>
@@ -2423,16 +2426,16 @@ export default function App() {
                       <div style={{fontWeight:700,fontSize:13,color:appSettings.followup_1_enabled!=="false"?WA_GREEN:T.textMuted}}>
                         📨 Follow-up 1 {appSettings.followup_1_enabled!=="false"?"✅ Enabled":"⏸️ Disabled"}
                       </div>
-                      <div onClick={()=>{setAppSettings(p=>({...p,followup_1_enabled:p.followup_1_enabled==="false"?"true":"false"}));setSettingsDirty(true);}}
+                      <div onClick={()=>{setAppSettings(p=>({...p,followup_1_enabled:p.followup_1_enabled==="false"?"true":"false"}));setSettingsDirtyWithRef(true);}}
                         style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:appSettings.followup_1_enabled!=="false"?WA_GREEN:"#94a3b8",position:"relative",transition:"background .2s",flexShrink:0}}>
                         <div style={{position:"absolute",top:2,left:appSettings.followup_1_enabled!=="false"?22:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
                       </div>
                     </div>
                     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
                       <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
-                      <input type="number" value={appSettings.followup_1_delay||"2"} onChange={e=>{setAppSettings(p=>({...p,followup_1_delay:e.target.value}));setSettingsDirty(true);}}
+                      <input type="number" value={appSettings.followup_1_delay||"2"} onChange={e=>{setAppSettings(p=>({...p,followup_1_delay:e.target.value}));setSettingsDirtyWithRef(true);}}
                         style={{width:70,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,textAlign:"center"}}/>
-                      <select value={appSettings.followup_1_delay_unit||"hours"} onChange={e=>{setAppSettings(p=>({...p,followup_1_delay_unit:e.target.value}));setSettingsDirty(true);}}
+                      <select value={appSettings.followup_1_delay_unit||"hours"} onChange={e=>{setAppSettings(p=>({...p,followup_1_delay_unit:e.target.value}));setSettingsDirtyWithRef(true);}}
                         style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
                         <option value="mins">Minutes</option>
                         <option value="hours">Hours</option>
@@ -2454,16 +2457,16 @@ export default function App() {
                       <div style={{fontWeight:700,fontSize:13,color:appSettings.followup_2_enabled==="true"?"#f59e0b":T.textMuted}}>
                         📨 Follow-up 2 {appSettings.followup_2_enabled==="true"?"✅ Enabled":"⏸️ Disabled"}
                       </div>
-                      <div onClick={()=>{setAppSettings(p=>({...p,followup_2_enabled:p.followup_2_enabled==="true"?"false":"true"}));setSettingsDirty(true);}}
+                      <div onClick={()=>{setAppSettings(p=>({...p,followup_2_enabled:p.followup_2_enabled==="true"?"false":"true"}));setSettingsDirtyWithRef(true);}}
                         style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:appSettings.followup_2_enabled==="true"?"#f59e0b":"#94a3b8",position:"relative",transition:"background .2s",flexShrink:0}}>
                         <div style={{position:"absolute",top:2,left:appSettings.followup_2_enabled==="true"?22:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
                       </div>
                     </div>
                     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
                       <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
-                      <input type="number" value={appSettings.followup_2_delay||"24"} onChange={e=>{setAppSettings(p=>({...p,followup_2_delay:e.target.value}));setSettingsDirty(true);}}
+                      <input type="number" value={appSettings.followup_2_delay||"24"} onChange={e=>{setAppSettings(p=>({...p,followup_2_delay:e.target.value}));setSettingsDirtyWithRef(true);}}
                         style={{width:70,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,textAlign:"center"}}/>
-                      <select value={appSettings.followup_2_delay_unit||"hours"} onChange={e=>{setAppSettings(p=>({...p,followup_2_delay_unit:e.target.value}));setSettingsDirty(true);}}
+                      <select value={appSettings.followup_2_delay_unit||"hours"} onChange={e=>{setAppSettings(p=>({...p,followup_2_delay_unit:e.target.value}));setSettingsDirtyWithRef(true);}}
                         style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
                         <option value="mins">Minutes</option>
                         <option value="hours">Hours</option>
@@ -2517,7 +2520,7 @@ export default function App() {
             <div style={{display:"flex",gap:10}}>
               <button onClick={()=>{
                 setShowUnsavedModal(false);
-                setSettingsDirty(false);
+                setSettingsDirtyWithRef(false);
                 setTab(pendingTab);
                 setPendingTab(null);
                 fetchSettings(null, true); // Force reload from DB
