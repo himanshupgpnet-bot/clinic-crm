@@ -565,18 +565,22 @@ export default function App() {
   }, []);
 
   const fetchSettings = useCallback(async (clinicId=null) => {
+    // Don't overwrite settings if user is actively editing Telegram fields
+    if(window._tgEditing) return;
     try {
       const cParam = clinicId ? `?clinic_id=${clinicId}` : "";
       const r=await fetch(`${API}/api/settings${cParam}`, {headers:authHeaders()});
       if(!r.ok)return;
       const d=await r.json();
-      setAppSettings(d);
-      setSettingsDirty(false);
+      // Don't overwrite if settings are dirty (user has unsaved changes)
+      if(!settingsDirty) {
+        setAppSettings(d);
+      }
       if(d.session_timeout_mins) {
         sessionStorage.setItem("crm_timeout", String(d.session_timeout_mins));
       }
     } catch {}
-  }, []);
+  }, [settingsDirty]);
 
   const [clinicUsers, setClinicUsers] = useState([]);
 
@@ -2192,24 +2196,71 @@ export default function App() {
                     ⚠️ Not configured — add your Bot Token and Chat ID below
                   </div>}
 
+                {(()=>{
+                  const [showTgToken, setShowTgToken] = window._tgShow || (window._tgShow = [false, v => { window._tgShow[0]=v; }]);
+                  const [showTgChat, setShowTgChat] = window._tgChat || (window._tgChat = [false, v => { window._tgChat[0]=v; }]);
+                  return null;
+                })()}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
                   <div>
                     <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>Bot Token</div>
-                    <input
-                      type="password"
-                      value={appSettings.telegram_token||""}
-                      onChange={e=>{setAppSettings(p=>({...p,telegram_token:e.target.value}));setSettingsDirty(true);}}
-                      placeholder="8664616537:AAGE9wn..."
-                      style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
+                    <div style={{position:"relative"}}>
+                      <input
+                        id="tg-token-input"
+                        type="password"
+                        defaultValue={appSettings.telegram_token||""}
+                        onFocus={()=>{
+                          // Stop auto-refresh overwriting while typing
+                          window._tgEditing = true;
+                        }}
+                        onBlur={e=>{
+                          setAppSettings(p=>({...p,telegram_token:e.target.value}));
+                          setSettingsDirty(true);
+                          window._tgEditing = false;
+                        }}
+                        onChange={e=>{
+                          setSettingsDirty(true);
+                        }}
+                        placeholder="8664616537:AAGE9wn..."
+                        style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 36px 8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
+                      <button
+                        type="button"
+                        onClick={()=>{
+                          const el = document.getElementById("tg-token-input");
+                          el.type = el.type==="password"?"text":"password";
+                        }}
+                        style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:14,color:T.textMuted,padding:0}}>
+                        👁
+                      </button>
+                    </div>
                     <div style={{fontSize:10,color:T.textFaint,marginTop:3}}>From @BotFather on Telegram</div>
                   </div>
                   <div>
                     <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>Chat ID</div>
-                    <input
-                      value={appSettings.telegram_chat_id||""}
-                      onChange={e=>{setAppSettings(p=>({...p,telegram_chat_id:e.target.value}));setSettingsDirty(true);}}
-                      placeholder="-5277820778"
-                      style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
+                    <div style={{position:"relative"}}>
+                      <input
+                        id="tg-chat-input"
+                        type="password"
+                        defaultValue={appSettings.telegram_chat_id||""}
+                        onFocus={()=>{ window._tgEditing = true; }}
+                        onBlur={e=>{
+                          setAppSettings(p=>({...p,telegram_chat_id:e.target.value}));
+                          setSettingsDirty(true);
+                          window._tgEditing = false;
+                        }}
+                        onChange={e=>{ setSettingsDirty(true); }}
+                        placeholder="-5277820778"
+                        style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 36px 8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
+                      <button
+                        type="button"
+                        onClick={()=>{
+                          const el = document.getElementById("tg-chat-input");
+                          el.type = el.type==="password"?"text":"password";
+                        }}
+                        style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:14,color:T.textMuted,padding:0}}>
+                        👁
+                      </button>
+                    </div>
                     <div style={{fontSize:10,color:T.textFaint,marginTop:3}}>Group Chat ID (negative number)</div>
                   </div>
                 </div>
@@ -2242,8 +2293,19 @@ export default function App() {
                 </div>
 
                 {/* Test button */}
-                {appSettings.telegram_token&&appSettings.telegram_chat_id&&<button
+<button
                   onClick={async()=>{
+                    // Get values from DOM in case not saved to state yet
+                    const tokenEl = document.getElementById("tg-token-input");
+                    const chatEl = document.getElementById("tg-chat-input");
+                    const token = tokenEl?.value || appSettings.telegram_token;
+                    const chatId = chatEl?.value || appSettings.telegram_chat_id;
+                    if(!token||!chatId) return alert("Please enter Bot Token and Chat ID first");
+                    // Save first
+                    await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),
+                      body:JSON.stringify({...appSettings,telegram_token:token,telegram_chat_id:chatId})});
+                    setSettingsDirty(false);
+                    // Then test
                     const r = await fetch(`${API}/api/settings/test-telegram`,{method:"POST",headers:authHeaders()});
                     const d = await r.json();
                     if(d.ok) alert("✅ Test message sent! Check your Telegram group.");
@@ -2251,7 +2313,7 @@ export default function App() {
                   }}
                   style={{padding:"8px 18px",borderRadius:10,border:"none",background:"#0088cc",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
                   📨 Send Test Message
-                </button>}
+                </button>
               </div>
 
               {/* Save button row */}
