@@ -2170,6 +2170,90 @@ export default function App() {
                 <div style={{fontSize:11,color:T.textMuted,marginLeft:4}}>Changes save to their account only</div>
               </div>}
 
+              {/* ── TELEGRAM NOTIFICATIONS ── */}
+              <div className="cc" style={{marginBottom:16}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:16}}>
+                  <div style={{width:40,height:40,borderRadius:12,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📱</div>
+                  <div>
+                    <div style={{fontWeight:800,fontSize:15,marginBottom:2}}>Telegram Notifications</div>
+                    <div style={{fontSize:11,color:T.textMuted,lineHeight:1.6}}>
+                      Get instant alerts on Telegram when hot leads appear, customers want to book, or a human is needed.
+                      Works with any Telegram group or personal chat.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Connection status */}
+                {appSettings.telegram_token&&appSettings.telegram_chat_id
+                  ?<div style={{padding:"8px 12px",borderRadius:8,background:"#f0fdf4",border:"1px solid #86efac",fontSize:11,color:"#166534",fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
+                    ✅ Telegram connected — alerts will be sent to your group
+                  </div>
+                  :<div style={{padding:"8px 12px",borderRadius:8,background:"#fffbeb",border:"1px solid #fcd34d",fontSize:11,color:"#92400e",marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
+                    ⚠️ Not configured — add your Bot Token and Chat ID below
+                  </div>}
+
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>Bot Token</div>
+                    <input
+                      type="password"
+                      value={appSettings.telegram_token||""}
+                      onChange={e=>{setAppSettings(p=>({...p,telegram_token:e.target.value}));setSettingsDirty(true);}}
+                      placeholder="8664616537:AAGE9wn..."
+                      style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:3}}>From @BotFather on Telegram</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>Chat ID</div>
+                    <input
+                      value={appSettings.telegram_chat_id||""}
+                      onChange={e=>{setAppSettings(p=>({...p,telegram_chat_id:e.target.value}));setSettingsDirty(true);}}
+                      placeholder="-5277820778"
+                      style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:3}}>Group Chat ID (negative number)</div>
+                  </div>
+                </div>
+
+                {/* Notify triggers */}
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Notify me when:</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+                  {[
+                    {key:"telegram_notify_hot",    label:"🔥 Hot Lead detected",      def:"true",  desc:"High intent customer"},
+                    {key:"telegram_notify_warm",   label:"🟡 Warm Lead detected",     def:"false", desc:"Interested customer"},
+                    {key:"telegram_notify_human",  label:"🚨 Human needed",           def:"true",  desc:"Complex medical question"},
+                    {key:"telegram_notify_booking",label:"📅 Booking intent detected", def:"true",  desc:"Customer wants appointment"},
+                  ].map(t=>(
+                    <div key={t.key} onClick={()=>{setAppSettings(p=>({...p,[t.key]:p[t.key]==="false"?"true":"false"}));setSettingsDirty(true);}}
+                      style={{padding:"10px 12px",borderRadius:10,border:`1px solid ${(appSettings[t.key]||t.def)!=="false"?WA_GREEN:T.border}`,
+                        background:(appSettings[t.key]||t.def)!=="false"?`${WA_GREEN}08`:T.card2,
+                        cursor:"pointer",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}>
+                      <div style={{width:36,height:20,borderRadius:10,
+                        background:(appSettings[t.key]||t.def)!=="false"?WA_GREEN:"#94a3b8",
+                        position:"relative",transition:"background .2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:2,left:(appSettings[t.key]||t.def)!=="false"?18:2,
+                          width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+                      </div>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:600,color:T.text}}>{t.label}</div>
+                        <div style={{fontSize:10,color:T.textMuted}}>{t.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Test button */}
+                {appSettings.telegram_token&&appSettings.telegram_chat_id&&<button
+                  onClick={async()=>{
+                    const r = await fetch(`${API}/api/settings/test-telegram`,{method:"POST",headers:authHeaders()});
+                    const d = await r.json();
+                    if(d.ok) alert("✅ Test message sent! Check your Telegram group.");
+                    else alert("❌ Failed: " + (d.error||"Check your token and chat ID"));
+                  }}
+                  style={{padding:"8px 18px",borderRadius:10,border:"none",background:"#0088cc",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+                  📨 Send Test Message
+                </button>}
+              </div>
+
               {/* Save button row */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,flexWrap:"wrap",gap:8}}>
                 <div><div style={{fontWeight:700,fontSize:17}}>⚙️ Settings</div></div>
