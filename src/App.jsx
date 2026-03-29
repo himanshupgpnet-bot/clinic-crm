@@ -1923,6 +1923,11 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+                {/* Smart status — show existing KB count */}
+                {qaData.length>0&&<div style={{padding:"8px 12px",borderRadius:8,background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,fontSize:11,color:WA_GREEN,marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
+                  <span>✅</span>
+                  <span>Your bot already has <strong>{qaData.length} Q&A pairs</strong> from a previous import. Running again will only add NEW entries — duplicates are skipped automatically.</span>
+                </div>}
                 <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
                   <input id="kb-url-input" placeholder="https://yourwebsite.com"
                     style={{flex:1,minWidth:200,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit"}}/>
@@ -2951,114 +2956,167 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
         const clinicUsers = users.filter(u=>u.clinic_id===clinic.id);
         const hasOnline = clinicUsers.some(u=>u.active_session);
         const usedSeats = clinicUsers.filter(u=>u.active).length;
+        const hotLeads = 0; // could add later
         return (
-          <div key={clinic.id} className="cc" style={{marginBottom:12,padding:0,overflow:"hidden"}}>
-            {/* Company header */}
-            <div style={{padding:"14px 16px",background:`${WA_GREEN}06`,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:46,height:46,borderRadius:12,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid ${T.border}`}}>
-                {clinic.logo_url
-                  ?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
-                  :<span style={{fontSize:22}}>🏢</span>}
-              </div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:800,fontSize:15,marginBottom:2}}>{clinic.name}</div>
-                <div style={{fontSize:11,color:T.textMuted}}>
-                  {clinic.industry||"—"} · {usedSeats}/{clinic.max_seats||1} seats used
-                  {clinic.contact_phone&&` · ${clinic.contact_phone}`}
+          <div key={clinic.id} style={{marginBottom:20}}>
+
+            {/* ── CLINIC CARD (top of hierarchy) ── */}
+            <div style={{
+              background:`linear-gradient(135deg,${dark?"#0f1e14":"#f0fdf4"},${dark?"#0a1628":"#eff6ff"})`,
+              border:`2px solid ${WA_GREEN}30`,borderRadius:20,overflow:"hidden",
+              boxShadow:"0 4px 20px rgba(0,0,0,.08)"}}>
+
+              {/* Header */}
+              <div style={{padding:"18px 20px",background:dark?"rgba(0,0,0,.2)":"rgba(255,255,255,.6)",backdropFilter:"blur(8px)",borderBottom:`1px solid ${WA_GREEN}20`,display:"flex",alignItems:"center",gap:14}}>
+                {/* Logo */}
+                <div style={{width:56,height:56,borderRadius:14,overflow:"hidden",
+                  background:`linear-gradient(135deg,${WA_GREEN}20,#3b82f620)`,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  flexShrink:0,border:`2px solid ${WA_GREEN}30`,boxShadow:"0 2px 8px rgba(0,0,0,.1)"}}>
+                  {clinic.logo_url
+                    ?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
+                    :<span style={{fontSize:26}}>🏢</span>}
                 </div>
-                <div style={{display:"flex",gap:5,marginTop:5,flexWrap:"wrap"}}>
-                  <span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:`${WA_GREEN}12`,color:WA_GREEN,fontWeight:700}}>
-                    🤖 {PROVIDERS.find(p=>p.id===clinic.ai_provider)?.label||clinic.ai_provider||"anthropic"}
-                  </span>
-                  {clinic.ai_api_key&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:`${WA_GREEN}12`,color:WA_GREEN,fontWeight:700}}>🔑 Key set</span>}
-                  {clinic.phone_number_id&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:"#eff6ff",color:"#3b82f6",fontWeight:700}}>📱 WA connected</span>}
-                  {hasOnline&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
+
+                {/* Info */}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                    <div style={{fontWeight:900,fontSize:17,color:T.text}}>{clinic.name}</div>
+                    {hasOnline&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#dcfce7",color:"#166534",fontWeight:700,border:"1px solid #86efac"}}>🟢 Online</span>}
+                    {!clinic.active&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#fef2f2",color:"#dc2626",fontWeight:700}}>Inactive</span>}
+                  </div>
+                  <div style={{fontSize:12,color:T.textMuted,marginBottom:6}}>
+                    {clinic.industry||"—"} · {usedSeats} of {clinic.max_seats||1} seats used
+                    {clinic.contact_phone&&` · ${clinic.contact_phone}`}
+                  </div>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                    <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:700,border:`1px solid ${WA_GREEN}25`}}>
+                      🤖 {PROVIDERS.find(p=>p.id===clinic.ai_provider)?.label||"Anthropic"}
+                    </span>
+                    {clinic.ai_api_key&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:700,border:`1px solid ${WA_GREEN}25`}}>🔑 API Key Set</span>}
+                    {clinic.phone_number_id&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#eff6ff",color:"#3b82f6",fontWeight:700,border:"1px solid #bfdbfe"}}>📱 WhatsApp Connected</span>}
+                    {clinic.website_url&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#faf5ff",color:"#7c3aed",fontWeight:700,border:"1px solid #e9d5ff"}}>🌐 Website Set</span>}
+                  </div>
                 </div>
-              </div>
-              <div style={{display:"flex",gap:6,flexShrink:0}}>
-                <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
-                  style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  + User
-                </button>
-                <button onClick={()=>{setEditClinic({...clinic,website:clinic.contact_email||""});setView("clinic_form");}}
-                  style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                  ✏️ Edit
-                </button>
-                <button onClick={async()=>{
-                  setConfirmModal({
-                    title: `Reset ${clinic.name}?`,
-                    message: `This will permanently delete all contacts, chats, leads and analytics for this client.
+
+                {/* Actions */}
+                <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0,alignItems:"flex-end"}}>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
+                      style={{padding:"7px 12px",borderRadius:10,border:`1px solid ${WA_GREEN}`,background:WA_GREEN,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
+                      👤 Add User
+                    </button>
+                    <button onClick={()=>{setEditClinic({...clinic,website:clinic.website_url||clinic.contact_email||""});setView("clinic_form");}}
+                      style={{padding:"7px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                      ✏️ Edit
+                    </button>
+                    <button onClick={async()=>{
+                      setConfirmModal({
+                        title:`Reset ${clinic.name}?`,
+                        message:`This will permanently delete all contacts, chats, leads and analytics for this client.
 
 This cannot be undone.`,
-                    icon: "🗑️",
-                    danger: true,
-                    confirmText: "Yes, Reset Everything",
-                    onConfirm: async () => {
-                      const r = await fetch(`${API}/api/admin/clinics/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
-                      if(r.ok){const d=await r.json(); flash(`✅ Reset complete — ${d.deleted_contacts} contacts deleted`); load();}
-                      else flash("❌ Reset failed");
-                    }
-                  });
-                }}
-                  style={{padding:"6px 12px",borderRadius:8,border:"1px solid #ef444430",background:"#ef444408",color:"#ef4444",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                  🗑️ Reset
-                </button>
-              </div>
-            </div>
-
-            {/* Users */}
-            {clinicUsers.length===0
-              ?<div style={{padding:"12px 16px",fontSize:12,color:T.textFaint,fontStyle:"italic"}}>No users yet — click "+ User" to add</div>
-              :clinicUsers.map((u,i)=>(
-                <div key={u.id} style={{padding:"10px 16px",paddingLeft:24,borderBottom:i<clinicUsers.length-1?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,
-                    background:u.active_session?"#22c55e":u.active?"#94a3b8":"#ef4444"}}/>
-                  <div style={{width:30,height:30,borderRadius:8,background:`${WA_GREEN}10`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>👤</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:3}}>
-                      <span style={{fontWeight:700,fontSize:13}}>@{u.username}</span>
-                      {u.active_session&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Online</span>}
-                      {!u.active&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:"#fee2e2",color:"#dc2626",fontWeight:700}}>Inactive</span>}
-                    </div>
-                    <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>
-                      {PERM_TABS.filter(p=>u[p.key]).map(p=>(
-                        <span key={p.key} style={{fontSize:9,padding:"1px 6px",borderRadius:5,
-                          background:`${WA_GREEN}12`,color:WA_GREEN,fontWeight:600,border:`1px solid ${WA_GREEN}20`}}>
-                          {p.label}
-                        </span>
-                      ))}
-                    </div>
-                    {/* Session info inline */}
-                    {(()=>{
-                      const s = sessions.find(s=>s.user_id===u.id);
-                      if(!s) return null;
-                      const friendly = (s.device_info||"").split(" | ")[0]||"Unknown";
-                      const mins = Math.round(s.inactive_mins||0);
-                      const timeAgo = mins<1?"just now":mins<60?`${mins}m ago`:`${Math.floor(mins/60)}h ago`;
-                      const loggedIn = s.logged_in_at ? new Date(s.logged_in_at.replace(" ","T")+"Z").toLocaleString([],{dateStyle:"short",timeStyle:"short"}) : "—";
-                      return <div style={{fontSize:10,color:T.textMuted,display:"flex",gap:8,flexWrap:"wrap"}}>
-                        <span>📱 {friendly}</span>
-                        {(s.location||s.country)&&<span>📍 {[s.location,s.country].filter(Boolean).join(", ")}</span>}
-                        {s.ip_address&&<span>🌐 {s.ip_address}</span>}
-                        <span>🕐 {timeAgo}</span>
-                        <span>🔑 {loggedIn}</span>
-                      </div>;
-                    })()}
-                  </div>
-                  <div style={{display:"flex",gap:6,flexShrink:0}}>
-                    {sessions.find(s=>s.user_id===u.id)&&
-                      <button onClick={()=>forceLogout(u.id,u.username)}
-                        style={{padding:"4px 10px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                        🔴
-                      </button>}
-                    <button onClick={()=>{setEditUser({...u,newPassword:""});setView("user_form");}}
-                      style={{padding:"4px 10px",borderRadius:7,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
-                    <button onClick={()=>deleteUser(u.id)}
-                      style={{padding:"4px 10px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+                        icon:"🗑️",danger:true,confirmText:"Yes, Reset Everything",
+                        onConfirm:async()=>{
+                          const r=await fetch(`${API}/api/admin/clinics/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
+                          if(r.ok){const d=await r.json();flash(`✅ Reset — ${d.deleted_contacts} contacts deleted`);load();}
+                          else flash("❌ Reset failed");
+                        }
+                      });
+                    }} style={{padding:"7px 10px",borderRadius:10,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                      🗑️
+                    </button>
                   </div>
                 </div>
-              ))
-            }
+              </div>
+
+              {/* ── STAFF HIERARCHY ── */}
+              <div style={{padding:"14px 20px"}}>
+                {/* Connector line */}
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <div style={{width:2,height:16,background:`${WA_GREEN}30`,borderRadius:1,marginLeft:26}}/>
+                  <div style={{fontSize:11,color:T.textMuted,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase"}}>
+                    Staff Members ({clinicUsers.length})
+                  </div>
+                </div>
+
+                {clinicUsers.length===0&&<div style={{
+                  padding:"16px 20px",borderRadius:12,border:`2px dashed ${T.border}`,
+                  textAlign:"center",color:T.textMuted,fontSize:12}}>
+                  No staff yet — click "👤 Add User" to add team members
+                </div>}
+
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {clinicUsers.map((u,i)=>{
+                    const session = sessions.find(s=>s.user_id===u.id);
+                    const isOnline = !!session;
+                    const perms = PERM_TABS.filter(p=>u[p.key]);
+                    return (
+                      <div key={u.id} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                        {/* Tree connector */}
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:28,flexShrink:0,paddingTop:4}}>
+                          <div style={{width:2,height:i===0?12:24,background:`${WA_GREEN}25`,borderRadius:1}}/>
+                          <div style={{width:16,height:2,background:`${WA_GREEN}25`,borderRadius:1,marginBottom:4}}/>
+                          {i<clinicUsers.length-1&&<div style={{width:2,flex:1,minHeight:8,background:`${WA_GREEN}25`,borderRadius:1}}/>}
+                        </div>
+
+                        {/* User card */}
+                        <div style={{flex:1,background:T.card,borderRadius:12,padding:"10px 14px",
+                          border:`1px solid ${isOnline?"#86efac":T.border}`,
+                          boxShadow:isOnline?"0 0 0 2px rgba(34,197,94,.1)":"none",
+                          transition:"box-shadow .2s"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10}}>
+                            {/* Avatar */}
+                            <div style={{width:34,height:34,borderRadius:10,
+                              background:isOnline?`linear-gradient(135deg,${WA_GREEN},#1da851)`:"linear-gradient(135deg,#94a3b8,#64748b)",
+                              display:"flex",alignItems:"center",justifyContent:"center",
+                              fontSize:14,fontWeight:700,color:"#fff",flexShrink:0,position:"relative"}}>
+                              {u.username?.charAt(0)?.toUpperCase()||"?"}
+                              {/* Online dot */}
+                              <div style={{position:"absolute",bottom:-2,right:-2,width:10,height:10,borderRadius:"50%",
+                                background:isOnline?"#22c55e":u.active?"#94a3b8":"#ef4444",
+                                border:"2px solid",borderColor:T.card}}/>
+                            </div>
+
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                                <span style={{fontWeight:700,fontSize:13}}>@{u.username}</span>
+                                {!u.active&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#fef2f2",color:"#dc2626",fontWeight:700}}>Deactivated</span>}
+                                {isOnline&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Active Now</span>}
+                              </div>
+                              {/* Permissions */}
+                              <div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:4}}>
+                                {perms.length===0
+                                  ?<span style={{fontSize:9,color:T.textFaint,fontStyle:"italic"}}>No permissions set</span>
+                                  :perms.map(p=>(
+                                    <span key={p.key} style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:`${WA_GREEN}12`,color:WA_GREEN,fontWeight:600,border:`1px solid ${WA_GREEN}20`}}>{p.label}</span>
+                                  ))}
+                              </div>
+                              {/* Session info */}
+                              {session&&<div style={{fontSize:10,color:T.textMuted,marginTop:4,display:"flex",gap:8,flexWrap:"wrap"}}>
+                                {session.device_info&&<span>📱 {(session.device_info||"").split(" | ")[0]}</span>}
+                                {(session.location||session.country)&&<span>📍 {[session.location,session.country].filter(Boolean).join(", ")}</span>}
+                              </div>}
+                            </div>
+
+                            {/* User actions */}
+                            <div style={{display:"flex",gap:4,flexShrink:0}}>
+                              {session&&<button onClick={()=>forceLogout(u.id,u.username)}
+                                style={{padding:"4px 8px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                                title="Force logout">🔴</button>}
+                              <button onClick={()=>{setEditUser({...u,newPassword:""});setView("user_form");}}
+                                style={{padding:"4px 8px",borderRadius:7,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                              <button onClick={()=>deleteUser(u.id)}
+                                style={{padding:"4px 8px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         );
       })}
