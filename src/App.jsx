@@ -662,7 +662,7 @@ export default function App() {
     setClientSettings(null);
     setSettingsDirtyWithRef(false);
     try {
-      const r = await fetch(`${API}/api/admin/clinics/${client.clinic_id}/settings`, {headers:authHeaders()});
+      const r = await fetch(`${API}/api/admin/clients/${client.clinic_id}/settings`, {headers:authHeaders()});
       if(r.ok) {
         const d = await r.json();
         setClientSettings(d);
@@ -703,7 +703,7 @@ export default function App() {
     setKbClinic(client);
     // Fetch this client's knowledge into qaData and systemPrompt
     try {
-      const r = await fetch(`${API}/api/admin/clinics/${client.clinic_id}/knowledge`, {headers:authHeaders()});
+      const r = await fetch(`${API}/api/admin/clients/${client.clinic_id}/knowledge`, {headers:authHeaders()});
       if(r.ok) {
         const d = await r.json();
         setQaData(d.qa||[]);
@@ -860,7 +860,7 @@ export default function App() {
       }
       if(isAdmin && settingsClinic) {
         // Save ALL settings to this specific client's account
-        await fetch(`${API}/api/admin/clinics/${settingsClinic.clinic_id}/settings`, {
+        await fetch(`${API}/api/admin/clients/${settingsClinic.clinic_id}/settings`, {
           method:"PATCH", headers:authHeaders(),
           body:JSON.stringify({
             ai_provider:          appSettings.ai_provider,
@@ -2788,7 +2788,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
     {key:"can_analytics",label:"📊 Analytics"},{key:"can_testbot",label:"🤖 Test Bot"},
     {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"}
   ];
-  const emptyClinic = {name:"",industry:"",website:"",contact_phone:"",logo_url:"",
+  const emptyClinic = {name:"",industry:"",website:"",client_domain:"",contact_phone:"",logo_url:"",
     whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",max_seats:1};
   const emptyUser = (clinic_id="") => ({username:"",password:"",clinic_id,
     can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
@@ -2800,7 +2800,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
     setLoading(true);
     try {
       const [cr,ur,sr] = await Promise.all([
-        fetch(`${API}/api/admin/clinics`,{headers:authHeaders()}),
+        fetch(`${API}/api/admin/clients`,{headers:authHeaders()}),
         fetch(`${API}/api/admin/users`,{headers:authHeaders()}),
         fetch(`${API}/api/admin/sessions`,{headers:authHeaders()})
       ]);
@@ -2842,7 +2842,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const saveClinic = async () => {
     if(!editClinic.name?.trim()) return alert("Company name required");
     const isNew = !editClinic.id;
-    const url = isNew ? `${API}/api/admin/clinics` : `${API}/api/admin/clinics/${editClinic.id}`;
+    const url = isNew ? `${API}/api/admin/clients` : `${API}/api/admin/clients/${editClinic.id}`;
     const method = isNew ? "POST" : "PATCH";
     const website = (editClinic.website_url||editClinic.website||"").trim();
 
@@ -3005,6 +3005,11 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
                 <label style={labelStyle}>Website</label>
                 <input value={editClinic?.website_url||editClinic?.website||""} onChange={e=>setEditClinic(p=>({...p,website_url:e.target.value,website:e.target.value}))} placeholder="https://company.com" style={inputStyle}/>
                 <div style={{fontSize:10,color:WA_GREEN,marginTop:4,fontWeight:600}}>🤖 AI will auto-build KB from this URL when onboarding</div>
+              </div>
+              <div>
+                <label style={labelStyle}>Client Domain / Industry Tag</label>
+                <input value={editClinic?.client_domain||""} onChange={e=>setEditClinic(p=>({...p,client_domain:e.target.value}))} placeholder="e.g. healthcare, retail, education" style={inputStyle}/>
+                <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Helps identify client type (optional)</div>
               </div>
               <div>
                 <label style={labelStyle}>Contact Phone</label>
@@ -3227,7 +3232,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
                     {!clinic.active&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#fef2f2",color:"#dc2626",fontWeight:700}}>Inactive</span>}
                   </div>
                   <div style={{fontSize:12,color:T.textMuted,marginBottom:6}}>
-                    {clinic.industry||"—"} · {usedSeats} of {clinic.max_seats||1} seats used
+                    {clinic.industry||"—"}{clinic.client_domain?` · ${clinic.client_domain}`:""} · {usedSeats} of {clinic.max_seats||1} seats used
                     {clinic.contact_phone&&` · ${clinic.contact_phone}`}
                   </div>
                   <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
@@ -3259,7 +3264,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
 This cannot be undone.`,
                         icon:"🗑️",danger:true,confirmText:"Yes, Reset Everything",
                         onConfirm:async()=>{
-                          const r=await fetch(`${API}/api/admin/clinics/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
+                          const r=await fetch(`${API}/api/admin/clients/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
                           if(r.ok){const d=await r.json();flash(`✅ Reset — ${d.deleted_contacts} contacts deleted`);load();}
                           else flash("❌ Reset failed");
                         }
