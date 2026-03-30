@@ -2912,7 +2912,8 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const labelStyle = {display:"block",fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:6,letterSpacing:0.3};
 
   if(view==="clinic_form") return (
-    <div style={{maxWidth:580,margin:"0 auto",paddingBottom:20}}>
+    <div style={{width:"100%",height:"100%",overflowY:"auto",overflowX:"hidden"}}>
+    <div style={{maxWidth:560,margin:"0 auto",padding:"16px 16px 40px"}}>
       {/* KB Building overlay */}
       {kbBuilding&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
         <div style={{background:"#1e293b",borderRadius:20,padding:"32px 40px",textAlign:"center",maxWidth:340}}>
@@ -3098,12 +3099,14 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
           </button>}
       </div>
     </div>
+    </div>
   );
 
   // ── USER FORM ───────────────────────────────────────────────────────────────
   // ── USER FORM ───────────────────────────────────────────────────────────────
   if(view==="user_form") return (
-    <div style={{maxWidth:480,margin:"0 auto"}}>
+    <div style={{width:"100%",height:"100%",overflowY:"auto",overflowX:"hidden"}}>
+    <div style={{maxWidth:480,margin:"0 auto",padding:"16px 16px 40px"}}>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
         <button onClick={()=>{setView("clients");setEditUser(null);}} style={{border:"none",background:"none",cursor:"pointer",fontSize:22,color:T.textMuted,padding:0}}>←</button>
         <div style={{fontWeight:800,fontSize:18}}>{editUser?.id?`✏️ Edit @${editUser.username}`:"👤 Add New User"}</div>
@@ -3160,6 +3163,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
           💾 {editUser?.id?"Save Changes":"Create User"}
         </button>
       </div>
+    </div>
     </div>
   );
 
