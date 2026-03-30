@@ -850,6 +850,14 @@ export default function App() {
 
   async function saveSettings() {
     try {
+      if(isAdmin && !settingsClinic) {
+        setConfirmModal({
+          title:"Select a Client First",
+          message:"Please select a client from the left sidebar before saving settings.",
+          icon:"👈",danger:false,confirmText:"OK",onConfirm:()=>{}
+        });
+        return;
+      }
       if(isAdmin && settingsClinic) {
         // Save ALL settings to this specific client's account
         await fetch(`${API}/api/admin/clinics/${settingsClinic.clinic_id}/settings`, {
@@ -863,6 +871,8 @@ export default function App() {
             warm_keywords:        appSettings.warm_keywords||"",
             cold_keywords:        appSettings.cold_keywords||"",
             followup_enabled:     appSettings.followup_enabled||"true",
+            followup_1_enabled:   appSettings.followup_1_enabled||"true",
+            followup_2_enabled:   appSettings.followup_2_enabled||"false",
             followup_1_delay:     appSettings.followup_1_delay||"2",
             followup_1_delay_unit:appSettings.followup_1_delay_unit||"hours",
             followup_1_message:   appSettings.followup_1_message||"",
@@ -886,12 +896,29 @@ export default function App() {
         // Client saving their own settings
         await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
       }
-      setSettingsSaved(true); setSettingsDirtyWithRef(false); setTimeout(()=>setSettingsSaved(false),2500);
-      // Update session timeout in storage if it changed
+      setSettingsDirtyWithRef(false);
       if(appSettings.session_timeout_mins) {
         sessionStorage.setItem("crm_timeout", String(appSettings.session_timeout_mins));
       }
-    } catch{alert("Failed");}
+      // Nice success modal
+      setConfirmModal({
+        title:"Settings Saved! ✅",
+        message:"All your settings have been saved successfully.",
+        icon:"💾",
+        danger:false,
+        confirmText:"Great!",
+        onConfirm:()=>{}
+      });
+    } catch(e) {
+      setConfirmModal({
+        title:"Save Failed ❌",
+        message:"Could not save settings. Please try again.",
+        icon:"⚠️",
+        danger:true,
+        confirmText:"OK",
+        onConfirm:()=>{}
+      });
+    }
   }
 
   async function addQA() {
@@ -993,6 +1020,18 @@ export default function App() {
       <div style={{fontSize:12,fontWeight:600,color:T.text,marginTop:4}}>{label}</div>
       {sub&&<div style={{fontSize:11,color:T.textFaint,marginTop:2}}>{sub}</div>}
     </div>;
+  }
+
+  function SectionSave({label}) {
+    return (
+      <button onClick={saveSettings}
+        style={{display:"flex",alignItems:"center",gap:6,padding:"7px 16px",borderRadius:10,
+          border:"none",background:settingsDirty?WA_GREEN:"#94a3b8",color:"#fff",
+          fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+          opacity:settingsDirty?1:0.6,transition:"all .2s"}}>
+        💾 {label||"Save Section"}
+      </button>
+    );
   }
 
   function SettingInput({label,hint,settingKey,type="text",rows}) {
@@ -2190,6 +2229,35 @@ export default function App() {
 
             {(!isAdmin||settingsClinic)&&<div style={{maxWidth:720,margin:"0 auto",width:"100%"}}>
 
+              {/* ── STICKY SAVE BAR ── */}
+              <div style={{position:"sticky",top:0,zIndex:10,background:T.bg,paddingBottom:10,paddingTop:2,marginBottom:14}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderRadius:14,
+                  background:settingsDirty?`${WA_GREEN}10`:T.card,
+                  border:`2px solid ${settingsDirty?WA_GREEN:T.border}`,
+                  boxShadow:settingsDirty?"0 4px 20px rgba(37,211,102,.15)":"0 1px 4px rgba(0,0,0,.05)",
+                  transition:"all .3s"}}>
+                  <div>
+                    <div style={{fontWeight:800,fontSize:15}}>⚙️ Settings</div>
+                    {settingsDirty
+                      ?<div style={{fontSize:11,color:WA_GREEN,marginTop:2,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
+                          <div style={{width:6,height:6,borderRadius:"50%",background:WA_GREEN,animation:"pulse 1.5s infinite"}}/>
+                          Unsaved changes — click Save All
+                        </div>
+                      :<div style={{fontSize:11,color:T.textMuted,marginTop:2}}>✅ All settings saved</div>}
+                  </div>
+                  <button onClick={saveSettings}
+                    style={{padding:"10px 28px",borderRadius:12,border:"none",
+                      background:settingsDirty?WA_GREEN:"#94a3b8",
+                      color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
+                      fontFamily:"inherit",
+                      boxShadow:settingsDirty?"0 4px 14px rgba(37,211,102,.4)":"none",
+                      transform:settingsDirty?"scale(1.02)":"scale(1)",
+                      transition:"all .3s"}}>
+                    💾 Save All
+                  </button>
+                </div>
+              </div>
+
               {/* Client header bar */}
               {isAdmin&&settingsClinic&&<div style={{padding:"12px 16px",background:`${WA_GREEN}10`,borderRadius:12,border:`1px solid ${WA_GREEN}30`,marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -2204,7 +2272,10 @@ export default function App() {
                 <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:16}}>
                   <div style={{width:40,height:40,borderRadius:12,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📱</div>
                   <div>
-                    <div style={{fontWeight:800,fontSize:15,marginBottom:2}}>Telegram Notifications</div>
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{fontWeight:800,fontSize:15}}>Telegram Notifications</div>
+                      <SectionSave label="Save Telegram"/>
+                    </div>
                     <div style={{fontSize:11,color:T.textMuted,lineHeight:1.6}}>
                       Get instant alerts on Telegram when hot leads appear, customers want to book, or a human is needed.
                       Works with any Telegram group or personal chat.
@@ -2343,15 +2414,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Save button row */}
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,flexWrap:"wrap",gap:8}}>
-                <div><div style={{fontWeight:700,fontSize:17}}>⚙️ Settings</div></div>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  {settingsSaved&&<div style={{background:`${WA_GREEN}15`,border:`1px solid ${WA_GREEN}30`,borderRadius:16,padding:"4px 12px",fontSize:11,color:WA_GREEN,fontWeight:600}}>✅ Saved!</div>}
-                  <button onClick={saveSettings} style={{padding:"8px 20px",borderRadius:20,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save All</button>
-                </div>
-              </div>
-
               {/* API Key status */}
               {isAdmin&&settingsClinic&&<div style={{background:appSettings.ai_api_key?"#f0fdf4":"#fef9c3",border:`1px solid ${appSettings.ai_api_key?"#86efac":"#fde68a"}`,borderRadius:12,padding:"12px 16px",marginBottom:16}}>
                 {appSettings.ai_api_key
@@ -2362,9 +2424,12 @@ export default function App() {
               {/* AI Bot section */}
               <div className="cc" style={{marginBottom:14}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:15}}>🤖 AI Bot</div>
-                    <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{appSettings.ai_enabled!=="false"?"Active — bot replies automatically":"Disabled — manual replies only"}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:15}}>🤖 AI Bot</div>
+                      <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{appSettings.ai_enabled!=="false"?"Active — bot replies automatically":"Disabled — manual replies only"}</div>
+                    </div>
+                    <SectionSave label="Save AI Settings"/>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontSize:13,fontWeight:700,color:appSettings.ai_enabled!=="false"?WA_GREEN:"#ef4444"}}>{appSettings.ai_enabled!=="false"?"ON":"OFF"}</span>
@@ -2414,9 +2479,12 @@ export default function App() {
               <div className="cc" style={{marginBottom:14}}>
                 {/* Header + toggle */}
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:15}}>⏰ Smart Auto Follow-up</div>
-                    <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{appSettings.followup_enabled==="true"?"Active — sends automatically when customer goes silent":"Disabled — only manual follow-ups"}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:15}}>⏰ Smart Auto Follow-up</div>
+                      <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{appSettings.followup_enabled==="true"?"Active — sends automatically when customer goes silent":"Disabled — only manual follow-ups"}</div>
+                    </div>
+                    <SectionSave label="Save Follow-up"/>
                   </div>
                   <div onClick={()=>{setAppSettings(p=>({...p,followup_enabled:p.followup_enabled==="true"?"false":"true"}));setSettingsDirtyWithRef(true);}}
                     style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.followup_enabled==="true"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
