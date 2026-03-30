@@ -129,6 +129,7 @@ export default function App() {
   const [pendingTab, setPendingTab] = useState(null);
   const [hoveredSource, setHoveredSource] = useState(null);
   const [highlightedQA, setHighlightedQA] = useState(null);
+  const [selectedQAs, setSelectedQAs] = useState(new Set());
   const [dragOver, setDragOver] = useState(null);
   const [sendingFollowup, setSendingFollowup] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -2142,42 +2143,96 @@ export default function App() {
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}}>
                 <div>
                   <div style={{fontWeight:800,fontSize:15}}>📋 Current Knowledge ({qaData.length} entries)</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>These are all the things your bot currently knows. Edit or delete any entry.</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>These are all the things your bot currently knows.</div>
                 </div>
+                {qaData.length>0&&<div style={{display:"flex",alignItems:"center",gap:8}}>
+                  {/* Select All toggle */}
+                  <button onClick={()=>{
+                    if(selectedQAs.size===qaData.length) setSelectedQAs(new Set());
+                    else setSelectedQAs(new Set(qaData.map(q=>q.id)));
+                  }} style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                    {selectedQAs.size===qaData.length?"☐ Deselect All":"☑ Select All"}
+                  </button>
+                  {/* Delete selected */}
+                  {selectedQAs.size>0&&<button onClick={()=>{
+                    setConfirmModal({
+                      title:`Delete ${selectedQAs.size} Entries?`,
+                      message:`You are about to permanently delete ${selectedQAs.size} KB ${selectedQAs.size===1?"entry":"entries"}. Your bot will no longer be able to answer questions based on this knowledge. This cannot be undone.`,
+                      icon:"🗑️",
+                      danger:true,
+                      confirmText:`Yes, Delete ${selectedQAs.size} Entries`,
+                      onConfirm:async()=>{
+                        for(const id of selectedQAs){
+                          await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()});
+                        }
+                        setSelectedQAs(new Set());
+                        fetchKnowledge();
+                      }
+                    });
+                  }} style={{padding:"5px 14px",borderRadius:8,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    🗑️ Delete ({selectedQAs.size})
+                  </button>}
+                </div>}
               </div>
+
               {qaData.length===0&&<div style={{textAlign:"center",padding:"32px 20px",background:T.card,borderRadius:14,border:`2px dashed ${T.border}`,color:T.textMuted}}>
                 <div style={{fontSize:32,marginBottom:8}}>📭</div>
                 <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>No knowledge yet</div>
                 <div style={{fontSize:12}}>Use one of the methods above to add knowledge to your bot</div>
               </div>}
+
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {qaData.map((qa,i)=>(
-                  <div key={qa.id} className="cc" ref={el=>qaRefs.current[qa.id]=el}
-                    style={{padding:12,borderLeft:highlightedQA===qa.id?`3px solid ${WA_GREEN}`:"3px solid transparent",marginBottom:0}}>
-                    {editingId===qa.id
-                      ?<div>
-                        <input value={editQ} onChange={e=>setEditQ(e.target.value)}
-                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/>
-                        <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={2}
-                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8,boxSizing:"border-box"}}/>
-                        <div style={{display:"flex",gap:6}}>
-                          <button onClick={()=>saveEdit(qa.id)} style={{padding:"5px 14px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
-                          <button onClick={()=>setEditingId(null)} style={{padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                {qaData.map((qa,i)=>{
+                  const isSelected = selectedQAs.has(qa.id);
+                  return (
+                    <div key={qa.id} className="cc" ref={el=>qaRefs.current[qa.id]=el}
+                      style={{padding:12,
+                        borderLeft:highlightedQA===qa.id?`3px solid ${WA_GREEN}`:isSelected?`3px solid #ef4444`:"3px solid transparent",
+                        background:isSelected?`#ef444408`:undefined,
+                        marginBottom:0}}>
+                      {editingId===qa.id
+                        ?<div>
+                          <input value={editQ} onChange={e=>setEditQ(e.target.value)}
+                            style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/>
+                          <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={2}
+                            style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8,boxSizing:"border-box"}}/>
+                          <div style={{display:"flex",gap:6}}>
+                            <button onClick={()=>saveEdit(qa.id)} style={{padding:"5px 14px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+                            <button onClick={()=>setEditingId(null)} style={{padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                          </div>
                         </div>
-                      </div>
-                      :<div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                        <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{i+1}</div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:2}}>{qa.question}</div>
-                          <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
-                        </div>
-                        <div style={{display:"flex",gap:3,flexShrink:0}}>
-                          <button onClick={()=>{setEditingId(qa.id);setEditQ(qa.question);setEditA(qa.answer);}} style={{padding:"3px 8px",borderRadius:7,border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
-                          <button onClick={()=>deleteQA(qa.id)} style={{padding:"3px 8px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444408",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
-                        </div>
-                      </div>}
-                  </div>
-                ))}
+                        :<div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                          {/* Checkbox */}
+                          <div onClick={()=>{
+                            const next = new Set(selectedQAs);
+                            if(next.has(qa.id)) next.delete(qa.id); else next.add(qa.id);
+                            setSelectedQAs(next);
+                          }} style={{width:18,height:18,borderRadius:4,border:`2px solid ${isSelected?"#ef4444":T.border}`,
+                            background:isSelected?"#ef4444":"transparent",
+                            display:"flex",alignItems:"center",justifyContent:"center",
+                            cursor:"pointer",flexShrink:0,marginTop:2}}>
+                            {isSelected&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
+                          </div>
+                          <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{i+1}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:2}}>{qa.question}</div>
+                            <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
+                          </div>
+                          <div style={{display:"flex",gap:3,flexShrink:0}}>
+                            <button onClick={()=>{setEditingId(qa.id);setEditQ(qa.question);setEditA(qa.answer);}} style={{padding:"3px 8px",borderRadius:7,border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                            <button onClick={()=>{
+                              setConfirmModal({
+                                title:"Delete this entry?",
+                                message:`"${qa.question.slice(0,80)}"\n\nYour bot will no longer know this. Cannot be undone.`,
+                                icon:"🗑️",danger:true,confirmText:"Yes, Delete",
+                                onConfirm:async()=>{ await fetch(`${API}/api/knowledge/qa/${qa.id}`,{method:"DELETE",headers:authHeaders()}); fetchKnowledge(); }
+                              });
+                            }} style={{padding:"3px 8px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444408",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                          </div>
+                        </div>}
+                    </div>
+                  );
+                })}
               </div>
 
             </div>}
