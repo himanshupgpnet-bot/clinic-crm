@@ -869,6 +869,10 @@ export default function App() {
             telegram_notify_booking: appSettings.telegram_notify_booking||"true",
           })
         });
+      } else if(isAdmin && !settingsClinic) {
+        // Admin with no clinic selected — show warning
+        alert("Please select a client from the sidebar first before saving settings.");
+        return;
       } else {
         // Client saving their own settings
         await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
