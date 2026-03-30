@@ -2162,9 +2162,33 @@ export default function App() {
                       danger:true,
                       confirmText:`Yes, Delete ${selectedQAs.size} Entries`,
                       onConfirm:async()=>{
-                        for(const id of selectedQAs){
-                          await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()});
+                        // Show progress overlay
+                        const ids = Array.from(selectedQAs);
+                        const overlay = document.createElement("div");
+                        overlay.id = "kb-delete-overlay";
+                        overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;";
+                        overlay.innerHTML = `<div style="background:#1e293b;border-radius:16px;padding:28px 36px;text-align:center;color:#fff;min-width:280px">
+                          <div style="font-size:32px;margin-bottom:12px">🗑️</div>
+                          <div style="font-weight:700;font-size:15px;margin-bottom:6px">Deleting entries...</div>
+                          <div id="kb-del-progress" style="font-size:12px;color:rgba(255,255,255,.6)">0 of ${ids.length}</div>
+                          <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:14px;overflow:hidden">
+                            <div id="kb-del-bar" style="height:4px;background:#25D366;border-radius:2px;width:0%;transition:width .3s"></div>
+                          </div>
+                        </div>`;
+                        document.body.appendChild(overlay);
+                        let done = 0;
+                        for(const id of ids){
+                          try {
+                            const r = await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()});
+                            if(r.ok) done++;
+                          } catch(e) { console.error("Delete failed for",id,e); }
+                          const pct = Math.round((done/ids.length)*100);
+                          const prog = document.getElementById("kb-del-progress");
+                          const bar = document.getElementById("kb-del-bar");
+                          if(prog) prog.textContent = `${done} of ${ids.length}`;
+                          if(bar) bar.style.width = pct + "%";
                         }
+                        document.body.removeChild(overlay);
                         setSelectedQAs(new Set());
                         fetchKnowledge();
                       }
@@ -3421,4 +3445,3 @@ This cannot be undone.`,
     </div>
   );
 }
-
