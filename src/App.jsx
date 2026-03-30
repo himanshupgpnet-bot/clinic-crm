@@ -1241,18 +1241,21 @@ export default function App() {
               {!loading&&filtered.length===0&&<div style={{padding:24,textAlign:"center",color:T.textFaint,fontSize:12}}><div style={{fontSize:32,marginBottom:8}}>💬</div>{backendStatus==="offline"?"⚠️ Backend offline":"No conversations"}</div>}
               {filtered.map(c=>(
                 <div key={c.id} className={`ci ${selected?.id===c.id?"active":""}`} onClick={()=>selectContact(c)}
-                  style={{padding:"9px 12px",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${T.border}40`,borderLeft:c.lead==="hot"?"3px solid #ef4444":c.lead==="warm"?"3px solid #f59e0b":"3px solid transparent"}}>
+                  style={{padding:"9px 12px",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${T.border}40`}}>
                   <div style={{width:42,height:42,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
                       <span style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
                       <span style={{fontSize:10,color:T.textFaint,flexShrink:0,marginLeft:4}}>{c.lastTime}</span>
                     </div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                      <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>{c.botActive&&<span style={{color:WA_GREEN,marginRight:2}}>🤖</span>}{c.lastMessage||"No messages"}</span>
-                      {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{c.unread}</span>}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                      <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>{c.lastMessage||"No messages"}</span>
+                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                        {!c.botActive&&<span style={{fontSize:9,color:"#f59e0b",fontWeight:700}}>Manual</span>}
+                        {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700}}>{c.unread}</span>}
+                      </div>
                     </div>
-                    {c.needsHuman&&<span title={c.humanReason||"Human intervention required"} style={{fontSize:9,padding:"2px 6px",borderRadius:5,background:"#fef2f2",color:"#ef4444",fontWeight:700,border:"1px solid #fca5a5",cursor:"help"}}>🚨 Needs Human</span>}
+
                   </div>
                 </div>
               ))}
@@ -1267,16 +1270,8 @@ export default function App() {
                   <div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <span style={{fontWeight:700,fontSize:14}}>{selected.name}</span>
-                      <LeadBadge lead={selected.lead} score={selected.leadScore} reason={selected.leadReason}/>
-                      {/* Next Action Suggestion */}
-                      {selected.needsHuman
-                        ? <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:"#fef2f2",color:"#dc2626",fontWeight:700,border:"1px solid #fca5a5"}}>🚨 Doctor needs to respond</span>
-                        : selected.lead==="hot"
-                        ? <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:"#fef9c3",color:"#854d0e",fontWeight:700,border:"1px solid #fde047"}}>⚡ Call them now</span>
-                        : selected.lead==="warm"
-                        ? <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:"#eff6ff",color:"#1d4ed8",fontWeight:700,border:"1px solid #bfdbfe"}}>📋 Send more info</span>
-                        : <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:"#f1f5f9",color:"#475569",fontWeight:700,border:"1px solid #cbd5e1"}}>📧 Add to newsletter</span>
-                      }
+
+
                     </div>
                     <div style={{fontSize:11,color:T.textMuted}}>{selected.phone}</div>
                   </div>
@@ -1293,14 +1288,7 @@ export default function App() {
                   <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
                 </div>
               </div>
-              {selected.needsHuman&&<div style={{background:"#fef2f2",borderBottom:"1px solid #fca5a5",padding:"8px 14px",fontSize:12,color:"#991b1b",display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16}}>🚨</span>
-                <div>
-                  <strong>Human Intervention Recommended</strong>
-                  {selected.humanReason&&<span style={{marginLeft:6,fontWeight:400}}>{selected.humanReason}</span>}
-                  <span style={{marginLeft:8,fontSize:11,color:"#b91c1c"}}>Bot is still active — you can reply manually or let bot continue</span>
-                </div>
-              </div>}
+
               {selected.botActive&&<div style={{background:`${WA_GREEN}12`,borderBottom:`1px solid ${WA_GREEN}25`,padding:"4px 14px",fontSize:11,color:WA_DARK}}>🤖 Bot is handling this — toggle off to reply manually</div>}
               {(selected.lead==="hot"||selected.lead==="warm")&&<div style={{background:selected.lead==="hot"?"#fef2f2":"#fffbeb",borderBottom:`1px solid ${selected.lead==="hot"?"#fca5a5":"#fcd34d"}`,padding:"4px 14px",fontSize:11,color:selected.lead==="hot"?"#ef4444":"#f59e0b",display:"flex",alignItems:"center",gap:6}}>
                 {selected.lead==="hot"?"🔥":"🟡"} <strong>{selected.lead==="hot"?"Hot":"Warm"} Lead:</strong> {selected.leadReason||"Keyword match"}
