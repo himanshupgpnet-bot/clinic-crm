@@ -2964,10 +2964,35 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
 
           {/* STEP 0 — Company Info */}
           {clinicStep===0&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
+
+            {/* Logo upload — top and prominent */}
+            <div style={{display:"flex",alignItems:"center",gap:16,padding:16,borderRadius:12,border:`2px dashed ${T.border}`,background:T.card2}}>
+              <div style={{flexShrink:0}}>
+                {editClinic?.logo_url
+                  ?<img src={editClinic.logo_url} style={{width:64,height:64,borderRadius:14,objectFit:"cover",border:`2px solid ${WA_GREEN}`}} alt=""/>
+                  :<div style={{width:64,height:64,borderRadius:14,background:T.card,border:`2px dashed ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>🏢</div>}
+              </div>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>Company Logo</div>
+                <label style={{display:"inline-flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,cursor:"pointer",fontSize:12,fontWeight:600,color:WA_GREEN}}>
+                  📎 Upload Logo
+                  <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+                    const f=e.target.files[0]; if(!f) return;
+                    if(f.size>500000){alert("Max 500KB");return;}
+                    const r=new FileReader(); r.onload=ev=>setEditClinic(p=>({...p,logo_url:ev.target.result})); r.readAsDataURL(f);
+                  }}/>
+                </label>
+                <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>PNG, JPG · Max 500KB{editClinic?.logo_url&&<span onClick={()=>setEditClinic(p=>({...p,logo_url:""}))} style={{color:"#ef4444",cursor:"pointer",marginLeft:8}}>✕ Remove</span>}</div>
+              </div>
+            </div>
+
+            {/* Company Name */}
             <div>
               <label style={labelStyle}>Company Name *</label>
               <input autoFocus value={editClinic?.name||""} onChange={e=>setEditClinic(p=>({...p,name:e.target.value}))} placeholder="e.g. Evera Health Clinic" style={inputStyle}/>
             </div>
+
+            {/* Industry + Seats */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div>
                 <label style={labelStyle}>Industry</label>
@@ -2981,49 +3006,27 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
                 <input type="number" min="1" value={editClinic?.max_seats||1} onChange={e=>setEditClinic(p=>({...p,max_seats:e.target.value}))} style={inputStyle}/>
               </div>
             </div>
+
+            {/* Contact Phone + Session Timeout */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div>
-                <label style={labelStyle}>Session Timeout (minutes)</label>
-                <input type="number" min="1" value={editClinic?.session_timeout_mins||30} onChange={e=>setEditClinic(p=>({...p,session_timeout_mins:e.target.value}))} style={inputStyle}/>
-                <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Auto-logout after this many mins of inactivity</div>
-              </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div>
-                <label style={labelStyle}>Website</label>
-                <input value={editClinic?.website_url||editClinic?.website||""} onChange={e=>setEditClinic(p=>({...p,website_url:e.target.value,website:e.target.value}))} placeholder="https://company.com" style={inputStyle}/>
-                <div style={{fontSize:10,color:WA_GREEN,marginTop:4,fontWeight:600}}>🤖 AI will auto-build KB from this URL when onboarding</div>
-              </div>
-              <div>
-                <label style={labelStyle}>Client Domain / Industry Tag</label>
-                <input value={editClinic?.client_domain||""} onChange={e=>setEditClinic(p=>({...p,client_domain:e.target.value}))} placeholder="e.g. healthcare, retail, education" style={inputStyle}/>
-                <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Helps identify client type (optional)</div>
-              </div>
               <div>
                 <label style={labelStyle}>Contact Phone</label>
                 <input value={editClinic?.contact_phone||""} onChange={e=>setEditClinic(p=>({...p,contact_phone:e.target.value}))} placeholder="+60123456789" style={inputStyle}/>
               </div>
-            </div>
-            <div>
-              <label style={labelStyle}>Company Logo</label>
-              <div style={{display:"flex",gap:12,alignItems:"center",padding:"14px",borderRadius:10,border:`1.5px dashed ${T.border}`,background:T.card2}}>
-                {editClinic?.logo_url
-                  ?<img src={editClinic.logo_url} style={{width:50,height:50,borderRadius:10,objectFit:"cover",flexShrink:0}} alt=""/>
-                  :<div style={{width:50,height:50,borderRadius:10,background:T.card,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🏢</div>}
-                <div>
-                  <label style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card,cursor:"pointer",fontSize:12,fontWeight:600,color:T.text}}>
-                    📎 Upload Logo
-                    <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
-                      const f=e.target.files[0]; if(!f) return;
-                      if(f.size>500000){alert("Max 500KB");return;}
-                      const r=new FileReader(); r.onload=ev=>setEditClinic(p=>({...p,logo_url:ev.target.result})); r.readAsDataURL(f);
-                    }}/>
-                  </label>
-                  <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>PNG, JPG · Max 500KB</div>
-                  {editClinic?.logo_url&&<button onClick={()=>setEditClinic(p=>({...p,logo_url:""}))} style={{fontSize:11,color:"#ef4444",border:"none",background:"none",cursor:"pointer",padding:0,marginTop:3,display:"block"}}>✕ Remove</button>}
-                </div>
+              <div>
+                <label style={labelStyle}>Session Timeout (mins)</label>
+                <input type="number" min="1" value={editClinic?.session_timeout_mins||30} onChange={e=>setEditClinic(p=>({...p,session_timeout_mins:e.target.value}))} style={inputStyle}/>
+                <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Auto-logout after inactivity</div>
               </div>
             </div>
+
+            {/* Website */}
+            <div>
+              <label style={labelStyle}>Website URL</label>
+              <input value={editClinic?.website_url||editClinic?.website||""} onChange={e=>setEditClinic(p=>({...p,website_url:e.target.value,website:e.target.value}))} placeholder="https://company.com" style={inputStyle}/>
+              <div style={{fontSize:10,color:WA_GREEN,marginTop:4,fontWeight:600}}>🤖 AI will auto-build KB from this URL when onboarding</div>
+            </div>
+
           </div>}
 
           {/* STEP 1 — WhatsApp */}
@@ -3076,11 +3079,13 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
 
       {/* Navigation */}
       <div style={{display:"flex",gap:10,marginBottom:24}}>
-        <button onClick={()=>{
-          if(clinicStep===0){setView("clients");setEditClinic(null);setClinicStep(0);}
-          else setClinicStep(s=>s-1);
-        }} style={{flex:1,padding:"13px",borderRadius:12,border:`1px solid ${T.border}`,background:"transparent",color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
-          {clinicStep===0?"Cancel":"← Back"}
+        {clinicStep>0&&<button onClick={()=>setClinicStep(s=>s-1)}
+          style={{flex:1,padding:"13px",borderRadius:12,border:`1px solid ${T.border}`,background:"transparent",color:T.textMuted,fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+          ← Back
+        </button>}
+        <button onClick={()=>{setView("clients");setEditClinic(null);setClinicStep(0);}}
+          style={{flex:1,padding:"13px",borderRadius:12,border:`1px solid #ef444440`,background:"#ef444408",color:"#ef4444",fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+          ✕ Cancel
         </button>
         {clinicStep<2
           ?<button onClick={()=>setClinicStep(s=>s+1)}
