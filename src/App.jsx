@@ -995,7 +995,7 @@ export default function App() {
   }
 
   function SourceBadge({s}) {
-    const qa=qaData.find(q=>q.id===s.id); if(!qa) return null;
+    const qa=qaData.find(q=>String(q.id)===String(s.id)); if(!qa) return null;
     const color=s.relevance==="high"?WA_GREEN:"#FFA726";
     return (
       <div onMouseEnter={()=>setHoveredSource(s.id)} onMouseLeave={()=>setHoveredSource(null)} onClick={()=>highlightQA(s.id)}
