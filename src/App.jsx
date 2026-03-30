@@ -658,10 +658,13 @@ export default function App() {
     setOverviewLoading(false);
   }, []);
 
+  const [settingsLoading, setSettingsLoading] = useState(false);
+
   async function loadClientSettings(client) {
     setSettingsClinic(client);
     setClientSettings(null);
     setSettingsDirtyWithRef(false);
+    setSettingsLoading(true);
     try {
       const r = await fetch(`${API}/api/admin/clients/${client.clinic_id}/settings`, {headers:authHeaders()});
       if(r.ok) {
@@ -697,6 +700,8 @@ export default function App() {
       }
     } catch(e) {
       console.error("loadClientSettings failed:", e);
+    } finally {
+      setSettingsLoading(false);
     }
   }
 
@@ -901,24 +906,29 @@ export default function App() {
       if(appSettings.session_timeout_mins) {
         sessionStorage.setItem("crm_timeout", String(appSettings.session_timeout_mins));
       }
-      // Nice success modal
-      setConfirmModal({
-        title:"Settings Saved! ✅",
-        message:"All your settings have been saved successfully.",
-        icon:"💾",
-        danger:false,
-        confirmText:"Great!",
-        onConfirm:()=>{}
-      });
+      // Nice centered success toast
+      const toast = document.createElement("div");
+      toast.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#fff;border-radius:20px;padding:32px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border:2px solid #86efac;min-width:280px;animation:fadeInScale .2s ease";
+      toast.innerHTML = `
+        <div style="font-size:44px;margin-bottom:12px">✅</div>
+        <div style="font-weight:800;font-size:18px;color:#15803d;margin-bottom:6px">Settings Saved!</div>
+        <div style="font-size:13px;color:#6b7280">All changes saved to database</div>
+      `;
+      const style = document.createElement("style");
+      style.textContent = "@keyframes fadeInScale{from{opacity:0;transform:translate(-50%,-50%) scale(.8)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}";
+      document.head.appendChild(style);
+      document.body.appendChild(toast);
+      setTimeout(()=>{ toast.style.transition="opacity .3s"; toast.style.opacity="0"; setTimeout(()=>{ document.body.removeChild(toast); document.head.removeChild(style); },300); }, 2000);
     } catch(e) {
-      setConfirmModal({
-        title:"Save Failed ❌",
-        message:"Could not save settings. Please try again.",
-        icon:"⚠️",
-        danger:true,
-        confirmText:"OK",
-        onConfirm:()=>{}
-      });
+      const toast = document.createElement("div");
+      toast.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#fff;border-radius:20px;padding:32px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border:2px solid #fca5a5;min-width:280px";
+      toast.innerHTML = `
+        <div style="font-size:44px;margin-bottom:12px">❌</div>
+        <div style="font-weight:800;font-size:18px;color:#dc2626;margin-bottom:6px">Save Failed</div>
+        <div style="font-size:13px;color:#6b7280">Could not save — please try again</div>
+      `;
+      document.body.appendChild(toast);
+      setTimeout(()=>{ document.body.removeChild(toast); }, 3000);
     }
   }
 
@@ -1021,18 +1031,6 @@ export default function App() {
       <div style={{fontSize:12,fontWeight:600,color:T.text,marginTop:4}}>{label}</div>
       {sub&&<div style={{fontSize:11,color:T.textFaint,marginTop:2}}>{sub}</div>}
     </div>;
-  }
-
-  function SectionSave({label}) {
-    return (
-      <button onClick={saveSettings}
-        style={{display:"flex",alignItems:"center",gap:6,padding:"7px 16px",borderRadius:10,
-          border:"none",background:settingsDirty?WA_GREEN:"#94a3b8",color:"#fff",
-          fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
-          opacity:settingsDirty?1:0.6,transition:"all .2s"}}>
-        💾 {label||"Save Section"}
-      </button>
-    );
   }
 
   function SettingInput({label,hint,settingKey,type="text",rows}) {
@@ -2293,8 +2291,12 @@ export default function App() {
               <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client</div>
               <div style={{fontSize:13}}>Choose from the sidebar to edit their settings</div>
             </div>}
+            {isAdmin&&settingsClinic&&settingsLoading&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:16}}>
+              <div style={{width:44,height:44,borderRadius:"50%",border:`4px solid ${WA_GREEN}20`,borderTop:`4px solid ${WA_GREEN}`,animation:"spin 0.8s linear infinite"}}/>
+              <div style={{fontWeight:600,fontSize:14,color:T.textMuted}}>Loading {settingsClinic.company_name||"client"} settings...</div>
+            </div>}
 
-            {(!isAdmin||settingsClinic)&&<div style={{maxWidth:720,margin:"0 auto",width:"100%"}}>
+            {(!isAdmin||settingsClinic)&&!settingsLoading&&<div style={{maxWidth:720,margin:"0 auto",width:"100%"}}>
 
               {/* ── STICKY SAVE BAR ── */}
               <div style={{position:"sticky",top:0,zIndex:10,background:T.bg,paddingBottom:10,paddingTop:2,marginBottom:14}}>
@@ -2341,7 +2343,7 @@ export default function App() {
                   <div>
                     <div style={{display:"flex",alignItems:"center",gap:12}}>
                       <div style={{fontWeight:800,fontSize:15}}>Telegram Notifications</div>
-                      <SectionSave label="Save Telegram"/>
+                      
                     </div>
                     <div style={{fontSize:11,color:T.textMuted,lineHeight:1.6}}>
                       Get instant alerts on Telegram when hot leads appear, customers want to book, or a human is needed.
@@ -2496,7 +2498,7 @@ export default function App() {
                       <div style={{fontWeight:700,fontSize:15}}>🤖 AI Bot</div>
                       <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{appSettings.ai_enabled!=="false"?"Active — bot replies automatically":"Disabled — manual replies only"}</div>
                     </div>
-                    <SectionSave label="Save AI Settings"/>
+                    
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontSize:13,fontWeight:700,color:appSettings.ai_enabled!=="false"?WA_GREEN:"#ef4444"}}>{appSettings.ai_enabled!=="false"?"ON":"OFF"}</span>
@@ -2551,7 +2553,7 @@ export default function App() {
                       <div style={{fontWeight:700,fontSize:15}}>⏰ Smart Auto Follow-up</div>
                       <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{appSettings.followup_enabled==="true"?"Active — sends automatically when customer goes silent":"Disabled — only manual follow-ups"}</div>
                     </div>
-                    <SectionSave label="Save Follow-up"/>
+                    
                   </div>
                   <div onClick={()=>{setAppSettings(p=>({...p,followup_enabled:p.followup_enabled==="true"?"false":"true"}));setSettingsDirtyWithRef(true);}}
                     style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.followup_enabled==="true"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
