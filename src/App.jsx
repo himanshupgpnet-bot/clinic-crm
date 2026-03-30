@@ -570,6 +570,8 @@ export default function App() {
   }, []);
 
   const fetchSettings = useCallback(async (clinicId=null, force=false) => {
+    // Admin gets settings via loadClientSettings — not this function
+    if(isAdmin && !clinicId) return;
     try {
       const cParam = clinicId ? `?clinic_id=${clinicId}` : "";
       const r=await fetch(`${API}/api/settings${cParam}`, {headers:authHeaders()});
@@ -579,14 +581,13 @@ export default function App() {
         setAppSettings(d);
         setSettingsDirtyWithRef(false);
       } else if(!settingsDirtyRef.current) {
-        // Use ref — always has current value, never stale
         setAppSettings(d);
       }
       if(d.session_timeout_mins) {
         sessionStorage.setItem("crm_timeout", String(d.session_timeout_mins));
       }
     } catch {}
-  }, []);
+  }, [isAdmin]);
 
   const [clinicUsers, setClinicUsers] = useState([]);
 
@@ -757,8 +758,8 @@ export default function App() {
     const autoRefresh = () => {
       // Always refresh conversations (inbox)
       fetchConversations();
-      // Always refresh settings to keep session_timeout_mins up to date
-      fetchSettings();
+      // Refresh settings (client only — admin uses loadClientSettings)
+      if(!isAdmin) fetchSettings();
       // Refresh current tab data
       if(tab==="analytics") {
         // Use ref to get current selectedClinic value
