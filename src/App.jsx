@@ -676,6 +676,8 @@ export default function App() {
           cold_keywords:        d.cold_keywords||"",
           system_prompt:        d.system_prompt||"",
           followup_enabled:     d.followup_enabled||"true",
+          followup_1_enabled:   d.followup_1_enabled||"true",
+          followup_2_enabled:   d.followup_2_enabled||"false",
           followup_1_delay:     d.followup_1_delay||"2",
           followup_1_delay_unit:d.followup_1_delay_unit||"hours",
           followup_1_message:   d.followup_1_message||"",
@@ -683,6 +685,12 @@ export default function App() {
           followup_2_delay_unit:d.followup_2_delay_unit||"hours",
           followup_2_message:   d.followup_2_message||"",
           followup_max:         d.followup_max||"2",
+          telegram_token:        d.telegram_token||"",
+          telegram_chat_id:      d.telegram_chat_id||"",
+          telegram_notify_hot:   d.telegram_notify_hot||"true",
+          telegram_notify_warm:  d.telegram_notify_warm||"false",
+          telegram_notify_human: d.telegram_notify_human||"true",
+          telegram_notify_booking: d.telegram_notify_booking||"true",
         }));
       }
     } catch(e) {
@@ -2204,7 +2212,7 @@ export default function App() {
                 </div>
 
                 {/* Connection status */}
-                {appSettings.telegram_token&&appSettings.telegram_chat_id
+                {(appSettings.telegram_token||"").length>5&&(appSettings.telegram_chat_id||"").length>3
                   ?<div style={{padding:"8px 12px",borderRadius:8,background:"#f0fdf4",border:"1px solid #86efac",fontSize:11,color:"#166534",fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
                     ✅ Telegram connected — alerts will be sent to your group
                   </div>
@@ -2344,9 +2352,9 @@ export default function App() {
               </div>
 
               {/* API Key status */}
-              {isAdmin&&settingsClinic&&<div style={{background:clientSettings?.ai_api_key?"#f0fdf4":"#fef9c3",border:`1px solid ${clientSettings?.ai_api_key?"#86efac":"#fde68a"}`,borderRadius:12,padding:"12px 16px",marginBottom:16}}>
-                {clientSettings?.ai_api_key
-                  ?<div style={{fontSize:13,color:"#166534",fontWeight:600}}>✅ API Key saved in DB for {settingsClinic.company_name||settingsClinic.username}</div>
+              {isAdmin&&settingsClinic&&<div style={{background:appSettings.ai_api_key?"#f0fdf4":"#fef9c3",border:`1px solid ${appSettings.ai_api_key?"#86efac":"#fde68a"}`,borderRadius:12,padding:"12px 16px",marginBottom:16}}>
+                {appSettings.ai_api_key
+                  ?<div style={{fontSize:13,color:"#166534",fontWeight:600}}>✅ API Key set for {settingsClinic.company_name||settingsClinic.username}</div>
                   :<div style={{fontSize:13,color:"#854d0e",fontWeight:600}}>⚠️ No API key set — add one below and save</div>}
               </div>}
 
