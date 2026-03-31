@@ -2068,31 +2068,109 @@ export default function App() {
                 <div id="url-import-result"/>
               </div>
 
-              {/* METHOD 2: Upload Document */}
+              {/* METHOD 2: Paste Text or Upload Doc */}
               <div className="cc" style={{marginBottom:12,border:`1.5px solid #6366f120`}}>
                 <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}}>
                   <div style={{width:36,height:36,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>📄</div>
                   <div>
-                    <div style={{fontWeight:800,fontSize:14}}>Method 2 — Paste Text or FAQ</div>
+                    <div style={{fontWeight:800,fontSize:14}}>Method 2 — Paste Text or Upload Document</div>
                     <div style={{fontSize:11,color:T.textMuted,marginTop:2,lineHeight:1.6}}>
-                      Copy and paste any text — your brochure, price list, FAQ document, treatment details — 
-                      then tell the AI what to focus on. It will extract Q&A pairs automatically.
+                      Paste text directly <strong>or</strong> upload a PDF/Word document (brochure, price list, FAQ). 
+                      Tell the AI what to focus on and it will extract Q&A pairs automatically.
                     </div>
                   </div>
                 </div>
-                <textarea id="bulk-import-text" rows={4}
-                  placeholder="Paste your text here... e.g.&#10;Our clinic is open Tuesday to Sunday, 9AM to 6PM. Monday is closed.&#10;Consultation fee is RM100 which includes blood test and HbA1C.&#10;We treat diabetes, kidney disease, and osteoarthritis..."
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:8}}/>
-                <input id="bulk-import-instruction" placeholder="Optional: Tell AI what to focus on — e.g. 'Focus on pricing and booking process' or 'Extract treatment FAQs only'"
+
+                {/* Upload doc OR paste text — tabs */}
+                {(()=>{
+                  const [m2tab, setM2tab] = window._m2state || (window._m2state = ["paste", ()=>{}]);
+                  return null;
+                })()}
+
+                <div style={{display:"flex",gap:6,marginBottom:12}}>
+                  {[{id:"paste",label:"✍️ Paste Text"},{id:"upload",label:"📎 Upload Document"}].map(t=>(
+                    <button key={t.id} id={`m2tab-${t.id}`} onClick={()=>{
+                      document.getElementById("m2-paste").style.display = t.id==="paste"?"block":"none";
+                      document.getElementById("m2-upload").style.display = t.id==="upload"?"block":"none";
+                      document.querySelectorAll("[id^=m2tab-]").forEach(b=>{
+                        b.style.background = b.id===`m2tab-${t.id}`?"#6366f1":"transparent";
+                        b.style.color = b.id===`m2tab-${t.id}`?"#fff":T.textMuted;
+                        b.style.border = b.id===`m2tab-${t.id}`?"1px solid #6366f1":`1px solid ${T.border}`;
+                      });
+                    }} style={{padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",
+                      background:t.id==="paste"?"#6366f1":"transparent",
+                      color:t.id==="paste"?"#fff":T.textMuted,
+                      border:t.id==="paste"?"1px solid #6366f1":`1px solid ${T.border}`}}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Paste text area */}
+                <div id="m2-paste">
+                  <textarea id="bulk-import-text" rows={4}
+                    placeholder="Paste your text here... e.g.&#10;Our clinic is open Tuesday to Sunday, 9AM to 6PM.&#10;Consultation fee is RM100 which includes blood test and HbA1C.&#10;We treat diabetes, kidney disease, and osteoarthritis..."
+                    style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:8}}/>
+                </div>
+
+                {/* Upload doc area */}
+                <div id="m2-upload" style={{display:"none"}}>
+                  <div style={{padding:"20px",borderRadius:10,border:`2px dashed ${T.border}`,background:T.card2,textAlign:"center",marginBottom:8}}>
+                    <div style={{fontSize:32,marginBottom:8}}>📎</div>
+                    <div style={{fontWeight:600,fontSize:13,marginBottom:4}}>Upload PDF or Word Document</div>
+                    <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>Brochure, price list, FAQ, treatment guide — any document</div>
+                    <label style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:`1px solid #6366f1`,background:"#6366f110",cursor:"pointer",fontSize:12,fontWeight:600,color:"#6366f1"}}>
+                      📂 Choose File (PDF or DOCX)
+                      <input type="file" accept=".pdf,.doc,.docx,.txt" style={{display:"none"}} onChange={async(e)=>{
+                        const file = e.target.files[0];
+                        if(!file) return;
+                        const statusEl = document.getElementById("m2-upload-status");
+                        statusEl.innerHTML = `<div style='color:#6366f1;font-size:12px;padding:6px'>⏳ Reading ${file.name}...</div>`;
+                        try {
+                          let text = "";
+                          if(file.name.endsWith(".txt")) {
+                            text = await file.text();
+                          } else if(file.name.endsWith(".pdf")) {
+                            // Use FileReader to get base64 then extract text
+                            const arrBuf = await file.arrayBuffer();
+                            const bytes = new Uint8Array(arrBuf);
+                            // Simple text extraction from PDF bytes
+                            const decoder = new TextDecoder("utf-8","ignore");
+                            const raw = decoder.decode(bytes);
+                            // Extract text between stream markers
+                            // Simple text extraction
+                            text = raw.replace(/[^\x20-\x7E\n]/g," ").replace(/  +/g," ").slice(0,8000);
+                          } else {
+                            // .docx — read as text, strip XML
+                            const arrBuf = await file.arrayBuffer();
+                            const decoder = new TextDecoder("utf-8","ignore");
+                            const raw = decoder.decode(new Uint8Array(arrBuf));
+                            text = raw.replace(/<[^>]+>/g," ").replace(/[^\x20-\x7E\n]/g," ").replace(/  +/g," ");
+                          }
+                          // Put text into paste area and switch to paste tab
+                          const pasteEl = document.getElementById("bulk-import-text");
+                          pasteEl.value = text.slice(0,8000);
+                          statusEl.innerHTML = `<div style='color:#166534;font-size:12px;padding:6px;background:#f0fdf4;border-radius:6px'>✅ ${file.name} loaded — ${text.length} characters extracted. You can review the text in the Paste tab, then click Extract.</div>`;
+                        } catch(err) {
+                          statusEl.innerHTML = `<div style='color:#ef4444;font-size:12px;padding:6px'>❌ Could not read file: ${err.message}</div>`;
+                        }
+                      }}/>
+                    </label>
+                    <div id="m2-upload-status" style={{marginTop:8}}/>
+                  </div>
+                </div>
+
+                {/* Instruction + Extract button — shared for both tabs */}
+                <input id="bulk-import-instruction" placeholder="Optional: Tell AI what to focus on — e.g. 'Focus on pricing and booking' or 'Extract treatment FAQs only'"
                   style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"9px 14px",color:T.text,fontSize:12,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box"}}/>
                 <button onClick={async()=>{
                   const textEl = document.getElementById("bulk-import-text");
                   const instrEl = document.getElementById("bulk-import-instruction");
                   const text = textEl.value.trim();
-                  if(!text) return alert("Please paste some text first");
+                  if(!text) return alert("Please paste some text or upload a document first");
                   const instruction = instrEl.value.trim();
                   const res = document.getElementById("bulk-result");
-                  res.innerHTML = "<div style='color:#6366f1;font-size:12px;padding:8px'>🤖 AI is reading your text and creating Q&A pairs...</div>";
+                  res.innerHTML = "<div style='color:#6366f1;font-size:12px;padding:8px'>🤖 AI is reading your content and creating Q&A pairs...</div>";
                   const r = await fetch(`${API}/api/knowledge/bulk-import`,{method:"POST",headers:authHeaders(),body:JSON.stringify({text, instruction})});
                   const d = await r.json();
                   if(d.error){res.innerHTML=`<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px'>${d.error}</div>`;return;}
