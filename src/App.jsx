@@ -63,13 +63,14 @@ const today = () => new Date().toISOString().split("T")[0];
 const daysAgo = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; };
 
 const TABS = [
-  {id:"crm",       icon:"💬", label:"Inbox"},
-  {id:"leads",     icon:"🎯", label:"Leads"},
-  {id:"analytics", icon:"📊", label:"Analytics"},
-  {id:"bot",       icon:"🤖", label:"Test Bot"},
-  {id:"kb",        icon:"📋", label:"Knowledge"},
-  {id:"settings",  icon:"⚙️", label:"Settings"},
-  {id:"admin",     icon:"👑", label:"Admin", adminOnly:true},
+  {id:"crm",          icon:"💬", label:"Inbox"},
+  {id:"leads",        icon:"🎯", label:"Leads"},
+  {id:"analytics",    icon:"📊", label:"Analytics"},
+  {id:"bot",          icon:"🤖", label:"Test Bot"},
+  {id:"kb",           icon:"📋", label:"Knowledge"},
+  {id:"integrations", icon:"🔌", label:"Integrations"},
+  {id:"settings",     icon:"⚙️", label:"Settings"},
+  {id:"admin",        icon:"👑", label:"Admin", adminOnly:true},
 ];
 
 export default function App() {
@@ -2340,6 +2341,158 @@ export default function App() {
         </div>}
 
         {/* ══ SETTINGS ══ */}
+        {/* ══ INTEGRATIONS ══ */}
+        {tab==="integrations"&&<div style={{flex:1,background:T.bg,overflowY:"auto"}}>
+          <div style={{maxWidth:860,margin:"0 auto",padding:"20px 16px 40px"}}>
+
+            {/* Header */}
+            <div style={{marginBottom:24}}>
+              <div style={{fontWeight:900,fontSize:22,marginBottom:4}}>🔌 Integrations</div>
+              <div style={{fontSize:13,color:T.textMuted}}>Connect your tools — each client can have their own integrations</div>
+            </div>
+
+            {/* MESSAGING CHANNELS */}
+            <div style={{fontWeight:800,fontSize:13,color:T.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>💬 Messaging Channels</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:28}}>
+              {[
+                {
+                  name:"WhatsApp",
+                  desc:"Primary chat channel",
+                  connected:true,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#25D366"/><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="#fff"/></svg>
+                },
+                {
+                  name:"Telegram",
+                  desc:"Alerts & notifications",
+                  connected:true,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#229ED9"/><path d="M5.873 11.985l9.83-3.793c.455-.165.852.111.705.8l-1.674 7.89c-.124.562-.454.698-.919.434l-2.5-1.843-1.207 1.163c-.134.134-.246.246-.504.246l.18-2.548 4.633-4.185c.201-.18-.044-.279-.311-.1L7.214 13.74l-2.44-.762c-.53-.166-.54-.53.113-.784z" fill="#fff"/></svg>
+                },
+                {
+                  name:"Instagram",
+                  desc:"DM automation",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><defs><radialGradient id="ig1" cx="30%" cy="107%" r="150%"><stop offset="0%" stopColor="#fdf497"/><stop offset="5%" stopColor="#fdf497"/><stop offset="45%" stopColor="#fd5949"/><stop offset="60%" stopColor="#d6249f"/><stop offset="90%" stopColor="#285AEB"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig1)"/><path d="M12 7.2A4.8 4.8 0 1 0 12 16.8 4.8 4.8 0 0 0 12 7.2zm0 7.9a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2zm5-8.1a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2z" fill="#fff"/></svg>
+                },
+                {
+                  name:"TikTok",
+                  desc:"Comment automation",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="6" fill="#010101"/><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.78a4.85 4.85 0 01-1.01-.09z" fill="white"/></svg>
+                },
+                {
+                  name:"Messenger",
+                  desc:"Facebook Messenger",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#0084FF"/><path d="M12 3C7.04 3 3 6.8 3 11.5c0 2.7 1.33 5.1 3.41 6.7V21l3.1-1.71A9.56 9.56 0 0012 19.5c4.97 0 9-3.8 9-8.5S16.97 3 12 3zm.89 11.44l-2.28-2.43-4.46 2.43 4.9-5.22 2.34 2.43 4.4-2.43-4.9 5.22z" fill="white"/></svg>
+                },
+              ].map(ch=>(
+                <div key={ch.name} className="cc" style={{padding:16,textAlign:"center",position:"relative",cursor:"pointer",
+                  border:`2px solid ${ch.connected?"#25D366":"transparent"}`,
+                  background:ch.connected?`#25D36608`:T.card}}>
+                  {ch.connected&&<div style={{position:"absolute",top:8,right:8,width:8,height:8,borderRadius:"50%",background:"#22c55e"}}/>}
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>{ch.svg}</div>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{ch.name}</div>
+                  <div style={{fontSize:10,color:T.textMuted,marginBottom:10}}>{ch.desc}</div>
+                  {ch.connected
+                    ?<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700}}>✅ Connected</span>
+                    :<button style={{fontSize:11,padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>Connect</button>}
+                </div>
+              ))}
+            </div>
+
+            {/* CALENDAR & BOOKING */}
+            <div style={{fontWeight:800,fontSize:13,color:T.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>📅 Calendar & Booking</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:28}}>
+              {[
+                {
+                  name:"Google Calendar",
+                  desc:"Auto-create appointments",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="4" fill="#fff" stroke="#e0e0e0"/><rect x="3" y="5" width="18" height="16" rx="2" fill="#fff" stroke="#dadce0"/><rect x="3" y="5" width="18" height="5" rx="2" fill="#4285F4"/><rect x="8" y="3" width="2" height="4" rx="1" fill="#4285F4"/><rect x="14" y="3" width="2" height="4" rx="1" fill="#4285F4"/><text x="12" y="17" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#4285F4">CAL</text></svg>
+                },
+                {
+                  name:"Outlook",
+                  desc:"Microsoft Calendar",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="4" fill="#0078D4"/><rect x="3" y="3" width="10" height="10" rx="1" fill="#fff" opacity=".9"/><rect x="14" y="3" width="7" height="7" rx="1" fill="#50e6ff" opacity=".9"/><rect x="3" y="14" width="7" height="7" rx="1" fill="#50e6ff" opacity=".9"/><rect x="11" y="11" width="10" height="10" rx="1" fill="#fff" opacity=".7"/></svg>
+                },
+                {
+                  name:"Calendly",
+                  desc:"Booking link",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#006BFF"/><path d="M12 6a6 6 0 100 12A6 6 0 0012 6zm0 10.5a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm.75-4.5H12V9.75a.75.75 0 00-1.5 0V12c0 .414.336.75.75.75h1.5a.75.75 0 000-1.5z" fill="#fff"/></svg>
+                },
+                {
+                  name:"Manual Slots",
+                  desc:"Set your own schedule",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="4" fill="#7c3aed"/><rect x="4" y="6" width="16" height="14" rx="2" fill="none" stroke="#fff" strokeWidth="1.5"/><line x1="4" y1="10" x2="20" y2="10" stroke="#fff" strokeWidth="1.5"/><line x1="8" y1="4" x2="8" y2="8" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/><line x1="16" y1="4" x2="16" y2="8" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/><rect x="7" y="13" width="2" height="2" rx=".5" fill="#fff"/><rect x="11" y="13" width="2" height="2" rx=".5" fill="#fff"/><rect x="15" y="13" width="2" height="2" rx=".5" fill="#fff"/></svg>
+                },
+              ].map(cal=>(
+                <div key={cal.name} className="cc" style={{padding:16,textAlign:"center",position:"relative",cursor:"pointer",
+                  border:`2px solid ${cal.connected?"#25D366":"transparent"}`}}>
+                  {cal.connected&&<div style={{position:"absolute",top:8,right:8,width:8,height:8,borderRadius:"50%",background:"#22c55e"}}/>}
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>{cal.svg}</div>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{cal.name}</div>
+                  <div style={{fontSize:10,color:T.textMuted,marginBottom:10}}>{cal.desc}</div>
+                  {cal.connected
+                    ?<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700}}>✅ Connected</span>
+                    :<button style={{fontSize:11,padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>Connect</button>}
+                </div>
+              ))}
+            </div>
+
+            {/* AI & VOICE */}
+            <div style={{fontWeight:800,fontSize:13,color:T.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>🤖 AI & Voice</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:28}}>
+              {[
+                {
+                  name:"Claude (Anthropic)",
+                  desc:"AI bot provider",
+                  connected:true,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#D97757"/><text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#fff">AI</text></svg>
+                },
+                {
+                  name:"OpenAI / GPT",
+                  desc:"AI + voice transcription",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#10a37f"/><path d="M12 5.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zm0 11.5a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z" fill="#fff"/></svg>
+                },
+                {
+                  name:"Groq (Free)",
+                  desc:"Fast free AI",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#F55036"/><text x="12" y="16" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#fff">GROQ</text></svg>
+                },
+                {
+                  name:"ElevenLabs",
+                  desc:"Voice replies",
+                  connected:false,
+                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#111"/><rect x="8" y="7" width="2" height="10" rx="1" fill="#fff"/><rect x="11" y="5" width="2" height="14" rx="1" fill="#fff"/><rect x="14" y="8" width="2" height="8" rx="1" fill="#fff"/></svg>
+                },
+              ].map(ai=>(
+                <div key={ai.name} className="cc" style={{padding:16,textAlign:"center",position:"relative",
+                  border:`2px solid ${ai.connected?"#25D366":"transparent"}`,
+                  background:ai.connected?`#25D36608`:T.card}}>
+                  {ai.connected&&<div style={{position:"absolute",top:8,right:8,width:8,height:8,borderRadius:"50%",background:"#22c55e"}}/>}
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>{ai.svg}</div>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{ai.name}</div>
+                  <div style={{fontSize:10,color:T.textMuted,marginBottom:10}}>{ai.desc}</div>
+                  {ai.connected
+                    ?<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700}}>✅ Connected</span>
+                    :<button style={{fontSize:11,padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>Connect</button>}
+                </div>
+              ))}
+            </div>
+
+            {/* Coming Soon */}
+            <div style={{padding:"16px 20px",borderRadius:14,background:T.card2,border:`1px dashed ${T.border}`,textAlign:"center",color:T.textMuted,fontSize:12}}>
+              🚀 More integrations coming soon — Stripe payments, Zapier, HubSpot, Shopify and more
+            </div>
+
+          </div>
+        </div>}
+
         {tab==="settings"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
           {/* Admin sidebar */}
