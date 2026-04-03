@@ -2793,23 +2793,21 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
   const [connData, setConnData] = React.useState({});
   const [clientList, setClientList] = React.useState([]);
 
-  // Load clients list immediately on mount
+  // Load clients list immediately
   React.useEffect(()=>{
+    if(!authToken) return;
     if(isAdmin) {
-      fetch(`${API}/api/admin/clients`,{headers:authHeaders()})
+      fetch(`${API}/api/admin/clients`,{
+        headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`}
+      })
         .then(r=>r.ok?r.json():[])
-        .then(d=>{
-          if(Array.isArray(d)&&d.length>0){
-            setClientList(d);
-          }
-        })
+        .then(d=>{ if(Array.isArray(d)&&d.length>0) setClientList(d); })
         .catch(()=>{});
     } else {
-      const cl = [{id:currentUser?.clinic_id, name:currentUser?.company_name||"Your Clinic", logo_url:currentUser?.logo_url}];
-      setClientList(cl);
-      setSelClinicId(currentUser?.clinic_id); // auto-select for non-admin
+      setClientList([{id:currentUser?.clinic_id, name:currentUser?.company_name||"Your Clinic", logo_url:currentUser?.logo_url}]);
+      setSelClinicId(currentUser?.clinic_id);
     }
-  },[]);
+  },[authToken]);
 
   const myClinicId = isAdmin ? selClinicId : currentUser?.clinic_id;
   const myClient = clientList.find(c=>String(c.id||c.clinic_id)===String(myClinicId)) || (!isAdmin&&clientList[0]||null);
@@ -3585,7 +3583,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
       <SectionCard T={T} title="🔐 TAB PERMISSIONS">
         <PermGrid data={editUser||{}} setData={setEditUser} PERM_TABS={PERM_TABS} WA_GREEN={WA_GREEN} T={T}
           INTEGRATION_CONNECTORS={INTEGRATION_CONNECTORS}
-          onIntegrationToggle={()=>setShowIntegrationPerms(true)}/>
+          onIntegrationToggle={(val)=>{if(val)setShowIntegrationPerms(true);}}/>
 
         {/* Integration sub-permissions popup */}
         {showIntegrationPerms&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center"}}
