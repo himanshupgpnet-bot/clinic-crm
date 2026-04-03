@@ -754,7 +754,10 @@ export default function App() {
       fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
     }
-    if((tab==="crm"||tab==="leads"||tab==="settings"||tab==="kb") && isAdmin && adminOverview.length===0) {
+    if((tab==="crm"||tab==="leads"||tab==="settings"||tab==="kb"||tab==="integrations") && isAdmin && adminOverview.length===0) {
+      fetchAdminOverview();
+    }
+    if(tab==="integrations" && isAdmin) {
       fetchAdminOverview();
     }
   }, [tab]);
@@ -2792,14 +2795,17 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, adminOverview, currentUser
     ? [...new Map((adminOverview||[]).filter(c=>c.company_name).map(c=>[c.clinic_id,c])).values()]
     : [{clinic_id:currentUser?.clinic_id, company_name:currentUser?.company_name||"Your Clinic", logo_url:currentUser?.logo_url}];
 
-  const myClinicId = isAdmin ? selClinicId : currentUser?.clinic_id;
-  const myClient = clientList.find(c=>c.clinic_id===myClinicId) || (!isAdmin ? clientList[0] : null);
+  const myClinicId = isAdmin ? selClinicId : (currentUser?.clinic_id);
+  const myClient = clientList.find(c=>String(c.clinic_id)===String(myClinicId)) || (!isAdmin ? clientList[0] : null);
 
   // Load connector data when client selected
   React.useEffect(()=>{
     if(!myClinicId) return;
-    fetch(`${API}/api/admin/clients/${myClinicId}/settings`,{headers:authHeaders()})
-      .then(r=>r.json()).then(d=>setConnData(d)).catch(()=>{});
+    const url = isAdmin
+      ? `${API}/api/admin/clients/${myClinicId}/settings`
+      : `${API}/api/settings`;
+    fetch(url,{headers:authHeaders()})
+      .then(r=>r.ok?r.json():null).then(d=>{if(d)setConnData(d);}).catch(()=>{});
   },[myClinicId]);
 
   const CONNECTORS = [
@@ -2836,7 +2842,10 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, adminOverview, currentUser
     if(!myClinicId) return;
     setSaving(true);
     try {
-      await fetch(`${API}/api/admin/clients/${myClinicId}/settings`,{
+      const saveUrl = isAdmin
+        ? `${API}/api/admin/clients/${myClinicId}/settings`
+        : `${API}/api/settings`;
+      await fetch(saveUrl,{
         method:"PATCH", headers:authHeaders(),
         body:JSON.stringify(connForm)
       });
