@@ -2793,15 +2793,21 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
   const [connData, setConnData] = React.useState({});
   const [clientList, setClientList] = React.useState([]);
 
-  // Load clients list
+  // Load clients list immediately on mount
   React.useEffect(()=>{
     if(isAdmin) {
       fetch(`${API}/api/admin/clients`,{headers:authHeaders()})
         .then(r=>r.ok?r.json():[])
-        .then(d=>setClientList(Array.isArray(d)?d:[]))
+        .then(d=>{
+          if(Array.isArray(d)&&d.length>0){
+            setClientList(d);
+          }
+        })
         .catch(()=>{});
     } else {
-      setClientList([{id:currentUser?.clinic_id, name:currentUser?.company_name||"Your Clinic", logo_url:currentUser?.logo_url}]);
+      const cl = [{id:currentUser?.clinic_id, name:currentUser?.company_name||"Your Clinic", logo_url:currentUser?.logo_url}];
+      setClientList(cl);
+      setSelClinicId(currentUser?.clinic_id); // auto-select for non-admin
     }
   },[]);
 
@@ -2846,7 +2852,11 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
     {id:"gcal",label:"Google Calendar",permKey:"integration_calendar",
      desc:"Auto-create appointments in Calendar",color:"#4285F4",comingSoon:true,
      fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg"},
-  ].filter(c=>isAdmin||permissions==="all"||!permissions||(permissions&&permissions[c.permKey]));
+  ].filter(c=>{
+    if(isAdmin) return true; // admin sees everything
+    if(permissions==="all"||!permissions) return true;
+    return permissions&&permissions[c.permKey];
+  });
 
   const saveConnector = async () => {
     if(!myClinicId) return;
@@ -3302,11 +3312,15 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             integration_calendly:editUser.integration_calendly,
           }};
     const url = isNew ? `${API}/api/admin/users` : `${API}/api/admin/users/${editUser.id}`;
-    const r = await fetch(url,{method:isNew?"POST":"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
-    const d = await r.json();
-    if(!r.ok) return alert(d.error||"Failed");
-    flash(isNew?`✅ User "@${editUser.username}" created!`:"✅ User updated!");
-    setView("clients"); setEditUser(null); load();
+    try {
+      const r = await fetch(url,{method:isNew?"POST":"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
+      const d = await r.json();
+      if(!r.ok) { alert(d.error||"Save failed — check console"); return; }
+      flash(isNew?`✅ User "@${editUser.username}" created!`:"✅ User updated!");
+      setView("clients"); setEditUser(null); load();
+    } catch(e) {
+      alert("Error: " + e.message);
+    }
   };
 
   const deleteUser = async uid => {
@@ -3574,7 +3588,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
           onIntegrationToggle={()=>setShowIntegrationPerms(true)}/>
 
         {/* Integration sub-permissions popup */}
-        {showIntegrationPerms&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}
+        {showIntegrationPerms&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center"}}
           onClick={e=>{if(e.target===e.currentTarget)setShowIntegrationPerms(false);}}>
           <div style={{background:"#fff",borderRadius:20,padding:28,width:340,boxShadow:"0 20px 60px rgba(0,0,0,.2)",animation:"fadeInScale .2s ease"}}>
             <div style={{textAlign:"center",marginBottom:20}}>
