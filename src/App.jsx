@@ -2851,9 +2851,17 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
      desc:"Auto-create appointments in Calendar",color:"#4285F4",comingSoon:true,
      fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg"},
   ].filter(c=>{
-    if(isAdmin) return true; // admin sees everything
+    if(isAdmin) return true;
     if(permissions==="all"||!permissions) return true;
-    return permissions&&permissions[c.permKey];
+    // If user has integrations enabled but no specific connector perms set yet, show all
+    const hasAnyConnectorPerm = permissions && (
+      permissions.integration_whatsapp || permissions.integration_telegram ||
+      permissions.integration_instagram || permissions.integration_tiktok ||
+      permissions.integration_messenger || permissions.integration_calendar ||
+      permissions.integration_calendly
+    );
+    if(!hasAnyConnectorPerm) return true; // show all if none specifically set
+    return permissions && permissions[c.permKey];
   });
 
   const saveConnector = async () => {
@@ -3201,15 +3209,20 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const load = async () => {
     setLoading(true);
     try {
-      const [cr,ur,sr] = await Promise.all([
+      // Load clients and users first (fast)
+      const [cr,ur] = await Promise.all([
         fetch(`${API}/api/admin/clients`,{headers:authHeaders()}),
         fetch(`${API}/api/admin/users`,{headers:authHeaders()}),
-        fetch(`${API}/api/admin/sessions`,{headers:authHeaders()})
       ]);
       if(cr.ok) setClinics(await cr.json());
       if(ur.ok) setUsers(await ur.json());
-      if(sr.ok) setSessions(await sr.json());
-    } finally { setLoading(false); }
+      setLoading(false);
+      // Load sessions separately (slower, non-blocking)
+      fetch(`${API}/api/admin/sessions`,{headers:authHeaders()})
+        .then(r=>r.ok?r.json():[]).then(d=>setSessions(d)).catch(()=>{});
+    } catch(e) {
+      setLoading(false);
+    }
   };
 
   const forceLogout = async (userId, username) => {
