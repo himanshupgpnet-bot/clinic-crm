@@ -176,7 +176,7 @@ export default function App() {
     if (!currentUser) return false;
     if (isAdmin) return true;
     if (!permissions || permissions === "all") return true;
-    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:"can_settings", admin:false };
+    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:"can_settings", integrations:"can_integrations", admin:false };
     return map[tab] ? permissions[map[tab]] : false;
   };
 
@@ -2348,7 +2348,9 @@ export default function App() {
             {/* Header */}
             <div style={{marginBottom:24}}>
               <div style={{fontWeight:900,fontSize:22,marginBottom:4}}>🔌 Integrations</div>
-              <div style={{fontSize:13,color:T.textMuted}}>Connect your tools — each client can have their own integrations</div>
+              <div style={{fontSize:13,color:T.textMuted}}>
+                {isAdmin?"Connect tools for each client":"Your connected channels and tools"}
+              </div>
             </div>
 
             {/* MESSAGING CHANNELS */}
@@ -2357,35 +2359,40 @@ export default function App() {
               {[
                 {
                   name:"WhatsApp",
+                  permKey:"integration_whatsapp",
                   desc:"Primary chat channel",
                   connected:true,
                   svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#25D366"/><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="#fff"/></svg>
                 },
                 {
                   name:"Telegram",
+                  permKey:"integration_telegram",
                   desc:"Alerts & notifications",
                   connected:true,
                   svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#229ED9"/><path d="M5.873 11.985l9.83-3.793c.455-.165.852.111.705.8l-1.674 7.89c-.124.562-.454.698-.919.434l-2.5-1.843-1.207 1.163c-.134.134-.246.246-.504.246l.18-2.548 4.633-4.185c.201-.18-.044-.279-.311-.1L7.214 13.74l-2.44-.762c-.53-.166-.54-.53.113-.784z" fill="#fff"/></svg>
                 },
                 {
                   name:"Instagram",
+                  permKey:"integration_instagram",
                   desc:"DM automation",
                   connected:false,
                   svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><defs><radialGradient id="ig1" cx="30%" cy="107%" r="150%"><stop offset="0%" stopColor="#fdf497"/><stop offset="5%" stopColor="#fdf497"/><stop offset="45%" stopColor="#fd5949"/><stop offset="60%" stopColor="#d6249f"/><stop offset="90%" stopColor="#285AEB"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig1)"/><path d="M12 7.2A4.8 4.8 0 1 0 12 16.8 4.8 4.8 0 0 0 12 7.2zm0 7.9a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2zm5-8.1a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2z" fill="#fff"/></svg>
                 },
                 {
                   name:"TikTok",
+                  permKey:"integration_tiktok",
                   desc:"Comment automation",
                   connected:false,
                   svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="6" fill="#010101"/><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.78a4.85 4.85 0 01-1.01-.09z" fill="white"/></svg>
                 },
                 {
                   name:"Messenger",
+                  permKey:"integration_messenger",
                   desc:"Facebook Messenger",
                   connected:false,
                   svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#0084FF"/><path d="M12 3C7.04 3 3 6.8 3 11.5c0 2.7 1.33 5.1 3.41 6.7V21l3.1-1.71A9.56 9.56 0 0012 19.5c4.97 0 9-3.8 9-8.5S16.97 3 12 3zm.89 11.44l-2.28-2.43-4.46 2.43 4.9-5.22 2.34 2.43 4.4-2.43-4.9 5.22z" fill="white"/></svg>
                 },
-              ].map(ch=>(
+              ].filter(ch=>isAdmin||!permissions||permissions==="all"||(permissions&&permissions[ch.permKey])).map(ch=>(
                 <div key={ch.name} className="cc" style={{padding:16,textAlign:"center",position:"relative",cursor:"pointer",
                   border:`2px solid ${ch.connected?"#25D366":"transparent"}`,
                   background:ch.connected?`#25D36608`:T.card}}>
@@ -2406,6 +2413,7 @@ export default function App() {
               {[
                 {
                   name:"Google Calendar",
+                  permKey:"integration_calendar",
                   desc:"Auto-create appointments",
                   connected:false,
                   svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="4" fill="#fff" stroke="#e0e0e0"/><rect x="3" y="5" width="18" height="16" rx="2" fill="#fff" stroke="#dadce0"/><rect x="3" y="5" width="18" height="5" rx="2" fill="#4285F4"/><rect x="8" y="3" width="2" height="4" rx="1" fill="#4285F4"/><rect x="14" y="3" width="2" height="4" rx="1" fill="#4285F4"/><text x="12" y="17" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#4285F4">CAL</text></svg>
@@ -2428,7 +2436,7 @@ export default function App() {
                   connected:false,
                   svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="4" fill="#7c3aed"/><rect x="4" y="6" width="16" height="14" rx="2" fill="none" stroke="#fff" strokeWidth="1.5"/><line x1="4" y1="10" x2="20" y2="10" stroke="#fff" strokeWidth="1.5"/><line x1="8" y1="4" x2="8" y2="8" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/><line x1="16" y1="4" x2="16" y2="8" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/><rect x="7" y="13" width="2" height="2" rx=".5" fill="#fff"/><rect x="11" y="13" width="2" height="2" rx=".5" fill="#fff"/><rect x="15" y="13" width="2" height="2" rx=".5" fill="#fff"/></svg>
                 },
-              ].map(cal=>(
+              ].filter(cal=>isAdmin||!permissions||permissions==="all"||(permissions&&permissions[cal.permKey])).map(cal=>(
                 <div key={cal.name} className="cc" style={{padding:16,textAlign:"center",position:"relative",cursor:"pointer",
                   border:`2px solid ${cal.connected?"#25D366":"transparent"}`}}>
                   {cal.connected&&<div style={{position:"absolute",top:8,right:8,width:8,height:8,borderRadius:"50%",background:"#22c55e"}}/>}
@@ -3049,7 +3057,7 @@ function SectionCard({title, children, T}) {
   );
 }
 
-function PermGrid({data, setData, PERM_TABS, WA_GREEN, T}) {
+function PermGrid({data, setData, PERM_TABS, WA_GREEN, T, INTEGRATION_CONNECTORS, onIntegrationToggle}) {
   return (
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {PERM_TABS.map(p=>(
@@ -3083,15 +3091,30 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const INDUSTRIES = ["Healthcare & Clinic","Dental","Beauty & Salon","Spa & Wellness",
     "Fitness & Gym","Legal & Law Firm","Real Estate","Education","Restaurant & F&B","Other"];
   const PROVIDERS = [{id:"anthropic",label:"Claude (Anthropic)"},{id:"openai",label:"GPT (OpenAI)"},{id:"groq",label:"Groq"}];
+  const INTEGRATION_CONNECTORS = [
+    {key:"integration_whatsapp",  label:"WhatsApp"},
+    {key:"integration_telegram",  label:"Telegram"},
+    {key:"integration_instagram", label:"Instagram"},
+    {key:"integration_tiktok",    label:"TikTok"},
+    {key:"integration_messenger", label:"Messenger"},
+    {key:"integration_calendar",  label:"Google Calendar"},
+    {key:"integration_calendly",  label:"Calendly"},
+  ];
+
+  const [showIntegrationPerms, setShowIntegrationPerms] = useState(false);
+
   const PERM_TABS = [
     {key:"can_inbox",label:"💬 Inbox"},{key:"can_leads",label:"🎯 Leads"},
     {key:"can_analytics",label:"📊 Analytics"},{key:"can_testbot",label:"🤖 Test Bot"},
-    {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"}
+    {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"},
+    {key:"can_integrations",label:"🔌 Integrations"}
   ];
   const emptyClinic = {name:"",industry:"",website:"",client_domain:"",contact_phone:"",logo_url:"",
     whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",max_seats:1};
   const emptyUser = (clinic_id="") => ({username:"",password:"",clinic_id,
-    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false});
+    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,
+    integration_whatsapp:false,integration_telegram:false,integration_instagram:false,
+    integration_tiktok:false,integration_messenger:false,integration_calendar:false,integration_calendly:false});
 
   const [sessions, setSessions] = useState([]);
   const [showSessions, setShowSessions] = useState(false);
@@ -3183,7 +3206,12 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
       ? {...editUser, existing_clinic_id:editUser.clinic_id, role:"client",
           permissions:{can_inbox:editUser.can_inbox,can_leads:editUser.can_leads,
             can_analytics:editUser.can_analytics,can_testbot:editUser.can_testbot,
-            can_knowledge:editUser.can_knowledge,can_settings:editUser.can_settings}}
+            can_knowledge:editUser.can_knowledge,can_settings:editUser.can_settings,
+            can_integrations:editUser.can_integrations,
+            integration_whatsapp:editUser.integration_whatsapp,integration_telegram:editUser.integration_telegram,
+            integration_instagram:editUser.integration_instagram,integration_tiktok:editUser.integration_tiktok,
+            integration_messenger:editUser.integration_messenger,integration_calendar:editUser.integration_calendar,
+            integration_calendly:editUser.integration_calendly}}
       : {username:editUser.username, active:editUser.active,
           ...(editUser.newPassword?{password:editUser.newPassword}:{}),
           permissions:{
@@ -3192,7 +3220,15 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             can_analytics:editUser.can_analytics,
             can_testbot:editUser.can_testbot,
             can_knowledge:editUser.can_knowledge,
-            can_settings:editUser.can_settings
+            can_settings:editUser.can_settings,
+            can_integrations:editUser.can_integrations,
+            integration_whatsapp:editUser.integration_whatsapp,
+            integration_telegram:editUser.integration_telegram,
+            integration_instagram:editUser.integration_instagram,
+            integration_tiktok:editUser.integration_tiktok,
+            integration_messenger:editUser.integration_messenger,
+            integration_calendar:editUser.integration_calendar,
+            integration_calendly:editUser.integration_calendly,
           }};
     const url = isNew ? `${API}/api/admin/users` : `${API}/api/admin/users/${editUser.id}`;
     const r = await fetch(url,{method:isNew?"POST":"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
@@ -3462,7 +3498,42 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
       </SectionCard>
 
       <SectionCard T={T} title="🔐 TAB PERMISSIONS">
-        <PermGrid data={editUser||{}} setData={setEditUser} PERM_TABS={PERM_TABS} WA_GREEN={WA_GREEN} T={T}/>
+        <PermGrid data={editUser||{}} setData={setEditUser} PERM_TABS={PERM_TABS} WA_GREEN={WA_GREEN} T={T}
+          INTEGRATION_CONNECTORS={INTEGRATION_CONNECTORS}
+          onIntegrationToggle={()=>setShowIntegrationPerms(true)}/>
+
+        {/* Integration sub-permissions popup */}
+        {showIntegrationPerms&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick={e=>{if(e.target===e.currentTarget)setShowIntegrationPerms(false);}}>
+          <div style={{background:"#fff",borderRadius:20,padding:28,width:340,boxShadow:"0 20px 60px rgba(0,0,0,.2)",animation:"fadeInScale .2s ease"}}>
+            <div style={{textAlign:"center",marginBottom:20}}>
+              <div style={{fontSize:36,marginBottom:8}}>🔌</div>
+              <div style={{fontWeight:800,fontSize:17,marginBottom:4}}>Integrations Access</div>
+              <div style={{fontSize:12,color:"#6b7280"}}>Select which connectors this user can see and manage</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+              {INTEGRATION_CONNECTORS.map(c=>{
+                const isOn = editUser?.[c.key]||false;
+                return (
+                  <div key={c.key} onClick={()=>setEditUser(p=>({...p,[c.key]:!p[c.key]}))}
+                    style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                      padding:"10px 14px",borderRadius:10,cursor:"pointer",
+                      background:isOn?"#f0fdf4":"#f8fafc",
+                      border:`1px solid ${isOn?"#86efac":"#e2e8f0"}`}}>
+                    <span style={{fontWeight:600,fontSize:13,color:isOn?"#166534":"#374151"}}>{c.label}</span>
+                    <div style={{width:40,height:22,borderRadius:11,background:isOn?"#25D366":"#cbd5e1",position:"relative",transition:"background .2s",flexShrink:0}}>
+                      <div style={{position:"absolute",top:3,left:isOn?20:3,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button onClick={()=>setShowIntegrationPerms(false)}
+              style={{width:"100%",padding:"11px",borderRadius:12,border:"none",background:"#25D366",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+              ✅ Done
+            </button>
+          </div>
+        </div>}
       </SectionCard>
 
       <div style={{display:"flex",gap:10,marginBottom:20}}>
