@@ -2347,7 +2347,7 @@ export default function App() {
         {/* ══ INTEGRATIONS ══ */}
         {tab==="integrations"&&<IntegrationsTab
           T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
-          adminOverview={adminOverview} currentUser={currentUser}
+          currentUser={currentUser}
           permissions={permissions} authHeaders={authHeaders} API={API}/>}
 
 
@@ -2784,19 +2784,28 @@ export default function App() {
 }
 
 // ── INTEGRATIONS TAB ──────────────────────────────────────────────────────────
-function IntegrationsTab({T, WA_GREEN, dark, isAdmin, adminOverview, currentUser, permissions, authHeaders, API}) {
+function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, permissions, authHeaders, API}) {
   const [selClinicId, setSelClinicId] = React.useState(null);
   const [editConn, setEditConn] = React.useState(null);
   const [connForm, setConnForm] = React.useState({});
   const [saving, setSaving] = React.useState(false);
   const [connData, setConnData] = React.useState({});
+  const [clientList, setClientList] = React.useState([]);
 
-  const clientList = isAdmin
-    ? [...new Map((adminOverview||[]).filter(c=>c.company_name).map(c=>[c.clinic_id,c])).values()]
-    : [{clinic_id:currentUser?.clinic_id, company_name:currentUser?.company_name||"Your Clinic", logo_url:currentUser?.logo_url}];
+  // Load clients list
+  React.useEffect(()=>{
+    if(isAdmin) {
+      fetch(`${API}/api/admin/clients`,{headers:authHeaders()})
+        .then(r=>r.ok?r.json():[])
+        .then(d=>setClientList(Array.isArray(d)?d:[]))
+        .catch(()=>{});
+    } else {
+      setClientList([{id:currentUser?.clinic_id, name:currentUser?.company_name||"Your Clinic", logo_url:currentUser?.logo_url}]);
+    }
+  },[]);
 
-  const myClinicId = isAdmin ? selClinicId : (currentUser?.clinic_id);
-  const myClient = clientList.find(c=>String(c.clinic_id)===String(myClinicId)) || (!isAdmin ? clientList[0] : null);
+  const myClinicId = isAdmin ? selClinicId : currentUser?.clinic_id;
+  const myClient = clientList.find(c=>String(c.id||c.clinic_id)===String(myClinicId)) || (!isAdmin&&clientList[0]||null);
 
   // Load connector data when client selected
   React.useEffect(()=>{
@@ -2870,18 +2879,22 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, adminOverview, currentUser
         {isAdmin&&<div style={{marginBottom:20}}>
           <div style={{fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Select Client to Configure</div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {clientList.map(c=>(
-              <div key={c.clinic_id} onClick={()=>setSelClinicId(c.clinic_id)}
+            {clientList.map(c=>{
+              const cid = c.id||c.clinic_id;
+              const cname = c.name||c.company_name||"Client";
+              const isSelected = String(myClinicId)===String(cid);
+              return (
+              <div key={cid} onClick={()=>setSelClinicId(cid)}
                 style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderRadius:12,cursor:"pointer",
-                  border:`2px solid ${myClinicId===c.clinic_id?WA_GREEN:T.border}`,
-                  background:myClinicId===c.clinic_id?`${WA_GREEN}10`:T.card,transition:"all .15s"}}>
+                  border:`2px solid ${isSelected?WA_GREEN:T.border}`,
+                  background:isSelected?`${WA_GREEN}10`:T.card,transition:"all .15s"}}>
                 <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:14}}>🏢</span>}
                 </div>
-                <span style={{fontWeight:700,fontSize:13,color:myClinicId===c.clinic_id?WA_GREEN:T.text}}>{c.company_name}</span>
-                {myClinicId===c.clinic_id&&<span style={{fontSize:11,color:WA_GREEN}}>✓</span>}
+                <span style={{fontWeight:700,fontSize:13,color:isSelected?WA_GREEN:T.text}}>{cname}</span>
+                {isSelected&&<span style={{fontSize:11,color:WA_GREEN}}>✓</span>}
               </div>
-            ))}
+            );})}
           </div>
           {!myClinicId&&<div style={{marginTop:16,padding:"24px",textAlign:"center",color:T.textMuted,fontSize:13,background:T.card,borderRadius:12,border:`1px dashed ${T.border}`}}>
             👆 Select a client above to manage their integrations
