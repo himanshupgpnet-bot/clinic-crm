@@ -2812,6 +2812,13 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
   const myClinicId = isAdmin ? selClinicId : currentUser?.clinic_id;
   const myClient = clientList.find(c=>String(c.id||c.clinic_id)===String(myClinicId)) || (!isAdmin&&clientList[0]||null);
 
+  // Auto-select first client for admin if only one
+  React.useEffect(()=>{
+    if(isAdmin && clientList.length===1 && !selClinicId) {
+      setSelClinicId(clientList[0].id||clientList[0].clinic_id);
+    }
+  },[clientList]);
+
   // Load connector data when client selected
   React.useEffect(()=>{
     if(!myClinicId) return;
@@ -2828,15 +2835,15 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
      fields:[{key:"phone_number_id",label:"Phone Number ID",ph:"985068241357564"},
              {key:"whatsapp_number",label:"WhatsApp Number",ph:"+60 11 1050 7200"},
              {key:"whatsapp_token",label:"Access Token",ph:"EAAxxxxxxxx",pwd:true}],
-     isConnected:(d)=>!!(d.phone_number_id||d.whatsapp_number),
-     statusText:(d)=>d.whatsapp_number||"Connected",
+     isConnected:(d)=>!!(d.phone_number_id||d.whatsapp_number||d.wa_phone_number_id||d.wa_phone_number),
+     statusText:(d)=>d.whatsapp_number||d.wa_phone_number||"Connected",
      svg:"https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"},
     {id:"telegram",label:"Telegram",permKey:"integration_telegram",
      desc:"Get instant lead alerts and notifications",color:"#229ED9",
      fields:[{key:"telegram_token",label:"Bot Token",ph:"8664616537:AAGE9wn...",pwd:true},
              {key:"telegram_chat_id",label:"Group Chat ID",ph:"-5277820778"}],
-     isConnected:(d)=>!!(d.telegram_token),
-     statusText:(d)=>d.telegram_chat_id||"Connected",
+     isConnected:(d)=>!!(d.telegram_token&&d.telegram_token.length>5),
+     statusText:(d)=>d.telegram_chat_id?"Group: "+d.telegram_chat_id:"Connected",
      svg:"https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg"},
     {id:"instagram",label:"Instagram",permKey:"integration_instagram",
      desc:"Automate Instagram DM replies",color:"#E1306C",comingSoon:true,
