@@ -2342,164 +2342,11 @@ export default function App() {
 
         {/* ══ SETTINGS ══ */}
         {/* ══ INTEGRATIONS ══ */}
-        {tab==="integrations"&&<div style={{flex:1,background:T.bg,overflowY:"auto"}}>
-          <div style={{maxWidth:860,margin:"0 auto",padding:"20px 16px 40px"}}>
+        {tab==="integrations"&&<IntegrationsTab
+          T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
+          adminOverview={adminOverview} currentUser={currentUser}
+          permissions={permissions} authHeaders={authHeaders} API={API}/>}
 
-            {/* Header */}
-            <div style={{marginBottom:24}}>
-              <div style={{fontWeight:900,fontSize:22,marginBottom:4}}>🔌 Integrations</div>
-              <div style={{fontSize:13,color:T.textMuted}}>
-                {isAdmin?"Connect tools for each client":"Your connected channels and tools"}
-              </div>
-            </div>
-
-            {/* MESSAGING CHANNELS */}
-            <div style={{fontWeight:800,fontSize:13,color:T.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>💬 Messaging Channels</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:28}}>
-              {[
-                {
-                  name:"WhatsApp",
-                  permKey:"integration_whatsapp",
-                  desc:"Primary chat channel",
-                  connected:true,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#25D366"/><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="#fff"/></svg>
-                },
-                {
-                  name:"Telegram",
-                  permKey:"integration_telegram",
-                  desc:"Alerts & notifications",
-                  connected:true,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#229ED9"/><path d="M5.873 11.985l9.83-3.793c.455-.165.852.111.705.8l-1.674 7.89c-.124.562-.454.698-.919.434l-2.5-1.843-1.207 1.163c-.134.134-.246.246-.504.246l.18-2.548 4.633-4.185c.201-.18-.044-.279-.311-.1L7.214 13.74l-2.44-.762c-.53-.166-.54-.53.113-.784z" fill="#fff"/></svg>
-                },
-                {
-                  name:"Instagram",
-                  permKey:"integration_instagram",
-                  desc:"DM automation",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><defs><radialGradient id="ig1" cx="30%" cy="107%" r="150%"><stop offset="0%" stopColor="#fdf497"/><stop offset="5%" stopColor="#fdf497"/><stop offset="45%" stopColor="#fd5949"/><stop offset="60%" stopColor="#d6249f"/><stop offset="90%" stopColor="#285AEB"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig1)"/><path d="M12 7.2A4.8 4.8 0 1 0 12 16.8 4.8 4.8 0 0 0 12 7.2zm0 7.9a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2zm5-8.1a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2z" fill="#fff"/></svg>
-                },
-                {
-                  name:"TikTok",
-                  permKey:"integration_tiktok",
-                  desc:"Comment automation",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="6" fill="#010101"/><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.78a4.85 4.85 0 01-1.01-.09z" fill="white"/></svg>
-                },
-                {
-                  name:"Messenger",
-                  permKey:"integration_messenger",
-                  desc:"Facebook Messenger",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#0084FF"/><path d="M12 3C7.04 3 3 6.8 3 11.5c0 2.7 1.33 5.1 3.41 6.7V21l3.1-1.71A9.56 9.56 0 0012 19.5c4.97 0 9-3.8 9-8.5S16.97 3 12 3zm.89 11.44l-2.28-2.43-4.46 2.43 4.9-5.22 2.34 2.43 4.4-2.43-4.9 5.22z" fill="white"/></svg>
-                },
-              ].filter(ch=>isAdmin||!permissions||permissions==="all"||(permissions&&permissions[ch.permKey])).map(ch=>(
-                <div key={ch.name} className="cc" style={{padding:16,textAlign:"center",position:"relative",cursor:"pointer",
-                  border:`2px solid ${ch.connected?"#25D366":"transparent"}`,
-                  background:ch.connected?`#25D36608`:T.card}}>
-                  {ch.connected&&<div style={{position:"absolute",top:8,right:8,width:8,height:8,borderRadius:"50%",background:"#22c55e"}}/>}
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>{ch.svg}</div>
-                  <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{ch.name}</div>
-                  <div style={{fontSize:10,color:T.textMuted,marginBottom:10}}>{ch.desc}</div>
-                  {ch.connected
-                    ?<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700}}>✅ Connected</span>
-                    :<button style={{fontSize:11,padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>Connect</button>}
-                </div>
-              ))}
-            </div>
-
-            {/* CALENDAR & BOOKING */}
-            <div style={{fontWeight:800,fontSize:13,color:T.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>📅 Calendar & Booking</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:28}}>
-              {[
-                {
-                  name:"Google Calendar",
-                  permKey:"integration_calendar",
-                  desc:"Auto-create appointments",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="4" fill="#fff" stroke="#e0e0e0"/><rect x="3" y="5" width="18" height="16" rx="2" fill="#fff" stroke="#dadce0"/><rect x="3" y="5" width="18" height="5" rx="2" fill="#4285F4"/><rect x="8" y="3" width="2" height="4" rx="1" fill="#4285F4"/><rect x="14" y="3" width="2" height="4" rx="1" fill="#4285F4"/><text x="12" y="17" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#4285F4">CAL</text></svg>
-                },
-                {
-                  name:"Outlook",
-                  desc:"Microsoft Calendar",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="4" fill="#0078D4"/><rect x="3" y="3" width="10" height="10" rx="1" fill="#fff" opacity=".9"/><rect x="14" y="3" width="7" height="7" rx="1" fill="#50e6ff" opacity=".9"/><rect x="3" y="14" width="7" height="7" rx="1" fill="#50e6ff" opacity=".9"/><rect x="11" y="11" width="10" height="10" rx="1" fill="#fff" opacity=".7"/></svg>
-                },
-                {
-                  name:"Calendly",
-                  desc:"Booking link",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#006BFF"/><path d="M12 6a6 6 0 100 12A6 6 0 0012 6zm0 10.5a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm.75-4.5H12V9.75a.75.75 0 00-1.5 0V12c0 .414.336.75.75.75h1.5a.75.75 0 000-1.5z" fill="#fff"/></svg>
-                },
-                {
-                  name:"Manual Slots",
-                  desc:"Set your own schedule",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><rect width="24" height="24" rx="4" fill="#7c3aed"/><rect x="4" y="6" width="16" height="14" rx="2" fill="none" stroke="#fff" strokeWidth="1.5"/><line x1="4" y1="10" x2="20" y2="10" stroke="#fff" strokeWidth="1.5"/><line x1="8" y1="4" x2="8" y2="8" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/><line x1="16" y1="4" x2="16" y2="8" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/><rect x="7" y="13" width="2" height="2" rx=".5" fill="#fff"/><rect x="11" y="13" width="2" height="2" rx=".5" fill="#fff"/><rect x="15" y="13" width="2" height="2" rx=".5" fill="#fff"/></svg>
-                },
-              ].filter(cal=>isAdmin||!permissions||permissions==="all"||(permissions&&permissions[cal.permKey])).map(cal=>(
-                <div key={cal.name} className="cc" style={{padding:16,textAlign:"center",position:"relative",cursor:"pointer",
-                  border:`2px solid ${cal.connected?"#25D366":"transparent"}`}}>
-                  {cal.connected&&<div style={{position:"absolute",top:8,right:8,width:8,height:8,borderRadius:"50%",background:"#22c55e"}}/>}
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>{cal.svg}</div>
-                  <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{cal.name}</div>
-                  <div style={{fontSize:10,color:T.textMuted,marginBottom:10}}>{cal.desc}</div>
-                  {cal.connected
-                    ?<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700}}>✅ Connected</span>
-                    :<button style={{fontSize:11,padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>Connect</button>}
-                </div>
-              ))}
-            </div>
-
-            {/* AI & VOICE */}
-            <div style={{fontWeight:800,fontSize:13,color:T.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>🤖 AI & Voice</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:28}}>
-              {[
-                {
-                  name:"Claude (Anthropic)",
-                  desc:"AI bot provider",
-                  connected:true,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#D97757"/><text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#fff">AI</text></svg>
-                },
-                {
-                  name:"OpenAI / GPT",
-                  desc:"AI + voice transcription",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#10a37f"/><path d="M12 5.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zm0 11.5a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z" fill="#fff"/></svg>
-                },
-                {
-                  name:"Groq (Free)",
-                  desc:"Fast free AI",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#F55036"/><text x="12" y="16" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#fff">GROQ</text></svg>
-                },
-                {
-                  name:"ElevenLabs",
-                  desc:"Voice replies",
-                  connected:false,
-                  svg:<svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="12" r="12" fill="#111"/><rect x="8" y="7" width="2" height="10" rx="1" fill="#fff"/><rect x="11" y="5" width="2" height="14" rx="1" fill="#fff"/><rect x="14" y="8" width="2" height="8" rx="1" fill="#fff"/></svg>
-                },
-              ].map(ai=>(
-                <div key={ai.name} className="cc" style={{padding:16,textAlign:"center",position:"relative",
-                  border:`2px solid ${ai.connected?"#25D366":"transparent"}`,
-                  background:ai.connected?`#25D36608`:T.card}}>
-                  {ai.connected&&<div style={{position:"absolute",top:8,right:8,width:8,height:8,borderRadius:"50%",background:"#22c55e"}}/>}
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>{ai.svg}</div>
-                  <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{ai.name}</div>
-                  <div style={{fontSize:10,color:T.textMuted,marginBottom:10}}>{ai.desc}</div>
-                  {ai.connected
-                    ?<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700}}>✅ Connected</span>
-                    :<button style={{fontSize:11,padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>Connect</button>}
-                </div>
-              ))}
-            </div>
-
-            {/* Coming Soon */}
-            <div style={{padding:"16px 20px",borderRadius:14,background:T.card2,border:`1px dashed ${T.border}`,textAlign:"center",color:T.textMuted,fontSize:12}}>
-              🚀 More integrations coming soon — Stripe payments, Zapier, HubSpot, Shopify and more
-            </div>
-
-          </div>
-        </div>}
 
         {tab==="settings"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
@@ -2927,6 +2774,207 @@ export default function App() {
 
         {/* ══ ADMIN TAB ══ */}
         {tab==="admin"&&isAdmin&&<AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal}/>}
+
+      </div>
+    </div>
+  );
+}
+
+// ── INTEGRATIONS TAB ──────────────────────────────────────────────────────────
+function IntegrationsTab({T, WA_GREEN, dark, isAdmin, adminOverview, currentUser, permissions, authHeaders, API}) {
+  const [selClinicId, setSelClinicId] = React.useState(null);
+  const [editConn, setEditConn] = React.useState(null);
+  const [connForm, setConnForm] = React.useState({});
+  const [saving, setSaving] = React.useState(false);
+  const [connData, setConnData] = React.useState({});
+
+  const clientList = isAdmin
+    ? [...new Map((adminOverview||[]).filter(c=>c.company_name).map(c=>[c.clinic_id,c])).values()]
+    : [{clinic_id:currentUser?.clinic_id, company_name:currentUser?.company_name||"Your Clinic", logo_url:currentUser?.logo_url}];
+
+  const myClinicId = isAdmin ? selClinicId : currentUser?.clinic_id;
+  const myClient = clientList.find(c=>c.clinic_id===myClinicId) || (!isAdmin ? clientList[0] : null);
+
+  // Load connector data when client selected
+  React.useEffect(()=>{
+    if(!myClinicId) return;
+    fetch(`${API}/api/admin/clients/${myClinicId}/settings`,{headers:authHeaders()})
+      .then(r=>r.json()).then(d=>setConnData(d)).catch(()=>{});
+  },[myClinicId]);
+
+  const CONNECTORS = [
+    {id:"whatsapp",label:"WhatsApp",permKey:"integration_whatsapp",
+     desc:"Receive and reply to WhatsApp messages with AI",color:"#25D366",
+     fields:[{key:"phone_number_id",label:"Phone Number ID",ph:"985068241357564"},
+             {key:"whatsapp_number",label:"WhatsApp Number",ph:"+60 11 1050 7200"},
+             {key:"whatsapp_token",label:"Access Token",ph:"EAAxxxxxxxx",pwd:true}],
+     isConnected:(d)=>!!(d.phone_number_id||d.whatsapp_number),
+     statusText:(d)=>d.whatsapp_number||"Connected",
+     svg:"https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"},
+    {id:"telegram",label:"Telegram",permKey:"integration_telegram",
+     desc:"Get instant lead alerts and notifications",color:"#229ED9",
+     fields:[{key:"telegram_token",label:"Bot Token",ph:"8664616537:AAGE9wn...",pwd:true},
+             {key:"telegram_chat_id",label:"Group Chat ID",ph:"-5277820778"}],
+     isConnected:(d)=>!!(d.telegram_token),
+     statusText:(d)=>d.telegram_chat_id||"Connected",
+     svg:"https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg"},
+    {id:"instagram",label:"Instagram",permKey:"integration_instagram",
+     desc:"Automate Instagram DM replies",color:"#E1306C",comingSoon:true,
+     fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png"},
+    {id:"tiktok",label:"TikTok",permKey:"integration_tiktok",
+     desc:"Automate TikTok comment replies",color:"#010101",comingSoon:true,
+     fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/en/a/a9/TikTok_logo.svg"},
+    {id:"messenger",label:"Messenger",permKey:"integration_messenger",
+     desc:"Automate Facebook Messenger replies",color:"#0084FF",comingSoon:true,
+     fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/commons/b/be/Facebook_Messenger_logo_2020.svg"},
+    {id:"gcal",label:"Google Calendar",permKey:"integration_calendar",
+     desc:"Auto-create appointments in Calendar",color:"#4285F4",comingSoon:true,
+     fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg"},
+  ].filter(c=>isAdmin||permissions==="all"||!permissions||(permissions&&permissions[c.permKey]));
+
+  const saveConnector = async () => {
+    if(!myClinicId) return;
+    setSaving(true);
+    try {
+      await fetch(`${API}/api/admin/clients/${myClinicId}/settings`,{
+        method:"PATCH", headers:authHeaders(),
+        body:JSON.stringify(connForm)
+      });
+      setConnData(p=>({...p,...connForm}));
+      setEditConn(null);
+      setConnForm({});
+    } catch(e){ alert("Save failed: "+e.message); }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{flex:1,background:T.bg,overflowY:"auto"}}>
+      <div style={{maxWidth:800,margin:"0 auto",padding:"20px 16px 40px"}}>
+
+        {/* Header */}
+        <div style={{marginBottom:20}}>
+          <div style={{fontWeight:900,fontSize:22,marginBottom:4}}>🔌 Integrations</div>
+          <div style={{fontSize:13,color:T.textMuted}}>Connect channels and tools — each client has their own settings</div>
+        </div>
+
+        {/* Admin — client picker */}
+        {isAdmin&&<div style={{marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Select Client to Configure</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {clientList.map(c=>(
+              <div key={c.clinic_id} onClick={()=>setSelClinicId(c.clinic_id)}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderRadius:12,cursor:"pointer",
+                  border:`2px solid ${myClinicId===c.clinic_id?WA_GREEN:T.border}`,
+                  background:myClinicId===c.clinic_id?`${WA_GREEN}10`:T.card,transition:"all .15s"}}>
+                <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:14}}>🏢</span>}
+                </div>
+                <span style={{fontWeight:700,fontSize:13,color:myClinicId===c.clinic_id?WA_GREEN:T.text}}>{c.company_name}</span>
+                {myClinicId===c.clinic_id&&<span style={{fontSize:11,color:WA_GREEN}}>✓</span>}
+              </div>
+            ))}
+          </div>
+          {!myClinicId&&<div style={{marginTop:16,padding:"24px",textAlign:"center",color:T.textMuted,fontSize:13,background:T.card,borderRadius:12,border:`1px dashed ${T.border}`}}>
+            👆 Select a client above to manage their integrations
+          </div>}
+        </div>}
+
+        {/* Connectors grid */}
+        {(myClinicId||!isAdmin)&&<>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:14}}>
+            {CONNECTORS.map(conn=>{
+              const connected = conn.isConnected(connData);
+              return (
+                <div key={conn.id} style={{background:T.card,borderRadius:16,padding:20,textAlign:"center",
+                  border:`2px solid ${connected?conn.color+"50":"transparent"}`,
+                  boxShadow:connected?`0 0 0 1px ${conn.color}20`:"none",
+                  opacity:conn.comingSoon?0.55:1,position:"relative",
+                  transition:"all .2s"}}>
+                  {connected&&<div style={{position:"absolute",top:10,right:10,width:9,height:9,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 0 2px #fff"}}/>}
+                  {conn.comingSoon&&<div style={{position:"absolute",top:8,right:8,fontSize:9,padding:"2px 7px",borderRadius:6,background:"#f1f5f9",color:"#94a3b8",fontWeight:700,letterSpacing:0.3}}>SOON</div>}
+                  {/* Icon */}
+                  <div style={{width:52,height:52,borderRadius:14,background:conn.comingSoon?"#f8fafc":`${conn.color}15`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",overflow:"hidden"}}>
+                    <img src={conn.svg} style={{width:32,height:32,objectFit:"contain"}} alt={conn.label}
+                      onError={e=>{e.target.style.display="none";}}/>
+                  </div>
+                  <div style={{fontWeight:800,fontSize:14,marginBottom:4}}>{conn.label}</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginBottom:14,lineHeight:1.5}}>{conn.desc}</div>
+                  {conn.comingSoon
+                    ?<span style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>Coming soon</span>
+                    :connected
+                    ?<div>
+                      <div style={{fontSize:10,padding:"2px 10px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700,display:"inline-block",marginBottom:8}}>✅ Connected</div>
+                      {conn.statusText(connData)&&<div style={{fontSize:10,color:T.textMuted,marginBottom:8}}>{conn.statusText(connData)}</div>}
+                      <br/>
+                      <button onClick={()=>{
+                        const init = {};
+                        conn.fields.forEach(f=>{ init[f.key]=connData[f.key]||""; });
+                        setConnForm(init); setEditConn(conn);
+                      }} style={{fontSize:11,padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+                        ✏️ Edit Settings
+                      </button>
+                    </div>
+                    :<button onClick={()=>{
+                      const init = {};
+                      conn.fields.forEach(f=>{ init[f.key]=""; });
+                      setConnForm(init); setEditConn(conn);
+                    }} style={{fontSize:12,padding:"8px 20px",borderRadius:10,border:"none",
+                      background:conn.color,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:700,
+                      boxShadow:`0 4px 12px ${conn.color}40`}}>
+                      Connect
+                    </button>}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Coming soon footer */}
+          <div style={{marginTop:20,padding:"14px 18px",borderRadius:12,background:T.card2,border:`1px dashed ${T.border}`,fontSize:12,color:T.textMuted,textAlign:"center"}}>
+            🚀 More coming soon — Google Calendar, Calendly, Stripe, Zapier, HubSpot
+          </div>
+        </>}
+
+        {/* Connect / Edit modal */}
+        {editConn&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick={e=>{if(e.target===e.currentTarget){setEditConn(null);setConnForm({});}}}>
+          <div style={{background:T.card,borderRadius:20,padding:28,width:380,boxShadow:"0 20px 60px rgba(0,0,0,.25)",maxWidth:"90vw"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+              <div style={{width:44,height:44,borderRadius:12,background:`${editConn.color}15`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                <img src={editConn.svg} style={{width:28,height:28,objectFit:"contain"}} alt=""/>
+              </div>
+              <div>
+                <div style={{fontWeight:800,fontSize:16}}>Connect {editConn.label}</div>
+                <div style={{fontSize:11,color:T.textMuted}}>
+                  {myClient?.company_name||"This client"}
+                </div>
+              </div>
+            </div>
+            {editConn.fields.map(f=>(
+              <div key={f.key} style={{marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>{f.label}</div>
+                <input
+                  type={f.pwd?"password":"text"}
+                  value={connForm[f.key]||""}
+                  onChange={e=>setConnForm(p=>({...p,[f.key]:e.target.value}))}
+                  placeholder={f.ph}
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,
+                    padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+              </div>
+            ))}
+            <div style={{display:"flex",gap:8,marginTop:20}}>
+              <button onClick={()=>{setEditConn(null);setConnForm({});}}
+                style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                Cancel
+              </button>
+              <button onClick={saveConnector} disabled={saving}
+                style={{flex:2,padding:"10px",borderRadius:10,border:"none",
+                  background:editConn.color,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+                  opacity:saving?0.7:1}}>
+                {saving?"Saving...":"💾 Save & Connect"}
+              </button>
+            </div>
+          </div>
+        </div>}
 
       </div>
     </div>
