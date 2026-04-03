@@ -2347,8 +2347,8 @@ export default function App() {
         {/* ══ INTEGRATIONS ══ */}
         {tab==="integrations"&&<IntegrationsTab
           T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
-          currentUser={currentUser}
-          permissions={permissions} authHeaders={authHeaders} API={API}/>}
+          currentUser={currentUser} authToken={authToken}
+          permissions={permissions} API={API}/>}
 
 
         {tab==="settings"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
@@ -2784,7 +2784,8 @@ export default function App() {
 }
 
 // ── INTEGRATIONS TAB ──────────────────────────────────────────────────────────
-function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, permissions, authHeaders, API}) {
+function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, permissions, API}) {
+  const authHeaders = () => ({"Content-Type":"application/json","Authorization":`Bearer ${authToken}`});
   const [selClinicId, setSelClinicId] = React.useState(null);
   const [editConn, setEditConn] = React.useState(null);
   const [connForm, setConnForm] = React.useState({});
