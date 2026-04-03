@@ -2793,98 +2793,87 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
   const [connData, setConnData] = React.useState({});
   const [clientList, setClientList] = React.useState([]);
 
-  // Load clients list immediately
+  // Load clients list
   React.useEffect(()=>{
     if(!authToken) return;
     if(isAdmin) {
-      fetch(`${API}/api/admin/clients`,{
-        headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`}
-      })
-        .then(r=>r.ok?r.json():[])
-        .then(d=>{ if(Array.isArray(d)&&d.length>0) setClientList(d); })
-        .catch(()=>{});
+      fetch(`${API}/api/admin/clients`,{headers:authHeaders()})
+        .then(r=>r.ok?r.json():[]).then(d=>{
+          if(Array.isArray(d)&&d.length>0) {
+            setClientList(d);
+            setSelClinicId(d[0].id); // auto-select first client
+          }
+        }).catch(()=>{});
     } else {
-      setClientList([{id:currentUser?.clinic_id, name:currentUser?.company_name||"Your Clinic", logo_url:currentUser?.logo_url}]);
+      setClientList([{id:currentUser?.clinic_id,name:currentUser?.company_name||"Your Clinic",logo_url:currentUser?.logo_url}]);
       setSelClinicId(currentUser?.clinic_id);
     }
   },[authToken]);
 
-  const myClinicId = isAdmin ? selClinicId : currentUser?.clinic_id;
-  const myClient = clientList.find(c=>String(c.id||c.clinic_id)===String(myClinicId)) || (!isAdmin&&clientList[0]||null);
-
-  // Auto-select first client for admin if only one
+  // Load connector data when client selected - clear first
   React.useEffect(()=>{
-    if(isAdmin && clientList.length===1 && !selClinicId) {
-      setSelClinicId(clientList[0].id||clientList[0].clinic_id);
-    }
-  },[clientList]);
-
-  // Load connector data when client selected
-  React.useEffect(()=>{
-    if(!myClinicId) return;
+    if(!selClinicId) return;
+    setConnData({}); // clear previous client data
     const url = isAdmin
-      ? `${API}/api/admin/clients/${myClinicId}/settings`
+      ? `${API}/api/admin/clients/${selClinicId}/settings`
       : `${API}/api/settings`;
     fetch(url,{headers:authHeaders()})
-      .then(r=>r.ok?r.json():null).then(d=>{if(d)setConnData(d);}).catch(()=>{});
-  },[myClinicId]);
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{if(d) setConnData(d);})
+      .catch(()=>{});
+  },[selClinicId]);
 
-  const CONNECTORS = [
-    {id:"whatsapp",label:"WhatsApp",permKey:"integration_whatsapp",
-     desc:"Receive and reply to WhatsApp messages with AI",color:"#25D366",
+  const myClient = clientList.find(c=>String(c.id)===String(selClinicId));
+
+  // All connectors with enabled flag (admin can toggle)
+  const ALL_CONNECTORS = [
+    {id:"whatsapp",  label:"WhatsApp",  color:"#25D366", permKey:"integration_whatsapp",
+     desc:"Receive and reply to WhatsApp messages with AI",
+     isConnected:(d)=>!!(d.phone_number_id||d.whatsapp_number),
+     statusText:(d)=>d.whatsapp_number||"",
      fields:[{key:"phone_number_id",label:"Phone Number ID",ph:"985068241357564"},
              {key:"whatsapp_number",label:"WhatsApp Number",ph:"+60 11 1050 7200"},
              {key:"whatsapp_token",label:"Access Token",ph:"EAAxxxxxxxx",pwd:true}],
-     isConnected:(d)=>!!(d.phone_number_id||d.whatsapp_number||d.wa_phone_number_id||d.wa_phone_number),
-     statusText:(d)=>d.whatsapp_number||d.wa_phone_number||"Connected",
-     svg:"https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"},
-    {id:"telegram",label:"Telegram",permKey:"integration_telegram",
-     desc:"Get instant lead alerts and notifications",color:"#229ED9",
+     logo:"📱"},
+    {id:"telegram",  label:"Telegram",  color:"#229ED9", permKey:"integration_telegram",
+     desc:"Get instant lead alerts and notifications",
+     isConnected:(d)=>!!(d.telegram_token&&d.telegram_token.length>5),
+     statusText:(d)=>d.telegram_chat_id?"Chat: "+d.telegram_chat_id:"",
      fields:[{key:"telegram_token",label:"Bot Token",ph:"8664616537:AAGE9wn...",pwd:true},
              {key:"telegram_chat_id",label:"Group Chat ID",ph:"-5277820778"}],
-     isConnected:(d)=>!!(d.telegram_token&&d.telegram_token.length>5),
-     statusText:(d)=>d.telegram_chat_id?"Group: "+d.telegram_chat_id:"Connected",
-     svg:"https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg"},
-    {id:"instagram",label:"Instagram",permKey:"integration_instagram",
-     desc:"Automate Instagram DM replies",color:"#E1306C",comingSoon:true,
-     fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png"},
-    {id:"tiktok",label:"TikTok",permKey:"integration_tiktok",
-     desc:"Automate TikTok comment replies",color:"#010101",comingSoon:true,
-     fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/en/a/a9/TikTok_logo.svg"},
-    {id:"messenger",label:"Messenger",permKey:"integration_messenger",
-     desc:"Automate Facebook Messenger replies",color:"#0084FF",comingSoon:true,
-     fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/commons/b/be/Facebook_Messenger_logo_2020.svg"},
-    {id:"gcal",label:"Google Calendar",permKey:"integration_calendar",
-     desc:"Auto-create appointments in Calendar",color:"#4285F4",comingSoon:true,
-     fields:[],isConnected:()=>false,statusText:()=>"",svg:"https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg"},
-  ].filter(c=>{
-    if(isAdmin) return true;
+     logo:"✈️"},
+    {id:"instagram", label:"Instagram", color:"#E1306C", permKey:"integration_instagram",
+     desc:"Automate Instagram DM replies", isConnected:()=>false, statusText:()=>"",
+     fields:[], logo:"📸"},
+    {id:"tiktok",    label:"TikTok",    color:"#010101", permKey:"integration_tiktok",
+     desc:"Automate TikTok comment replies", isConnected:()=>false, statusText:()=>"",
+     fields:[], logo:"🎵"},
+    {id:"messenger", label:"Messenger", color:"#0084FF", permKey:"integration_messenger",
+     desc:"Facebook Messenger automation", isConnected:()=>false, statusText:()=>"",
+     fields:[], logo:"💬"},
+    {id:"gcal",      label:"Google Calendar", color:"#4285F4", permKey:"integration_calendar",
+     desc:"Auto-create appointments", isConnected:()=>false, statusText:()=>"",
+     fields:[], logo:"📅"},
+  ];
+
+  // Admin sees all, client sees only what admin enabled
+  const visibleConnectors = isAdmin ? ALL_CONNECTORS : ALL_CONNECTORS.filter(c=>{
     if(permissions==="all"||!permissions) return true;
-    // If user has integrations enabled but no specific connector perms set yet, show all
-    const hasAnyConnectorPerm = permissions && (
-      permissions.integration_whatsapp || permissions.integration_telegram ||
-      permissions.integration_instagram || permissions.integration_tiktok ||
-      permissions.integration_messenger || permissions.integration_calendar ||
-      permissions.integration_calendly
-    );
-    if(!hasAnyConnectorPerm) return true; // show all if none specifically set
-    return permissions && permissions[c.permKey];
+    const hasAny = ALL_CONNECTORS.some(x=>permissions[x.permKey]);
+    if(!hasAny) return true; // show all if none set yet
+    return permissions[c.permKey];
   });
 
   const saveConnector = async () => {
-    if(!myClinicId) return;
+    if(!selClinicId) return;
     setSaving(true);
     try {
-      const saveUrl = isAdmin
-        ? `${API}/api/admin/clients/${myClinicId}/settings`
-        : `${API}/api/settings`;
-      await fetch(saveUrl,{
-        method:"PATCH", headers:authHeaders(),
-        body:JSON.stringify(connForm)
-      });
-      setConnData(p=>({...p,...connForm}));
-      setEditConn(null);
-      setConnForm({});
+      const url = isAdmin ? `${API}/api/admin/clients/${selClinicId}/settings` : `${API}/api/settings`;
+      const r = await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(connForm)});
+      if(r.ok) {
+        setConnData(p=>({...p,...connForm}));
+        setEditConn(null); setConnForm({});
+      }
     } catch(e){ alert("Save failed: "+e.message); }
     setSaving(false);
   };
@@ -2892,115 +2881,110 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
   return (
     <div style={{flex:1,background:T.bg,overflowY:"auto"}}>
       <div style={{maxWidth:800,margin:"0 auto",padding:"20px 16px 40px"}}>
-
-        {/* Header */}
         <div style={{marginBottom:20}}>
           <div style={{fontWeight:900,fontSize:22,marginBottom:4}}>🔌 Integrations</div>
-          <div style={{fontSize:13,color:T.textMuted}}>Connect channels and tools — each client has their own settings</div>
+          <div style={{fontSize:13,color:T.textMuted}}>
+            {isAdmin?"Connect channels for each client — toggle to enable/disable":"Your connected channels"}
+          </div>
         </div>
 
-        {/* Admin — client picker */}
+        {/* Admin client selector */}
         {isAdmin&&<div style={{marginBottom:20}}>
-          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Select Client to Configure</div>
+          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Client</div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {clientList.map(c=>{
-              const cid = c.id||c.clinic_id;
-              const cname = c.name||c.company_name||"Client";
-              const isSelected = String(myClinicId)===String(cid);
-              return (
-              <div key={cid} onClick={()=>setSelClinicId(cid)}
+              const sel = String(c.id)===String(selClinicId);
+              return <div key={c.id} onClick={()=>setSelClinicId(c.id)}
                 style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderRadius:12,cursor:"pointer",
-                  border:`2px solid ${isSelected?WA_GREEN:T.border}`,
-                  background:isSelected?`${WA_GREEN}10`:T.card,transition:"all .15s"}}>
-                <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:14}}>🏢</span>}
+                  border:`2px solid ${sel?WA_GREEN:T.border}`,background:sel?`${WA_GREEN}10`:T.card}}>
+                <div style={{width:26,height:26,borderRadius:7,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:13}}>🏢</span>}
                 </div>
-                <span style={{fontWeight:700,fontSize:13,color:isSelected?WA_GREEN:T.text}}>{cname}</span>
-                {isSelected&&<span style={{fontSize:11,color:WA_GREEN}}>✓</span>}
-              </div>
-            );})}
+                <span style={{fontWeight:700,fontSize:13,color:sel?WA_GREEN:T.text}}>{c.name||c.company_name}</span>
+                {sel&&<span style={{fontSize:11,color:WA_GREEN}}>✓</span>}
+              </div>;
+            })}
           </div>
-          {!myClinicId&&<div style={{marginTop:16,padding:"24px",textAlign:"center",color:T.textMuted,fontSize:13,background:T.card,borderRadius:12,border:`1px dashed ${T.border}`}}>
-            👆 Select a client above to manage their integrations
+          {!selClinicId&&<div style={{marginTop:12,padding:20,textAlign:"center",color:T.textMuted,fontSize:13,background:T.card,borderRadius:12,border:`1px dashed ${T.border}`}}>
+            Select a client above
           </div>}
         </div>}
 
         {/* Connectors grid */}
-        {(myClinicId||!isAdmin)&&<>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:14}}>
-            {CONNECTORS.map(conn=>{
-              const connected = conn.isConnected(connData);
-              return (
-                <div key={conn.id} style={{background:T.card,borderRadius:16,padding:20,textAlign:"center",
-                  border:`2px solid ${connected?conn.color+"50":"transparent"}`,
-                  boxShadow:connected?`0 0 0 1px ${conn.color}20`:"none",
-                  opacity:conn.comingSoon?0.55:1,position:"relative",
-                  transition:"all .2s"}}>
-                  {connected&&<div style={{position:"absolute",top:10,right:10,width:9,height:9,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 0 2px #fff"}}/>}
-                  {conn.comingSoon&&<div style={{position:"absolute",top:8,right:8,fontSize:9,padding:"2px 7px",borderRadius:6,background:"#f1f5f9",color:"#94a3b8",fontWeight:700,letterSpacing:0.3}}>SOON</div>}
-                  {/* Icon */}
-                  <div style={{width:52,height:52,borderRadius:14,background:conn.comingSoon?"#f8fafc":`${conn.color}15`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",overflow:"hidden"}}>
-                    <img src={conn.svg} style={{width:32,height:32,objectFit:"contain"}} alt={conn.label}
-                      onError={e=>{e.target.style.display="none";}}/>
-                  </div>
-                  <div style={{fontWeight:800,fontSize:14,marginBottom:4}}>{conn.label}</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginBottom:14,lineHeight:1.5}}>{conn.desc}</div>
-                  {conn.comingSoon
-                    ?<span style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>Coming soon</span>
-                    :connected
-                    ?<div>
-                      <div style={{fontSize:10,padding:"2px 10px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700,display:"inline-block",marginBottom:8}}>✅ Connected</div>
-                      {conn.statusText(connData)&&<div style={{fontSize:10,color:T.textMuted,marginBottom:8}}>{conn.statusText(connData)}</div>}
-                      <br/>
-                      <button onClick={()=>{
-                        const init = {};
-                        conn.fields.forEach(f=>{ init[f.key]=connData[f.key]||""; });
-                        setConnForm(init); setEditConn(conn);
-                      }} style={{fontSize:11,padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
-                        ✏️ Edit Settings
-                      </button>
-                    </div>
-                    :<button onClick={()=>{
-                      const init = {};
-                      conn.fields.forEach(f=>{ init[f.key]=""; });
-                      setConnForm(init); setEditConn(conn);
-                    }} style={{fontSize:12,padding:"8px 20px",borderRadius:10,border:"none",
-                      background:conn.color,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:700,
-                      boxShadow:`0 4px 12px ${conn.color}40`}}>
-                      Connect
-                    </button>}
+        {selClinicId&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:14}}>
+          {visibleConnectors.map(conn=>{
+            const connected = conn.isConnected(connData);
+            const isEnabled = isAdmin ? true : (permissions==="all"||!permissions||permissions[conn.permKey]);
+            const canConnect = isAdmin; // only admin can connect
+            const notYetBuilt = !conn.fields.length && !connected;
+
+            return (
+              <div key={conn.id} style={{background:T.card,borderRadius:16,padding:20,textAlign:"center",
+                border:`2px solid ${connected?conn.color+"50":T.border}`,
+                position:"relative",transition:"all .2s"}}>
+                {/* Connected dot */}
+                {connected&&<div style={{position:"absolute",top:10,right:10,width:9,height:9,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 0 2px #fff"}}/>}
+
+                {/* Logo */}
+                <div style={{width:54,height:54,borderRadius:14,background:`${conn.color}15`,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  margin:"0 auto 12px",fontSize:26}}>
+                  {conn.logo}
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Coming soon footer */}
-          <div style={{marginTop:20,padding:"14px 18px",borderRadius:12,background:T.card2,border:`1px dashed ${T.border}`,fontSize:12,color:T.textMuted,textAlign:"center"}}>
-            🚀 More coming soon — Google Calendar, Calendly, Stripe, Zapier, HubSpot
-          </div>
-        </>}
+                <div style={{fontWeight:800,fontSize:14,marginBottom:4}}>{conn.label}</div>
+                <div style={{fontSize:11,color:T.textMuted,marginBottom:14,lineHeight:1.5}}>{conn.desc}</div>
 
-        {/* Connect / Edit modal */}
-        {editConn&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}
+                {connected?(
+                  <div>
+                    <div style={{fontSize:10,padding:"2px 10px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700,display:"inline-block",marginBottom:8}}>
+                      ✅ Connected
+                    </div>
+                    {conn.statusText(connData)&&<div style={{fontSize:10,color:T.textMuted,marginBottom:8}}>{conn.statusText(connData)}</div>}
+                    {canConnect&&<button onClick={()=>{
+                      const init={};conn.fields.forEach(f=>{init[f.key]=connData[f.key]||"";});
+                      setConnForm(init);setEditConn(conn);
+                    }} style={{fontSize:11,padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+                      ✏️ Edit
+                    </button>}
+                  </div>
+                ):notYetBuilt?(
+                  <span style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>
+                    {isAdmin?"🔧 Coming soon":"Coming soon"}
+                  </span>
+                ):canConnect?(
+                  <button onClick={()=>{
+                    const init={};conn.fields.forEach(f=>{init[f.key]="";});
+                    setConnForm(init);setEditConn(conn);
+                  }} style={{fontSize:12,padding:"8px 20px",borderRadius:10,border:"none",
+                    background:conn.color,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
+                    Connect
+                  </button>
+                ):(
+                  <span style={{fontSize:11,color:"#94a3b8"}}>Not configured</span>
+                )}
+              </div>
+            );
+          })}
+        </div>}
+
+        {/* Connect/Edit modal */}
+        {editConn&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center"}}
           onClick={e=>{if(e.target===e.currentTarget){setEditConn(null);setConnForm({});}}}>
-          <div style={{background:T.card,borderRadius:20,padding:28,width:380,boxShadow:"0 20px 60px rgba(0,0,0,.25)",maxWidth:"90vw"}}>
+          <div style={{background:T.card,borderRadius:20,padding:28,width:380,maxWidth:"90vw",boxShadow:"0 20px 60px rgba(0,0,0,.25)"}}>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-              <div style={{width:44,height:44,borderRadius:12,background:`${editConn.color}15`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-                <img src={editConn.svg} style={{width:28,height:28,objectFit:"contain"}} alt=""/>
+              <div style={{width:44,height:44,borderRadius:12,background:`${editConn.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+                {editConn.logo}
               </div>
               <div>
                 <div style={{fontWeight:800,fontSize:16}}>Connect {editConn.label}</div>
-                <div style={{fontSize:11,color:T.textMuted}}>
-                  {myClient?.company_name||"This client"}
-                </div>
+                <div style={{fontSize:11,color:T.textMuted}}>{myClient?.name||myClient?.company_name||""}</div>
               </div>
             </div>
             {editConn.fields.map(f=>(
               <div key={f.key} style={{marginBottom:12}}>
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>{f.label}</div>
-                <input
-                  type={f.pwd?"password":"text"}
-                  value={connForm[f.key]||""}
+                <input type={f.pwd?"password":"text"} value={connForm[f.key]||""}
                   onChange={e=>setConnForm(p=>({...p,[f.key]:e.target.value}))}
                   placeholder={f.ph}
                   style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,
@@ -3013,15 +2997,17 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
                 Cancel
               </button>
               <button onClick={saveConnector} disabled={saving}
-                style={{flex:2,padding:"10px",borderRadius:10,border:"none",
-                  background:editConn.color,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
-                  opacity:saving?0.7:1}}>
+                style={{flex:2,padding:"10px",borderRadius:10,border:"none",background:editConn.color,
+                  color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:saving?.7:1}}>
                 {saving?"Saving...":"💾 Save & Connect"}
               </button>
             </div>
           </div>
         </div>}
 
+        <div style={{marginTop:20,padding:"14px 18px",borderRadius:12,background:T.card2,border:`1px dashed ${T.border}`,fontSize:12,color:T.textMuted,textAlign:"center"}}>
+          🚀 More coming soon — Google Calendar, Calendly, Stripe, Zapier
+        </div>
       </div>
     </div>
   );
