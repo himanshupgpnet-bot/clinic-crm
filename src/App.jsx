@@ -675,7 +675,6 @@ export default function App() {
         setAppSettings(prev=>({
           ...prev,
           ai_provider:          d.ai_provider||"anthropic",
-          ai_api_key:           d.ai_api_key||"",
           ai_enabled:           d.bot_enabled===false?"false":"true",
           hot_keywords:         d.lead_keywords||d.hot_keywords||"",
           warm_keywords:        d.warm_keywords||"",
@@ -877,7 +876,6 @@ export default function App() {
           method:"PATCH", headers:authHeaders(),
           body:JSON.stringify({
             ai_provider:          appSettings.ai_provider,
-            ai_api_key:           appSettings.ai_api_key||"",
             anthropic_key:        appSettings.anthropic_key||"",
             openai_key:           appSettings.openai_key||"",
             groq_key:             appSettings.groq_key||"",
