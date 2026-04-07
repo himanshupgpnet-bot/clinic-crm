@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
-const API = "https://api.codt.my";
+const API = "https://clinic-bot-oy48.onrender.com";
 const CRM_VERSION = "2.9.1";
 
 // Responsive hook
@@ -2916,7 +2916,8 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
             const connected = conn.isConnected(connData);
             const isEnabled = isAdmin ? true : (permissions==="all"||!permissions||permissions[conn.permKey]);
             const canConnect = isAdmin; // only admin can connect
-            const notYetBuilt = !conn.fields.length && !connected;
+            // notYetBuilt only applies to non-admin users
+            const notYetBuilt = !isAdmin && !conn.fields.length && !connected;
 
             return (
               <div key={conn.id} style={{background:T.card,borderRadius:16,padding:20,textAlign:"center",
@@ -2954,11 +2955,15 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
                   </span>
                 ):canConnect?(
                   <button onClick={()=>{
+                    if(!conn.fields.length){
+                      alert(conn.label+" integration is coming soon! We are working on it.");
+                      return;
+                    }
                     const init={};conn.fields.forEach(f=>{init[f.key]="";});
                     setConnForm(init);setEditConn(conn);
                   }} style={{fontSize:12,padding:"8px 20px",borderRadius:10,border:"none",
                     background:conn.color,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
-                    Connect
+                    🔧 Coming Soon
                   </button>
                 ):(
                   <span style={{fontSize:11,color:"#94a3b8"}}>Not configured</span>
@@ -3166,7 +3171,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const [newUser, setNewUser] = useState(null);
   const [showPw, setShowPw] = useState(false);
   const [msg, setMsg] = useState("");
-  const API = window.location.hostname==="localhost" ? "http://localhost:5000" : "https://api.codt.my";
+  const API = window.location.hostname==="localhost" ? "http://localhost:5000" : "https://clinic-bot-oy48.onrender.com";
 
   const INDUSTRIES = ["Healthcare & Clinic","Dental","Beauty & Salon","Spa & Wellness",
     "Fitness & Gym","Legal & Law Firm","Real Estate","Education","Restaurant & F&B","Other"];
