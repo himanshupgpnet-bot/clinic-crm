@@ -2602,68 +2602,12 @@ export default function App() {
                 </div>
 
                 {/* AI Provider cards — per provider key */}
-                {(()=>{
-                  const AI_PROVIDERS = [
-                    {id:"anthropic", label:"Claude",   company:"Anthropic", color:"#7c3aed", keyField:"anthropic_key", placeholder:"sk-ant-api03-..."},
-                    {id:"openai",    label:"GPT-4o",   company:"OpenAI",    color:"#10b981", keyField:"openai_key",    placeholder:"sk-..."},
-                    {id:"groq",      label:"Llama 3",  company:"Groq",      color:"#f59e0b", keyField:"groq_key",      placeholder:"gsk_...", free:true},
-                  ];
-                  const [showKey, setShowKey] = useState({});
-                  return (
-                    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:12}}>
-                      {AI_PROVIDERS.map(p=>{
-                        const isActive = appSettings.ai_provider===p.id;
-                        const hasKey = !!(appSettings[p.keyField]||"").trim();
-                        return (
-                          <div key={p.id} style={{borderRadius:14,border:`2px solid ${isActive?p.color:hasKey?"#22c55e50":T.border}`,
-                            background:isActive?`${p.color}10`:T.card2,padding:"14px 16px",transition:"all .15s"}}>
-                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:hasKey||isActive?10:0}}>
-                              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                                {/* Active toggle */}
-                                <div onClick={()=>{
-                                  if(hasKey||isActive){
-                                    setAppSettings(prev=>({...prev,ai_provider:p.id}));
-                                    setSettingsDirtyWithRef(true);
-                                  }
-                                }} style={{width:40,height:22,borderRadius:11,cursor:hasKey?"pointer":"not-allowed",
-                                  background:isActive?p.color:"#cbd5e1",position:"relative",transition:"background .2s",flexShrink:0,
-                                  opacity:hasKey?1:0.5}}>
-                                  <div style={{position:"absolute",top:3,left:isActive?20:3,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-                                </div>
-                                <div>
-                                  <div style={{fontWeight:800,fontSize:13,color:isActive?p.color:T.text}}>{p.label}
-                                    {p.free&&<span style={{marginLeft:6,fontSize:9,padding:"1px 5px",borderRadius:6,background:"#10b981",color:"#fff",fontWeight:700}}>FREE</span>}
-                                  </div>
-                                  <div style={{fontSize:10,color:T.textMuted}}>{p.company}</div>
-                                </div>
-                              </div>
-                              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                                {isActive&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:8,background:p.color,color:"#fff",fontWeight:700}}>ACTIVE</span>}
-                                {hasKey&&!isActive&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:8,background:"#dcfce7",color:"#166534",fontWeight:700}}>✅ Key saved</span>}
-                                {!hasKey&&<span style={{fontSize:10,color:"#94a3b8"}}>No key</span>}
-                              </div>
-                            </div>
-                            {/* Key input — always shown */}
-                            <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                              <input
-                                type={showKey[p.id]?"text":"password"}
-                                value={appSettings[p.keyField]||""}
-                                onChange={e=>{setAppSettings(prev=>({...prev,[p.keyField]:e.target.value}));setSettingsDirtyWithRef(true);}}
-                                placeholder={hasKey?"••••••••••••••••":p.placeholder}
-                                style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,
-                                  padding:"7px 10px",color:T.text,fontSize:11,fontFamily:"monospace",boxSizing:"border-box"}}/>
-                              <button onClick={()=>setShowKey(prev=>({...prev,[p.id]:!prev[p.id]}))}
-                                style={{padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card,
-                                  color:T.textMuted,cursor:"pointer",fontSize:11,fontFamily:"inherit"}}>
-                                {showKey[p.id]?"🙈":"👁️"}
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+                <AIProviderCards
+                  appSettings={appSettings}
+                  setAppSettings={setAppSettings}
+                  setSettingsDirtyWithRef={setSettingsDirtyWithRef}
+                  T={T}
+                />
               </div>
 
               {/* Lead Keywords */}
@@ -3179,6 +3123,61 @@ function SectionCard({title, children, T}) {
     <div className="cc" style={{marginBottom:12,padding:16}}>
       <div style={{fontWeight:700,fontSize:12,color:T.textMuted,letterSpacing:0.8,marginBottom:14}}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+function AIProviderCards({appSettings, setAppSettings, setSettingsDirtyWithRef, T}) {
+  const [showKey, setShowKey] = useState({});
+  const AI_PROVIDERS = [
+    {id:"anthropic", label:"Claude",  company:"Anthropic", color:"#7c3aed", keyField:"anthropic_key", placeholder:"sk-ant-api03-..."},
+    {id:"openai",    label:"GPT-4o",  company:"OpenAI",    color:"#10b981", keyField:"openai_key",    placeholder:"sk-..."},
+    {id:"groq",      label:"Llama 3", company:"Groq",      color:"#f59e0b", keyField:"groq_key",      placeholder:"gsk_...", free:true},
+  ];
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:12}}>
+      {AI_PROVIDERS.map(p=>{
+        const isActive = appSettings.ai_provider===p.id;
+        const hasKey = !!(appSettings[p.keyField]||"").trim();
+        return (
+          <div key={p.id} style={{borderRadius:14,border:`2px solid ${isActive?p.color:hasKey?"#22c55e50":T.border}`,
+            background:isActive?`${p.color}10`:T.card2,padding:"14px 16px",transition:"all .15s"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div onClick={()=>{
+                  if(hasKey||isActive){setAppSettings(prev=>({...prev,ai_provider:p.id}));setSettingsDirtyWithRef(true);}
+                }} style={{width:40,height:22,borderRadius:11,cursor:hasKey?"pointer":"not-allowed",
+                  background:isActive?p.color:"#cbd5e1",position:"relative",flexShrink:0,opacity:hasKey?1:0.5}}>
+                  <div style={{position:"absolute",top:3,left:isActive?20:3,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                </div>
+                <div>
+                  <div style={{fontWeight:800,fontSize:13,color:isActive?p.color:T.text}}>{p.label}
+                    {p.free&&<span style={{marginLeft:6,fontSize:9,padding:"1px 5px",borderRadius:6,background:"#10b981",color:"#fff",fontWeight:700}}>FREE</span>}
+                  </div>
+                  <div style={{fontSize:10,color:T.textMuted}}>{p.company}</div>
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                {isActive&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:8,background:p.color,color:"#fff",fontWeight:700}}>ACTIVE</span>}
+                {hasKey&&!isActive&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:8,background:"#dcfce7",color:"#166534",fontWeight:700}}>✅ Saved</span>}
+                {!hasKey&&<span style={{fontSize:10,color:"#94a3b8"}}>No key</span>}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <input type={showKey[p.id]?"text":"password"}
+                value={appSettings[p.keyField]||""}
+                onChange={e=>{setAppSettings(prev=>({...prev,[p.keyField]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                placeholder={p.placeholder}
+                style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,
+                  padding:"7px 10px",color:T.text,fontSize:11,fontFamily:"monospace",boxSizing:"border-box"}}/>
+              <button onClick={()=>setShowKey(prev=>({...prev,[p.id]:!prev[p.id]}))}
+                style={{padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontSize:11}}>
+                {showKey[p.id]?"🙈":"👁️"}
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
