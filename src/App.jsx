@@ -697,6 +697,9 @@ export default function App() {
           telegram_notify_warm:  d.telegram_notify_warm||"false",
           telegram_notify_human: d.telegram_notify_human||"true",
           telegram_notify_booking: d.telegram_notify_booking||"true",
+          anthropic_key:           d.anthropic_key||"",
+          openai_key:              d.openai_key||"",
+          groq_key:                d.groq_key||"",
         }));
       }
     } catch(e) {
