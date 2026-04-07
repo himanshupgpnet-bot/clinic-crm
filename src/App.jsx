@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
-const API = "https://clinic-bot-oy48.onrender.com";
+const API = "http://134.209.101.247";
 const CRM_VERSION = "2.9.1";
 
 // Responsive hook
