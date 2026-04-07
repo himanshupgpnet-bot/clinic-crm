@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
-const API = "http://134.209.101.247";
+const API = "https://api.codt.my";
 const CRM_VERSION = "2.9.1";
 
 // Responsive hook
@@ -3166,7 +3166,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const [newUser, setNewUser] = useState(null);
   const [showPw, setShowPw] = useState(false);
   const [msg, setMsg] = useState("");
-  const API = window.location.hostname==="localhost" ? "http://localhost:5000" : "https://clinic-bot-oy48.onrender.com";
+  const API = window.location.hostname==="localhost" ? "http://localhost:5000" : "https://api.codt.my";
 
   const INDUSTRIES = ["Healthcare & Clinic","Dental","Beauty & Salon","Spa & Wellness",
     "Fitness & Gym","Legal & Law Firm","Real Estate","Education","Restaurant & F&B","Other"];
