@@ -873,7 +873,8 @@ export default function App() {
       if(isAdmin && settingsClinic) {
         // Save ALL settings to this specific client's account
         const scId = settingsClinic.clinic_id || settingsClinic.id;
-        await fetch(`${API}/api/admin/clients/${scId}/settings`, {
+        console.log("Saving settings for clinic:", scId, "system_prompt length:", (appSettings.system_prompt||"").length);
+        const saveResp = await fetch(`${API}/api/admin/clients/${scId}/settings`, {
           method:"PATCH", headers:authHeaders(),
           body:JSON.stringify({
             ai_provider:          appSettings.ai_provider,
@@ -903,6 +904,7 @@ export default function App() {
             telegram_notify_booking: appSettings.telegram_notify_booking||"true",
           })
         });
+        console.log("Save response status:", saveResp.status);
       } else if(isAdmin && !settingsClinic) {
         // Admin with no clinic selected — show warning
         alert("Please select a client from the sidebar first before saving settings.");
@@ -1962,9 +1964,22 @@ export default function App() {
                 </div>
                 <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={5}
                   style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
-                <button onClick={async()=>{
-                  await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({prompt:systemPrompt})});
-                  alert("Bot personality saved! ✅");
+                <button onClick={()=>{
+                  setConfirmModal({
+                    title:"Save Bot Personality?",
+                    message:"This updates how the AI bot talks to ALL customers for this client. Changes apply immediately.",
+                    icon:"🤖",
+                    danger:false,
+                    confirmText:"Yes, Save",
+                    onConfirm:async()=>{
+                      await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({prompt:systemPrompt})});
+                      const t=document.createElement("div");
+                      t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#fff;border-radius:20px;padding:28px 36px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border:2px solid #86efac";
+                      t.innerHTML="<div style='font-size:32px;margin-bottom:8px'>🤖</div><div style='font-weight:800;font-size:16px;color:#166534'>Bot Personality Saved!</div>";
+                      document.body.appendChild(t);
+                      setTimeout(()=>t.remove(),2500);
+                    }
+                  });
                 }} style={{marginTop:10,padding:"8px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                   💾 Save Bot Personality
                 </button>
