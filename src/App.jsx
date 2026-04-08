@@ -2049,7 +2049,7 @@ export default function App() {
                               <div style='font-size:18px;font-weight:900;color:#15803d'>${pd.built} Q&A Pairs Added!</div>
                               <div style='font-size:11px;color:#374151;margin-top:4px'>Scroll down to see your new knowledge entries</div>
                             </div>`;
-                            fetchKnowledge();
+                            fetchKnowledge(kbClinic?.clinic_id||null);
                           } else if(pd.status==="error"){
                             clearInterval(poll);
                             res.innerHTML = `<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px;margin-top:10px'>❌ ${pd.error||"Build failed"}</div>`;
@@ -2061,7 +2061,7 @@ export default function App() {
                       setTimeout(()=>{
                         clearInterval(poll);
                         res.innerHTML += `<div style='font-size:11px;color:#6b7280;margin-top:8px;text-align:center'>Still running in background — refresh KB in a minute to see results</div>`;
-                        fetchKnowledge();
+                        fetchKnowledge(kbClinic?.clinic_id||null);
                       }, 180000);
 
                     } catch(e) {
