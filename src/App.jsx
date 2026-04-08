@@ -872,7 +872,8 @@ export default function App() {
       }
       if(isAdmin && settingsClinic) {
         // Save ALL settings to this specific client's account
-        await fetch(`${API}/api/admin/clients/${settingsClinic.clinic_id}/settings`, {
+        const scId = settingsClinic.clinic_id || settingsClinic.id;
+        await fetch(`${API}/api/admin/clients/${scId}/settings`, {
           method:"PATCH", headers:authHeaders(),
           body:JSON.stringify({
             ai_provider:          appSettings.ai_provider,
