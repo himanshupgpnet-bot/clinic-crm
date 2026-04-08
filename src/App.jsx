@@ -2559,6 +2559,20 @@ export default function App() {
                 />
               </div>
 
+              {/* System Prompt */}
+              <div className="cc" style={{marginBottom:14}}>
+                <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>🤖 Bot System Prompt</div>
+                <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>This is the personality and instructions for the AI bot. Changes apply immediately after saving.</div>
+                <textarea
+                  value={appSettings.system_prompt||""}
+                  onChange={e=>{setAppSettings(p=>({...p,system_prompt:e.target.value}));setSettingsDirtyWithRef(true);}}
+                  rows={10}
+                  placeholder="You are Sara, a patient coordinator at..."
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,
+                    padding:"10px 12px",color:T.text,fontSize:12,fontFamily:"monospace",
+                    boxSizing:"border-box",resize:"vertical",lineHeight:1.6}}/>
+              </div>
+
               {/* Lead Keywords */}
               <div className="cc" style={{marginBottom:14}}>
                 <div style={{fontWeight:700,fontSize:14,marginBottom:14}}>🎯 Lead Scoring Keywords</div>
