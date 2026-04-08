@@ -942,16 +942,18 @@ export default function App() {
 
   async function addQA() {
     if(!newQ.trim()||!newA.trim()) return;
-    try { await fetch(`${API}/api/knowledge/qa`,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})}); setNewQ(""); setNewA(""); fetchKnowledge(); } catch {}
+    const body = {question:newQ.trim(),answer:newA.trim()};
+    if(kbClinic?.clinic_id) body.clinic_id = kbClinic.clinic_id;
+    try { await fetch(`${API}/api/knowledge/qa`,{method:"POST",headers:authHeaders(),body:JSON.stringify(body)}); setNewQ(""); setNewA(""); fetchKnowledge(kbClinic?.clinic_id); } catch {}
   }
 
   async function saveEdit(id) {
-    try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({question:editQ,answer:editA})}); setEditingId(null); fetchKnowledge(); } catch {}
+    try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({question:editQ,answer:editA})}); setEditingId(null); fetchKnowledge(kbClinic?.clinic_id); } catch {}
   }
 
   async function deleteQA(id) {
     if(!confirm("Delete?")) return;
-    try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()}); fetchKnowledge(); } catch {}
+    try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()}); fetchKnowledge(kbClinic?.clinic_id); } catch {}
   }
 
   function parseBotResponse(raw) {
