@@ -2447,68 +2447,14 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Connection status */}
+                {/* Connection status - read only, configured in Integrations tab */}
                 {(appSettings.telegram_token||"").length>5&&(appSettings.telegram_chat_id||"").length>3
                   ?<div style={{padding:"8px 12px",borderRadius:8,background:"#f0fdf4",border:"1px solid #86efac",fontSize:11,color:"#166534",fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
                     ✅ Telegram connected — alerts will be sent to your group
                   </div>
                   :<div style={{padding:"8px 12px",borderRadius:8,background:"#fffbeb",border:"1px solid #fcd34d",fontSize:11,color:"#92400e",marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
-                    ⚠️ Not configured — add your Bot Token and Chat ID below
+                    ⚠️ Not connected — go to <strong style={{marginLeft:4}}>🔌 Integrations</strong> tab to connect Telegram
                   </div>}
-
-
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>Bot Token</div>
-                    <div style={{position:"relative"}}>
-                      <input
-                        id="tg-token-input"
-                        type="password"
-                        value={appSettings.telegram_token||""}
-                        onChange={e=>{
-                          setAppSettings(p=>({...p,telegram_token:e.target.value}));
-                          setSettingsDirtyWithRef(true);
-                        }}
-                        placeholder="8664616537:AAGE9wn..."
-                        style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 36px 8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
-                      <button
-                        type="button"
-                        onClick={()=>{
-                          const el = document.getElementById("tg-token-input");
-                          el.type = el.type==="password"?"text":"password";
-                        }}
-                        style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:14,color:T.textMuted,padding:0}}>
-                        👁
-                      </button>
-                    </div>
-                    <div style={{fontSize:10,color:T.textFaint,marginTop:3}}>From @BotFather on Telegram</div>
-                  </div>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>Chat ID</div>
-                    <div style={{position:"relative"}}>
-                      <input
-                        id="tg-chat-input"
-                        type="password"
-                        value={appSettings.telegram_chat_id||""}
-                        onChange={e=>{
-                          setAppSettings(p=>({...p,telegram_chat_id:e.target.value}));
-                          setSettingsDirtyWithRef(true);
-                        }}
-                        placeholder="-5277820778"
-                        style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 36px 8px 12px",color:T.text,fontSize:12,boxSizing:"border-box"}}/>
-                      <button
-                        type="button"
-                        onClick={()=>{
-                          const el = document.getElementById("tg-chat-input");
-                          el.type = el.type==="password"?"text":"password";
-                        }}
-                        style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:14,color:T.textMuted,padding:0}}>
-                        👁
-                      </button>
-                    </div>
-                    <div style={{fontSize:10,color:T.textFaint,marginTop:3}}>Group Chat ID (negative number)</div>
-                  </div>
-                </div>
 
                 {/* Notify triggers */}
                 <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Notify me when:</div>
@@ -3387,8 +3333,6 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const [clinicStep, setClinicStep] = useState(0);
   const CLINIC_STEPS = [
     {label:"Company Info", icon:"🏢", desc:"Basic details about the client"},
-    {label:"WhatsApp", icon:"📱", desc:"Connect their WhatsApp number"},
-    {label:"AI Setup", icon:"🤖", desc:"Configure the AI assistant"},
   ];
   const inputStyle = {width:"100%",padding:"12px 14px",borderRadius:10,
     border:`1.5px solid ${T.border}`,background:T.card,color:T.text,
@@ -3418,7 +3362,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
         <div style={{display:"flex",alignItems:"flex-start",position:"relative"}}>
           <div style={{position:"absolute",top:19,left:"calc(16.6% + 4px)",width:"66.6%",height:2,background:T.border,zIndex:0}}/>
           <div style={{position:"absolute",top:19,left:"calc(16.6% + 4px)",height:2,zIndex:1,
-            width:`${clinicStep===0?0:clinicStep===1?"33.3%":"66.6%"}`,background:WA_GREEN,transition:"width .35s ease"}}/>
+            width:"0%",background:WA_GREEN,transition:"width .35s ease"}}/>
           {CLINIC_STEPS.map((s,i)=>(
             <div key={i} onClick={()=>setClinicStep(i)}
               style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6,zIndex:2,cursor:"pointer"}}>
@@ -3482,10 +3426,16 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div>
                 <label style={labelStyle}>Industry</label>
-                <select value={editClinic?.industry||""} onChange={e=>setEditClinic(p=>({...p,industry:e.target.value}))} style={selectStyle}>
+                <select value={INDUSTRIES.includes(editClinic?.industry||"")?editClinic?.industry||"":"Other"} onChange={e=>{
+                  if(e.target.value==="Other") setEditClinic(p=>({...p,industry:""}));
+                  else setEditClinic(p=>({...p,industry:e.target.value}));
+                }} style={selectStyle}>
                   <option value="">— Select Industry —</option>
                   {INDUSTRIES.map(i=><option key={i} value={i}>{i}</option>)}
                 </select>
+                {(!INDUSTRIES.includes(editClinic?.industry||"")&&(editClinic?.industry!==undefined))&&
+                  <input value={editClinic?.industry||""} onChange={e=>setEditClinic(p=>({...p,industry:e.target.value}))}
+                    placeholder="Enter your industry..." style={{...inputStyle,marginTop:6}}/>}
               </div>
               <div>
                 <label style={labelStyle}>Max Login Seats</label>
@@ -3510,7 +3460,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             <div>
               <label style={labelStyle}>Website URL</label>
               <input value={editClinic?.website_url||editClinic?.website||""} onChange={e=>setEditClinic(p=>({...p,website_url:e.target.value,website:e.target.value}))} placeholder="https://company.com" style={inputStyle}/>
-              <div style={{fontSize:10,color:WA_GREEN,marginTop:4,fontWeight:600}}>🤖 AI will auto-build KB from this URL when onboarding</div>
+              <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>We'll use this for your client's knowledge base</div>
             </div>
 
           </div>}
@@ -3573,15 +3523,10 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
           style={{flex:1,padding:"13px",borderRadius:12,border:`1px solid #ef444440`,background:"#ef444408",color:"#ef4444",fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
           ✕ Cancel
         </button>
-        {clinicStep<2
-          ?<button onClick={()=>setClinicStep(s=>s+1)}
-            style={{flex:2,padding:"13px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 14px rgba(37,211,102,.25)"}}>
-            Continue →
-          </button>
-          :<button onClick={saveClinic}
+        <button onClick={saveClinic}
             style={{flex:2,padding:"13px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 14px rgba(37,211,102,.35)"}}>
             {editClinic?.id?"💾 Save Changes":"🚀 Onboard Client"}
-          </button>}
+          </button>
       </div>
     </div>
     </div>
