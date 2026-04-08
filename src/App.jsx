@@ -1055,7 +1055,7 @@ export default function App() {
   const navStyle = {height:56,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 12px",gap:4,flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.07)"};
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:T.bg,fontFamily:"'Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",background:T.bg,fontFamily:"'Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden"}}>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
@@ -1536,7 +1536,7 @@ export default function App() {
           </div>}
 
           {/* Main analytics content */}
-          <div style={{flex:1,overflowY:"auto",padding:16}}>
+          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:60}}>
             <div style={{maxWidth:1100,margin:"0 auto"}}>
 
               {/* Admin overview cards — all clients */}
@@ -1909,7 +1909,7 @@ export default function App() {
           </div>}
 
           {/* KB content */}
-          <div style={{flex:1,overflowY:"auto",padding:16}}>
+          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:60}}>
 
             {/* Admin pick client prompt */}
             {isAdmin&&!kbClinic&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",color:T.textMuted}}>
@@ -2378,7 +2378,7 @@ export default function App() {
           </div>}
 
           {/* Main settings area */}
-          <div style={{flex:1,overflowY:"auto",padding:16}}>
+          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:60}}>
 
             {/* Admin must pick client */}
             {isAdmin&&!settingsClinic&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",color:T.textMuted}}>
@@ -3397,7 +3397,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const labelStyle = {display:"block",fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:6,letterSpacing:0.3};
 
   if(view==="clinic_form") return (
-    <div style={{width:"100%",height:"100%",overflowY:"auto",overflowX:"hidden"}}>
+    <div style={{width:"100%",height:"100%",overflowY:"auto",overflowX:"hidden",paddingBottom:60}}>
     <div style={{maxWidth:560,margin:"0 auto",padding:"16px 16px 40px"}}>
       {/* KB Building overlay */}
       {kbBuilding&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
