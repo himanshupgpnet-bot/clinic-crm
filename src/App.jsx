@@ -873,8 +873,7 @@ export default function App() {
       if(isAdmin && settingsClinic) {
         // Save ALL settings to this specific client's account
         const scId = settingsClinic.clinic_id || settingsClinic.id;
-        console.log("Saving settings for clinic:", scId, "system_prompt length:", (appSettings.system_prompt||"").length);
-        const saveResp = await fetch(`${API}/api/admin/clients/${scId}/settings`, {
+        await fetch(`${API}/api/admin/clients/${scId}/settings`, {
           method:"PATCH", headers:authHeaders(),
           body:JSON.stringify({
             ai_provider:          appSettings.ai_provider,
@@ -904,7 +903,6 @@ export default function App() {
             telegram_notify_booking: appSettings.telegram_notify_booking||"true",
           })
         });
-        console.log("Save response status:", saveResp.status);
       } else if(isAdmin && !settingsClinic) {
         // Admin with no clinic selected — show warning
         alert("Please select a client from the sidebar first before saving settings.");
@@ -1972,7 +1970,9 @@ export default function App() {
                     danger:false,
                     confirmText:"Yes, Save",
                     onConfirm:async()=>{
-                      await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({prompt:systemPrompt})});
+                      const promptBody = {prompt:systemPrompt};
+                      if(kbClinic?.clinic_id) promptBody.clinic_id = kbClinic.clinic_id;
+                      await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(promptBody)});
                       const t=document.createElement("div");
                       t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#fff;border-radius:20px;padding:28px 36px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border:2px solid #86efac";
                       t.innerHTML="<div style='font-size:32px;margin-bottom:8px'>🤖</div><div style='font-weight:800;font-size:16px;color:#166534'>Bot Personality Saved!</div>";
@@ -2573,20 +2573,6 @@ export default function App() {
                   setSettingsDirtyWithRef={setSettingsDirtyWithRef}
                   T={T}
                 />
-              </div>
-
-              {/* System Prompt */}
-              <div className="cc" style={{marginBottom:14}}>
-                <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>🤖 Bot System Prompt</div>
-                <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>This is the personality and instructions for the AI bot. Changes apply immediately after saving.</div>
-                <textarea
-                  value={appSettings.system_prompt||""}
-                  onChange={e=>{setAppSettings(p=>({...p,system_prompt:e.target.value}));setSettingsDirtyWithRef(true);}}
-                  rows={10}
-                  placeholder="You are Sara, a patient coordinator at..."
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,
-                    padding:"10px 12px",color:T.text,fontSize:12,fontFamily:"monospace",
-                    boxSizing:"border-box",resize:"vertical",lineHeight:1.6}}/>
               </div>
 
               {/* Lead Keywords */}
