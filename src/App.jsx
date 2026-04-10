@@ -2541,11 +2541,14 @@ export default function App() {
               </div>
 
               {/* API Key status */}
-              {isAdmin&&settingsClinic&&<div style={{background:appSettings.ai_api_key?"#f0fdf4":"#fef9c3",border:`1px solid ${appSettings.ai_api_key?"#86efac":"#fde68a"}`,borderRadius:12,padding:"12px 16px",marginBottom:16}}>
-                {appSettings.ai_api_key
-                  ?<div style={{fontSize:13,color:"#166534",fontWeight:600}}>✅ API Key set for {settingsClinic.company_name||settingsClinic.username}</div>
-                  :<div style={{fontSize:13,color:"#854d0e",fontWeight:600}}>⚠️ No API key set — add one below and save</div>}
-              </div>}
+              {isAdmin&&settingsClinic&&(()=>{
+                const activeKey = appSettings.anthropic_key||appSettings.openai_key||appSettings.groq_key||"";
+                return <div style={{background:activeKey?"#f0fdf4":"#fef9c3",border:`1px solid ${activeKey?"#86efac":"#fde68a"}`,borderRadius:12,padding:"12px 16px",marginBottom:16}}>
+                  {activeKey
+                    ?<div style={{fontSize:13,color:"#166534",fontWeight:600}}>✅ API Key set for {settingsClinic.company_name||settingsClinic.username}</div>
+                    :<div style={{fontSize:13,color:"#854d0e",fontWeight:600}}>⚠️ No API key set — add one in AI Provider section below and save</div>}
+                </div>;
+              })()}
 
               {/* AI Bot section */}
               <div className="cc" style={{marginBottom:14}}>
