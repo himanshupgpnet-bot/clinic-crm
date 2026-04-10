@@ -1307,7 +1307,7 @@ export default function App() {
                   {sendingFollowup===selected.id?"⏳ Sending...":"📤 Follow-up"}
                 </button>
               </div>}
-              <div style={{flex:1,overflowY:"auto",padding:14,background:T.chatBg,display:"flex",flexDirection:"column",gap:6}}>
+              <div style={{flex:1,overflowY:"auto",padding:14,paddingBottom:80,background:T.chatBg,display:"flex",flexDirection:"column",gap:6}}>
                 {selected.messages?.map((msg,i)=>{
                   const isOut=msg.from!=="user";
                   return <div key={msg.id||i} className="mb" style={{display:"flex",justifyContent:isOut?"flex-end":"flex-start",alignItems:"flex-end",gap:6}}>
@@ -1537,7 +1537,7 @@ export default function App() {
           </div>}
 
           {/* Main analytics content */}
-          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:60}}>
+          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:80}}>
             <div style={{maxWidth:1100,margin:"0 auto"}}>
 
               {/* Admin overview cards — all clients */}
@@ -1864,7 +1864,7 @@ export default function App() {
             </div>
             <button onClick={()=>setBotConvo([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}])} style={{padding:"5px 12px",borderRadius:16,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Reset</button>
           </div>
-          <div style={{flex:1,overflowY:"auto",padding:14,background:T.chatBg,display:"flex",flexDirection:"column",gap:7}}>
+          <div style={{flex:1,overflowY:"auto",padding:14,paddingBottom:80,background:T.chatBg,display:"flex",flexDirection:"column",gap:7}}>
             {botConvo.map((msg,i)=>(
               <div key={i} className="mb" style={{display:"flex",justifyContent:msg.from==="user"?"flex-end":"flex-start"}}>
                 <div style={{maxWidth:"72%",background:msg.from==="user"?T.msgOut:T.msgIn,borderRadius:msg.from==="user"?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"9px 13px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
@@ -1910,7 +1910,7 @@ export default function App() {
           </div>}
 
           {/* KB content */}
-          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:60}}>
+          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:80}}>
 
             {/* Admin pick client prompt */}
             {isAdmin&&!kbClinic&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",color:T.textMuted}}>
@@ -2394,7 +2394,7 @@ export default function App() {
           </div>}
 
           {/* Main settings area */}
-          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:60}}>
+          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:80}}>
 
             {/* Admin must pick client */}
             {isAdmin&&!settingsClinic&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",color:T.textMuted}}>
@@ -2829,7 +2829,7 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
   };
 
   return (
-    <div style={{flex:1,background:T.bg,overflowY:"auto"}}>
+    <div style={{flex:1,background:T.bg,overflowY:"auto",paddingBottom:80}}>
       <div style={{maxWidth:800,margin:"0 auto",padding:"20px 16px 40px"}}>
         <div style={{marginBottom:20}}>
           <div style={{fontWeight:900,fontSize:22,marginBottom:4}}>🔌 Integrations</div>
@@ -3357,7 +3357,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const labelStyle = {display:"block",fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:6,letterSpacing:0.3};
 
   if(view==="clinic_form") return (
-    <div style={{width:"100%",height:"100%",overflowY:"auto",overflowX:"hidden",paddingBottom:60}}>
+    <div style={{width:"100%",height:"100%",overflowY:"auto",overflowX:"hidden",paddingBottom:80}}>
     <div style={{maxWidth:560,margin:"0 auto",padding:"16px 16px 40px"}}>
       {/* KB Building overlay */}
       {kbBuilding&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
