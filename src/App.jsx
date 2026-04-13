@@ -2372,10 +2372,24 @@ export default function App() {
                           </div>
                           <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{i+1}</div>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:2}}>{qa.question}</div>
+                            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                              <div style={{fontWeight:700,fontSize:12,color:T.text}}>{qa.question}</div>
+                              {qa.is_static&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#7c3aed",color:"#fff",fontWeight:700,flexShrink:0}}>STATIC</span>}
+                            </div>
                             <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
                           </div>
-                          <div style={{display:"flex",gap:3,flexShrink:0}}>
+                          <div style={{display:"flex",gap:3,flexShrink:0,alignItems:"center"}}>
+                            {/* Static toggle */}
+                            <div onClick={async()=>{
+                              const newVal = !qa.is_static;
+                              await fetch(`${API}/api/knowledge/qa/${qa.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({is_static:newVal})});
+                              fetchKnowledge(kbClinic?.clinic_id||null);
+                            }} title={qa.is_static?"Static: exact answer sent":"Reference: AI uses as guide"}
+                              style={{width:32,height:18,borderRadius:9,cursor:"pointer",
+                                background:qa.is_static?"#7c3aed":"#cbd5e1",
+                                position:"relative",transition:"background .2s",flexShrink:0}}>
+                              <div style={{position:"absolute",top:2,left:qa.is_static?15:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                            </div>
                             <button onClick={()=>{setEditingId(qa.id);setEditQ(qa.question);setEditA(qa.answer);}} style={{padding:"3px 8px",borderRadius:7,border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
                             <button onClick={()=>{
                               setConfirmModal({
