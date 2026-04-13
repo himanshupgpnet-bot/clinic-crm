@@ -2380,10 +2380,20 @@ export default function App() {
                           </div>
                           <div style={{display:"flex",gap:3,flexShrink:0,alignItems:"center"}}>
                             {/* Static toggle */}
-                            <div onClick={async()=>{
+                            <div onClick={async(e)=>{
+                              e.stopPropagation();
                               const newVal = !qa.is_static;
-                              await fetch(`${API}/api/knowledge/qa/${qa.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({is_static:newVal})});
-                              fetchKnowledge(kbClinic?.clinic_id||null);
+                              // Optimistic update — update UI immediately
+                              setQaData(prev=>prev.map(q=>q.id===qa.id?{...q,is_static:newVal}:q));
+                              try {
+                                const r = await fetch(`${API}/api/knowledge/qa/${qa.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({is_static:newVal})});
+                                if(!r.ok) {
+                                  // Revert if failed
+                                  setQaData(prev=>prev.map(q=>q.id===qa.id?{...q,is_static:!newVal}:q));
+                                }
+                              } catch {
+                                setQaData(prev=>prev.map(q=>q.id===qa.id?{...q,is_static:!newVal}:q));
+                              }
                             }} title={qa.is_static?"Static: exact answer sent":"Reference: AI uses as guide"}
                               style={{width:32,height:18,borderRadius:9,cursor:"pointer",
                                 background:qa.is_static?"#7c3aed":"#cbd5e1",
