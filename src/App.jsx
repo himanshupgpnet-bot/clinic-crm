@@ -111,6 +111,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [qaData, setQaData] = useState([]);
   const [systemPrompt, setSystemPrompt] = useState("");
+  const [welcomeMessage, setWelcomeMessage] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editQ, setEditQ] = useState(""); const [editA, setEditA] = useState("");
   const [newQ, setNewQ] = useState(""); const [newA, setNewA] = useState("");
@@ -717,11 +718,12 @@ export default function App() {
         const d = await r.json();
         setQaData(d.qa||[]);
         setSystemPrompt(d.systemPrompt||"");
+        setWelcomeMessage(d.welcomeMessage||"");
       }
     } catch(e) {
       try {
         const r2 = await fetch(`${API}/api/knowledge?clinic_id=${client.clinic_id}`, {headers:authHeaders()});
-        if(r2.ok) { const d=await r2.json(); setQaData(d.qa||[]); setSystemPrompt(d.systemPrompt||""); }
+        if(r2.ok) { const d=await r2.json(); setQaData(d.qa||[]); setSystemPrompt(d.systemPrompt||""); setWelcomeMessage(d.welcomeMessage||""); }
       } catch {}
     }
   }
@@ -1945,6 +1947,35 @@ export default function App() {
                   <div style={{fontSize:28,fontWeight:900,color:"#86efac"}}>{Math.min(100,Math.round(qaData.length/50*100))}%</div>
                   <div style={{fontSize:10,color:"rgba(255,255,255,.5)",marginTop:2}}>KB Coverage</div>
                 </div>
+              </div>
+
+              {/* ── SECTION 0: WELCOME MESSAGE ── */}
+              <div className="cc" style={{marginBottom:16}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf415",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>👋</div>
+                  <div>
+                    <div style={{fontWeight:800,fontSize:14}}>Welcome Message</div>
+                    <div style={{fontSize:11,color:T.textMuted,marginTop:2,lineHeight:1.6}}>
+                      This message is sent <strong>automatically</strong> when a customer messages for the <strong>very first time</strong>.
+                      Leave blank to skip. Example: "Hi! I'm Sara from Evera Health 😊 How can I help you today?"
+                    </div>
+                  </div>
+                </div>
+                <textarea value={welcomeMessage} onChange={e=>setWelcomeMessage(e.target.value)} rows={3}
+                  placeholder={"Hi! I'm Sara from Evera Health 😊 How can I help you today?"}
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                <button onClick={async()=>{
+                  const body = {welcome_message: welcomeMessage};
+                  if(kbClinic?.clinic_id) body.clinic_id = kbClinic.clinic_id;
+                  await fetch(`${API}/api/admin/clients/${kbClinic?.clinic_id||""}/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(body)});
+                  const t=document.createElement("div");
+                  t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#fff;border-radius:20px;padding:28px 36px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border:2px solid #86efac";
+                  t.innerHTML="<div style='font-size:32px;margin-bottom:8px'>👋</div><div style='font-weight:800;font-size:16px;color:#166534'>Welcome Message Saved!</div>";
+                  document.body.appendChild(t);
+                  setTimeout(()=>t.remove(),2500);
+                }} style={{marginTop:10,padding:"8px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  💾 Save Welcome Message
+                </button>
               </div>
 
               {/* ── SECTION 1: BOT PERSONALITY ── */}
