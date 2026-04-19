@@ -1236,6 +1236,24 @@ export default function App() {
                   </div>
                 ))}
               </div>
+              <button onClick={async()=>{
+                const clinicParam = inboxClinic ? `?clinic_id=${inboxClinic}` : "";
+                const res = await fetch(`${API}/api/conversations/export${clinicParam}`, {headers:authHeaders()});
+                if(res.ok){
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `chats_${new Date().toISOString().slice(0,10)}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }
+              }} style={{width:"100%",padding:"6px",borderRadius:8,border:`1px solid ${T.border}`,
+                background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",
+                fontFamily:"inherit",marginBottom:4,display:"flex",alignItems:"center",
+                justifyContent:"center",gap:4}}>
+                📥 Download All Chats (CSV)
+              </button>
               <div style={{position:"relative",marginBottom:6}}>
                 <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:12,color:T.textFaint}}>🔍</span>
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
@@ -3791,6 +3809,20 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
                     <button onClick={()=>{setEditClinic({...clinic,website:clinic.website_url||clinic.contact_email||""});setView("clinic_form");}}
                       style={{padding:"7px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                       ✏️ Edit
+                    </button>
+                    <button onClick={async()=>{
+                      const res = await fetch(`${API}/api/conversations/export?clinic_id=${clinic.id}`, {headers:authHeaders()});
+                      if(res.ok){
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${clinic.name.replace(/\s+/g,"_")}_chats_${new Date().toISOString().slice(0,10)}.csv`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }
+                    }} style={{padding:"7px 12px",borderRadius:10,border:"1px solid #7c3aed40",background:"#7c3aed10",color:"#7c3aed",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
+                      📥 Chats
                     </button>
                     <button onClick={async()=>{
                       setConfirmModal({
