@@ -712,7 +712,10 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
 
   async function loadKbForClient(client) {
     setKbClinic(client);
-    // Fetch this client's knowledge into qaData and systemPrompt
+    // Clear old data immediately so admin sees fresh data for new client
+    setWelcomeMessage("");
+    setSystemPrompt("");
+    setQaData([]);
     try {
       const r = await fetch(`${API}/api/admin/clients/${client.clinic_id}/knowledge`, {headers:authHeaders()});
       if(r.ok) {
