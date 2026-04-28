@@ -2017,7 +2017,37 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   </div>
                 </div>
                 <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={5}
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",minHeight:120,maxHeight:400}}/>
+                <div style={{display:"flex",justifyContent:"flex-end",marginTop:4}}>
+                  <button onClick={()=>{
+                    const modal = document.createElement("div");
+                    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)";
+                    const box = document.createElement("div");
+                    box.style.cssText = `background:${T.card};border-radius:16px;padding:24px;width:100%;max-width:860px;height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 60px rgba(0,0,0,.4)`;
+                    box.innerHTML = `
+                      <div style="display:flex;align-items:center;justify-content:space-between">
+                        <div style="font-weight:800;font-size:16px;color:${T.text}">⚙️ Bot Personality & Behaviour</div>
+                        <button id="close-prompt-modal" style="border:none;background:#ef444420;color:#ef4444;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:700">✕ Close</button>
+                      </div>
+                      <div style="font-size:11px;color:${T.textMuted}">Edit your full system prompt below. Changes are saved when you click Save Bot Personality.</div>
+                      <textarea id="expanded-prompt" style="flex:1;width:100%;background:${T.input};border:1px solid ${T.inputBorder};border-radius:10px;padding:14px;color:${T.text};font-size:13px;font-family:inherit;resize:none;line-height:1.6;box-sizing:border-box">${systemPrompt}</textarea>
+                      <div style="display:flex;gap:10px;justify-content:flex-end">
+                        <button id="save-prompt-modal" style="padding:10px 24px;border-radius:10px;border:none;background:${WA_GREEN};color:#fff;font-size:13px;font-weight:700;cursor:pointer">💾 Save Bot Personality</button>
+                      </div>
+                    `;
+                    modal.appendChild(box);
+                    document.body.appendChild(modal);
+                    document.getElementById("close-prompt-modal").onclick = () => document.body.removeChild(modal);
+                    modal.onclick = (e) => { if(e.target === modal) document.body.removeChild(modal); };
+                    document.getElementById("save-prompt-modal").onclick = async () => {
+                      const newPrompt = document.getElementById("expanded-prompt").value;
+                      setSystemPrompt(newPrompt);
+                      document.body.removeChild(modal);
+                    };
+                  }} style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
+                    ⛶ Expand
+                  </button>
+                </div>
                 <button onClick={()=>{
                   setConfirmModal({
                     title:"Save Bot Personality?",
