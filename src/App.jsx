@@ -561,7 +561,7 @@ export default function App() {
     finally { setLoading(false); }
   }, [selected]);
 
-  const fetchKnowledge = useCallback(async (clinicId=null) => {
+const fetchKnowledge = useCallback(async (clinicId=null) => {
     try {
       const cParam = clinicId ? `?clinic_id=${clinicId}` : "";
       const r=await fetch(`${API}/api/knowledge${cParam}`, {headers:authHeaders()});
@@ -569,6 +569,7 @@ export default function App() {
       const d=await r.json();
       setQaData(d.qa||[]);
       setSystemPrompt(d.systemPrompt||"");
+      setWelcomeMessage(d.welcomeMessage||"");
     } catch {}
   }, []);
 
@@ -1984,8 +1985,11 @@ export default function App() {
                   style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
                 <button onClick={async()=>{
                   const body = {welcome_message: welcomeMessage};
-                  if(kbClinic?.clinic_id) body.clinic_id = kbClinic.clinic_id;
-                  await fetch(`${API}/api/admin/clients/${kbClinic?.clinic_id||""}/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(body)});
+                  const clinicId = kbClinic?.clinic_id || currentUser?.clinic_id;
+                  const saveUrl = isAdmin
+                    ? `${API}/api/admin/clients/${clinicId}/settings`
+                    : `${API}/api/settings`;
+                  await fetch(saveUrl,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(body)});
                   const t=document.createElement("div");
                   t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#fff;border-radius:20px;padding:28px 36px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border:2px solid #86efac";
                   t.innerHTML="<div style='font-size:32px;margin-bottom:8px'>👋</div><div style='font-weight:800;font-size:16px;color:#166534'>Welcome Message Saved!</div>";
