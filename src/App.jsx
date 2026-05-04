@@ -1273,10 +1273,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
               <div style={{position:"relative",marginBottom:6}}>
                 <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:12,color:T.textFaint}}>🔍</span>
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:18,padding:"6px 10px 6px 28px",color:T.text,fontSize:12}}/>
-              </div>
-              <div style={{display:"flex",gap:3,marginBottom:5}}>
-                {["all","open","resolved"].map(f=><button key={f} onClick={()=>setFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:filter===f?WA_GREEN:T.input,color:filter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,textTransform:"capitalize",fontFamily:"inherit"}}>{f}</button>)}
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:18,padding:isMobile?"10px 10px 10px 32px":"6px 10px 6px 28px",color:T.text,fontSize:isMobile?14:12}}/>
               </div>
               <div style={{display:"flex",gap:3}}>
                 {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>setInboxFilter(f.id)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id?WA_GREEN:T.input,color:inboxFilter===f.id?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
@@ -1287,25 +1284,24 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
               {!loading&&filtered.length===0&&<div style={{padding:24,textAlign:"center",color:T.textFaint,fontSize:12}}><div style={{fontSize:32,marginBottom:8}}>💬</div>{backendStatus==="offline"?"⚠️ Backend offline":"No conversations"}</div>}
               {filtered.map(c=>(
                 <div key={c.id} className={`ci ${selected?.id===c.id?"active":""}`}
-                  style={{padding:"9px 12px",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${T.border}40`,position:"relative"}}>
-                  <div onClick={()=>selectContact(c)} style={{display:"flex",alignItems:"center",gap:9,flex:1,minWidth:0,cursor:"pointer"}}>
-                  <div style={{width:42,height:42,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
+                  style={{padding:isMobile?"12px 14px":"9px 12px",display:"flex",alignItems:"center",gap:isMobile?12:9,borderBottom:`1px solid ${T.border}40`,position:"relative"}}>
+                  <div onClick={()=>selectContact(c)} style={{display:"flex",alignItems:"center",gap:isMobile?12:9,flex:1,minWidth:0,cursor:"pointer"}}>
+                  <div style={{width:isMobile?50:42,height:isMobile?50:42,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:isMobile?16:13,color:"#fff",flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,.15"}}>{c.avatar||"?"}</div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
-                      <span style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
-                      <span style={{fontSize:10,color:T.textFaint,flexShrink:0,marginLeft:4}}>{c.lastTime}</span>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                      <span style={{fontWeight:700,fontSize:isMobile?15:13,color:c.unread>0?T.text:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?180:140}}>{c.name}</span>
+                      <span style={{fontSize:isMobile?11:10,color:c.unread>0?WA_GREEN:T.textFaint,flexShrink:0,marginLeft:4,fontWeight:c.unread>0?600:400}}>{c.lastTime}</span>
                     </div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
-                      <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>{c.lastMessage||"No messages"}</span>
-                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                        {!c.botActive&&<span style={{fontSize:9,color:"#fff",fontWeight:700,background:"#f59e0b",borderRadius:6,padding:"1px 5px",letterSpacing:0.3}}>👤 Manual</span>}
-                        {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700}}>{c.unread}</span>}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:isMobile?13:11,color:c.unread>0?T.text:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?180:160,fontWeight:c.unread>0?500:400}}>{c.lastMessage||"No messages"}</span>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0,marginLeft:4}}>
+                        {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"2px 7px",fontSize:isMobile?12:10,fontWeight:700,minWidth:20,textAlign:"center"}}>{c.unread}</span>}
+                        {!c.botActive&&<span style={{fontSize:9,color:"#fff",fontWeight:700,background:"#f59e0b",borderRadius:6,padding:"1px 5px",letterSpacing:0.3}}>👤</span>}
                       </div>
                     </div>
-
                   </div>
                   </div>
-                  <button onClick={e=>{e.stopPropagation();setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:x.unread>0?0:1}:x));}} title={c.unread>0?"Mark as read":"Mark as unread"} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",opacity:0,transition:"opacity 0.2s",fontSize:12,color:T.textMuted,padding:"4px",borderRadius:6}} className="mark-unread-btn">{c.unread>0?"✓":"●"}</button>
+                  <button onClick={e=>{e.stopPropagation();setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:x.unread>0?0:1}:x));}} title={c.unread>0?"Mark as read":"Mark as unread"} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",opacity:0,transition:"opacity 0.2s",fontSize:14,color:T.textMuted,padding:"4px",borderRadius:6}} className="mark-unread-btn">{c.unread>0?"✓":"●"}</button>
                 </div>
               ))}
             </div>
