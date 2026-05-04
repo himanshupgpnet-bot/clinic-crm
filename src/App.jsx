@@ -36,25 +36,8 @@ const HOUR_LABELS = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am
 
 const formatMsgTime = (timeStr, dateStr) => {
   if (!timeStr) return "";
-  try {
-    if (dateStr && timeStr) {
-      // Parse as UTC and convert to local browser time
-      // timeStr format: "02:47 AM", dateStr: "2026-03-17"
-      const [timePart, period] = timeStr.split(" ");
-      const [hours, mins] = timePart.split(":");
-      let h = parseInt(hours);
-      if (period === "PM" && h !== 12) h += 12;
-      if (period === "AM" && h === 12) h = 0;
-      // Create UTC date
-      const utcDate = new Date(`${dateStr}T${String(h).padStart(2,"0")}:${mins}:00Z`);
-      if (!isNaN(utcDate)) {
-        return utcDate.toLocaleTimeString("en-MY", {hour:"2-digit", minute:"2-digit", hour12:true, timeZone:"Asia/Kuala_Lumpur"});
-      }
-    }
-    return timeStr;
-  } catch {
-    return timeStr;
-  }
+  // Server now returns Malaysia time directly — just return as-is
+  return timeStr;
 };
 
 const getColor = n => { let h=0; for(let c of (n||"?")) h=c.charCodeAt(0)+((h<<5)-h); return COLORS[Math.abs(h)%COLORS.length]; };
