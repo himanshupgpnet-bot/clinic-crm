@@ -1309,29 +1309,36 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
 
           {selected?(
             <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
-              <div style={{padding:"8px 12px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{width:36,height:36,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",flexShrink:0}}>{selected.avatar}</div>
+              {/* CHAT HEADER — WhatsApp style on mobile, full controls on desktop */}
+              <div style={{padding:isMobile?"10px 12px":"8px 12px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  {isMobile&&<button onClick={()=>setSelected(null)} style={{background:"none",border:"none",cursor:"pointer",color:WA_GREEN,fontSize:22,padding:"0 4px 0 0",display:"flex",alignItems:"center"}}>‹</button>}
+                  <div style={{width:isMobile?42:36,height:isMobile?42:36,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:isMobile?16:13,color:"#fff",flexShrink:0}}>{selected.avatar}</div>
                   <div>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontWeight:700,fontSize:14}}>{selected.name}</span>
-
-
-                    </div>
-                    <div style={{fontSize:11,color:T.textMuted}}>{selected.phone}</div>
+                    <div style={{fontWeight:700,fontSize:isMobile?16:14,color:T.text}}>{selected.name}</div>
+                    <div style={{fontSize:isMobile?12:11,color:T.textMuted}}>{selected.phone}</div>
                   </div>
                 </div>
-                <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
-                  <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                    <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option>
-                  </select>
-                  <select value={selected.pipelineStage||"new"} onChange={e=>setPipelineStage(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                    {PIPELINE.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
-                  </select>
-                  <button onClick={()=>toggleBot(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"none",cursor:"pointer",background:selected.botActive?`${WA_GREEN}20`:T.card2,color:selected.botActive?WA_GREEN:T.textMuted,fontSize:11,fontWeight:600,fontFamily:"inherit"}}>🤖 {selected.botActive?"ON":"OFF"}</button>
-                  <button onClick={()=>toggleStatus(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓ Resolve":"↺ Reopen"}</button>
-                  <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
-                </div>
+                {isMobile?(
+                  /* Mobile: just bot toggle + resolve */
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <button onClick={()=>toggleBot(selected.id)} style={{padding:"6px 12px",borderRadius:18,border:"none",cursor:"pointer",background:selected.botActive?`${WA_GREEN}20`:T.card2,color:selected.botActive?WA_GREEN:T.textMuted,fontSize:12,fontWeight:700,fontFamily:"inherit"}}>🤖 {selected.botActive?"ON":"OFF"}</button>
+                    <button onClick={()=>toggleStatus(selected.id)} style={{padding:"6px 12px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓":"↺"}</button>
+                  </div>
+                ):(
+                  /* Desktop: full controls */
+                  <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
+                    <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                      <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option>
+                    </select>
+                    <select value={selected.pipelineStage||"new"} onChange={e=>setPipelineStage(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                      {PIPELINE.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
+                    </select>
+                    <button onClick={()=>toggleBot(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"none",cursor:"pointer",background:selected.botActive?`${WA_GREEN}20`:T.card2,color:selected.botActive?WA_GREEN:T.textMuted,fontSize:11,fontWeight:600,fontFamily:"inherit"}}>🤖 {selected.botActive?"ON":"OFF"}</button>
+                    <button onClick={()=>toggleStatus(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓ Resolve":"↺ Reopen"}</button>
+                    <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
+                  </div>
+                )}
               </div>
 
               {selected.botActive&&<div style={{background:`${WA_GREEN}12`,borderBottom:`1px solid ${WA_GREEN}25`,padding:"4px 14px",fontSize:11,color:WA_DARK}}>🤖 Bot is handling this — toggle off to reply manually</div>}
@@ -1350,7 +1357,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     <div style={{maxWidth:"65%"}}>
                       <div style={{background:isOut?T.msgOut:T.msgIn,borderRadius:isOut?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"8px 12px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
                         {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":"👤 You"}</div>}
-                        <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
+                        <div style={{fontSize:isMobile?15:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
                         <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{formatMsgTime(msg.time, msg.date)}</div>
                       </div>
                       {msg.sources?.length>0&&<div style={{marginTop:4,paddingLeft:4}}>{msg.sources.map(s=><SourceBadge key={s.id} s={s}/>)}</div>}
@@ -1359,11 +1366,12 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                 })}
                 <div ref={messagesEndRef}/>
               </div>
-              <div style={{padding:"8px 10px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:6,alignItems:"flex-end"}}>
+              <div style={{padding:isMobile?"10px 12px":"8px 10px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"flex-end",paddingBottom:isMobile?"max(10px, env(safe-area-inset-bottom))":"8px"}}>
+                {isMobile&&!selected.botActive&&<button onClick={()=>toggleBot(selected.id)} style={{width:40,height:40,borderRadius:"50%",border:"none",background:T.card2,color:T.textMuted,fontSize:18,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>🤖</button>}
                 <textarea value={reply} onChange={e=>setReply(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAgentReply();}}}
-                  placeholder={selected.botActive?"Bot is active — toggle off to reply":"Type a message..."} disabled={selected.botActive} rows={1}
-                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:20,padding:"9px 14px",color:selected.botActive?T.textFaint:T.text,fontSize:13,maxHeight:100}}/>
-                <button className="sb" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()} style={{width:40,height:40,borderRadius:"50%",border:"none",background:selected.botActive||!reply.trim()?T.card2:WA_GREEN,color:selected.botActive||!reply.trim()?T.textFaint:"#fff",fontSize:16,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0}}>➤</button>
+                  placeholder={selected.botActive?"Bot is ON — tap 🤖 to take over":"Type a message..."} disabled={selected.botActive} rows={1}
+                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:22,padding:isMobile?"11px 16px":"9px 14px",color:selected.botActive?T.textFaint:T.text,fontSize:isMobile?15:13,maxHeight:120,resize:"none"}}/>
+                <button className="sb" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()} style={{width:isMobile?46:40,height:isMobile?46:40,borderRadius:"50%",border:"none",background:selected.botActive||!reply.trim()?T.card2:WA_GREEN,color:selected.botActive||!reply.trim()?T.textFaint:"#fff",fontSize:isMobile?20:16,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>➤</button>
               </div>
             </div>
           ):<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,background:T.chatBg}}><div style={{fontSize:48}}>💬</div><div style={{fontSize:15,fontWeight:600}}>Select a conversation</div></div>}
