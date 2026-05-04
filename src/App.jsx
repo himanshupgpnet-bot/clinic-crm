@@ -997,7 +997,14 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     (leadFilter==="all"||c.lead===leadFilter)&&
     (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))&&
     (!isAdmin||!inboxClinic||String(c.clinicId||c.clinic_id||1)===String(inboxClinic))
-  );
+  ).sort((a,b)=>{
+    // Unread messages always on top
+    if(b.unread!==a.unread) return b.unread-a.unread;
+    // Then sort by latest message time
+    const ta = a.lastDate&&a.lastTime ? new Date(`${a.lastDate} ${a.lastTime}`) : new Date(0);
+    const tb = b.lastDate&&b.lastTime ? new Date(`${b.lastDate} ${b.lastTime}`) : new Date(0);
+    return tb-ta;
+  });
 
   const totalUnread = contacts.reduce((s,c)=>s+c.unread,0);
   const hotCount    = contacts.filter(c=>c.lead==="hot"&&(c.pipelineStage||"new")!=="done").length;
@@ -1285,7 +1292,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
                       <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>{c.lastMessage||"No messages"}</span>
                       <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                        {!c.botActive&&<span style={{fontSize:9,color:"#f59e0b",fontWeight:700}}>Manual</span>}
+                        {!c.botActive&&<span style={{fontSize:9,color:"#fff",fontWeight:700,background:"#f59e0b",borderRadius:6,padding:"1px 5px",letterSpacing:0.3}}>👤 Manual</span>}
                         {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700}}>{c.unread}</span>}
                       </div>
                     </div>
