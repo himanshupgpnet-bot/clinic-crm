@@ -108,6 +108,7 @@ export default function App() {
   const [reply, setReply] = useState("");
   const [filter, setFilter] = useState("all");
   const [leadFilter, setLeadFilter] = useState("all");
+  const [inboxFilter, setInboxFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [qaData, setQaData] = useState([]);
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -997,7 +998,11 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     (leadFilter==="all"||c.lead===leadFilter)&&
     (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))&&
     (!isAdmin||!inboxClinic||String(c.clinicId||c.clinic_id||1)===String(inboxClinic))
-  ).sort((a,b)=>{
+  ).filter(c=>{
+    if(inboxFilter==="unread") return c.unread>0;
+    if(inboxFilter==="manual") return !c.botActive;
+    return true;
+  }).sort((a,b)=>{
     // Unread messages always on top
     if(b.unread!==a.unread) return b.unread-a.unread;
     // Then sort by latest message time
@@ -1074,7 +1079,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
         textarea:focus,input:focus,select:focus{outline:none}textarea{resize:none}
-        .ci{transition:background .15s;cursor:pointer}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}
+        .ci{transition:background .15s;cursor:pointer}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}.ci:hover .mark-unread-btn{opacity:1!important}
         .mb{animation:fadeUp .2s ease}@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         .sc{transition:transform .15s}.sc:hover{transform:translateY(-2px)}
         .tb{transition:all .15s;cursor:pointer;border:none;background:transparent;font-family:inherit}
@@ -1274,15 +1279,16 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                 {["all","open","resolved"].map(f=><button key={f} onClick={()=>setFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:filter===f?WA_GREEN:T.input,color:filter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,textTransform:"capitalize",fontFamily:"inherit"}}>{f}</button>)}
               </div>
               <div style={{display:"flex",gap:3}}>
-                {["all","hot","warm","cold"].map(f=><button key={f} onClick={()=>setLeadFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:leadFilter===f?(f==="all"?WA_GREEN:LEAD_CFG[f]?.color||WA_GREEN):T.input,color:leadFilter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f==="all"?"All":f==="hot"?"🔥":f==="warm"?"🟡":"🔵"}</button>)}
+                {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>setInboxFilter(f.id)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id?WA_GREEN:T.input,color:inboxFilter===f.id?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
               {loading&&<div style={{padding:20,textAlign:"center",color:T.textFaint,fontSize:12}}>Loading...</div>}
               {!loading&&filtered.length===0&&<div style={{padding:24,textAlign:"center",color:T.textFaint,fontSize:12}}><div style={{fontSize:32,marginBottom:8}}>💬</div>{backendStatus==="offline"?"⚠️ Backend offline":"No conversations"}</div>}
               {filtered.map(c=>(
-                <div key={c.id} className={`ci ${selected?.id===c.id?"active":""}`} onClick={()=>selectContact(c)}
-                  style={{padding:"9px 12px",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${T.border}40`}}>
+                <div key={c.id} className={`ci ${selected?.id===c.id?"active":""}`}
+                  style={{padding:"9px 12px",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${T.border}40`,position:"relative"}}>
+                  <div onClick={()=>selectContact(c)} style={{display:"flex",alignItems:"center",gap:9,flex:1,minWidth:0,cursor:"pointer"}}>
                   <div style={{width:42,height:42,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
@@ -1298,6 +1304,8 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     </div>
 
                   </div>
+                  </div>
+                  <button onClick={e=>{e.stopPropagation();setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:x.unread>0?0:1}:x));}} title={c.unread>0?"Mark as read":"Mark as unread"} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",opacity:0,transition:"opacity 0.2s",fontSize:12,color:T.textMuted,padding:"4px",borderRadius:6}} className="mark-unread-btn">{c.unread>0?"✓":"●"}</button>
                 </div>
               ))}
             </div>
