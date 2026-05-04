@@ -48,7 +48,7 @@ const formatMsgTime = (timeStr, dateStr) => {
       // Create UTC date
       const utcDate = new Date(`${dateStr}T${String(h).padStart(2,"0")}:${mins}:00Z`);
       if (!isNaN(utcDate)) {
-        return utcDate.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:true});
+        return utcDate.toLocaleTimeString("en-MY", {hour:"2-digit", minute:"2-digit", hour12:true, timeZone:"Asia/Kuala_Lumpur"});
       }
     }
     return timeStr;
