@@ -92,6 +92,7 @@ export default function App() {
   const [filter, setFilter] = useState("all");
   const [leadFilter, setLeadFilter] = useState("all");
   const [inboxFilter, setInboxFilter] = useState("all");
+  const [inboxDateFilter, setInboxDateFilter] = useState("");
   const [search, setSearch] = useState("");
   const [qaData, setQaData] = useState([]);
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -534,13 +535,25 @@ export default function App() {
       const res = await fetch(`${API}/api/conversations${clinicParam}`, {headers:authHeaders()});
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setContacts(data);
+      // Smart refresh — only update contact list, never change selected chat
+      setContacts(prev => {
+        // Merge new data but preserve selected contact unread state
+        return data.map(newC => {
+          const existing = prev.find(p => p.id === newC.id);
+          // If this is the currently open chat — don't update unread count
+          if (existing && selected?.id === newC.id) {
+            return {...newC, unread: 0};
+          }
+          return newC;
+        });
+      });
       setBackendStatus("online");
       try {
         const vr = await fetch(`${API}/version`);
         if (vr.ok) { const vd = await vr.json(); setBackendVersion(vd.version||""); }
       } catch {}
-      if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(u); }
+      // Only update selected contact metadata (not switch to different chat)
+      if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(prev => ({...prev, botActive: u.botActive, status: u.status, lead: u.lead})); }
     } catch { setBackendStatus("offline"); }
     finally { setLoading(false); }
   }, [selected]);
@@ -801,8 +814,9 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     const text = reply.trim();
     setReply("");
 
-    // Show message instantly in UI
-    const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today() };
+    // Show message instantly in UI with agent name tag
+    const agentName = currentUser?.username || currentUser?.name || "Agent";
+    const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today(), agentName };
     setSelected(prev => ({ ...prev, messages: [...(prev.messages||[]), tempMsg] }));
     setContacts(prev => prev.map(c => c.id===selected.id ? {...c, lastMessage:text, lastTime:ts()} : c));
 
@@ -985,6 +999,9 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     if(inboxFilter==="unread") return c.unread>0;
     if(inboxFilter==="manual") return !c.botActive;
     return true;
+  }).filter(c=>{
+    if(!inboxDateFilter) return true;
+    return c.lastDate===inboxDateFilter;
   }).sort((a,b)=>{
     // Unread messages always on top
     if(b.unread!==a.unread) return b.unread-a.unread;
@@ -1258,8 +1275,13 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
                   style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:18,padding:isMobile?"10px 10px 10px 32px":"6px 10px 6px 28px",color:T.text,fontSize:isMobile?14:12}}/>
               </div>
-              <div style={{display:"flex",gap:3}}>
+              <div style={{display:"flex",gap:3,marginBottom:5}}>
                 {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>setInboxFilter(f.id)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id?WA_GREEN:T.input,color:inboxFilter===f.id?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:5}}>
+                <input type="date" value={inboxDateFilter} onChange={e=>setInboxDateFilter(e.target.value)}
+                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:14,padding:"5px 10px",color:T.text,fontSize:11,fontFamily:"inherit"}}/>
+                {inboxDateFilter&&<button onClick={()=>setInboxDateFilter("")} style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:14,padding:"0 4px"}}>✕</button>}
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
@@ -1273,7 +1295,10 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
                       <span style={{fontWeight:700,fontSize:isMobile?15:13,color:c.unread>0?T.text:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?180:140}}>{c.name}</span>
-                      <span style={{fontSize:isMobile?11:10,color:c.unread>0?WA_GREEN:T.textFaint,flexShrink:0,marginLeft:4,fontWeight:c.unread>0?600:400}}>{c.lastTime}</span>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
+                        <span style={{fontSize:isMobile?11:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?600:400}}>{c.lastTime}</span>
+                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>{c.lastDate}</span>}
+                      </div>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <span style={{fontSize:isMobile?13:11,color:c.unread>0?T.text:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?180:160,fontWeight:c.unread>0?500:400}}>{c.lastMessage||"No messages"}</span>
@@ -1339,7 +1364,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     {!isOut&&<div style={{width:26,height:26,borderRadius:"50%",background:getColor(selected.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>{selected.avatar}</div>}
                     <div style={{maxWidth:"65%"}}>
                       <div style={{background:isOut?T.msgOut:T.msgIn,borderRadius:isOut?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"8px 12px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":"👤 You"}</div>}
+                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}</div>}
                         <div style={{fontSize:isMobile?15:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
                         <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{formatMsgTime(msg.time, msg.date)}</div>
                       </div>
