@@ -36,8 +36,25 @@ const HOUR_LABELS = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am
 
 const formatMsgTime = (timeStr, dateStr) => {
   if (!timeStr) return "";
-  // Server now returns Malaysia time directly — just return as-is
-  return timeStr;
+  try {
+    if (dateStr && timeStr) {
+      // Parse as UTC and convert to local browser time
+      // timeStr format: "02:47 AM", dateStr: "2026-03-17"
+      const [timePart, period] = timeStr.split(" ");
+      const [hours, mins] = timePart.split(":");
+      let h = parseInt(hours);
+      if (period === "PM" && h !== 12) h += 12;
+      if (period === "AM" && h === 12) h = 0;
+      // Create UTC date
+      const utcDate = new Date(`${dateStr}T${String(h).padStart(2,"0")}:${mins}:00Z`);
+      if (!isNaN(utcDate)) {
+        return utcDate.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:true});
+      }
+    }
+    return timeStr;
+  } catch {
+    return timeStr;
+  }
 };
 
 const getColor = n => { let h=0; for(let c of (n||"?")) h=c.charCodeAt(0)+((h<<5)-h); return COLORS[Math.abs(h)%COLORS.length]; };
@@ -91,8 +108,6 @@ export default function App() {
   const [reply, setReply] = useState("");
   const [filter, setFilter] = useState("all");
   const [leadFilter, setLeadFilter] = useState("all");
-  const [inboxFilter, setInboxFilter] = useState("all");
-  const [inboxDateFilter, setInboxDateFilter] = useState("");
   const [search, setSearch] = useState("");
   const [qaData, setQaData] = useState([]);
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -535,25 +550,13 @@ export default function App() {
       const res = await fetch(`${API}/api/conversations${clinicParam}`, {headers:authHeaders()});
       if (!res.ok) throw new Error();
       const data = await res.json();
-      // Smart refresh — only update contact list, never change selected chat
-      setContacts(prev => {
-        // Merge new data but preserve selected contact unread state
-        return data.map(newC => {
-          const existing = prev.find(p => p.id === newC.id);
-          // If this is the currently open chat — don't update unread count
-          if (existing && selected?.id === newC.id) {
-            return {...newC, unread: 0};
-          }
-          return newC;
-        });
-      });
+      setContacts(data);
       setBackendStatus("online");
       try {
         const vr = await fetch(`${API}/version`);
         if (vr.ok) { const vd = await vr.json(); setBackendVersion(vd.version||""); }
       } catch {}
-      // Only update selected contact metadata (not switch to different chat)
-      if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(prev => ({...prev, botActive: u.botActive, status: u.status, lead: u.lead})); }
+      if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(u); }
     } catch { setBackendStatus("offline"); }
     finally { setLoading(false); }
   }, [selected]);
@@ -814,9 +817,8 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     const text = reply.trim();
     setReply("");
 
-    // Show message instantly in UI with agent name tag
-    const agentName = currentUser?.username || currentUser?.name || "Agent";
-    const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today(), agentName };
+    // Show message instantly in UI
+    const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today() };
     setSelected(prev => ({ ...prev, messages: [...(prev.messages||[]), tempMsg] }));
     setContacts(prev => prev.map(c => c.id===selected.id ? {...c, lastMessage:text, lastTime:ts()} : c));
 
@@ -995,21 +997,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     (leadFilter==="all"||c.lead===leadFilter)&&
     (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))&&
     (!isAdmin||!inboxClinic||String(c.clinicId||c.clinic_id||1)===String(inboxClinic))
-  ).filter(c=>{
-    if(inboxFilter==="unread") return c.unread>0;
-    if(inboxFilter==="manual") return !c.botActive;
-    return true;
-  }).filter(c=>{
-    if(!inboxDateFilter) return true;
-    return c.lastDate===inboxDateFilter;
-  }).sort((a,b)=>{
-    // Unread messages always on top
-    if(b.unread!==a.unread) return b.unread-a.unread;
-    // Then sort by latest message time
-    const ta = a.lastDate&&a.lastTime ? new Date(`${a.lastDate} ${a.lastTime}`) : new Date(0);
-    const tb = b.lastDate&&b.lastTime ? new Date(`${b.lastDate} ${b.lastTime}`) : new Date(0);
-    return tb-ta;
-  });
+  );
 
   const totalUnread = contacts.reduce((s,c)=>s+c.unread,0);
   const hotCount    = contacts.filter(c=>c.lead==="hot"&&(c.pipelineStage||"new")!=="done").length;
@@ -1079,7 +1067,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
         textarea:focus,input:focus,select:focus{outline:none}textarea{resize:none}
-        .ci{transition:background .15s;cursor:pointer}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}.ci:hover .mark-unread-btn{opacity:1!important}
+        .ci{transition:background .15s;cursor:pointer}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}
         .mb{animation:fadeUp .2s ease}@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         .sc{transition:transform .15s}.sc:hover{transform:translateY(-2px)}
         .tb{transition:all .15s;cursor:pointer;border:none;background:transparent;font-family:inherit}
@@ -1273,43 +1261,36 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
               <div style={{position:"relative",marginBottom:6}}>
                 <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:12,color:T.textFaint}}>🔍</span>
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:18,padding:isMobile?"10px 10px 10px 32px":"6px 10px 6px 28px",color:T.text,fontSize:isMobile?14:12}}/>
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:18,padding:"6px 10px 6px 28px",color:T.text,fontSize:12}}/>
               </div>
               <div style={{display:"flex",gap:3,marginBottom:5}}>
-                {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>setInboxFilter(f.id)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id?WA_GREEN:T.input,color:inboxFilter===f.id?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
+                {["all","open","resolved"].map(f=><button key={f} onClick={()=>setFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:filter===f?WA_GREEN:T.input,color:filter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,textTransform:"capitalize",fontFamily:"inherit"}}>{f}</button>)}
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:5}}>
-                <input type="date" value={inboxDateFilter} onChange={e=>setInboxDateFilter(e.target.value)}
-                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:14,padding:"5px 10px",color:T.text,fontSize:11,fontFamily:"inherit"}}/>
-                {inboxDateFilter&&<button onClick={()=>setInboxDateFilter("")} style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:14,padding:"0 4px"}}>✕</button>}
+              <div style={{display:"flex",gap:3}}>
+                {["all","hot","warm","cold"].map(f=><button key={f} onClick={()=>setLeadFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:leadFilter===f?(f==="all"?WA_GREEN:LEAD_CFG[f]?.color||WA_GREEN):T.input,color:leadFilter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f==="all"?"All":f==="hot"?"🔥":f==="warm"?"🟡":"🔵"}</button>)}
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
               {loading&&<div style={{padding:20,textAlign:"center",color:T.textFaint,fontSize:12}}>Loading...</div>}
               {!loading&&filtered.length===0&&<div style={{padding:24,textAlign:"center",color:T.textFaint,fontSize:12}}><div style={{fontSize:32,marginBottom:8}}>💬</div>{backendStatus==="offline"?"⚠️ Backend offline":"No conversations"}</div>}
               {filtered.map(c=>(
-                <div key={c.id} className={`ci ${selected?.id===c.id?"active":""}`}
-                  style={{padding:isMobile?"12px 14px":"9px 12px",display:"flex",alignItems:"center",gap:isMobile?12:9,borderBottom:`1px solid ${T.border}40`,position:"relative"}}>
-                  <div onClick={()=>selectContact(c)} style={{display:"flex",alignItems:"center",gap:isMobile?12:9,flex:1,minWidth:0,cursor:"pointer"}}>
-                  <div style={{width:isMobile?50:42,height:isMobile?50:42,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:isMobile?16:13,color:"#fff",flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,.15"}}>{c.avatar||"?"}</div>
+                <div key={c.id} className={`ci ${selected?.id===c.id?"active":""}`} onClick={()=>selectContact(c)}
+                  style={{padding:"9px 12px",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${T.border}40`}}>
+                  <div style={{width:42,height:42,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                      <span style={{fontWeight:700,fontSize:isMobile?15:13,color:c.unread>0?T.text:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?180:140}}>{c.name}</span>
-                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                        <span style={{fontSize:isMobile?11:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?600:400}}>{c.lastTime}</span>
-                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>{c.lastDate}</span>}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                      <span style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
+                      <span style={{fontSize:10,color:T.textFaint,flexShrink:0,marginLeft:4}}>{c.lastTime}</span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                      <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>{c.lastMessage||"No messages"}</span>
+                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                        {!c.botActive&&<span style={{fontSize:9,color:"#f59e0b",fontWeight:700}}>Manual</span>}
+                        {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700}}>{c.unread}</span>}
                       </div>
                     </div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:isMobile?13:11,color:c.unread>0?T.text:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?180:160,fontWeight:c.unread>0?500:400}}>{c.lastMessage||"No messages"}</span>
-                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0,marginLeft:4}}>
-                        {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"2px 7px",fontSize:isMobile?12:10,fontWeight:700,minWidth:20,textAlign:"center"}}>{c.unread}</span>}
-                        {!c.botActive&&<span style={{fontSize:9,color:"#fff",fontWeight:700,background:"#f59e0b",borderRadius:6,padding:"1px 5px",letterSpacing:0.3}}>👤</span>}
-                      </div>
-                    </div>
+
                   </div>
-                  </div>
-                  <button onClick={e=>{e.stopPropagation();setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:x.unread>0?0:1}:x));}} title={c.unread>0?"Mark as read":"Mark as unread"} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",opacity:0,transition:"opacity 0.2s",fontSize:14,color:T.textMuted,padding:"4px",borderRadius:6}} className="mark-unread-btn">{c.unread>0?"✓":"●"}</button>
                 </div>
               ))}
             </div>
@@ -1317,36 +1298,43 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
 
           {selected?(
             <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
-              {/* CHAT HEADER — WhatsApp style on mobile, full controls on desktop */}
-              <div style={{padding:isMobile?"10px 12px":"8px 12px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  {isMobile&&<button onClick={()=>setSelected(null)} style={{background:"none",border:"none",cursor:"pointer",color:WA_GREEN,fontSize:22,padding:"0 4px 0 0",display:"flex",alignItems:"center"}}>‹</button>}
-                  <div style={{width:isMobile?42:36,height:isMobile?42:36,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:isMobile?16:13,color:"#fff",flexShrink:0}}>{selected.avatar}</div>
+              <div style={{padding:"8px 12px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{width:36,height:36,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",flexShrink:0}}>{selected.avatar}</div>
                   <div>
-                    <div style={{fontWeight:700,fontSize:isMobile?16:14,color:T.text}}>{selected.name}</div>
-                    <div style={{fontSize:isMobile?12:11,color:T.textMuted}}>{selected.phone}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontWeight:700,fontSize:14}}>{selected.name}</span>
+
+
+                    </div>
+                    <div style={{fontSize:11,color:T.textMuted}}>{selected.phone}</div>
                   </div>
                 </div>
-                {isMobile?(
-                  /* Mobile: just bot toggle + resolve */
-                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                    <button onClick={()=>toggleBot(selected.id)} style={{padding:"6px 12px",borderRadius:18,border:"none",cursor:"pointer",background:selected.botActive?`${WA_GREEN}20`:T.card2,color:selected.botActive?WA_GREEN:T.textMuted,fontSize:12,fontWeight:700,fontFamily:"inherit"}}>🤖 {selected.botActive?"ON":"OFF"}</button>
-                    <button onClick={()=>toggleStatus(selected.id)} style={{padding:"6px 12px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓":"↺"}</button>
-                  </div>
-                ):(
-                  /* Desktop: full controls */
-                  <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
-                    <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                      <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option>
-                    </select>
-                    <select value={selected.pipelineStage||"new"} onChange={e=>setPipelineStage(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                      {PIPELINE.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
-                    </select>
-                    <button onClick={()=>toggleBot(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"none",cursor:"pointer",background:selected.botActive?`${WA_GREEN}20`:T.card2,color:selected.botActive?WA_GREEN:T.textMuted,fontSize:11,fontWeight:600,fontFamily:"inherit"}}>🤖 {selected.botActive?"ON":"OFF"}</button>
-                    <button onClick={()=>toggleStatus(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓ Resolve":"↺ Reopen"}</button>
-                    <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
-                  </div>
-                )}
+                <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
+                  <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                    <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option>
+                  </select>
+                  <select value={selected.pipelineStage||"new"} onChange={e=>setPipelineStage(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                    {PIPELINE.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                  <button onClick={()=>toggleBot(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"none",cursor:"pointer",background:selected.botActive?`${WA_GREEN}20`:T.card2,color:selected.botActive?WA_GREEN:T.textMuted,fontSize:11,fontWeight:600,fontFamily:"inherit"}}>🤖 {selected.botActive?"ON":"OFF"}</button>
+                  <button onClick={()=>toggleStatus(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓ Resolve":"↺ Reopen"}</button>
+                  <button onClick={()=>{
+                      const rows = [["Time","Date","From","Message"]];
+                      (selected.messages||[]).forEach(m=>{
+                        rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);
+                      });
+                      const csv = rows.map(r=>r.join(",")).join("\n");
+                      const blob = new Blob([csv],{type:"text/csv"});
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `chat_${selected.name}_${new Date().toISOString().slice(0,10)}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #10b98140",background:"#10b98110",color:"#10b981",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📥 Export</button>
+                  <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
+                </div>
               </div>
 
               {selected.botActive&&<div style={{background:`${WA_GREEN}12`,borderBottom:`1px solid ${WA_GREEN}25`,padding:"4px 14px",fontSize:11,color:WA_DARK}}>🤖 Bot is handling this — toggle off to reply manually</div>}
@@ -1364,8 +1352,8 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     {!isOut&&<div style={{width:26,height:26,borderRadius:"50%",background:getColor(selected.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>{selected.avatar}</div>}
                     <div style={{maxWidth:"65%"}}>
                       <div style={{background:isOut?T.msgOut:T.msgIn,borderRadius:isOut?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"8px 12px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}</div>}
-                        <div style={{fontSize:isMobile?15:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
+                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":"👤 You"}</div>}
+                        <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
                         <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{formatMsgTime(msg.time, msg.date)}</div>
                       </div>
                       {msg.sources?.length>0&&<div style={{marginTop:4,paddingLeft:4}}>{msg.sources.map(s=><SourceBadge key={s.id} s={s}/>)}</div>}
@@ -1374,12 +1362,11 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                 })}
                 <div ref={messagesEndRef}/>
               </div>
-              <div style={{padding:isMobile?"10px 12px":"8px 10px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"flex-end",paddingBottom:isMobile?"max(10px, env(safe-area-inset-bottom))":"8px"}}>
-                {isMobile&&!selected.botActive&&<button onClick={()=>toggleBot(selected.id)} style={{width:40,height:40,borderRadius:"50%",border:"none",background:T.card2,color:T.textMuted,fontSize:18,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>🤖</button>}
+              <div style={{padding:"8px 10px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:6,alignItems:"flex-end"}}>
                 <textarea value={reply} onChange={e=>setReply(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAgentReply();}}}
-                  placeholder={selected.botActive?"Bot is ON — tap 🤖 to take over":"Type a message..."} disabled={selected.botActive} rows={1}
-                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:22,padding:isMobile?"11px 16px":"9px 14px",color:selected.botActive?T.textFaint:T.text,fontSize:isMobile?15:13,maxHeight:120,resize:"none"}}/>
-                <button className="sb" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()} style={{width:isMobile?46:40,height:isMobile?46:40,borderRadius:"50%",border:"none",background:selected.botActive||!reply.trim()?T.card2:WA_GREEN,color:selected.botActive||!reply.trim()?T.textFaint:"#fff",fontSize:isMobile?20:16,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>➤</button>
+                  placeholder={selected.botActive?"Bot is active — toggle off to reply":"Type a message..."} disabled={selected.botActive} rows={1}
+                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:20,padding:"9px 14px",color:selected.botActive?T.textFaint:T.text,fontSize:13,maxHeight:100}}/>
+                <button className="sb" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()} style={{width:40,height:40,borderRadius:"50%",border:"none",background:selected.botActive||!reply.trim()?T.card2:WA_GREEN,color:selected.botActive||!reply.trim()?T.textFaint:"#fff",fontSize:16,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0}}>➤</button>
               </div>
             </div>
           ):<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,background:T.chatBg}}><div style={{fontSize:48}}>💬</div><div style={{fontSize:15,fontWeight:600}}>Select a conversation</div></div>}
