@@ -1401,6 +1401,20 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     setFeedbackComplaint("");
                     setFeedbackResult(null);
                   }} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>👎 Feedback</button>
+                  <button onClick={()=>{
+                      const rows = [["Time","Date","From","Message"]];
+                      (selected.messages||[]).forEach(m=>{
+                        rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);
+                      });
+                      const csv = rows.map(r=>r.join(",")).join("\n");
+                      const blob = new Blob([csv],{type:"text/csv"});
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `chat_${selected.name}_${new Date().toISOString().slice(0,10)}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #10b98140",background:"#10b98110",color:"#10b981",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📥 Export</button>
                   <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
                 </div>
               </div>
