@@ -155,10 +155,10 @@ export default function App() {
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
   const [archiveConfirm, setArchiveConfirm] = useState(null);
-  const [feedbackModal, setFeedbackModal] = useState(null); // {phone, name, messages, clinicId}
+  const [feedbackModal, setFeedbackModal] = useState(null);
   const [feedbackComplaint, setFeedbackComplaint] = useState("");
   const [feedbackLoading, setFeedbackLoading] = useState(false);
-  const [feedbackResult, setFeedbackResult] = useState(null); // {suggestion, fix_type, fix_content, id}
+  const [feedbackResult, setFeedbackResult] = useState(null);
   const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}]);
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
@@ -1110,13 +1110,11 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
             </div>
             <button onClick={()=>{setFeedbackModal(null);setFeedbackResult(null);}} style={{marginLeft:"auto",border:"none",background:"none",cursor:"pointer",fontSize:18,color:T.textMuted}}>✕</button>
           </div>
-
           {!feedbackResult?(
             <div>
               <textarea value={feedbackComplaint} onChange={e=>setFeedbackComplaint(e.target.value)}
-                placeholder="Describe what went wrong — e.g. Bot asked for booking before answering the question, or Bot gave wrong pricing..."
-                rows={4}
-                style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",resize:"none",boxSizing:"border-box",marginBottom:12}}/>
+                placeholder="Describe what went wrong — e.g. Bot asked for booking before answering the question..."
+                rows={4} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",resize:"none",boxSizing:"border-box",marginBottom:12}}/>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>setFeedbackModal(null)} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
                 <button onClick={async()=>{
@@ -1124,17 +1122,11 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   setFeedbackLoading(true);
                   try {
                     const r = await fetch(`${API}/api/conversations/${feedbackModal.phone}/feedback`,{
-                      method:"POST",
-                      headers:authHeaders(),
-                      body:JSON.stringify({
-                        complaint:feedbackComplaint,
-                        clinic_id:feedbackModal.clinicId,
-                        contact_name:feedbackModal.name,
-                        messages:feedbackModal.messages
-                      })
+                      method:"POST", headers:authHeaders(),
+                      body:JSON.stringify({complaint:feedbackComplaint,clinic_id:feedbackModal.clinicId,contact_name:feedbackModal.name,messages:feedbackModal.messages})
                     });
                     const d = await r.json();
-                    setFeedbackResult({...d, feedbackId: d.id});
+                    setFeedbackResult({...d, feedbackId:d.id});
                   } catch(e) { alert("Failed to submit feedback"); }
                   setFeedbackLoading(false);
                 }} disabled={feedbackLoading||!feedbackComplaint.trim()}
@@ -1149,9 +1141,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                 <div style={{fontWeight:700,fontSize:13,color:WA_GREEN,marginBottom:6}}>🤖 AI Suggestion</div>
                 <div style={{fontSize:12,color:T.text,marginBottom:8}}>{feedbackResult.suggestion}</div>
                 <div style={{background:T.card,borderRadius:8,padding:10}}>
-                  <div style={{fontSize:10,fontWeight:700,color:T.textMuted,marginBottom:4}}>
-                    {feedbackResult.fix_type==="kb"?"📋 Add to Knowledge Base":"⚙️ Update Bot Personality"}
-                  </div>
+                  <div style={{fontSize:10,fontWeight:700,color:T.textMuted,marginBottom:4}}>{feedbackResult.fix_type==="kb"?"📋 Add to Knowledge Base":"⚙️ Update Bot Personality"}</div>
                   <div style={{fontSize:12,color:T.text,fontStyle:"italic"}}>{feedbackResult.fix_content}</div>
                 </div>
               </div>
@@ -1398,23 +1388,19 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   <button onClick={()=>toggleStatus(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓ Resolve":"↺ Reopen"}</button>
                   <button onClick={()=>{
                     setFeedbackModal({phone:selected.id,name:selected.name,clinicId:selected.clinicId||selected.clinic_id||1,messages:JSON.stringify(selected.messages||[])});
-                    setFeedbackComplaint("");
-                    setFeedbackResult(null);
+                    setFeedbackComplaint(""); setFeedbackResult(null);
                   }} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>👎 Feedback</button>
                   <button onClick={()=>{
-                      const rows = [["Time","Date","From","Message"]];
-                      (selected.messages||[]).forEach(m=>{
-                        rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);
-                      });
-                      const csv = rows.map(r=>r.join(",")).join("\n");
-                      const blob = new Blob([csv],{type:"text/csv"});
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `chat_${selected.name}_${new Date().toISOString().slice(0,10)}.csv`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #10b98140",background:"#10b98110",color:"#10b981",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📥 Export</button>
+                    const rows=[["Time","Date","From","Message"]];
+                    (selected.messages||[]).forEach(m=>{rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);});
+                    const csv=rows.map(r=>r.join(",")).join("
+");
+                    const blob=new Blob([csv],{type:"text/csv"});
+                    const url=URL.createObjectURL(blob);
+                    const a=document.createElement("a");
+                    a.href=url; a.download=`chat_${selected.name}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+                    URL.revokeObjectURL(url);
+                  }} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #10b98140",background:"#10b98110",color:"#10b981",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📥 Export</button>
                   <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
                 </div>
               </div>
