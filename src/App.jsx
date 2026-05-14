@@ -36,25 +36,8 @@ const HOUR_LABELS = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am
 
 const formatMsgTime = (timeStr, dateStr) => {
   if (!timeStr) return "";
-  try {
-    if (dateStr && timeStr) {
-      // Parse as UTC and convert to local browser time
-      // timeStr format: "02:47 AM", dateStr: "2026-03-17"
-      const [timePart, period] = timeStr.split(" ");
-      const [hours, mins] = timePart.split(":");
-      let h = parseInt(hours);
-      if (period === "PM" && h !== 12) h += 12;
-      if (period === "AM" && h === 12) h = 0;
-      // Create UTC date
-      const utcDate = new Date(`${dateStr}T${String(h).padStart(2,"0")}:${mins}:00Z`);
-      if (!isNaN(utcDate)) {
-        return utcDate.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:true});
-      }
-    }
-    return timeStr;
-  } catch {
-    return timeStr;
-  }
+  // Server returns Malaysia time directly
+  return timeStr;
 };
 
 const getColor = n => { let h=0; for(let c of (n||"?")) h=c.charCodeAt(0)+((h<<5)-h); return COLORS[Math.abs(h)%COLORS.length]; };
@@ -108,6 +91,8 @@ export default function App() {
   const [reply, setReply] = useState("");
   const [filter, setFilter] = useState("all");
   const [leadFilter, setLeadFilter] = useState("all");
+  const [inboxFilter, setInboxFilter] = useState("all");
+  const [inboxDateFilter, setInboxDateFilter] = useState("");
   const [search, setSearch] = useState("");
   const [qaData, setQaData] = useState([]);
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -550,13 +535,18 @@ export default function App() {
       const res = await fetch(`${API}/api/conversations${clinicParam}`, {headers:authHeaders()});
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setContacts(data);
+      setContacts(prev => {
+        return data.map(newC => {
+          if (selected?.id === newC.id) return {...newC, unread: 0};
+          return newC;
+        });
+      });
       setBackendStatus("online");
       try {
         const vr = await fetch(`${API}/version`);
         if (vr.ok) { const vd = await vr.json(); setBackendVersion(vd.version||""); }
       } catch {}
-      if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(u); }
+      if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(prev => ({...prev, botActive: u.botActive, status: u.status, lead: u.lead})); }
     } catch { setBackendStatus("offline"); }
     finally { setLoading(false); }
   }, [selected]);
@@ -817,8 +807,9 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     const text = reply.trim();
     setReply("");
 
-    // Show message instantly in UI
-    const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today() };
+    // Show message instantly in UI with agent name tag
+    const agentName = currentUser?.username || currentUser?.name || "Agent";
+    const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today(), agentName };
     setSelected(prev => ({ ...prev, messages: [...(prev.messages||[]), tempMsg] }));
     setContacts(prev => prev.map(c => c.id===selected.id ? {...c, lastMessage:text, lastTime:ts()} : c));
 
@@ -997,7 +988,19 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     (leadFilter==="all"||c.lead===leadFilter)&&
     (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))&&
     (!isAdmin||!inboxClinic||String(c.clinicId||c.clinic_id||1)===String(inboxClinic))
-  );
+  ).filter(c=>{
+    if(inboxFilter==="unread") return c.unread>0;
+    if(inboxFilter==="manual") return !c.botActive;
+    return true;
+  }).filter(c=>{
+    if(!inboxDateFilter) return true;
+    return c.lastDate===inboxDateFilter;
+  }).sort((a,b)=>{
+    if(b.unread!==a.unread) return b.unread-a.unread;
+    const ta = a.lastDate&&a.lastTime ? new Date(`${a.lastDate} ${a.lastTime}`) : new Date(0);
+    const tb = b.lastDate&&b.lastTime ? new Date(`${b.lastDate} ${b.lastTime}`) : new Date(0);
+    return tb-ta;
+  });
 
   const totalUnread = contacts.reduce((s,c)=>s+c.unread,0);
   const hotCount    = contacts.filter(c=>c.lead==="hot"&&(c.pipelineStage||"new")!=="done").length;
@@ -1266,8 +1269,13 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
               <div style={{display:"flex",gap:3,marginBottom:5}}>
                 {["all","open","resolved"].map(f=><button key={f} onClick={()=>setFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:filter===f?WA_GREEN:T.input,color:filter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,textTransform:"capitalize",fontFamily:"inherit"}}>{f}</button>)}
               </div>
-              <div style={{display:"flex",gap:3}}>
-                {["all","hot","warm","cold"].map(f=><button key={f} onClick={()=>setLeadFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:leadFilter===f?(f==="all"?WA_GREEN:LEAD_CFG[f]?.color||WA_GREEN):T.input,color:leadFilter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f==="all"?"All":f==="hot"?"🔥":f==="warm"?"🟡":"🔵"}</button>)}
+              <div style={{display:"flex",gap:3,marginBottom:5}}>
+                {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>setInboxFilter(f.id)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id?WA_GREEN:T.input,color:inboxFilter===f.id?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:5}}>
+                <input type="date" value={inboxDateFilter} onChange={e=>setInboxDateFilter(e.target.value)}
+                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:14,padding:"5px 10px",color:T.text,fontSize:11,fontFamily:"inherit"}}/>
+                {inboxDateFilter&&<button onClick={()=>setInboxDateFilter("")} style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:14,padding:"0 4px"}}>✕</button>}
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
@@ -1280,7 +1288,10 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
                       <span style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
-                      <span style={{fontSize:10,color:T.textFaint,flexShrink:0,marginLeft:4}}>{c.lastTime}</span>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
+                        <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?600:400}}>{c.lastTime}</span>
+                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>{c.lastDate}</span>}
+                      </div>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
                       <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>{c.lastMessage||"No messages"}</span>
@@ -1352,7 +1363,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     {!isOut&&<div style={{width:26,height:26,borderRadius:"50%",background:getColor(selected.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>{selected.avatar}</div>}
                     <div style={{maxWidth:"65%"}}>
                       <div style={{background:isOut?T.msgOut:T.msgIn,borderRadius:isOut?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"8px 12px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":"👤 You"}</div>}
+                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}</div>}
                         <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
                         <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{formatMsgTime(msg.time, msg.date)}</div>
                       </div>
