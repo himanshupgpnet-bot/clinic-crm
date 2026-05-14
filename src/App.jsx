@@ -36,8 +36,25 @@ const HOUR_LABELS = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am
 
 const formatMsgTime = (timeStr, dateStr) => {
   if (!timeStr) return "";
-  // Server returns Malaysia time directly
-  return timeStr;
+  try {
+    if (dateStr && timeStr) {
+      // Parse as UTC and convert to local browser time
+      // timeStr format: "02:47 AM", dateStr: "2026-03-17"
+      const [timePart, period] = timeStr.split(" ");
+      const [hours, mins] = timePart.split(":");
+      let h = parseInt(hours);
+      if (period === "PM" && h !== 12) h += 12;
+      if (period === "AM" && h === 12) h = 0;
+      // Create UTC date
+      const utcDate = new Date(`${dateStr}T${String(h).padStart(2,"0")}:${mins}:00Z`);
+      if (!isNaN(utcDate)) {
+        return utcDate.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12:true});
+      }
+    }
+    return timeStr;
+  } catch {
+    return timeStr;
+  }
 };
 
 const getColor = n => { let h=0; for(let c of (n||"?")) h=c.charCodeAt(0)+((h<<5)-h); return COLORS[Math.abs(h)%COLORS.length]; };
@@ -91,8 +108,6 @@ export default function App() {
   const [reply, setReply] = useState("");
   const [filter, setFilter] = useState("all");
   const [leadFilter, setLeadFilter] = useState("all");
-  const [inboxFilter, setInboxFilter] = useState("all");
-  const [inboxDateFilter, setInboxDateFilter] = useState("");
   const [search, setSearch] = useState("");
   const [qaData, setQaData] = useState([]);
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -140,6 +155,10 @@ export default function App() {
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
   const [archiveConfirm, setArchiveConfirm] = useState(null);
+  const [feedbackModal, setFeedbackModal] = useState(null); // {phone, name, messages, clinicId}
+  const [feedbackComplaint, setFeedbackComplaint] = useState("");
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackResult, setFeedbackResult] = useState(null); // {suggestion, fix_type, fix_content, id}
   const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}]);
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
@@ -535,18 +554,13 @@ export default function App() {
       const res = await fetch(`${API}/api/conversations${clinicParam}`, {headers:authHeaders()});
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setContacts(prev => {
-        return data.map(newC => {
-          if (selected?.id === newC.id) return {...newC, unread: 0};
-          return newC;
-        });
-      });
+      setContacts(data);
       setBackendStatus("online");
       try {
         const vr = await fetch(`${API}/version`);
         if (vr.ok) { const vd = await vr.json(); setBackendVersion(vd.version||""); }
       } catch {}
-      if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(prev => ({...prev, botActive: u.botActive, status: u.status, lead: u.lead})); }
+      if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(u); }
     } catch { setBackendStatus("offline"); }
     finally { setLoading(false); }
   }, [selected]);
@@ -807,9 +821,8 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     const text = reply.trim();
     setReply("");
 
-    // Show message instantly in UI with agent name tag
-    const agentName = currentUser?.username || currentUser?.name || "Agent";
-    const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today(), agentName };
+    // Show message instantly in UI
+    const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today() };
     setSelected(prev => ({ ...prev, messages: [...(prev.messages||[]), tempMsg] }));
     setContacts(prev => prev.map(c => c.id===selected.id ? {...c, lastMessage:text, lastTime:ts()} : c));
 
@@ -988,19 +1001,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
     (leadFilter==="all"||c.lead===leadFilter)&&
     (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))&&
     (!isAdmin||!inboxClinic||String(c.clinicId||c.clinic_id||1)===String(inboxClinic))
-  ).filter(c=>{
-    if(inboxFilter==="unread") return c.unread>0;
-    if(inboxFilter==="manual") return !c.botActive;
-    return true;
-  }).filter(c=>{
-    if(!inboxDateFilter) return true;
-    return c.lastDate===inboxDateFilter;
-  }).sort((a,b)=>{
-    if(b.unread!==a.unread) return b.unread-a.unread;
-    const ta = a.lastDate&&a.lastTime ? new Date(`${a.lastDate} ${a.lastTime}`) : new Date(0);
-    const tb = b.lastDate&&b.lastTime ? new Date(`${b.lastDate} ${b.lastTime}`) : new Date(0);
-    return tb-ta;
-  });
+  );
 
   const totalUnread = contacts.reduce((s,c)=>s+c.unread,0);
   const hotCount    = contacts.filter(c=>c.lead==="hot"&&(c.pipelineStage||"new")!=="done").length;
@@ -1098,6 +1099,79 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
       `}</style>
 
       {/* ARCHIVE CONFIRM MODAL */}
+      {/* FEEDBACK MODAL */}
+      {feedbackModal&&<div style={{position:"fixed",inset:0,background:T.overlay,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:T.card,borderRadius:16,padding:24,width:"100%",maxWidth:480,boxShadow:"0 8px 32px rgba(0,0,0,.2)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <div style={{fontSize:28}}>👎</div>
+            <div>
+              <div style={{fontWeight:800,fontSize:16}}>What went wrong?</div>
+              <div style={{fontSize:12,color:T.textMuted}}>Chat with {feedbackModal.name}</div>
+            </div>
+            <button onClick={()=>{setFeedbackModal(null);setFeedbackResult(null);}} style={{marginLeft:"auto",border:"none",background:"none",cursor:"pointer",fontSize:18,color:T.textMuted}}>✕</button>
+          </div>
+
+          {!feedbackResult?(
+            <div>
+              <textarea value={feedbackComplaint} onChange={e=>setFeedbackComplaint(e.target.value)}
+                placeholder="Describe what went wrong — e.g. Bot asked for booking before answering the question, or Bot gave wrong pricing..."
+                rows={4}
+                style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",resize:"none",boxSizing:"border-box",marginBottom:12}}/>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setFeedbackModal(null)} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                <button onClick={async()=>{
+                  if(!feedbackComplaint.trim()) return;
+                  setFeedbackLoading(true);
+                  try {
+                    const r = await fetch(`${API}/api/conversations/${feedbackModal.phone}/feedback`,{
+                      method:"POST",
+                      headers:authHeaders(),
+                      body:JSON.stringify({
+                        complaint:feedbackComplaint,
+                        clinic_id:feedbackModal.clinicId,
+                        contact_name:feedbackModal.name,
+                        messages:feedbackModal.messages
+                      })
+                    });
+                    const d = await r.json();
+                    setFeedbackResult({...d, feedbackId: d.id});
+                  } catch(e) { alert("Failed to submit feedback"); }
+                  setFeedbackLoading(false);
+                }} disabled={feedbackLoading||!feedbackComplaint.trim()}
+                  style={{flex:2,padding:"10px",borderRadius:10,border:"none",background:"#ef4444",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:feedbackLoading?0.7:1}}>
+                  {feedbackLoading?"🤖 AI Analyzing...":"🤖 Analyze & Suggest Fix"}
+                </button>
+              </div>
+            </div>
+          ):(
+            <div>
+              <div style={{background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,borderRadius:10,padding:14,marginBottom:12}}>
+                <div style={{fontWeight:700,fontSize:13,color:WA_GREEN,marginBottom:6}}>🤖 AI Suggestion</div>
+                <div style={{fontSize:12,color:T.text,marginBottom:8}}>{feedbackResult.suggestion}</div>
+                <div style={{background:T.card,borderRadius:8,padding:10}}>
+                  <div style={{fontSize:10,fontWeight:700,color:T.textMuted,marginBottom:4}}>
+                    {feedbackResult.fix_type==="kb"?"📋 Add to Knowledge Base":"⚙️ Update Bot Personality"}
+                  </div>
+                  <div style={{fontSize:12,color:T.text,fontStyle:"italic"}}>{feedbackResult.fix_content}</div>
+                </div>
+              </div>
+              <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>Do you want to apply this fix?</div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={async()=>{
+                  await fetch(`${API}/api/feedback/${feedbackResult.feedbackId}/apply`,{method:"POST",headers:authHeaders(),body:JSON.stringify({action:"reject"})});
+                  setFeedbackModal(null);setFeedbackResult(null);
+                }} style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>❌ Reject</button>
+                <button onClick={async()=>{
+                  await fetch(`${API}/api/feedback/${feedbackResult.feedbackId}/apply`,{method:"POST",headers:authHeaders(),body:JSON.stringify({action:"accept"})});
+                  setFeedbackModal(null);setFeedbackResult(null);
+                  alert("✅ Fix applied successfully!");
+                }} style={{flex:2,padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✅ Accept & Apply Fix</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>}
+
       {archiveConfirm&&<div style={{position:"fixed",inset:0,background:T.overlay,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:T.card,borderRadius:16,padding:24,width:"100%",maxWidth:340,boxShadow:"0 8px 32px rgba(0,0,0,.2)"}}>
           <div style={{fontSize:20,marginBottom:8}}>📦 Archive Contact</div>
@@ -1269,13 +1343,8 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
               <div style={{display:"flex",gap:3,marginBottom:5}}>
                 {["all","open","resolved"].map(f=><button key={f} onClick={()=>setFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:filter===f?WA_GREEN:T.input,color:filter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,textTransform:"capitalize",fontFamily:"inherit"}}>{f}</button>)}
               </div>
-              <div style={{display:"flex",gap:3,marginBottom:5}}>
-                {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>setInboxFilter(f.id)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id?WA_GREEN:T.input,color:inboxFilter===f.id?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:5}}>
-                <input type="date" value={inboxDateFilter} onChange={e=>setInboxDateFilter(e.target.value)}
-                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:14,padding:"5px 10px",color:T.text,fontSize:11,fontFamily:"inherit"}}/>
-                {inboxDateFilter&&<button onClick={()=>setInboxDateFilter("")} style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:14,padding:"0 4px"}}>✕</button>}
+              <div style={{display:"flex",gap:3}}>
+                {["all","hot","warm","cold"].map(f=><button key={f} onClick={()=>setLeadFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:leadFilter===f?(f==="all"?WA_GREEN:LEAD_CFG[f]?.color||WA_GREEN):T.input,color:leadFilter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f==="all"?"All":f==="hot"?"🔥":f==="warm"?"🟡":"🔵"}</button>)}
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
@@ -1288,10 +1357,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
                       <span style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
-                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                        <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?600:400}}>{c.lastTime}</span>
-                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>{c.lastDate}</span>}
-                      </div>
+                      <span style={{fontSize:10,color:T.textFaint,flexShrink:0,marginLeft:4}}>{c.lastTime}</span>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
                       <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>{c.lastMessage||"No messages"}</span>
@@ -1331,19 +1397,10 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   <button onClick={()=>toggleBot(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"none",cursor:"pointer",background:selected.botActive?`${WA_GREEN}20`:T.card2,color:selected.botActive?WA_GREEN:T.textMuted,fontSize:11,fontWeight:600,fontFamily:"inherit"}}>🤖 {selected.botActive?"ON":"OFF"}</button>
                   <button onClick={()=>toggleStatus(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓ Resolve":"↺ Reopen"}</button>
                   <button onClick={()=>{
-                      const rows = [["Time","Date","From","Message"]];
-                      (selected.messages||[]).forEach(m=>{
-                        rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);
-                      });
-                      const csv = rows.map(r=>r.join(",")).join("\n");
-                      const blob = new Blob([csv],{type:"text/csv"});
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `chat_${selected.name}_${new Date().toISOString().slice(0,10)}.csv`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #10b98140",background:"#10b98110",color:"#10b981",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📥 Export</button>
+                    setFeedbackModal({phone:selected.id,name:selected.name,clinicId:selected.clinicId||selected.clinic_id||1,messages:JSON.stringify(selected.messages||[])});
+                    setFeedbackComplaint("");
+                    setFeedbackResult(null);
+                  }} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>👎 Feedback</button>
                   <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
                 </div>
               </div>
@@ -1363,7 +1420,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     {!isOut&&<div style={{width:26,height:26,borderRadius:"50%",background:getColor(selected.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>{selected.avatar}</div>}
                     <div style={{maxWidth:"65%"}}>
                       <div style={{background:isOut?T.msgOut:T.msgIn,borderRadius:isOut?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"8px 12px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}</div>}
+                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":"👤 You"}</div>}
                         <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
                         <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{formatMsgTime(msg.time, msg.date)}</div>
                       </div>
