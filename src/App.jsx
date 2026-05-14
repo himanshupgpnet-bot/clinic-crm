@@ -1393,8 +1393,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   <button onClick={()=>{
                     const rows=[["Time","Date","From","Message"]];
                     (selected.messages||[]).forEach(m=>{rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);});
-                    const csv=rows.map(r=>r.join(",")).join("
-");
+                    const csv=rows.map(r=>r.join(",")).join(String.fromCharCode(10));
                     const blob=new Blob([csv],{type:"text/csv"});
                     const url=URL.createObjectURL(blob);
                     const a=document.createElement("a");
