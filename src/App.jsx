@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.3";
+const CRM_VERSION = "2.9.4";
 
 // Responsive hook
 function useWindowSize() {
@@ -414,6 +414,9 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.4", date:"May 16 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔒 Chat window no longer auto-scrolls when reading old messages — properly fixed",
+    ]},
     { version:"2.9.3", date:"May 16 2026", tag:"FIX", color:"#3b82f6", items:[
       "👤 Manual filter shows Turn Bot ON per chat + Turn All ON button",
       "🎯 Keywords boxes now expandable with live chip preview",
@@ -445,7 +448,33 @@ export default function App() {
   const botEndRef = useRef(null);
   const qaRefs = useRef({});
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({behavior:"smooth"}); });
+  // Scroll refs for tracking
+  const prevSelectedId = useRef(null);
+  const userScrolled = useRef(false);
+  const chatContainerRef = useRef(null);
+
+  // Only scroll to bottom when switching to a new chat
+  useEffect(() => {
+    if(!selected?.id) return;
+    if(selected.id !== prevSelectedId.current) {
+      prevSelectedId.current = selected.id;
+      userScrolled.current = false;
+      setTimeout(()=>messagesEndRef.current?.scrollIntoView({behavior:"auto"}), 50);
+    }
+  }, [selected?.id]);
+
+  // Only scroll when NEW message added AND user hasn't scrolled up
+  const prevMsgCount = useRef(0);
+  useEffect(() => {
+    const count = selected?.messages?.length || 0;
+    if(count > prevMsgCount.current && prevMsgCount.current > 0) {
+      if(!userScrolled.current) {
+        messagesEndRef.current?.scrollIntoView({behavior:"smooth"});
+      }
+    }
+    prevMsgCount.current = count;
+  }, [selected?.messages?.length]);
+
   useEffect(() => { botEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [botConvo]);
 
   // Session guard — runs immediately and every 10 seconds
@@ -1431,7 +1460,11 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   {sendingFollowup===selected.id?"⏳ Sending...":"📤 Follow-up"}
                 </button>
               </div>}
-              <div style={{flex:1,overflowY:"auto",padding:14,paddingBottom:80,background:T.chatBg,display:"flex",flexDirection:"column",gap:6}}>
+              <div ref={chatContainerRef} onScroll={()=>{
+                const el = chatContainerRef.current;
+                if(!el) return;
+                userScrolled.current = (el.scrollHeight - el.scrollTop - el.clientHeight) > 120;
+              }} style={{flex:1,overflowY:"auto",padding:14,paddingBottom:80,background:T.chatBg,display:"flex",flexDirection:"column",gap:6}}>
                 {selected.messages?.map((msg,i)=>{
                   const isOut=msg.from!=="user";
                   return <div key={msg.id||i} className="mb" style={{display:"flex",justifyContent:isOut?"flex-end":"flex-start",alignItems:"flex-end",gap:6}}>
