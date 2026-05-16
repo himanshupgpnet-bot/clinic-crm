@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.4";
+const CRM_VERSION = "2.9.5";
 
 // Responsive hook
 function useWindowSize() {
@@ -414,6 +414,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.5", date:"May 16 2026", tag:"FIX", color:"#3b82f6", items:[
+      "Mark as Unread button restored — hover over any chat",
+      "Bot now knows today real date — no more wrong date calculations",
+      "Smart follow-up — AI reads full conversation before deciding",
+    ]},
     { version:"2.9.4", date:"May 16 2026", tag:"FIX", color:"#3b82f6", items:[
       "🔒 Chat window no longer auto-scrolls when reading old messages — properly fixed",
     ]},
@@ -1110,7 +1115,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
         textarea:focus,input:focus,select:focus{outline:none}textarea{resize:none}
-        .ci{transition:background .15s;cursor:pointer}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}
+        .ci{transition:background .15s;cursor:pointer;position:relative}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}.ci .unread-btn{opacity:0;transition:opacity .2s}.ci:hover .unread-btn{opacity:1}
         .mb{animation:fadeUp .2s ease}@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         .sc{transition:transform .15s}.sc:hover{transform:translateY(-2px)}
         .tb{transition:all .15s;cursor:pointer;border:none;background:transparent;font-family:inherit}
@@ -1406,6 +1411,17 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     </div>}
 
                   </div>
+                  {/* Mark as unread button — shows on hover */}
+                  <button className="unread-btn" onClick={e=>{
+                    e.stopPropagation();
+                    setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:x.unread>0?0:1}:x));
+                  }} title={c.unread>0?"Mark as read":"Mark as unread"}
+                    style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",
+                      background:"none",border:"none",cursor:"pointer",
+                      fontSize:13,color:T.textMuted,padding:"4px 6px",borderRadius:6,
+                      background:T.card2}}>
+                    {c.unread>0?"✓":"●"}
+                  </button>
                 </div>
               ))}
             </div>
