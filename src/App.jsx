@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.1";
+const CRM_VERSION = "2.9.3";
 
 // Responsive hook
 function useWindowSize() {
@@ -413,6 +413,12 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.3", date:"May 16 2026", tag:"FIX", color:"#3b82f6", items:[
+      "👤 Manual filter shows Turn Bot ON per chat + Turn All ON button",
+      "🎯 Keywords boxes now expandable with live chip preview",
+      "🔒 Chat scroll no longer jumps when reading old messages",
+      "💾 Client settings now save correctly",
+    ]},
     { version:"2.7.0", date:"Mar 12 2026", tag:"NEW", color:"#10b981", items:[
       "🤖 Multi AI provider — switch between Claude, GPT-4o, Groq (free) from Settings",
       "🔔 Notification bell — version changelog (you're reading it!)",
@@ -1272,6 +1278,21 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
               <div style={{display:"flex",gap:3,marginBottom:5}}>
                 {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>setInboxFilter(f.id)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id?WA_GREEN:T.input,color:inboxFilter===f.id?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
               </div>
+              {inboxFilter==="manual"&&<div style={{marginBottom:6}}>
+                <button onClick={async()=>{
+                  const offContacts = filtered.filter(c=>!c.botActive);
+                  if(offContacts.length===0) return alert("No bots to turn on!");
+                  if(!confirm(`Turn bot ON for all ${offContacts.length} chats?`)) return;
+                  for(const c of offContacts){
+                    try { await fetch(`${API}/api/conversations/${c.id}/bot`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({botActive:true})}); } catch {}
+                  }
+                  fetchConversations();
+                }} style={{width:"100%",padding:"5px",borderRadius:8,border:`1px solid ${WA_GREEN}40`,
+                  background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,
+                  cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+                  🤖 Turn Bot ON for All ({filtered.filter(c=>!c.botActive).length} chats)
+                </button>
+              </div>}
               <div style={{display:"flex",alignItems:"center",gap:5}}>
                 <input type="date" value={inboxDateFilter} onChange={e=>setInboxDateFilter(e.target.value)}
                   style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:14,padding:"5px 10px",color:T.text,fontSize:11,fontFamily:"inherit"}}/>
