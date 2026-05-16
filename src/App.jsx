@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.2";
+const CRM_VERSION = "2.9.1";
 
 // Responsive hook
 function useWindowSize() {
@@ -413,11 +413,6 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
-    { version:"2.9.2", date:"May 16 2026", tag:"FIX", color:"#3b82f6", items:[
-      "🔒 Chat window no longer auto-scrolls when reading old messages",
-      "💾 Client settings (keywords, lead toggles) now save correctly",
-      "✏️ Keywords input changed to single line — easier to type",
-    ]},
     { version:"2.7.0", date:"Mar 12 2026", tag:"NEW", color:"#10b981", items:[
       "🤖 Multi AI provider — switch between Claude, GPT-4o, Groq (free) from Settings",
       "🔔 Notification bell — version changelog (you're reading it!)",
@@ -443,34 +438,7 @@ export default function App() {
   const botEndRef = useRef(null);
   const qaRefs = useRef({});
 
-  const prevMsgCount = useRef(0);
-  const prevSelectedId = useRef(null);
-  const userScrolled = useRef(false);
-  const chatContainerRef = useRef(null);
-
-  // Scroll to bottom ONLY when opening a new chat for first time
-  useEffect(() => {
-    if(!selected) return;
-    if(selected.id !== prevSelectedId.current) {
-      // New chat opened — scroll to bottom
-      prevSelectedId.current = selected.id;
-      prevMsgCount.current = selected?.messages?.length || 0;
-      userScrolled.current = false;
-      setTimeout(()=>messagesEndRef.current?.scrollIntoView({behavior:"auto"}), 50);
-    }
-  }, [selected?.id]);
-
-  // When new message arrives — only scroll if user hasn't scrolled up
-  useEffect(() => {
-    const msgs = selected?.messages || [];
-    const newCount = msgs.length;
-    if(newCount > prevMsgCount.current && prevMsgCount.current > 0) {
-      if(!userScrolled.current) {
-        messagesEndRef.current?.scrollIntoView({behavior:"smooth"});
-      }
-    }
-    prevMsgCount.current = newCount;
-  }, [selected?.messages?.length]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({behavior:"smooth"}); });
   useEffect(() => { botEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [botConvo]);
 
   // Session guard — runs immediately and every 10 seconds
@@ -937,28 +905,8 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
         alert("Please select a client from the sidebar first before saving settings.");
         return;
       } else {
-        // Client saving their own settings — send specific fields only
-        await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({
-          ai_enabled:           appSettings.ai_enabled,
-          ai_provider:          appSettings.ai_provider,
-          hot_keywords:         appSettings.hot_keywords||"",
-          warm_keywords:        appSettings.warm_keywords||"",
-          cold_keywords:        appSettings.cold_keywords||"",
-          followup_enabled:     appSettings.followup_enabled,
-          followup_1_enabled:   appSettings.followup_1_enabled,
-          followup_2_enabled:   appSettings.followup_2_enabled,
-          followup_1_delay:     appSettings.followup_1_delay,
-          followup_1_delay_unit:appSettings.followup_1_delay_unit,
-          followup_1_message:   appSettings.followup_1_message||"",
-          followup_2_delay:     appSettings.followup_2_delay,
-          followup_2_delay_unit:appSettings.followup_2_delay_unit,
-          followup_2_message:   appSettings.followup_2_message||"",
-          telegram_notify_hot:   appSettings.telegram_notify_hot,
-          telegram_notify_warm:  appSettings.telegram_notify_warm,
-          telegram_notify_human: appSettings.telegram_notify_human,
-          telegram_notify_booking: appSettings.telegram_notify_booking,
-          session_timeout_mins:  appSettings.session_timeout_mins,
-        })});
+        // Client saving their own settings
+        await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(appSettings)});
       }
       setSettingsDirtyWithRef(false);
       if(appSettings.session_timeout_mins) {
@@ -1348,10 +1296,14 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
                       <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>{c.lastMessage||"No messages"}</span>
                       <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                        {!c.botActive&&<span style={{fontSize:9,color:"#f59e0b",fontWeight:700}}>Manual</span>}
+                        {!c.botActive&&<span style={{fontSize:9,color:"#f59e0b",fontWeight:700,background:"#fffbeb",padding:"1px 5px",borderRadius:6,border:"1px solid #fcd34d"}}>👤 Manual</span>}
                         {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700}}>{c.unread}</span>}
                       </div>
                     </div>
+                    {/* Show Turn Bot ON button when in Manual filter */}
+                    {inboxFilter==="manual"&&!c.botActive&&<div onClick={e=>{e.stopPropagation();toggleBot(c.id);}} style={{marginTop:4,display:"flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:8,background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer",width:"fit-content"}}>
+                      <span style={{fontSize:10,color:WA_GREEN,fontWeight:700}}>🤖 Turn Bot ON</span>
+                    </div>}
 
                   </div>
                 </div>
@@ -1408,12 +1360,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   {sendingFollowup===selected.id?"⏳ Sending...":"📤 Follow-up"}
                 </button>
               </div>}
-              <div ref={chatContainerRef} onScroll={()=>{
-                const container = chatContainerRef.current;
-                if(!container) return;
-                const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-                userScrolled.current = distFromBottom > 100;
-              }} style={{flex:1,overflowY:"auto",padding:14,paddingBottom:80,background:T.chatBg,display:"flex",flexDirection:"column",gap:6}}>
+              <div style={{flex:1,overflowY:"auto",padding:14,paddingBottom:80,background:T.chatBg,display:"flex",flexDirection:"column",gap:6}}>
                 {selected.messages?.map((msg,i)=>{
                   const isOut=msg.from!=="user";
                   return <div key={msg.id||i} className="mb" style={{display:"flex",justifyContent:isOut?"flex-end":"flex-start",alignItems:"flex-end",gap:6}}>
@@ -2773,27 +2720,37 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
               {/* Lead Keywords */}
               <div className="cc" style={{marginBottom:14}}>
                 <div style={{fontWeight:700,fontSize:14,marginBottom:14}}>🎯 Lead Scoring Keywords</div>
-                <div style={{marginBottom:14}}>
-                  <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>🔥 Hot Keywords</div>
-                  <div style={{fontSize:11,color:T.textFaint,marginBottom:5}}>Comma-separated → Hot lead (booking intent)</div>
-                  <input value={appSettings.hot_keywords||""} onChange={e=>{setAppSettings(p=>({...p,hot_keywords:e.target.value}));setSettingsDirtyWithRef(true);}}
-                    placeholder="book, appointment, price, cost, how much"
-                    style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>
-                </div>
-                <div style={{marginBottom:14}}>
-                  <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>🟡 Warm Keywords</div>
-                  <div style={{fontSize:11,color:T.textFaint,marginBottom:5}}>Comma-separated → Warm lead (general interest)</div>
-                  <input value={appSettings.warm_keywords||""} onChange={e=>{setAppSettings(p=>({...p,warm_keywords:e.target.value}));setSettingsDirtyWithRef(true);}}
-                    placeholder="interested, tell me more, what services, diabetes"
-                    style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>
-                </div>
-                <div style={{marginBottom:14}}>
-                  <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>🔵 Cold Keywords</div>
-                  <div style={{fontSize:11,color:T.textFaint,marginBottom:5}}>Comma-separated → Cold lead</div>
-                  <input value={appSettings.cold_keywords||""} onChange={e=>{setAppSettings(p=>({...p,cold_keywords:e.target.value}));setSettingsDirtyWithRef(true);}}
-                    placeholder="just browsing, maybe later, not sure"
-                    style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>
-                </div>
+                {[
+                  {key:"hot_keywords", label:"🔥 Hot Keywords", color:"#ef4444", bg:"#fef2f2", border:"#fca5a5", hint:"Type keywords separated by commas — e.g. book, appointment, price, how much", ph:"book, appointment, price, cost, how much, register"},
+                  {key:"warm_keywords", label:"🟡 Warm Keywords", color:"#f59e0b", bg:"#fffbeb", border:"#fcd34d", hint:"Keywords showing interest but not ready to book yet", ph:"interested, tell me more, what services, diabetes, treatment"},
+                  {key:"cold_keywords", label:"🔵 Cold Keywords", color:"#3b82f6", bg:"#eff6ff", border:"#93c5fd", hint:"Keywords from people just browsing", ph:"just looking, maybe later, not sure, just curious"},
+                ].map(kw=>(
+                  <div key={kw.key} style={{marginBottom:16}}>
+                    <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:4}}>{kw.label}</div>
+                    <div style={{fontSize:11,color:T.textFaint,marginBottom:6}}>{kw.hint}</div>
+                    <textarea
+                      value={appSettings[kw.key]||""}
+                      onChange={e=>{setAppSettings(p=>({...p,[kw.key]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                      placeholder={kw.ph}
+                      rows={3}
+                      style={{width:"100%",background:T.input,border:`2px solid ${kw.border}`,borderRadius:10,
+                        padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",
+                        resize:"vertical",boxSizing:"border-box",lineHeight:1.6,
+                        outline:"none",transition:"border-color .2s"}}
+                      onFocus={e=>e.target.style.borderColor=kw.color}
+                      onBlur={e=>e.target.style.borderColor=kw.border}
+                    />
+                    {/* Show keyword chips preview */}
+                    {(appSettings[kw.key]||"").trim()&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
+                      {(appSettings[kw.key]||"").split(",").map(k=>k.trim()).filter(k=>k).map((k,i)=>(
+                        <span key={i} style={{fontSize:11,padding:"2px 8px",borderRadius:20,
+                          background:kw.bg,color:kw.color,border:`1px solid ${kw.border}`,fontWeight:600}}>
+                          {k}
+                        </span>
+                      ))}
+                    </div>}
+                  </div>
+                ))}
               </div>
 
               {/* Follow-up */}
