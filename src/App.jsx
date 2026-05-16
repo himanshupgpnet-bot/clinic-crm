@@ -140,6 +140,7 @@ export default function App() {
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
   const [archiveConfirm, setArchiveConfirm] = useState(null);
+  const [bulkBotModal, setBulkBotModal] = useState(null); // {total, done, active}
   const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}]);
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
@@ -841,7 +842,11 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
 
   async function toggleBot(id) {
     const c=contacts.find(x=>x.id===id);
-    try { await fetch(`${API}/api/conversations/${id}/bot`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({botActive:!c?.botActive})}); fetchConversations(); } catch {}
+    const newState = !c?.botActive;
+    // Update locally immediately so badge disappears right away
+    setContacts(prev=>prev.map(x=>x.id===id?{...x,botActive:newState}:x));
+    if(selected?.id===id) setSelected(prev=>({...prev,botActive:newState}));
+    try { await fetch(`${API}/api/conversations/${id}/bot`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({botActive:newState})}); } catch {}
   }
 
   async function toggleStatus(id) {
@@ -1103,6 +1108,39 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
         }
       `}</style>
 
+      {/* BULK BOT ON PROGRESS MODAL */}
+      {bulkBotModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}}>
+        <div style={{background:T.card,borderRadius:24,padding:36,width:"100%",maxWidth:340,boxShadow:"0 24px 60px rgba(0,0,0,.4)",textAlign:"center"}}>
+          {/* Countdown circle */}
+          <div style={{position:"relative",width:120,height:120,margin:"0 auto 20px"}}>
+            <svg width="120" height="120" style={{transform:"rotate(-90deg)"}}>
+              <circle cx="60" cy="60" r="50" fill="none" stroke={T.border} strokeWidth="10"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke={WA_GREEN} strokeWidth="10"
+                strokeDasharray={`${2*Math.PI*50}`}
+                strokeDashoffset={`${2*Math.PI*50*(1-(bulkBotModal.done/bulkBotModal.total))}`}
+                strokeLinecap="round"
+                style={{transition:"stroke-dashoffset .4s ease"}}/>
+            </svg>
+            <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
+              <div style={{fontSize:32,fontWeight:900,color:WA_GREEN,lineHeight:1}}>{bulkBotModal.total - bulkBotModal.done}</div>
+              <div style={{fontSize:11,color:T.textMuted}}>remaining</div>
+            </div>
+          </div>
+          <div style={{fontSize:22,marginBottom:8}}>🤖</div>
+          <div style={{fontWeight:800,fontSize:18,marginBottom:6,color:T.text}}>Turning Bots ON...</div>
+          <div style={{fontSize:13,color:T.textMuted,marginBottom:16}}>
+            <strong style={{color:WA_GREEN}}>{bulkBotModal.done}</strong> of <strong>{bulkBotModal.total}</strong> done
+          </div>
+          {/* Progress bar */}
+          <div style={{height:6,borderRadius:3,background:T.border,overflow:"hidden"}}>
+            <div style={{height:6,borderRadius:3,background:WA_GREEN,
+              width:`${(bulkBotModal.done/bulkBotModal.total)*100}%`,
+              transition:"width .4s ease"}}/>
+          </div>
+          <div style={{fontSize:11,color:T.textFaint,marginTop:8}}>Please wait...</div>
+        </div>
+      </div>}
+
       {/* ARCHIVE CONFIRM MODAL */}
       {archiveConfirm&&<div style={{position:"fixed",inset:0,background:T.overlay,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:T.card,borderRadius:16,padding:24,width:"100%",maxWidth:340,boxShadow:"0 8px 32px rgba(0,0,0,.2)"}}>
@@ -1279,14 +1317,26 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                 {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>setInboxFilter(f.id)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id?WA_GREEN:T.input,color:inboxFilter===f.id?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
               </div>
               {inboxFilter==="manual"&&<div style={{marginBottom:6}}>
-                <button onClick={async()=>{
+                <button onClick={()=>{
                   const offContacts = filtered.filter(c=>!c.botActive);
-                  if(offContacts.length===0) return alert("No bots to turn on!");
-                  if(!confirm(`Turn bot ON for all ${offContacts.length} chats?`)) return;
-                  for(const c of offContacts){
-                    try { await fetch(`${API}/api/conversations/${c.id}/bot`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({botActive:true})}); } catch {}
-                  }
-                  fetchConversations();
+                  if(offContacts.length===0) return;
+                  setConfirmModal({
+                    title:"Turn Bot ON for All?",
+                    message:`This will turn the bot ON for ${offContacts.length} chat${offContacts.length>1?"s":""} that are currently in manual mode.`,
+                    icon:"🤖",
+                    danger:false,
+                    confirmText:`Yes, Turn ON ${offContacts.length} Bots`,
+                    onConfirm:async()=>{
+                      const total = offContacts.length;
+                      setBulkBotModal({total, done:0, active:true});
+                      for(let i=0; i<offContacts.length; i++){
+                        try { await fetch(`${API}/api/conversations/${offContacts[i].id}/bot`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({botActive:true})}); } catch {}
+                        setBulkBotModal({total, done:i+1, active:true});
+                      }
+                      await fetchConversations();
+                      setBulkBotModal(null);
+                    }
+                  });
                 }} style={{width:"100%",padding:"5px",borderRadius:8,border:`1px solid ${WA_GREEN}40`,
                   background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,
                   cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
