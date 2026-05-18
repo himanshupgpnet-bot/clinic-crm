@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.5";
+const CRM_VERSION = "2.9.5-DEV";
 
 // Responsive hook
 function useWindowSize() {
@@ -14,9 +14,9 @@ function useWindowSize() {
   },[]);
   return size;
 }
-const WA_GREEN = "#25D366";
-const WA_DARK  = "#128C7E";
-const WA_BG    = "#ECE5DD";
+const WA_GREEN = "#2563eb";
+const WA_DARK  = "#1d4ed8";
+const WA_BG    = "#eff6ff";
 
 const LEAD_CFG = {
   hot:  { label:"🔥 High Intent",  color:"#ef4444", bg:"#fef2f2", dark:"#2d1515", border:"#fca5a5" },
