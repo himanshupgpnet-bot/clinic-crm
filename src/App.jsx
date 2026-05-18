@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.6";
+const CRM_VERSION = "2.9.5";
 
 // Responsive hook
 function useWindowSize() {
@@ -3734,32 +3734,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
               <input autoFocus value={editClinic?.name||""} onChange={e=>setEditClinic(p=>({...p,name:e.target.value}))} placeholder="e.g. Evera Health Clinic" style={inputStyle}/>
             </div>
 
-            {/* Brand Colour */}
-            <div>
-              <label style={labelStyle}>Brand Colour</label>
-              <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <input type="color" value={editClinic?.brand_color||"#25D366"}
-                  onChange={e=>setEditClinic(p=>({...p,brand_color:e.target.value}))}
-                  style={{width:48,height:40,borderRadius:8,border:`1.5px solid ${T.border}`,cursor:"pointer",padding:2,background:"none"}}/>
-                <div style={{flex:1}}>
-                  <input value={editClinic?.brand_color||"#25D366"}
-                    onChange={e=>setEditClinic(p=>({...p,brand_color:e.target.value}))}
-                    placeholder="#25D366"
-                    style={{...inputStyle,fontFamily:"monospace"}}/>
-                </div>
-                <div style={{width:40,height:40,borderRadius:8,background:editClinic?.brand_color||"#25D366",border:`1.5px solid ${T.border}`}}/>
-              </div>
-              <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>This colour will theme the CRM for this client</div>
-              {/* Preset colours */}
-              <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
-                {["#25D366","#2563eb","#7c3aed","#ef4444","#f59e0b","#ec4899","#14b8a6","#f97316"].map(c=>(
-                  <div key={c} onClick={()=>setEditClinic(p=>({...p,brand_color:c}))}
-                    style={{width:24,height:24,borderRadius:6,background:c,cursor:"pointer",
-                      border:(editClinic?.brand_color||"#25D366")===c?"3px solid #000":"2px solid transparent",
-                      transition:"border .15s"}}/>
-                ))}
-              </div>
-            </div>
+
 
             {/* Industry + Seats */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
