@@ -150,8 +150,6 @@ export default function App() {
   const [dark, setDark] = useState(false);
 
   const isAdmin = currentUser?.role === "admin";
-  // Use client brand color if set, otherwise default green
-  const BRAND_COLOR = (!isAdmin && currentUser?.brand_color) ? currentUser.brand_color : WA_GREEN;
 
   function safeSetTab(newTab) {
     if(settingsDirty && tab==="settings" && newTab!=="settings") {
@@ -192,7 +190,6 @@ export default function App() {
       sessionStorage.setItem("crm_user", JSON.stringify(d.user));
       sessionStorage.setItem("crm_perms", JSON.stringify(d.permissions));
       sessionStorage.setItem("crm_timeout", String(d.session_timeout_mins||30));
-      if(d.user?.brand_color) document.documentElement.style.setProperty("--brand-color", d.user.brand_color);
       // Notify all other tabs to logout immediately
       try {
         const bc = new BroadcastChannel("crm_session");
@@ -1206,7 +1203,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
         </button>
 
         <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:4,flex:1}}>
-          <div style={{width:34,height:34,borderRadius:8,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:currentUser?.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`}}>
+          <div style={{width:34,height:34,borderRadius:8,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:currentUser?.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},${WA_GREEN})`}}>
             {currentUser?.logo_url
               ? <img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="logo"/>
               : <span style={{fontSize:16}}>🤖</span>}
@@ -2041,7 +2038,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
         {tab==="bot"&&<div style={{flex:1,display:"flex",flexDirection:"column",maxWidth:680,margin:"0 auto",width:"100%"}}>
           <div style={{padding:"10px 14px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${WA_GREEN},${WA_DARK})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🤖</div>
+              <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${WA_GREEN},${WA_GREEN})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🤖</div>
               <div><div style={{fontWeight:700,fontSize:13}}>Sara — Nexora Bot</div><div style={{fontSize:11,color:T.textMuted}}>Test with live Knowledge Base</div></div>
             </div>
             <button onClick={()=>setBotConvo([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}])} style={{padding:"5px 12px",borderRadius:16,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Reset</button>
