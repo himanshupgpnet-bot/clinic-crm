@@ -1431,6 +1431,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
             <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
               <div style={{padding:"8px 12px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  {isMobile&&<button onClick={()=>setSelected(null)} style={{background:"none",border:"none",cursor:"pointer",color:WA_GREEN,fontSize:26,padding:"0 4px 0 0",display:"flex",alignItems:"center",lineHeight:1}}>‹</button>}
                   <div style={{width:36,height:36,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",flexShrink:0}}>{selected.avatar}</div>
                   <div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
