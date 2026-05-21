@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.5";
+const CRM_VERSION = "2.9.6";
 
 // Responsive hook
 function useWindowSize() {
@@ -414,6 +414,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.6", date:"May 21 2026", tag:"NEW", color:"#10b981", items:[
+      "📎 Images, documents, audio and video from WhatsApp now show in CRM",
+      "🖼️ Click images to open full size",
+      "📄 Documents show as download links",
+    ]},
     { version:"2.9.6", date:"May 18 2026", tag:"NEW", color:"#10b981", items:[
       "🎨 Admin can now set brand colour per client in onboarding",
       "🏢 Client CRM shows their brand colour when logged in",
@@ -1494,7 +1499,25 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                     <div style={{maxWidth:"65%"}}>
                       <div style={{background:isOut?T.msgOut:T.msgIn,borderRadius:isOut?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"8px 12px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
                         {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}</div>}
-                        <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
+                        {msg.mediaUrl && msg.text?.startsWith("[Image") ? (
+                          <div>
+                            <img src={msg.mediaUrl} alt="image" style={{maxWidth:"100%",maxHeight:220,borderRadius:8,display:"block",cursor:"pointer"}} onClick={()=>window.open(msg.mediaUrl,"_blank")}/>
+                            {msg.text!=="[Image]"&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{msg.text.replace("[Image]: ","")}</div>}
+                          </div>
+                        ) : msg.mediaUrl && msg.text?.startsWith("[Document") ? (
+                          <a href={msg.mediaUrl} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,textDecoration:"none",background:T.card2,borderRadius:8,padding:"8px 12px"}}>
+                            <span style={{fontSize:20}}>📄</span>
+                            <span style={{fontSize:12,color:WA_GREEN,fontWeight:600}}>{msg.text.replace("[Document: ","").replace("]","")}</span>
+                          </a>
+                        ) : msg.mediaUrl && msg.text?.startsWith("[Voice") ? (
+                          <div>
+                            <audio controls src={msg.mediaUrl} style={{width:"100%",height:36}}/>
+                          </div>
+                        ) : msg.mediaUrl && msg.text?.startsWith("[Video") ? (
+                          <video controls src={msg.mediaUrl} style={{maxWidth:"100%",maxHeight:200,borderRadius:8}}/>
+                        ) : (
+                          <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
+                        )}
                         <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{formatMsgTime(msg.time, msg.date)}</div>
                       </div>
                       {msg.sources?.length>0&&<div style={{marginTop:4,paddingLeft:4}}>{msg.sources.map(s=><SourceBadge key={s.id} s={s}/>)}</div>}
