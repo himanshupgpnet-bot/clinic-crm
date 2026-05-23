@@ -2871,6 +2871,10 @@ const fetchTemplates = useCallback(async () => {
                 <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value}))}
                   placeholder="e.g. eecp_promo_with_image"
                   style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
+                <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Header Image URL <span style={{color:T.textFaint,fontWeight:400}}>(if template has image header)</span></div>
+                <input value={newTemplate.header_value||""} onChange={e=>setNewTemplate(p=>({...p,header_value:e.target.value,header_type:e.target.value?"image":"none"}))}
+                  placeholder="https://... public image URL"
+                  style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
                 <button onClick={async()=>{
                   if(!newTemplate.template_name.trim()) return alert("Template name is required");
                   const r = await fetch(`${API}/api/templates`,{method:"POST",headers:authHeaders(),body:JSON.stringify({
@@ -2933,7 +2937,7 @@ const fetchTemplates = useCallback(async () => {
               {broadcastContacts.length>0&&<div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                   <span style={{fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} contact{broadcastContacts.length>1?"s":""} selected</span>
-                  <button onClick={()=>setBroadcastContacts([])} style={{fontSize:11,color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>✕ Clear all</button>
+                  <button onClick={()=>{setBroadcastContacts([]);setBroadcastProgress(null);}} style={{fontSize:11,color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>✕ Clear all</button>
                 </div>
                 <div style={{maxHeight:120,overflowY:"auto",background:T.card2,borderRadius:8,padding:8}}>
                   {broadcastContacts.map((c,i)=>(
@@ -3977,6 +3981,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
           permissions:{can_inbox:editUser.can_inbox,can_leads:editUser.can_leads,
             can_analytics:editUser.can_analytics,can_testbot:editUser.can_testbot,
             can_knowledge:editUser.can_knowledge,can_settings:editUser.can_settings,
+            can_broadcast:editUser.can_broadcast||false,
             can_integrations:editUser.can_integrations,
             integration_whatsapp:editUser.integration_whatsapp,integration_telegram:editUser.integration_telegram,
             integration_instagram:editUser.integration_instagram,integration_tiktok:editUser.integration_tiktok,
@@ -3991,6 +3996,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             can_testbot:editUser.can_testbot,
             can_knowledge:editUser.can_knowledge,
             can_settings:editUser.can_settings,
+            can_broadcast:editUser.can_broadcast||false,
             can_integrations:editUser.can_integrations,
             integration_whatsapp:editUser.integration_whatsapp,
             integration_telegram:editUser.integration_telegram,
