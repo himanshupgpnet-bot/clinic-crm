@@ -2890,8 +2890,7 @@ const fetchTemplates = useCallback(async () => {
                 setBroadcastFile(file);
                 const reader = new FileReader();
                 reader.onload = ev => {
-                  const lines = ev.target.result.split("
-").filter(l=>l.trim());
+                  const lines = ev.target.result.split("\n").filter(l=>l.trim());
                   const headers = lines[0].split(",").map(h=>h.trim().toLowerCase().replace(/"/g,""));
                   const phoneIdx = headers.findIndex(h=>h.includes("phone")||h.includes("number"));
                   const nameIdx = headers.findIndex(h=>h.includes("name"));
