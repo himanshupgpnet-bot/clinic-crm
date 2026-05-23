@@ -2871,10 +2871,38 @@ const fetchTemplates = useCallback(async () => {
                 <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value}))}
                   placeholder="e.g. eecp_promo_with_image"
                   style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
-                <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Header Image URL <span style={{color:T.textFaint,fontWeight:400}}>(if template has image header)</span></div>
-                <input value={newTemplate.header_value||""} onChange={e=>setNewTemplate(p=>({...p,header_value:e.target.value,header_type:e.target.value?"image":"none"}))}
-                  placeholder="https://... public image URL"
-                  style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
+                <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Header Image <span style={{color:T.textFaint,fontWeight:400}}>(if template has image header)</span></div>
+                {/* Upload image file */}
+                <input type="file" accept="image/*" id="template-img-upload" style={{display:"none"}} onChange={async e=>{
+                  const file = e.target.files[0];
+                  if(!file) return;
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  try {
+                    const r = await fetch(`${API}/api/upload/media`, {
+                      method:"POST",
+                      headers:{"Authorization":`Bearer ${authToken}`},
+                      body: formData
+                    });
+                    const d = await r.json();
+                    if(d.url) {
+                      setNewTemplate(p=>({...p, header_value:d.url, header_type:"image"}));
+                    }
+                  } catch(err) {
+                    alert("Upload failed: " + err.message);
+                  }
+                }}/>
+                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
+                  <label htmlFor="template-img-upload" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:`1.5px dashed ${T.border}`,cursor:"pointer",color:T.textMuted,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>
+                    📎 Upload Image
+                  </label>
+                  <input value={newTemplate.header_value||""} onChange={e=>setNewTemplate(p=>({...p,header_value:e.target.value,header_type:e.target.value?"image":"none"}))}
+                    placeholder="or paste image URL here"
+                    style={{flex:1,background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+                </div>
+                {newTemplate.header_value&&<div style={{marginBottom:12}}>
+                  <img src={newTemplate.header_value} alt="preview" style={{maxWidth:"100%",maxHeight:120,borderRadius:8,border:`1px solid ${T.border}`}} onError={e=>e.target.style.display="none"}/>
+                </div>}
                 <button onClick={async()=>{
                   if(!newTemplate.template_name.trim()) return alert("Template name is required");
                   const r = await fetch(`${API}/api/templates`,{method:"POST",headers:authHeaders(),body:JSON.stringify({
