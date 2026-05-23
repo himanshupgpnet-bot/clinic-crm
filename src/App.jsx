@@ -1033,7 +1033,7 @@ const fetchTemplates = useCallback(async () => {
 
   function parseBotResponse(raw) {
     const lines=raw.trim().split("\n"); let sources=[],text=raw.trim();
-    try{const l=lines[lines.length-1].trim();if(l.startsWith('{"sources"')){sources=JSON.parse(l).sources||[];text=lines.slice(0,-1).join("\n").trim();}}catch{}
+    try{const l=lines[lines.length-1].trim();if(l.startsWith('{"sources"')){sources=JSON.parse(l).sources||[];text=lines.slice(0,-1).join("\\n").trim();}}catch{}
     return {text,sources};
   }
 
@@ -1254,7 +1254,7 @@ const fetchTemplates = useCallback(async () => {
               }
               
               const header = ["Name","Phone","Full Conversation","Keywords Matched","Last Date","Lead Score"];
-              const csv = [header.join(","), ...rows.map(r=>r.join(","))].join("\n");
+              const csv = [header.join(","), ...rows.map(r=>r.join(","))].join("\\n");
               const blob = new Blob([csv], {type:"text/csv"});
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
@@ -1576,7 +1576,7 @@ const fetchTemplates = useCallback(async () => {
                       (selected.messages||[]).forEach(m=>{
                         rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);
                       });
-                      const csv = rows.map(r=>r.join(",")).join("\n");
+                      const csv = rows.map(r=>r.join(",")).join("\\n");
                       const blob = new Blob([csv],{type:"text/csv"});
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement("a");
@@ -2844,11 +2844,8 @@ const fetchTemplates = useCallback(async () => {
                     !search || c.name?.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search)
                   ).slice(0,50);
                   if(filtered.length===0) return alert("No contacts found");
-                  const list = filtered.map((c,i)=>`${i+1}. ${c.name} (${c.phone})`).join("
-");
-                  const pick = prompt(`Select contacts (enter numbers separated by comma):
-
-${list}`);
+                  const list = filtered.map((c,i)=>`${i+1}. ${c.name} (${c.phone})`).join("\n");
+                  const pick = prompt(`Select contacts (enter numbers separated by comma):\n\n${list}`);
                   if(!pick) return;
                   const indices = pick.split(",").map(n=>parseInt(n.trim())-1).filter(n=>n>=0&&n<filtered.length);
                   const selected = indices.map(i=>({phone:filtered[i].phone, name:filtered[i].name}));
