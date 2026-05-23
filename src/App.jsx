@@ -2941,8 +2941,10 @@ const fetchTemplates = useCallback(async () => {
                     await fetch(`${API}/api/broadcast/send`,{method:"POST",headers:authHeaders(),body:JSON.stringify({
                       phone: contact.phone,
                       name: contact.name,
-                      template_id: selectedTemplate.id,
-                      message: msg,
+                      template_name: selectedTemplate.template_name,
+                      language: selectedTemplate.language||"en",
+                      header_type: selectedTemplate.header_type||"none",
+                      header_value: selectedTemplate.header_value||"",
                     })});
                     setBroadcastProgress(p=>({...p, done:p.done+1}));
                   } catch {
