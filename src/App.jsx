@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.9";
+const CRM_VERSION = "2.9.10";
 
 // Responsive hook
 function useWindowSize() {
@@ -36,8 +36,13 @@ const HOUR_LABELS = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am
 
 const formatMsgTime = (timeStr, dateStr) => {
   if (!timeStr) return "";
-  // Server returns Malaysia time directly
-  return timeStr;
+  if (!dateStr) return timeStr;
+  // Format date as dd/mm/yyyy
+  const dateParts = dateStr.split("-");
+  const formattedDate = dateParts.length === 3 
+    ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
+    : dateStr;
+  return `${timeStr} · ${formattedDate}`;
 };
 
 const getColor = n => { let h=0; for(let c of (n||"?")) h=c.charCodeAt(0)+((h<<5)-h); return COLORS[Math.abs(h)%COLORS.length]; };
@@ -1690,6 +1695,12 @@ const fetchTemplates = useCallback(async () => {
                           </div>
                         ) : msg.mediaUrl && msg.text?.startsWith("[Video") ? (
                           <video controls src={msg.mediaUrl} style={{maxWidth:"100%",maxHeight:200,borderRadius:8}}/>
+                        ) : msg.text?.startsWith("📢 Broadcast:") ? (
+                          <div style={{background:T.card2,borderRadius:8,padding:"8px 10px",border:`1px solid ${WA_GREEN}30`}}>
+                            <div style={{fontSize:10,color:WA_GREEN,fontWeight:700,marginBottom:4}}>📢 BROADCAST</div>
+                            <div style={{fontSize:12,color:T.text,fontWeight:600}}>{msg.text.replace("📢 Broadcast: ","")}</div>
+                            <div style={{fontSize:11,color:T.textFaint,marginTop:2}}>Sent via WhatsApp Template</div>
+                          </div>
                         ) : (
                           <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
                         )}
