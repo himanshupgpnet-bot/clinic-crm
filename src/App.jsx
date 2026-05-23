@@ -1223,8 +1223,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                 // Build full chat in one cell
                 const chat = (c.messages||[]).map(m=>{
                   const speaker = m.from==="user"?c.name:m.from==="bot"?"Bot":m.agentName||"Agent";
-                  return `[${m.time||""}] ${speaker}: ${(m.text||"").replace(/"/g,'""').replace(/
-/g," ")}`;
+                  return `[${m.time||""}] ${speaker}: ${(m.text||"").replace(/"/g,'""').replace(/[\r\n]+/g," ")}`;
                 }).join(" | ");
                 
                 rows.push([
