@@ -150,6 +150,9 @@ export default function App() {
   const [broadcastContacts, setBroadcastContacts] = useState([]);
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastFile, setBroadcastFile] = useState(null);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [contactPickerSearch, setContactPickerSearch] = useState("");
+  const [pickedContacts, setPickedContacts] = useState(new Set());
   const [exportKeywords, setExportKeywords] = useState("");
   const [exportDateFrom, setExportDateFrom] = useState("");
   const [exportDateTo, setExportDateTo] = useState("");
@@ -1269,6 +1272,68 @@ const fetchTemplates = useCallback(async () => {
               background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
               display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
               {exportLoading?"Preparing...":"📥 Download CSV"}
+            </button>
+          </div>
+        </div>
+      </div>}
+
+      {/* CONTACT PICKER MODAL */}
+      {showContactPicker&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}}>
+        <div style={{background:T.card,borderRadius:20,width:"100%",maxWidth:480,maxHeight:"80vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
+          {/* Header */}
+          <div style={{padding:"18px 20px 12px",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{fontWeight:800,fontSize:16,marginBottom:10,color:T.text}}>👥 Pick Contacts</div>
+            <input value={contactPickerSearch} onChange={e=>setContactPickerSearch(e.target.value)}
+              placeholder="Search by name or phone..."
+              autoFocus
+              style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:10,padding:"8px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+          </div>
+          {/* Contact list */}
+          <div style={{flex:1,overflowY:"auto",padding:"8px 0"}}>
+            {contacts.filter(c=>{
+              if(!contactPickerSearch) return true;
+              const s = contactPickerSearch.toLowerCase();
+              return c.name?.toLowerCase().includes(s)||c.phone?.includes(s);
+            }).map(c=>(
+              <div key={c.id} onClick={()=>setPickedContacts(p=>{
+                const n = new Set(p);
+                if(n.has(c.id)) n.delete(c.id); else n.add(c.id);
+                return n;
+              })} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 20px",cursor:"pointer",
+                background:pickedContacts.has(c.id)?`${WA_GREEN}10`:"transparent",
+                borderLeft:pickedContacts.has(c.id)?`3px solid ${WA_GREEN}`:"3px solid transparent"}}>
+                <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${pickedContacts.has(c.id)?WA_GREEN:T.border}`,
+                  background:pickedContacts.has(c.id)?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {pickedContacts.has(c.id)&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>✓</span>}
+                </div>
+                <div style={{width:32,height:32,borderRadius:"50%",background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700,flexShrink:0}}>
+                  {(c.name||"?")[0].toUpperCase()}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||c.phone}</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{c.phone}</div>
+                </div>
+                {c.lead&&<span style={{fontSize:10,padding:"2px 6px",borderRadius:20,background:c.lead==="hot"?"#fef2f2":c.lead==="warm"?"#fffbeb":"#eff6ff",color:c.lead==="hot"?"#ef4444":c.lead==="warm"?"#f59e0b":"#3b82f6",fontWeight:600}}>{c.lead}</span>}
+              </div>
+            ))}
+          </div>
+          {/* Footer */}
+          <div style={{padding:"12px 20px",borderTop:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"center"}}>
+            <span style={{fontSize:12,color:T.textMuted,flex:1}}>{pickedContacts.size} selected</span>
+            <button onClick={()=>setShowContactPicker(false)}
+              style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+              Cancel
+            </button>
+            <button onClick={()=>{
+              const selected = contacts.filter(c=>pickedContacts.has(c.id)).map(c=>({phone:c.phone,name:c.name}));
+              setBroadcastContacts(p=>{
+                const existing = new Set(p.map(x=>x.phone));
+                const newOnes = selected.filter(s=>!existing.has(s.phone));
+                return [...p,...newOnes];
+              });
+              setShowContactPicker(false);
+            }} style={{padding:"8px 20px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+              Add {pickedContacts.size} Contact{pickedContacts.size!==1?"s":""}
             </button>
           </div>
         </div>
@@ -2837,26 +2902,8 @@ const fetchTemplates = useCallback(async () => {
                   style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                   📎 Upload CSV / Excel
                 </button>
-                <button onClick={()=>{
-                  // Open inbox contact picker
-                  const search = prompt("Search contact by name (or leave blank to see all):");
-                  const filtered = contacts.filter(c=>
-                    !search || c.name?.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search)
-                  ).slice(0,50);
-                  if(filtered.length===0) return alert("No contacts found");
-                  const list = filtered.map((c,i)=>`${i+1}. ${c.name} (${c.phone})`).join("\n");
-                  const pick = prompt(`Select contacts (enter numbers separated by comma):\n\n${list}`);
-                  if(!pick) return;
-                  const indices = pick.split(",").map(n=>parseInt(n.trim())-1).filter(n=>n>=0&&n<filtered.length);
-                  const selected = indices.map(i=>({phone:filtered[i].phone, name:filtered[i].name}));
-                  if(selected.length>0){
-                    setBroadcastContacts(p=>{
-                      const existing = p.map(x=>x.phone);
-                      const newOnes = selected.filter(s=>!existing.includes(s.phone));
-                      return [...p, ...newOnes];
-                    });
-                  }
-                }} style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${WA_GREEN}30`,background:`${WA_GREEN}08`,color:WA_GREEN,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                <button onClick={()=>{setPickedContacts(new Set());setContactPickerSearch("");setShowContactPicker(true);}}
+                  style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${WA_GREEN}30`,background:`${WA_GREEN}08`,color:WA_GREEN,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                   👥 Pick from Inbox
                 </button>
               </div>
