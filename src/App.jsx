@@ -2790,89 +2790,36 @@ const fetchTemplates = useCallback(async () => {
               </div>
 
               {/* Selected template preview */}
-              {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</span>
-                  <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:selectedTemplate.status==="approved"?"#dcfce7":"#fef9c3",color:selectedTemplate.status==="approved"?"#16a34a":"#854d0e",fontWeight:600}}>
-                    {selectedTemplate.status==="approved"?"✅ Approved":"⏳ "+selectedTemplate.status}
-                  </span>
+              {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:20}}>📋</span>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>Meta WhatsApp Template · Ready to send</div>
                 </div>
-                <div style={{fontSize:12,color:T.textMuted,marginBottom:4}}>Language: {selectedTemplate.language} · Category: {selectedTemplate.category}</div>
-                {selectedTemplate.header_type!=="none"&&<div style={{fontSize:12,color:T.textMuted,marginBottom:4}}>Header: {selectedTemplate.header_type} — {selectedTemplate.header_value}</div>}
-                <div style={{fontSize:13,color:T.text,background:T.bg,borderRadius:8,padding:"10px 12px",whiteSpace:"pre-wrap",lineHeight:1.6}}>{selectedTemplate.body_text}</div>
-                {selectedTemplate.footer_text&&<div style={{fontSize:11,color:T.textFaint,marginTop:6}}>{selectedTemplate.footer_text}</div>}
+                <span style={{marginLeft:"auto",fontSize:11,padding:"2px 8px",borderRadius:20,background:"#dcfce7",color:"#16a34a",fontWeight:600}}>✅ Active</span>
               </div>}
 
-              {/* Add template form */}
+              {/* Add template form — just template name, Meta has everything else */}
               {showTemplateForm&&<div style={{marginTop:14,borderTop:`1px solid ${T.border}`,paddingTop:14}}>
-                <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:T.text}}>New Template</div>
-                {[
-                  {label:"Template Name *",key:"template_name",ph:"e.g. evera_health_outreach"},
-                  {label:"Header Value (URL if image/doc)",key:"header_value",ph:"https://... or leave blank"},
-                  {label:"Footer Text",key:"footer_text",ph:"Optional footer text"},
-                ].map(f=>(
-                  <div key={f.key} style={{marginBottom:10}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>{f.label}</div>
-                    <input value={newTemplate[f.key]||""} onChange={e=>setNewTemplate(p=>({...p,[f.key]:e.target.value}))}
-                      placeholder={f.ph} style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
-                  </div>
-                ))}
-                <div style={{display:"flex",gap:8,marginBottom:10}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Language</div>
-                    <select value={newTemplate.language} onChange={e=>setNewTemplate(p=>({...p,language:e.target.value}))}
-                      style={{width:"100%",padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                      <option value="en">English</option>
-                      <option value="ms">Malay</option>
-                      <option value="en_US">English (US)</option>
-                    </select>
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Category</div>
-                    <select value={newTemplate.category} onChange={e=>setNewTemplate(p=>({...p,category:e.target.value}))}
-                      style={{width:"100%",padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                      <option value="MARKETING">Marketing</option>
-                      <option value="UTILITY">Utility</option>
-                      <option value="AUTHENTICATION">Authentication</option>
-                    </select>
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Header Type</div>
-                    <select value={newTemplate.header_type} onChange={e=>setNewTemplate(p=>({...p,header_type:e.target.value}))}
-                      style={{width:"100%",padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                      <option value="none">None</option>
-                      <option value="text">Text</option>
-                      <option value="image">Image</option>
-                      <option value="document">Document</option>
-                      <option value="video">Video</option>
-                    </select>
-                  </div>
-                </div>
-                <div style={{marginBottom:10}}>
-                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Message Body *</div>
-                  <div style={{fontSize:11,color:T.textFaint,marginBottom:4}}>Use {"{{Name}}"} for customer name variable</div>
-                  <textarea value={newTemplate.body_text} onChange={e=>setNewTemplate(p=>({...p,body_text:e.target.value}))}
-                    placeholder={"Hi {{Name}}! We noticed you enquired about our wellness treatments..."}
-                    rows={5} style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
-                </div>
-                <div style={{marginBottom:14}}>
-                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Status</div>
-                  <select value={newTemplate.status} onChange={e=>setNewTemplate(p=>({...p,status:e.target.value}))}
-                    style={{width:"100%",padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                    <option value="pending">Pending Approval</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                </div>
+                <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Add Template</div>
+                <div style={{fontSize:11,color:T.textFaint,marginBottom:12}}>Enter the exact template name as registered in Meta WhatsApp Manager.</div>
+                <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value}))}
+                  placeholder="e.g. eecp_promo_with_image"
+                  style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
                 <button onClick={async()=>{
-                  if(!newTemplate.template_name||!newTemplate.body_text) return alert("Template name and body are required");
-                  const r = await fetch(`${API}/api/templates`,{method:"POST",headers:authHeaders(),body:JSON.stringify(newTemplate)});
+                  if(!newTemplate.template_name.trim()) return alert("Template name is required");
+                  const r = await fetch(`${API}/api/templates`,{method:"POST",headers:authHeaders(),body:JSON.stringify({
+                    template_name: newTemplate.template_name.trim(),
+                    language:"en", category:"MARKETING", header_type:"none",
+                    header_value:"", body_text:newTemplate.template_name.trim(),
+                    footer_text:"", variables:[], status:"approved"
+                  })});
                   if(r.ok){
                     const t = await r.json();
                     setTemplates(p=>[t,...p]);
                     setSelectedTemplate(t);
                     setShowTemplateForm(false);
-                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
+                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"approved"});
                   }
                 }} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                   💾 Save Template
@@ -2882,9 +2829,42 @@ const fetchTemplates = useCallback(async () => {
 
             {/* Upload contacts */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:4,color:T.text}}>2. Upload Contacts</div>
-              <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>CSV file with columns: <strong>Phone</strong> and <strong>Name</strong> (header row required)</div>
-              <input type="file" accept=".csv" onChange={e=>{
+              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>2. Select Contacts</div>
+
+              {/* Two options */}
+              <div style={{display:"flex",gap:8,marginBottom:16}}>
+                <button onClick={()=>document.getElementById("broadcast-file-input").click()}
+                  style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  📎 Upload CSV / Excel
+                </button>
+                <button onClick={()=>{
+                  // Open inbox contact picker
+                  const search = prompt("Search contact by name (or leave blank to see all):");
+                  const filtered = contacts.filter(c=>
+                    !search || c.name?.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search)
+                  ).slice(0,50);
+                  if(filtered.length===0) return alert("No contacts found");
+                  const list = filtered.map((c,i)=>`${i+1}. ${c.name} (${c.phone})`).join("
+");
+                  const pick = prompt(`Select contacts (enter numbers separated by comma):
+
+${list}`);
+                  if(!pick) return;
+                  const indices = pick.split(",").map(n=>parseInt(n.trim())-1).filter(n=>n>=0&&n<filtered.length);
+                  const selected = indices.map(i=>({phone:filtered[i].phone, name:filtered[i].name}));
+                  if(selected.length>0){
+                    setBroadcastContacts(p=>{
+                      const existing = p.map(x=>x.phone);
+                      const newOnes = selected.filter(s=>!existing.includes(s.phone));
+                      return [...p, ...newOnes];
+                    });
+                  }
+                }} style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${WA_GREEN}30`,background:`${WA_GREEN}08`,color:WA_GREEN,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  👥 Pick from Inbox
+                </button>
+              </div>
+
+              <input type="file" accept=".csv,.xlsx,.xls" onChange={e=>{
                 const file = e.target.files[0];
                 if(!file) return;
                 setBroadcastFile(file);
@@ -2892,29 +2872,35 @@ const fetchTemplates = useCallback(async () => {
                 reader.onload = ev => {
                   const lines = ev.target.result.split("\n").filter(l=>l.trim());
                   const headers = lines[0].split(",").map(h=>h.trim().toLowerCase().replace(/"/g,""));
-                  const phoneIdx = headers.findIndex(h=>h.includes("phone")||h.includes("number"));
+                  const phoneIdx = headers.findIndex(h=>h.includes("phone")||h.includes("number")||h.includes("mobile"));
                   const nameIdx = headers.findIndex(h=>h.includes("name"));
-                  const contacts = [];
+                  const newContacts = [];
                   for(let i=1;i<lines.length;i++){
                     const cols = lines[i].split(",").map(c=>c.trim().replace(/"/g,""));
                     const phone = phoneIdx>=0?cols[phoneIdx]:"";
                     const name = nameIdx>=0?cols[nameIdx]:"";
-                    if(phone) contacts.push({phone,name:name||phone});
+                    if(phone) newContacts.push({phone,name:name||phone});
                   }
-                  setBroadcastContacts(contacts);
+                  setBroadcastContacts(newContacts);
                 };
                 reader.readAsText(file);
               }} style={{display:"none"}} id="broadcast-file-input"/>
-              <label htmlFor="broadcast-file-input" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:8,border:`1.5px dashed ${T.border}`,cursor:"pointer",color:T.textMuted,fontSize:12,fontWeight:600}}>
-                📎 Choose CSV File
-              </label>
-              {broadcastContacts.length>0&&<div style={{marginTop:10,fontSize:12,color:WA_GREEN,fontWeight:600}}>
-                ✅ {broadcastContacts.length} contacts loaded
-                <div style={{marginTop:6,maxHeight:100,overflowY:"auto",background:T.card2,borderRadius:8,padding:8}}>
-                  {broadcastContacts.slice(0,5).map((c,i)=>(
-                    <div key={i} style={{fontSize:11,color:T.textMuted}}>{c.name} — {c.phone}</div>
+
+              {broadcastContacts.length>0&&<div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <span style={{fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} contact{broadcastContacts.length>1?"s":""} selected</span>
+                  <button onClick={()=>setBroadcastContacts([])} style={{fontSize:11,color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>✕ Clear all</button>
+                </div>
+                <div style={{maxHeight:120,overflowY:"auto",background:T.card2,borderRadius:8,padding:8}}>
+                  {broadcastContacts.map((c,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",borderBottom:i<broadcastContacts.length-1?`1px solid ${T.border}`:"none"}}>
+                      <span style={{fontSize:11,color:T.text}}>{c.name}</span>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{fontSize:11,color:T.textMuted}}>{c.phone}</span>
+                        <button onClick={()=>setBroadcastContacts(p=>p.filter((_,j)=>j!==i))} style={{fontSize:10,color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                      </div>
+                    </div>
                   ))}
-                  {broadcastContacts.length>5&&<div style={{fontSize:11,color:T.textFaint}}>...and {broadcastContacts.length-5} more</div>}
                 </div>
               </div>}
             </div>
@@ -2922,9 +2908,7 @@ const fetchTemplates = useCallback(async () => {
             {/* Send button */}
             <div style={{background:T.card,borderRadius:16,padding:20,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>3. Send Broadcast</div>
-              {selectedTemplate&&selectedTemplate.status!=="approved"&&<div style={{background:"#fef9c3",border:"1px solid #fcd34d",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#854d0e",marginBottom:12}}>
-                ⚠️ This template is not approved yet. Only approved templates can be sent.
-              </div>}
+
               <button onClick={async()=>{
                 if(!selectedTemplate) return alert("Please select a template first");
                 if(selectedTemplate.status!=="approved") return alert("Template must be approved before sending");
@@ -2953,7 +2937,7 @@ const fetchTemplates = useCallback(async () => {
                   await new Promise(r=>setTimeout(r,300));
                 }
                 setBroadcastProgress(p=>({...p, active:false}));
-              }} disabled={!selectedTemplate||broadcastContacts.length===0}
+              }} disabled={!selectedTemplate||broadcastContacts.length===0||broadcastProgress?.active}
                 style={{width:"100%",padding:"12px",borderRadius:10,border:"none",
                   background:(!selectedTemplate||broadcastContacts.length===0)?"#ccc":WA_GREEN,
                   color:"#fff",fontSize:14,fontWeight:700,cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer",fontFamily:"inherit"}}>
