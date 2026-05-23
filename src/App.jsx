@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.7";
+const CRM_VERSION = "2.9.8";
 
 // Responsive hook
 function useWindowSize() {
@@ -53,6 +53,7 @@ const TABS = [
   {id:"kb",           icon:"📋", label:"Knowledge"},
   {id:"integrations", icon:"🔌", label:"Integrations"},
   {id:"settings",     icon:"⚙️", label:"Settings"},
+  {id:"broadcast",    icon:"📢", label:"Broadcast"},
   {id:"admin",        icon:"👑", label:"Admin", adminOnly:true},
 ];
 
@@ -142,6 +143,13 @@ export default function App() {
   const [archiveConfirm, setArchiveConfirm] = useState(null);
   const [bulkBotModal, setBulkBotModal] = useState(null);
   const [exportModal, setExportModal] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
+  const [broadcastContacts, setBroadcastContacts] = useState([]);
+  const [broadcastProgress, setBroadcastProgress] = useState(null);
+  const [broadcastFile, setBroadcastFile] = useState(null);
   const [exportKeywords, setExportKeywords] = useState("");
   const [exportDateFrom, setExportDateFrom] = useState("");
   const [exportDateTo, setExportDateTo] = useState("");
@@ -168,7 +176,7 @@ export default function App() {
     if (!currentUser) return false;
     if (isAdmin) return true;
     if (!permissions || permissions === "all") return true;
-    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:"can_settings", integrations:"can_integrations", admin:false };
+    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:"can_settings", integrations:"can_integrations", broadcast:"can_integrations", admin:false };
     return map[tab] ? permissions[map[tab]] : false;
   };
 
@@ -607,7 +615,14 @@ export default function App() {
     finally { setLoading(false); }
   }, [selected]);
 
-const fetchKnowledge = useCallback(async (clinicId=null) => {
+const fetchTemplates = useCallback(async () => {
+    try {
+      const r = await fetch(`${API}/api/templates`, {headers:authHeaders()});
+      if(r.ok) setTemplates(await r.json());
+    } catch {}
+  }, []);
+
+  const fetchKnowledge = useCallback(async (clinicId=null) => {
     try {
       const cParam = clinicId ? `?clinic_id=${clinicId}` : "";
       const r=await fetch(`${API}/api/knowledge${cParam}`, {headers:authHeaders()});
@@ -804,6 +819,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
   }, []);
 
   useEffect(() => {
+    if(newTab==="broadcast") { fetchTemplates(); }
     if(tab==="analytics") {
       fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
@@ -825,7 +841,8 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
       // Refresh settings (client only — admin uses loadClientSettings)
       if(!isAdmin) fetchSettings();
       // Refresh current tab data
-      if(tab==="analytics") {
+      if(newTab==="broadcast") { fetchTemplates(); }
+    if(tab==="analytics") {
         // Use ref to get current selectedClinic value
         fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
         if(isAdmin) fetchAdminOverview();
@@ -2748,6 +2765,218 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
 
         {/* ══ SETTINGS ══ */}
         {/* ══ INTEGRATIONS ══ */}
+
+        {tab==="broadcast"&&<div style={{flex:1,overflowY:"auto",padding:24,background:T.bg}}>
+          <div style={{maxWidth:700,margin:"0 auto"}}>
+            <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📢 Broadcast</div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:24}}>Send WhatsApp template messages to multiple contacts at once.</div>
+
+            {/* Template selector */}
+            <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>1. Select Template</div>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
+                <select value={selectedTemplate?.id||""} onChange={e=>{
+                  const t = templates.find(x=>x.id===parseInt(e.target.value));
+                  setSelectedTemplate(t||null);
+                }} style={{flex:1,padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit"}}>
+                  <option value="">— Select a template —</option>
+                  {templates.map(t=>(
+                    <option key={t.id} value={t.id}>{t.template_name} ({t.language}) {t.status==="approved"?"✅":"⏳"}</option>
+                  ))}
+                </select>
+                <button onClick={()=>setShowTemplateForm(p=>!p)} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:showTemplateForm?WA_GREEN:"transparent",color:showTemplateForm?"#fff":WA_GREEN,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                  {showTemplateForm?"✕ Close":"+ Add Template"}
+                </button>
+              </div>
+
+              {/* Selected template preview */}
+              {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <span style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</span>
+                  <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:selectedTemplate.status==="approved"?"#dcfce7":"#fef9c3",color:selectedTemplate.status==="approved"?"#16a34a":"#854d0e",fontWeight:600}}>
+                    {selectedTemplate.status==="approved"?"✅ Approved":"⏳ "+selectedTemplate.status}
+                  </span>
+                </div>
+                <div style={{fontSize:12,color:T.textMuted,marginBottom:4}}>Language: {selectedTemplate.language} · Category: {selectedTemplate.category}</div>
+                {selectedTemplate.header_type!=="none"&&<div style={{fontSize:12,color:T.textMuted,marginBottom:4}}>Header: {selectedTemplate.header_type} — {selectedTemplate.header_value}</div>}
+                <div style={{fontSize:13,color:T.text,background:T.bg,borderRadius:8,padding:"10px 12px",whiteSpace:"pre-wrap",lineHeight:1.6}}>{selectedTemplate.body_text}</div>
+                {selectedTemplate.footer_text&&<div style={{fontSize:11,color:T.textFaint,marginTop:6}}>{selectedTemplate.footer_text}</div>}
+              </div>}
+
+              {/* Add template form */}
+              {showTemplateForm&&<div style={{marginTop:14,borderTop:`1px solid ${T.border}`,paddingTop:14}}>
+                <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:T.text}}>New Template</div>
+                {[
+                  {label:"Template Name *",key:"template_name",ph:"e.g. evera_health_outreach"},
+                  {label:"Header Value (URL if image/doc)",key:"header_value",ph:"https://... or leave blank"},
+                  {label:"Footer Text",key:"footer_text",ph:"Optional footer text"},
+                ].map(f=>(
+                  <div key={f.key} style={{marginBottom:10}}>
+                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>{f.label}</div>
+                    <input value={newTemplate[f.key]||""} onChange={e=>setNewTemplate(p=>({...p,[f.key]:e.target.value}))}
+                      placeholder={f.ph} style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                  </div>
+                ))}
+                <div style={{display:"flex",gap:8,marginBottom:10}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Language</div>
+                    <select value={newTemplate.language} onChange={e=>setNewTemplate(p=>({...p,language:e.target.value}))}
+                      style={{width:"100%",padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                      <option value="en">English</option>
+                      <option value="ms">Malay</option>
+                      <option value="en_US">English (US)</option>
+                    </select>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Category</div>
+                    <select value={newTemplate.category} onChange={e=>setNewTemplate(p=>({...p,category:e.target.value}))}
+                      style={{width:"100%",padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                      <option value="MARKETING">Marketing</option>
+                      <option value="UTILITY">Utility</option>
+                      <option value="AUTHENTICATION">Authentication</option>
+                    </select>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Header Type</div>
+                    <select value={newTemplate.header_type} onChange={e=>setNewTemplate(p=>({...p,header_type:e.target.value}))}
+                      style={{width:"100%",padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                      <option value="none">None</option>
+                      <option value="text">Text</option>
+                      <option value="image">Image</option>
+                      <option value="document">Document</option>
+                      <option value="video">Video</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Message Body *</div>
+                  <div style={{fontSize:11,color:T.textFaint,marginBottom:4}}>Use {"{{Name}}"} for customer name variable</div>
+                  <textarea value={newTemplate.body_text} onChange={e=>setNewTemplate(p=>({...p,body_text:e.target.value}))}
+                    placeholder={"Hi {{Name}}! We noticed you enquired about our wellness treatments..."}
+                    rows={5} style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                </div>
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Status</div>
+                  <select value={newTemplate.status} onChange={e=>setNewTemplate(p=>({...p,status:e.target.value}))}
+                    style={{width:"100%",padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                    <option value="pending">Pending Approval</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+                <button onClick={async()=>{
+                  if(!newTemplate.template_name||!newTemplate.body_text) return alert("Template name and body are required");
+                  const r = await fetch(`${API}/api/templates`,{method:"POST",headers:authHeaders(),body:JSON.stringify(newTemplate)});
+                  if(r.ok){
+                    const t = await r.json();
+                    setTemplates(p=>[t,...p]);
+                    setSelectedTemplate(t);
+                    setShowTemplateForm(false);
+                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
+                  }
+                }} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  💾 Save Template
+                </button>
+              </div>}
+            </div>
+
+            {/* Upload contacts */}
+            <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:4,color:T.text}}>2. Upload Contacts</div>
+              <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>CSV file with columns: <strong>Phone</strong> and <strong>Name</strong> (header row required)</div>
+              <input type="file" accept=".csv" onChange={e=>{
+                const file = e.target.files[0];
+                if(!file) return;
+                setBroadcastFile(file);
+                const reader = new FileReader();
+                reader.onload = ev => {
+                  const lines = ev.target.result.split("
+").filter(l=>l.trim());
+                  const headers = lines[0].split(",").map(h=>h.trim().toLowerCase().replace(/"/g,""));
+                  const phoneIdx = headers.findIndex(h=>h.includes("phone")||h.includes("number"));
+                  const nameIdx = headers.findIndex(h=>h.includes("name"));
+                  const contacts = [];
+                  for(let i=1;i<lines.length;i++){
+                    const cols = lines[i].split(",").map(c=>c.trim().replace(/"/g,""));
+                    const phone = phoneIdx>=0?cols[phoneIdx]:"";
+                    const name = nameIdx>=0?cols[nameIdx]:"";
+                    if(phone) contacts.push({phone,name:name||phone});
+                  }
+                  setBroadcastContacts(contacts);
+                };
+                reader.readAsText(file);
+              }} style={{display:"none"}} id="broadcast-file-input"/>
+              <label htmlFor="broadcast-file-input" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:8,border:`1.5px dashed ${T.border}`,cursor:"pointer",color:T.textMuted,fontSize:12,fontWeight:600}}>
+                📎 Choose CSV File
+              </label>
+              {broadcastContacts.length>0&&<div style={{marginTop:10,fontSize:12,color:WA_GREEN,fontWeight:600}}>
+                ✅ {broadcastContacts.length} contacts loaded
+                <div style={{marginTop:6,maxHeight:100,overflowY:"auto",background:T.card2,borderRadius:8,padding:8}}>
+                  {broadcastContacts.slice(0,5).map((c,i)=>(
+                    <div key={i} style={{fontSize:11,color:T.textMuted}}>{c.name} — {c.phone}</div>
+                  ))}
+                  {broadcastContacts.length>5&&<div style={{fontSize:11,color:T.textFaint}}>...and {broadcastContacts.length-5} more</div>}
+                </div>
+              </div>}
+            </div>
+
+            {/* Send button */}
+            <div style={{background:T.card,borderRadius:16,padding:20,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>3. Send Broadcast</div>
+              {selectedTemplate&&selectedTemplate.status!=="approved"&&<div style={{background:"#fef9c3",border:"1px solid #fcd34d",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#854d0e",marginBottom:12}}>
+                ⚠️ This template is not approved yet. Only approved templates can be sent.
+              </div>}
+              <button onClick={async()=>{
+                if(!selectedTemplate) return alert("Please select a template first");
+                if(selectedTemplate.status!=="approved") return alert("Template must be approved before sending");
+                if(broadcastContacts.length===0) return alert("Please upload a contacts CSV first");
+                if(!confirm(`Send to ${broadcastContacts.length} contacts?`)) return;
+                
+                setBroadcastProgress({total:broadcastContacts.length, done:0, failed:0, active:true});
+                const cs = await fetch(`${API}/api/client-settings`,{headers:authHeaders()}).then(r=>r.json()).catch(()=>({}));
+                
+                for(let i=0;i<broadcastContacts.length;i++){
+                  const contact = broadcastContacts[i];
+                  const msg = (selectedTemplate.body_text||"").replace(/\{\{Name\}\}/gi, contact.name);
+                  try {
+                    await fetch(`${API}/api/broadcast/send`,{method:"POST",headers:authHeaders(),body:JSON.stringify({
+                      phone: contact.phone,
+                      name: contact.name,
+                      template_id: selectedTemplate.id,
+                      message: msg,
+                    })});
+                    setBroadcastProgress(p=>({...p, done:p.done+1}));
+                  } catch {
+                    setBroadcastProgress(p=>({...p, failed:p.failed+1, done:p.done+1}));
+                  }
+                  await new Promise(r=>setTimeout(r,300));
+                }
+                setBroadcastProgress(p=>({...p, active:false}));
+              }} disabled={!selectedTemplate||broadcastContacts.length===0}
+                style={{width:"100%",padding:"12px",borderRadius:10,border:"none",
+                  background:(!selectedTemplate||broadcastContacts.length===0)?"#ccc":WA_GREEN,
+                  color:"#fff",fontSize:14,fontWeight:700,cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer",fontFamily:"inherit"}}>
+                📤 Send to {broadcastContacts.length} Contacts
+              </button>
+
+              {/* Progress */}
+              {broadcastProgress&&<div style={{marginTop:14,background:T.card2,borderRadius:10,padding:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                  <span style={{fontSize:12,fontWeight:600,color:T.text}}>
+                    {broadcastProgress.active?"Sending...":"Done!"}
+                  </span>
+                  <span style={{fontSize:12,color:T.textMuted}}>{broadcastProgress.done}/{broadcastProgress.total}</span>
+                </div>
+                <div style={{height:6,borderRadius:3,background:T.border,overflow:"hidden"}}>
+                  <div style={{height:6,borderRadius:3,background:WA_GREEN,width:`${(broadcastProgress.done/broadcastProgress.total)*100}%`,transition:"width .3s"}}/>
+                </div>
+                {broadcastProgress.failed>0&&<div style={{fontSize:11,color:"#ef4444",marginTop:4}}>{broadcastProgress.failed} failed</div>}
+                {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
+              </div>}
+            </div>
+          </div>
+        </div>}
+
         {tab==="integrations"&&<IntegrationsTab
           T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
           currentUser={currentUser} authToken={authToken}
