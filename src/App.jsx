@@ -2953,13 +2953,18 @@ const fetchTemplates = useCallback(async () => {
             <div style={{background:T.card,borderRadius:16,padding:20,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>3. Send Broadcast</div>
 
+              {/* Confirmation summary */}
+              {selectedTemplate&&broadcastContacts.length>0&&!broadcastProgress&&(
+                <div style={{background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:12,color:T.text}}>
+                  Ready to send <strong>{selectedTemplate.template_name}</strong> to <strong>{broadcastContacts.length} contact{broadcastContacts.length>1?"s":""}</strong>.
+                </div>
+              )}
+
               <button onClick={async()=>{
                 if(!selectedTemplate) return alert("Please select a template first");
-                if(selectedTemplate.status!=="approved") return alert("Template must be approved before sending");
-                if(broadcastContacts.length===0) return alert("Please upload a contacts CSV first");
-                if(!confirm(`Send to ${broadcastContacts.length} contacts?`)) return;
-                
+                if(broadcastContacts.length===0) return alert("Please select contacts first");
                 setBroadcastProgress({total:broadcastContacts.length, done:0, failed:0, active:true});
+                
                 const cs = await fetch(`${API}/api/client-settings`,{headers:authHeaders()}).then(r=>r.json()).catch(()=>({}));
                 
                 for(let i=0;i<broadcastContacts.length;i++){
