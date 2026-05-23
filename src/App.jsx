@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.8";
+const CRM_VERSION = "2.9.9";
 
 // Responsive hook
 function useWindowSize() {
@@ -2857,11 +2857,16 @@ const fetchTemplates = useCallback(async () => {
               {/* Selected template preview */}
               {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
                 <span style={{fontSize:20}}>📋</span>
-                <div>
+                <div style={{flex:1}}>
                   <div style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</div>
                   <div style={{fontSize:11,color:T.textMuted}}>Meta WhatsApp Template · Ready to send</div>
+                  {selectedTemplate.header_value&&<div style={{fontSize:11,color:WA_GREEN,marginTop:2}}>🖼️ Image attached</div>}
                 </div>
-                <span style={{marginLeft:"auto",fontSize:11,padding:"2px 8px",borderRadius:20,background:"#dcfce7",color:"#16a34a",fontWeight:600}}>✅ Active</span>
+                <button onClick={()=>{setNewTemplate({...selectedTemplate});setShowTemplateForm(true);}}
+                  style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                  ✏️ Edit
+                </button>
+                <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:"#dcfce7",color:"#16a34a",fontWeight:600}}>✅ Active</span>
               </div>}
 
               {/* Add template form — just template name, Meta has everything else */}
@@ -2905,21 +2910,34 @@ const fetchTemplates = useCallback(async () => {
                 </div>}
                 <button onClick={async()=>{
                   if(!newTemplate.template_name.trim()) return alert("Template name is required");
-                  const r = await fetch(`${API}/api/templates`,{method:"POST",headers:authHeaders(),body:JSON.stringify({
+                  const isEdit = !!newTemplate.id;
+                  const payload = {
                     template_name: newTemplate.template_name.trim(),
-                    language:"en", category:"MARKETING", header_type:"none",
-                    header_value:"", body_text:newTemplate.template_name.trim(),
+                    language: newTemplate.language||"en",
+                    category: newTemplate.category||"MARKETING",
+                    header_type: newTemplate.header_value?"image":"none",
+                    header_value: newTemplate.header_value||"",
+                    body_text: newTemplate.template_name.trim(),
                     footer_text:"", variables:[], status:"approved"
-                  })});
+                  };
+                  const url = isEdit ? `${API}/api/templates/${newTemplate.id}` : `${API}/api/templates`;
+                  const method = isEdit ? "PATCH" : "POST";
+                  const r = await fetch(url,{method,headers:authHeaders(),body:JSON.stringify(payload)});
                   if(r.ok){
-                    const t = await r.json();
-                    setTemplates(p=>[t,...p]);
-                    setSelectedTemplate(t);
+                    if(isEdit){
+                      const updated = {...newTemplate,...payload};
+                      setTemplates(p=>p.map(t=>t.id===newTemplate.id?updated:t));
+                      setSelectedTemplate(updated);
+                    } else {
+                      const t = await r.json();
+                      setTemplates(p=>[t,...p]);
+                      setSelectedTemplate(t);
+                    }
                     setShowTemplateForm(false);
                     setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"approved"});
                   }
                 }} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  💾 Save Template
+                  💾 {newTemplate.id?"Update Template":"Save Template"}
                 </button>
               </div>}
             </div>
