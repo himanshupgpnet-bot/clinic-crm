@@ -1237,8 +1237,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
               }
               
               const header = ["Name","Phone","Full Conversation","Keywords Matched","Last Date","Lead Score"];
-              const csv = [header.join(","), ...rows.map(r=>r.join(","))].join("
-");
+              const csv = [header.join(","), ...rows.map(r=>r.join(","))].join("\n");
               const blob = new Blob([csv], {type:"text/csv"});
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
