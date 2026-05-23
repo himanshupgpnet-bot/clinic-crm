@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.6";
+const CRM_VERSION = "2.9.7";
 
 // Responsive hook
 function useWindowSize() {
@@ -140,7 +140,12 @@ export default function App() {
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
   const [archiveConfirm, setArchiveConfirm] = useState(null);
-  const [bulkBotModal, setBulkBotModal] = useState(null); // {total, done, active}
+  const [bulkBotModal, setBulkBotModal] = useState(null);
+  const [exportModal, setExportModal] = useState(false);
+  const [exportKeywords, setExportKeywords] = useState("");
+  const [exportDateFrom, setExportDateFrom] = useState("");
+  const [exportDateTo, setExportDateTo] = useState("");
+  const [exportLoading, setExportLoading] = useState(false); // {total, done, active}
   const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}]);
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
@@ -1152,6 +1157,108 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
         }
       `}</style>
 
+      {/* EXPORT CSV MODAL */}
+      {exportModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}}>
+        <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:480,boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
+          <div style={{fontWeight:800,fontSize:18,marginBottom:4,color:T.text}}>📥 Download Chats</div>
+          <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>Filter by keywords and date, or download all chats.</div>
+
+          {/* Keywords */}
+          <div style={{marginBottom:16}}>
+            <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:6}}>Keywords <span style={{color:T.textFaint,fontWeight:400}}>(optional)</span></div>
+            <div style={{fontSize:11,color:T.textFaint,marginBottom:6}}>Enter keywords separated by commas — only chats containing these words will be exported.</div>
+            <textarea value={exportKeywords} onChange={e=>setExportKeywords(e.target.value)}
+              placeholder="e.g. diabetes, kidney, stem cell, EECP, NAD, exosome"
+              rows={3} style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:10,
+                padding:"10px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+            {/* Preset keyword chips */}
+            <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
+              {["Chronic Kidney Disease","Diabetes","Liver Detox","Stem Cells","Vitamin","NAD","Exosome","EECP"].map(kw=>(
+                <span key={kw} onClick={()=>setExportKeywords(p=>p?p+", "+kw:kw)}
+                  style={{fontSize:10,padding:"3px 8px",borderRadius:20,background:T.card2,
+                    border:`1px solid ${T.border}`,cursor:"pointer",color:T.text,fontWeight:500}}>
+                  + {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Date range */}
+          <div style={{marginBottom:20}}>
+            <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:6}}>Date Range <span style={{color:T.textFaint,fontWeight:400}}>(optional)</span></div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <input type="date" value={exportDateFrom} onChange={e=>setExportDateFrom(e.target.value)}
+                style={{flex:1,background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+              <span style={{color:T.textFaint,fontSize:12}}>to</span>
+              <input type="date" value={exportDateTo} onChange={e=>setExportDateTo(e.target.value)}
+                style={{flex:1,background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setExportModal(false);setExportKeywords("");setExportDateFrom("");setExportDateTo("");}}
+              style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,
+                background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+              Cancel
+            </button>
+            <button onClick={async()=>{
+              setExportLoading(true);
+              // Build filtered CSV from contacts
+              const keywords = exportKeywords.split(",").map(k=>k.trim().toLowerCase()).filter(k=>k);
+              const allContacts = contacts;
+              
+              // Filter by date
+              let filtered = allContacts;
+              if(exportDateFrom) filtered = filtered.filter(c=>c.lastDate>=exportDateFrom);
+              if(exportDateTo) filtered = filtered.filter(c=>c.lastDate<=exportDateTo);
+              
+              // Filter by keywords and find matching keywords per contact
+              const rows = [];
+              for(const c of filtered){
+                const allText = (c.messages||[]).map(m=>m.text||"").join(" ").toLowerCase();
+                const matched = keywords.length===0 ? [] : keywords.filter(kw=>allText.includes(kw));
+                if(keywords.length>0 && matched.length===0) continue;
+                
+                // Build full chat in one cell
+                const chat = (c.messages||[]).map(m=>{
+                  const speaker = m.from==="user"?c.name:m.from==="bot"?"Bot":m.agentName||"Agent";
+                  return `[${m.time||""}] ${speaker}: ${(m.text||"").replace(/"/g,'""').replace(/
+/g," ")}`;
+                }).join(" | ");
+                
+                rows.push([
+                  `"${(c.name||"").replace(/"/g,'""')}"`,
+                  `"${c.phone||""}"`,
+                  `"${chat}"`,
+                  `"${matched.join(", ")||"all"}"`,
+                  `"${c.lastDate||""}"`,
+                  `"${c.lead||""}"`,
+                ]);
+              }
+              
+              const header = ["Name","Phone","Full Conversation","Keywords Matched","Last Date","Lead Score"];
+              const csv = [header.join(","), ...rows.map(r=>r.join(","))].join("
+");
+              const blob = new Blob([csv], {type:"text/csv"});
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `chats_export_${new Date().toISOString().slice(0,10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+              setExportLoading(false);
+              setExportModal(false);
+              setExportKeywords("");setExportDateFrom("");setExportDateTo("");
+            }} style={{flex:2,padding:"10px",borderRadius:10,border:"none",
+              background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+              {exportLoading?"Preparing...":"📥 Download CSV"}
+            </button>
+          </div>
+        </div>
+      </div>}
+
       {/* BULK BOT ON PROGRESS MODAL */}
       {bulkBotModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}}>
         <div style={{background:T.card,borderRadius:24,padding:36,width:"100%",maxWidth:340,boxShadow:"0 24px 60px rgba(0,0,0,.4)",textAlign:"center"}}>
@@ -1331,19 +1438,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                   </div>
                 ))}
               </div>
-              <button onClick={async()=>{
-                const clinicParam = inboxClinic ? `?clinic_id=${inboxClinic}` : "";
-                const res = await fetch(`${API}/api/conversations/export${clinicParam}`, {headers:authHeaders()});
-                if(res.ok){
-                  const blob = await res.blob();
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `chats_${new Date().toISOString().slice(0,10)}.csv`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }
-              }} style={{width:"100%",padding:"6px",borderRadius:8,border:`1px solid ${T.border}`,
+              <button onClick={()=>setExportModal(true)} style={{width:"100%",padding:"6px",borderRadius:8,border:`1px solid ${T.border}`,
                 background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",
                 fontFamily:"inherit",marginBottom:4,display:"flex",alignItems:"center",
                 justifyContent:"center",gap:4}}>
@@ -1405,7 +1500,7 @@ const fetchKnowledge = useCallback(async (clinicId=null) => {
                       <span style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
                         <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?600:400}}>{c.lastTime}</span>
-                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>{c.lastDate}</span>}
+                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>{c.lastDate.split("-").reverse().join("/")}</span>}
                       </div>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
