@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.13";
+const CRM_VERSION = "2.9.14";
 
 // Responsive hook
 function useWindowSize() {
@@ -4434,13 +4434,13 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
           <div style={{fontSize:12}}>Click "+ Onboard Client" to get started</div>
         </div>}
 
-      {clinics.filter(c=>c.active!==false).map(clinic=>{
+      {clinics.map(clinic=>{
         const clinicUsers = users.filter(u=>u.clinic_id===clinic.id);
         const hasOnline = clinicUsers.some(u=>u.active_session);
         const usedSeats = clinicUsers.filter(u=>u.active).length;
         const hotLeads = 0; // could add later
         return (
-          <div key={clinic.id} style={{marginBottom:20}}>
+          <div key={clinic.id} style={{marginBottom:20,opacity:clinic.active===false?0.6:1,transition:"opacity .2s"}}>
 
             {/* ── CLINIC CARD (top of hierarchy) ── */}
             <div style={{
@@ -4463,7 +4463,10 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
                 {/* Info */}
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
-                    <div style={{fontWeight:900,fontSize:17,color:T.text}}>{clinic.name}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{fontWeight:900,fontSize:17,color:T.text}}>{clinic.name}</div>
+                      {clinic.active===false&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#fee2e2",color:"#ef4444",fontWeight:700}}>DISABLED</span>}
+                    </div>
                     {hasOnline&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#dcfce7",color:"#166534",fontWeight:700,border:"1px solid #86efac"}}>🟢 Online</span>}
                     {!clinic.active&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#fef2f2",color:"#dc2626",fontWeight:700}}>Inactive</span>}
                   </div>
@@ -4522,19 +4525,32 @@ This cannot be undone.`,
                     }} style={{padding:"7px 10px",borderRadius:10,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
                       🗑️ Reset
                     </button>
-                    <button onClick={()=>{
+                    <button onClick={async()=>{
+                      const isActive = clinic.active !== false;
+                      const action = isActive ? "Disable" : "Enable";
                       setConfirmModal({
-                        title:`Delete ${clinic.name}?`,
-                        message:`This will PERMANENTLY DELETE the client and ALL their data.\n\nThis CANNOT be undone.`,
-                        icon:"⛔",danger:true,confirmText:"Yes, Delete Client",
+                        title:`${action} ${clinic.name}?`,
+                        message:isActive
+                          ? `Disabling will prevent all users of this client from logging in.`
+                          : `Enabling will allow users of this client to log in again.`,
+                        icon:isActive?"🔴":"🟢",
+                        danger:isActive,
+                        confirmText:`Yes, ${action} Client`,
                         onConfirm:async()=>{
-                          const r=await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"DELETE",headers:authHeaders()});
-                          if(r.ok){flash(`✅ ${clinic.name} deleted`);load();}
-                          else flash("❌ Delete failed");
+                          const r=await fetch(`${API}/api/admin/clients/${clinic.id}`,{
+                            method:"PATCH",headers:authHeaders(),
+                            body:JSON.stringify({active:!isActive})
+                          });
+                          if(r.ok){flash(`✅ ${clinic.name} ${action}d`);load();}
+                          else flash(`❌ ${action} failed`);
                         }
                       });
-                    }} style={{padding:"7px 10px",borderRadius:10,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                      ⛔ Delete
+                    }} style={{padding:"7px 10px",borderRadius:10,
+                      border:clinic.active!==false?"1px solid #ef444440":"1px solid #22c55e40",
+                      background:clinic.active!==false?"#ef444410":"#22c55e10",
+                      color:clinic.active!==false?"#ef4444":"#22c55e",
+                      fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                      {clinic.active!==false?"🔴 Disable":"🟢 Enable"}
                     </button>
                   </div>
                 </div>
