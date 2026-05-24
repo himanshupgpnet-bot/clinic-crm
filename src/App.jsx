@@ -832,7 +832,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   }, []);
 
   useEffect(() => {
-    if(tab==="broadcast") { fetchTemplates(); }
+    if(tab==="broadcast") { if(!isAdmin) fetchTemplates(); }
     if(tab==="analytics") {
       fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
@@ -854,7 +854,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       // Refresh settings (client only — admin uses loadClientSettings)
       if(!isAdmin) fetchSettings();
       // Refresh current tab data
-      if(tab==="broadcast") { fetchTemplates(); }
+      if(tab==="broadcast") { if(!isAdmin) fetchTemplates(); }
     if(tab==="analytics") {
         // Use ref to get current selectedClinic value
         fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
