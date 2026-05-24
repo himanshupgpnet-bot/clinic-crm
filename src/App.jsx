@@ -3095,7 +3095,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>}
             </div>
           </div>
-          </div>}
         </div>}
 
         {tab==="integrations"&&<IntegrationsTab
