@@ -3094,7 +3094,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
               </div>}
             </div>
-          </div>
         </div>}
 
         {tab==="integrations"&&<IntegrationsTab
