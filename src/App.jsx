@@ -1503,6 +1503,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
 
         {/* ══ CRM TAB ══ */}
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
         {tab==="crm"&&<>
           <div style={{width:isMobile?"100%":isTablet?260:300,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,
             ...(isMobile&&selected?{display:"none"}:{})}}>
@@ -1725,6 +1731,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </>}
 
         {/* ══ LEADS KANBAN ══ */}
+        </div>
+
         {tab==="leads"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
           {/* Admin sidebar — client picker */}
@@ -1897,6 +1905,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>}
 
         {/* ══ ANALYTICS TAB ══ */}
+        </div>
+
         {tab==="analytics"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
           {/* Admin sidebar — client list */}
@@ -2246,6 +2256,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
           </div>
         </div>}
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
 
         {tab==="bot"&&<div style={{flex:1,display:"flex",flexDirection:"column",maxWidth:680,margin:"0 auto",width:"100%"}}>
           <div style={{padding:"10px 14px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -2280,6 +2299,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <button className="sb" onClick={sendBotMessage} disabled={botLoading||!botInput.trim()} style={{width:40,height:40,borderRadius:"50%",border:"none",background:botLoading||!botInput.trim()?T.card2:WA_GREEN,color:botLoading||!botInput.trim()?T.textFaint:"#fff",fontSize:16,cursor:botLoading?"not-allowed":"pointer",flexShrink:0}}>➤</button>
           </div>
         </div>}
+        </div>
+        </div>
 
         {tab==="kb"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
@@ -2844,6 +2865,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {/* ══ SETTINGS ══ */}
         {/* ══ INTEGRATIONS ══ */}
+        </div>
+        </div>
+        </div>
+        </div>
 
         {tab==="broadcast"&&<div style={{flex:1,overflowY:"auto",padding:24,background:T.bg}}>
           <div style={{maxWidth:700,margin:"0 auto"}}>
@@ -3489,38 +3514,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>}
 
         {/* ══ ADMIN TAB ══ */}
-        {tab==="admin"&&isAdmin&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal}/></div>}
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
+        </div>
 
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-    </div>
+        {tab==="admin"&&isAdmin&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal}/></div>}
   );
 }
 
