@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.11";
+const CRM_VERSION = "2.9.13";
 
 // Responsive hook
 function useWindowSize() {
@@ -156,6 +156,7 @@ export default function App() {
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showContactPicker, setShowContactPicker] = useState(false);
+  const [broadcastClinic, setBroadcastClinic] = useState(null);
   const [contactPickerSearch, setContactPickerSearch] = useState("");
   const [pickedContacts, setPickedContacts] = useState(new Set());
   const [exportKeywords, setExportKeywords] = useState("");
@@ -623,9 +624,10 @@ export default function App() {
     finally { setLoading(false); }
   }, [selected]);
 
-const fetchTemplates = useCallback(async () => {
+const fetchTemplates = useCallback(async (clinicId=null) => {
     try {
-      const r = await fetch(`${API}/api/templates`, {headers:authHeaders()});
+      const url = clinicId ? `${API}/api/admin/users/${clinicId}/templates` : `${API}/api/templates`;
+      const r = await fetch(url, {headers:authHeaders()});
       if(r.ok) setTemplates(await r.json());
     } catch {}
   }, []);
@@ -827,7 +829,7 @@ const fetchTemplates = useCallback(async () => {
   }, []);
 
   useEffect(() => {
-    if(tab==="broadcast") { fetchTemplates(); }
+    if(tab==="broadcast") { if(!isAdmin) fetchTemplates(); }
     if(tab==="analytics") {
       fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
@@ -849,7 +851,7 @@ const fetchTemplates = useCallback(async () => {
       // Refresh settings (client only — admin uses loadClientSettings)
       if(!isAdmin) fetchSettings();
       // Refresh current tab data
-      if(tab==="broadcast") { fetchTemplates(); }
+      if(tab==="broadcast") { if(!isAdmin) fetchTemplates(); }
     if(tab==="analytics") {
         // Use ref to get current selectedClinic value
         fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
@@ -2846,7 +2848,29 @@ const fetchTemplates = useCallback(async () => {
         {tab==="broadcast"&&<div style={{flex:1,overflowY:"auto",padding:24,background:T.bg}}>
           <div style={{maxWidth:700,margin:"0 auto"}}>
             <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📢 Broadcast</div>
-            <div style={{fontSize:13,color:T.textMuted,marginBottom:24}}>Send WhatsApp template messages to multiple contacts at once.</div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:16}}>Send WhatsApp template messages to multiple contacts at once.</div>
+
+            {/* Admin client selector */}
+            {isAdmin&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:8,color:T.text}}>Select Client</div>
+              <select value={broadcastClinic?.id||""} onChange={e=>{
+                const c = adminOverview.find(x=>x.clinic_id===parseInt(e.target.value));
+                setBroadcastClinic(c||null);
+                setTemplates([]);
+                setSelectedTemplate(null);
+                setBroadcastContacts([]);
+                if(c) fetchTemplates(c.id);
+              }} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit"}}>
+                <option value="">— Select a client —</option>
+                {adminOverview.map(c=>(
+                  <option key={c.clinic_id} value={c.clinic_id}>{c.company_name||c.name}</option>
+                ))}
+              </select>
+              {broadcastClinic&&<div style={{fontSize:11,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Managing: {broadcastClinic.company_name||broadcastClinic.name}</div>}
+            </div>}
+
+            {/* Show content only when client selected (for admin) or always for client users */}
+            {(!isAdmin||broadcastClinic)&&<div>
 
             {/* Template selector */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
@@ -3071,6 +3095,7 @@ const fetchTemplates = useCallback(async () => {
               </div>}
             </div>
           </div>
+          </div>}
         </div>}
 
         {tab==="integrations"&&<IntegrationsTab
@@ -4503,7 +4528,23 @@ This cannot be undone.`,
                         }
                       });
                     }} style={{padding:"7px 10px",borderRadius:10,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                      🗑️
+                      🗑️ Reset
+                    </button>
+                    <button onClick={()=>{
+                      setConfirmModal({
+                        title:`Delete ${clinic.name}?`,
+                        message:`This will PERMANENTLY DELETE the client and ALL their data including contacts, chats, users and settings.
+
+This CANNOT be undone.`,
+                        icon:"⛔",danger:true,confirmText:"Yes, Delete Client",
+                        onConfirm:async()=>{
+                          const r=await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"DELETE",headers:authHeaders()});
+                          if(r.ok){flash(`✅ ${clinic.name} deleted`);load();}
+                          else flash("❌ Delete failed");
+                        }
+                      });
+                    }} style={{padding:"7px 10px",borderRadius:10,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                      ⛔ Delete Client
                     </button>
                   </div>
                 </div>
