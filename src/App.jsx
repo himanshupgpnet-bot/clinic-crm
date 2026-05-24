@@ -2850,19 +2850,42 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{fontSize:13,color:T.textMuted,marginBottom:16}}>Send WhatsApp template messages to multiple contacts at once.</div>
 
             {isAdmin&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:13,marginBottom:8,color:T.text}}>Select Client</div>
-              <select value={broadcastClinic?.id||""} onChange={e=>{
-                const c = adminOverview.find(x=>x.clinic_id===parseInt(e.target.value));
-                setBroadcastClinic(c||null);
-                setTemplates([]);setSelectedTemplate(null);setBroadcastContacts([]);
-                if(c) fetchTemplates();
-              }} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit"}}>
-                <option value="">— Select a client —</option>
-                {adminOverview.map(c=>(
-                  <option key={c.clinic_id} value={c.clinic_id}>{c.company_name||c.name}</option>
-                ))}
-              </select>
-              {broadcastClinic&&<div style={{fontSize:11,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Managing: {broadcastClinic.company_name||broadcastClinic.name}</div>}
+              <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:T.text}}>Select Client</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>{
+                  const isActive = c.active !== false;
+                  const isSelected = broadcastClinic?.clinic_id === c.clinic_id;
+                  return (
+                    <div key={c.clinic_id} onClick={()=>{
+                      if(!isActive) return;
+                      setBroadcastClinic(c);
+                      setTemplates([]);setSelectedTemplate(null);setBroadcastContacts([]);
+                      fetchTemplates();
+                    }} style={{
+                      display:"flex",alignItems:"center",gap:12,padding:"10px 14px",
+                      borderRadius:10,cursor:isActive?"pointer":"not-allowed",
+                      border:`1.5px solid ${isSelected?WA_GREEN:T.border}`,
+                      background:isSelected?`${WA_GREEN}10`:T.card2,
+                      opacity:isActive?1:0.4,
+                      transition:"all .15s"
+                    }}>
+                      <div style={{width:40,height:40,borderRadius:8,overflow:"hidden",flexShrink:0,
+                        background:c.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},#128C7E)`,
+                        display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {c.logo_url
+                          ?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="logo"/>
+                          :<span style={{color:"#fff",fontWeight:700,fontSize:14}}>{(c.company_name||c.name||"?")[0]}</span>}
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontWeight:700,fontSize:14,color:T.text}}>{c.company_name||c.name}</div>
+                        <div style={{fontSize:11,color:T.textMuted}}>{c.industry||"Client"}</div>
+                      </div>
+                      {!isActive&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#fee2e2",color:"#ef4444",fontWeight:700}}>DISABLED</span>}
+                      {isSelected&&<span style={{fontSize:11,color:WA_GREEN,fontWeight:700}}>✅ Selected</span>}
+                    </div>
+                  );
+                })}
+              </div>
             </div>}
 
             {/* Template selector */}
