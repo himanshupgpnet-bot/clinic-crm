@@ -626,8 +626,7 @@ export default function App() {
 
 const fetchTemplates = useCallback(async (clinicId=null) => {
     try {
-      const url = clinicId ? `${API}/api/admin/users/${clinicId}/templates` : `${API}/api/templates`;
-      const r = await fetch(url, {headers:authHeaders()});
+      const r = await fetch(`${API}/api/templates`, {headers:authHeaders()});
       if(r.ok) setTemplates(await r.json());
     } catch {}
   }, []);
@@ -829,7 +828,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   }, []);
 
   useEffect(() => {
-    if(tab==="broadcast") { if(!isAdmin) fetchTemplates(); }
+    if(tab==="broadcast") { fetchTemplates(); }
     if(tab==="analytics") {
       fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
@@ -851,7 +850,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       // Refresh settings (client only — admin uses loadClientSettings)
       if(!isAdmin) fetchSettings();
       // Refresh current tab data
-      if(tab==="broadcast") { if(!isAdmin) fetchTemplates(); }
+      if(tab==="broadcast") { fetchTemplates(); }
     if(tab==="analytics") {
         // Use ref to get current selectedClinic value
         fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
@@ -1503,12 +1502,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
 
         {/* ══ CRM TAB ══ */}
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
         {tab==="crm"&&<>
           <div style={{width:isMobile?"100%":isTablet?260:300,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,
             ...(isMobile&&selected?{display:"none"}:{})}}>
@@ -1731,8 +1724,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </>}
 
         {/* ══ LEADS KANBAN ══ */}
-        </div>
-
         {tab==="leads"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
           {/* Admin sidebar — client picker */}
@@ -1905,8 +1896,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>}
 
         {/* ══ ANALYTICS TAB ══ */}
-        </div>
-
         {tab==="analytics"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
           {/* Admin sidebar — client list */}
@@ -2256,15 +2245,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
           </div>
         </div>}
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
 
         {tab==="bot"&&<div style={{flex:1,display:"flex",flexDirection:"column",maxWidth:680,margin:"0 auto",width:"100%"}}>
           <div style={{padding:"10px 14px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -2299,8 +2279,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <button className="sb" onClick={sendBotMessage} disabled={botLoading||!botInput.trim()} style={{width:40,height:40,borderRadius:"50%",border:"none",background:botLoading||!botInput.trim()?T.card2:WA_GREEN,color:botLoading||!botInput.trim()?T.textFaint:"#fff",fontSize:16,cursor:botLoading?"not-allowed":"pointer",flexShrink:0}}>➤</button>
           </div>
         </div>}
-        </div>
-        </div>
 
         {tab==="kb"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
@@ -2865,26 +2843,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {/* ══ SETTINGS ══ */}
         {/* ══ INTEGRATIONS ══ */}
-        </div>
-        </div>
-        </div>
-        </div>
 
         {tab==="broadcast"&&<div style={{flex:1,overflowY:"auto",padding:24,background:T.bg}}>
           <div style={{maxWidth:700,margin:"0 auto"}}>
             <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📢 Broadcast</div>
             <div style={{fontSize:13,color:T.textMuted,marginBottom:16}}>Send WhatsApp template messages to multiple contacts at once.</div>
 
-            {/* Admin client selector */}
             {isAdmin&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:13,marginBottom:8,color:T.text}}>Select Client</div>
               <select value={broadcastClinic?.id||""} onChange={e=>{
                 const c = adminOverview.find(x=>x.clinic_id===parseInt(e.target.value));
                 setBroadcastClinic(c||null);
-                setTemplates([]);
-                setSelectedTemplate(null);
-                setBroadcastContacts([]);
-                if(c) fetchTemplates(c.id);
+                setTemplates([]);setSelectedTemplate(null);setBroadcastContacts([]);
+                if(c) fetchTemplates();
               }} style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit"}}>
                 <option value="">— Select a client —</option>
                 {adminOverview.map(c=>(
@@ -2893,9 +2864,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </select>
               {broadcastClinic&&<div style={{fontSize:11,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Managing: {broadcastClinic.company_name||broadcastClinic.name}</div>}
             </div>}
-
-            {/* Show content only when client selected (for admin) or always for client users */}
-            {(!isAdmin||broadcastClinic)&&<div>
 
             {/* Template selector */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
@@ -3119,9 +3087,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
               </div>}
             </div>
-          </div>}
-          </div>}
-          </div>}
+          </div>
         </div>}
 
         {tab==="integrations"&&<IntegrationsTab
@@ -3514,15 +3480,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>}
 
         {/* ══ ADMIN TAB ══ */}
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
-
         {tab==="admin"&&isAdmin&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal}/></div>}
+
+      </div>
+    </div>
   );
 }
 
@@ -4564,9 +4525,7 @@ This cannot be undone.`,
                     <button onClick={()=>{
                       setConfirmModal({
                         title:`Delete ${clinic.name}?`,
-                        message:`This will PERMANENTLY DELETE the client and ALL their data including contacts, chats, users and settings.
-
-This CANNOT be undone.`,
+                        message:`This will PERMANENTLY DELETE the client and ALL their data.\n\nThis CANNOT be undone.`,
                         icon:"⛔",danger:true,confirmText:"Yes, Delete Client",
                         onConfirm:async()=>{
                           const r=await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"DELETE",headers:authHeaders()});
@@ -4575,7 +4534,7 @@ This CANNOT be undone.`,
                         }
                       });
                     }} style={{padding:"7px 10px",borderRadius:10,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                      ⛔ Delete Client
+                      ⛔ Delete
                     </button>
                   </div>
                 </div>
