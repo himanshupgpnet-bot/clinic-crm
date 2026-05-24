@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.15";
+const CRM_VERSION = "2.9.16";
 
 // Responsive hook
 function useWindowSize() {
@@ -2861,7 +2861,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div key={c.clinic_id} onClick={()=>{
                   if(!isActive) return;
                   setBroadcastClinic(c);
-                  setTemplates([]);setSelectedTemplate(null);setBroadcastContacts([]);
+                  setTemplates([]);setSelectedTemplate(null);
+                  setBroadcastContacts([]);setBroadcastProgress(null);
                   fetchTemplates(c.clinic_id);
                 }} style={{
                   display:"flex",alignItems:"center",gap:10,padding:"10px 8px",
@@ -2896,6 +2897,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             {/* Template selector */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>1. Select Template</div>
+              {(isAdmin&&broadcastClinic&&templates.length===0)&&<div style={{padding:"12px",background:T.card2,borderRadius:8,fontSize:12,color:T.textMuted,marginBottom:12}}>
+                No templates for this client yet. Click <strong>+ Add Template</strong> to create one.
+              </div>}
               <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
                 <select value={selectedTemplate?.id||""} onChange={e=>{
                   const t = templates.find(x=>x.id===parseInt(e.target.value));
