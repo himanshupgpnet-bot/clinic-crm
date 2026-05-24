@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.14";
+const CRM_VERSION = "2.9.15";
 
 // Responsive hook
 function useWindowSize() {
@@ -626,8 +626,12 @@ export default function App() {
 
 const fetchTemplates = useCallback(async (clinicId=null) => {
     try {
-      const r = await fetch(`${API}/api/templates`, {headers:authHeaders()});
+      const url = clinicId 
+        ? `${API}/api/admin/clients/${clinicId}/templates`
+        : `${API}/api/templates`;
+      const r = await fetch(url, {headers:authHeaders()});
       if(r.ok) setTemplates(await r.json());
+      else setTemplates([]);
     } catch {}
   }, []);
 
@@ -1297,6 +1301,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           {/* Contact list */}
           <div style={{flex:1,overflowY:"auto",padding:"8px 0"}}>
             {contacts.filter(c=>{
+              // Filter by selected clinic for admin
+              if(isAdmin && broadcastClinic && c.clinicId && c.clinicId !== broadcastClinic.clinic_id) return false;
               if(!contactPickerSearch) return true;
               const s = contactPickerSearch.toLowerCase();
               return c.name?.toLowerCase().includes(s)||c.phone?.includes(s);
@@ -2844,49 +2850,48 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {/* ══ SETTINGS ══ */}
         {/* ══ INTEGRATIONS ══ */}
 
-        {tab==="broadcast"&&<div style={{flex:1,overflowY:"auto",padding:24,background:T.bg}}>
-          <div style={{maxWidth:700,margin:"0 auto"}}>
+        {tab==="broadcast"&&<div style={{flex:1,display:"flex",overflow:"hidden",background:T.bg}}>
+          {/* Left sidebar — client selector for admin */}
+          {isAdmin&&<div style={{width:240,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.sidebar,padding:"14px 10px"}}>
+            <div style={{fontWeight:700,fontSize:11,color:T.textFaint,letterSpacing:1,textTransform:"uppercase",marginBottom:10,paddingLeft:6}}>Select Client</div>
+            {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>{
+              const isActive = c.active !== false;
+              const isSelected = broadcastClinic?.clinic_id === c.clinic_id;
+              return (
+                <div key={c.clinic_id} onClick={()=>{
+                  if(!isActive) return;
+                  setBroadcastClinic(c);
+                  setTemplates([]);setSelectedTemplate(null);setBroadcastContacts([]);
+                  fetchTemplates(c.clinic_id);
+                }} style={{
+                  display:"flex",alignItems:"center",gap:10,padding:"10px 8px",
+                  borderRadius:10,cursor:isActive?"pointer":"not-allowed",
+                  background:isSelected?`${WA_GREEN}15`:"transparent",
+                  borderLeft:isSelected?`3px solid ${WA_GREEN}`:"3px solid transparent",
+                  opacity:isActive?1:0.4,marginBottom:4,transition:"all .15s"
+                }}>
+                  <div style={{width:36,height:36,borderRadius:8,overflow:"hidden",flexShrink:0,
+                    background:c.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},#128C7E)`,
+                    display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {c.logo_url
+                      ?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="logo"/>
+                      :<span style={{color:"#fff",fontWeight:700,fontSize:13}}>{(c.company_name||c.name||"?")[0]}</span>}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.name}</div>
+                    <div style={{fontSize:10,color:T.textMuted}}>{c.industry||"Client"}</div>
+                  </div>
+                  {!isActive&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#fee2e2",color:"#ef4444",fontWeight:700}}>OFF</span>}
+                </div>
+              );
+            })}
+          </div>}
+
+          {/* Main content */}
+          <div style={{flex:1,overflowY:"auto",padding:24}}>
+          {(!isAdmin||(isAdmin&&broadcastClinic))&&<div style={{maxWidth:700,margin:"0 auto"}}>
             <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📢 Broadcast</div>
             <div style={{fontSize:13,color:T.textMuted,marginBottom:16}}>Send WhatsApp template messages to multiple contacts at once.</div>
-
-            {isAdmin&&<div style={{background:T.card,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:T.text}}>Select Client</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>{
-                  const isActive = c.active !== false;
-                  const isSelected = broadcastClinic?.clinic_id === c.clinic_id;
-                  return (
-                    <div key={c.clinic_id} onClick={()=>{
-                      if(!isActive) return;
-                      setBroadcastClinic(c);
-                      setTemplates([]);setSelectedTemplate(null);setBroadcastContacts([]);
-                      fetchTemplates();
-                    }} style={{
-                      display:"flex",alignItems:"center",gap:12,padding:"10px 14px",
-                      borderRadius:10,cursor:isActive?"pointer":"not-allowed",
-                      border:`1.5px solid ${isSelected?WA_GREEN:T.border}`,
-                      background:isSelected?`${WA_GREEN}10`:T.card2,
-                      opacity:isActive?1:0.4,
-                      transition:"all .15s"
-                    }}>
-                      <div style={{width:40,height:40,borderRadius:8,overflow:"hidden",flexShrink:0,
-                        background:c.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},#128C7E)`,
-                        display:"flex",alignItems:"center",justifyContent:"center"}}>
-                        {c.logo_url
-                          ?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="logo"/>
-                          :<span style={{color:"#fff",fontWeight:700,fontSize:14}}>{(c.company_name||c.name||"?")[0]}</span>}
-                      </div>
-                      <div style={{flex:1}}>
-                        <div style={{fontWeight:700,fontSize:14,color:T.text}}>{c.company_name||c.name}</div>
-                        <div style={{fontSize:11,color:T.textMuted}}>{c.industry||"Client"}</div>
-                      </div>
-                      {!isActive&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#fee2e2",color:"#ef4444",fontWeight:700}}>DISABLED</span>}
-                      {isSelected&&<span style={{fontSize:11,color:WA_GREEN,fontWeight:700}}>✅ Selected</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>}
 
             {/* Template selector */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
@@ -2972,7 +2977,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     body_text: newTemplate.template_name.trim(),
                     footer_text:"", variables:[], status:"approved"
                   };
-                  const url = isEdit ? `${API}/api/templates/${newTemplate.id}` : `${API}/api/templates`;
+                  const url = isEdit 
+                    ? `${API}/api/templates/${newTemplate.id}`
+                    : (isAdmin && broadcastClinic 
+                        ? `${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`
+                        : `${API}/api/templates`);
                   const method = isEdit ? "PATCH" : "POST";
                   const r = await fetch(url,{method,headers:authHeaders(),body:JSON.stringify(payload)});
                   if(r.ok){
@@ -3110,6 +3119,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
               </div>}
             </div>
+          </div>}
+          {isAdmin&&!broadcastClinic&&<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",color:T.textMuted}}>
+            <div style={{fontSize:48,marginBottom:12}}>👈</div>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client</div>
+            <div style={{fontSize:13}}>Choose from the sidebar to send broadcasts</div>
+          </div>}
           </div>
         </div>}
 
