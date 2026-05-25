@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.19";
+const CRM_VERSION = "2.9.20";
 
 // Responsive hook
 function useWindowSize() {
@@ -156,6 +156,9 @@ export default function App() {
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showRightPanel, setShowRightPanel] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [selectedChats, setSelectedChats] = useState(new Set());
+  const [selectMode, setSelectMode] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [broadcastClinic, setBroadcastClinic] = useState(null);
   const [contactPickerSearch, setContactPickerSearch] = useState("");
@@ -1500,9 +1503,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
 
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
-        <div className="hide-mobile" style={{width:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden"}}>
+        {/* Expand button when sidebar collapsed */}
+        {navCollapsed&&<button className="hide-mobile" onClick={()=>setNavCollapsed(false)}
+          style={{width:24,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,
+            border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+            color:T.textFaint,fontSize:14}}>›</button>}
+        <div className="hide-mobile" style={{width:navCollapsed?0:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",transition:"width .2s",position:"relative"}}>
           {/* Logo + company */}
-          <div style={{padding:"16px 12px 12px",borderBottom:`1px solid ${T.border}`}}>
+          <div style={{padding:"16px 12px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:currentUser?.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},#128C7E)`}}>
                 {currentUser?.logo_url
@@ -1514,6 +1522,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div style={{fontSize:10,color:T.textMuted}}>{isAdmin?"Admin":"WhatsApp"}</div>
               </div>
             </div>
+            <button onClick={()=>setNavCollapsed(true)} title="Collapse sidebar"
+              style={{border:"none",background:"none",cursor:"pointer",color:T.textFaint,fontSize:16,padding:2,flexShrink:0}}>‹</button>
           </div>
 
           {/* Nav items */}
@@ -1565,12 +1575,39 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </div>
                 ))}
               </div>
-              <button onClick={()=>setExportModal(true)} style={{width:"100%",padding:"6px",borderRadius:8,border:`1px solid ${T.border}`,
-                background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",
-                fontFamily:"inherit",marginBottom:4,display:"flex",alignItems:"center",
-                justifyContent:"center",gap:4}}>
-                📥 Download All Chats (CSV)
-              </button>
+              <div style={{display:"flex",gap:4,marginBottom:4}}>
+                <button onClick={()=>setExportModal(true)} style={{flex:1,padding:"6px",borderRadius:8,border:`1px solid ${T.border}`,
+                  background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",
+                  fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+                  📥 CSV
+                </button>
+                <button onClick={()=>{setSelectMode(p=>!p);setSelectedChats(new Set());}} style={{flex:1,padding:"6px",borderRadius:8,
+                  border:`1px solid ${selectMode?"#ef4444":T.border}`,
+                  background:selectMode?"#fef2f2":T.card2,
+                  color:selectMode?"#ef4444":T.textMuted,fontSize:11,cursor:"pointer",
+                  fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+                  {selectMode?"✕ Cancel":"☑️ Select"}
+                </button>
+              </div>
+              {/* Bulk delete bar */}
+              {selectMode&&selectedChats.size>0&&<div style={{display:"flex",gap:4,marginBottom:4}}>
+                <div style={{flex:1,padding:"6px",borderRadius:8,background:"#fef2f2",fontSize:11,color:"#ef4444",fontWeight:600,textAlign:"center"}}>
+                  {selectedChats.size} selected
+                </div>
+                <button onClick={async()=>{
+                  if(!confirm(`Delete ${selectedChats.size} chats? This cannot be undone.`)) return;
+                  const phones = [...selectedChats];
+                  for(const phone of phones){
+                    await fetch(`${API}/api/conversations/${phone.replace("+","")}`,{method:"DELETE",headers:authHeaders()});
+                  }
+                  setSelectedChats(new Set());
+                  setSelectMode(false);
+                  fetchConversations();
+                  if(selected && selectedChats.has(selected.phone)) setSelected(null);
+                }} style={{padding:"6px 10px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  🗑️ Delete
+                </button>
+              </div>}
               <div style={{position:"relative",marginBottom:6}}>
                 <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:12,color:T.textFaint}}>🔍</span>
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
@@ -1619,8 +1656,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {loading&&<div style={{padding:20,textAlign:"center",color:T.textFaint,fontSize:12}}>Loading...</div>}
               {!loading&&filtered.length===0&&<div style={{padding:24,textAlign:"center",color:T.textFaint,fontSize:12}}><div style={{fontSize:32,marginBottom:8}}>💬</div>{backendStatus==="offline"?"⚠️ Backend offline":"No conversations"}</div>}
               {filtered.map(c=>(
-                <div key={c.id} className={`ci ${selected?.id===c.id?"active":""}`} onClick={()=>selectContact(c)}
-                  style={{padding:"9px 12px",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${T.border}40`}}>
+                <div key={c.id} className={`ci ${selected?.id===c.id?"active":""}`} 
+                  onClick={()=>{
+                    if(selectMode){
+                      setSelectedChats(p=>{const n=new Set(p); n.has(c.phone)?n.delete(c.phone):n.add(c.phone); return n;});
+                    } else {
+                      selectContact(c);
+                    }
+                  }}
+                  style={{padding:"9px 12px",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${T.border}40`,
+                    background:selectMode&&selectedChats.has(c.phone)?"#fef2f2":undefined}}>
+                  {selectMode&&<div style={{width:18,height:18,borderRadius:4,border:`2px solid ${selectedChats.has(c.phone)?"#ef4444":T.border}`,
+                    background:selectedChats.has(c.phone)?"#ef4444":"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {selectedChats.has(c.phone)&&<span style={{color:"#fff",fontSize:11,fontWeight:700}}>✓</span>}
+                  </div>}
                   <div style={{width:42,height:42,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
