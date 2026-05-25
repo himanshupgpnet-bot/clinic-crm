@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.17";
+const CRM_VERSION = "2.9.18";
 
 // Responsive hook
 function useWindowSize() {
@@ -155,6 +155,7 @@ export default function App() {
   const [broadcastContacts, setBroadcastContacts] = useState([]);
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastFile, setBroadcastFile] = useState(null);
+  const [showRightPanel, setShowRightPanel] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [broadcastClinic, setBroadcastClinic] = useState(null);
   const [contactPickerSearch, setContactPickerSearch] = useState("");
@@ -1697,6 +1698,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       URL.revokeObjectURL(url);
                     }} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #10b98140",background:"#10b98110",color:"#10b981",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📥 Export</button>
                   <button onClick={()=>setArchiveConfirm(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"1px solid #f59e0b40",background:"#f59e0b10",color:"#f59e0b",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦 Archive</button>
+                  {!isMobile&&<button onClick={()=>setShowRightPanel(p=>!p)} style={{padding:"5px 10px",borderRadius:18,border:`1px solid ${showRightPanel?WA_GREEN:T.border}`,background:showRightPanel?`${WA_GREEN}15`:T.card2,color:showRightPanel?WA_GREEN:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>ℹ️ Info</button>}
                 </div>
               </div>
 
@@ -1761,6 +1763,91 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
             </div>
           ):<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,background:T.chatBg}}><div style={{fontSize:48}}>💬</div><div style={{fontSize:15,fontWeight:600}}>Select a conversation</div></div>}
+
+          {/* RIGHT PANEL — Customer Info */}
+          {selected&&showRightPanel&&!isMobile&&<div style={{width:280,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.card,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+            {/* Header */}
+            <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{fontWeight:700,fontSize:14,color:T.text}}>Customer Info</div>
+              <button onClick={()=>setShowRightPanel(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted}}>✕</button>
+            </div>
+
+            {/* Profile */}
+            <div style={{padding:"16px",borderBottom:`1px solid ${T.border}`,textAlign:"center"}}>
+              {selected.profile_pic_url
+                ?<img src={selected.profile_pic_url} style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",marginBottom:8}} alt="profile"/>
+                :<div style={{width:64,height:64,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:700,color:"#fff",margin:"0 auto 8px"}}>{selected.avatar}</div>}
+              <div style={{fontWeight:700,fontSize:16,color:T.text}}>{selected.name}</div>
+              <div style={{fontSize:12,color:T.textMuted}}>{selected.phone}</div>
+              {selected.last_seen&&<div style={{fontSize:11,color:T.textFaint,marginTop:4}}>Last seen: {new Date(selected.last_seen).toLocaleString()}</div>}
+            </div>
+
+            {/* Ad Source */}
+            {selected.ad_source&&<div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>📢 Ad Source</div>
+              <div style={{background:`${WA_GREEN}10`,borderRadius:8,padding:"8px 10px"}}>
+                <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>{selected.ad_headline||"Facebook/Instagram Ad"}</div>
+                <div style={{fontSize:11,color:T.textMuted}}>{selected.ad_source_type||"ad"}</div>
+                {selected.ad_id&&<div style={{fontSize:10,color:T.textFaint,marginTop:2}}>ID: {selected.ad_id}</div>}
+              </div>
+            </div>}
+
+            {/* Lead Info */}
+            <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>🎯 Lead Info</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:12,color:T.textMuted}}>Score</span>
+                  <span style={{fontSize:12,fontWeight:700,color:selected.lead==="hot"?"#ef4444":selected.lead==="warm"?"#f59e0b":"#6b7280"}}>{selected.lead_score||0}/100 {selected.lead==="hot"?"🔥":selected.lead==="warm"?"🟡":"❄️"}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:12,color:T.textMuted}}>Pipeline</span>
+                  <span style={{fontSize:12,fontWeight:600,color:T.text,textTransform:"capitalize"}}>{selected.pipeline_stage||"new"}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:12,color:T.textMuted}}>Booking</span>
+                  <span style={{fontSize:12,fontWeight:600,color:selected.booking_confirmed?WA_GREEN:T.textMuted}}>{selected.booking_confirmed?"✅ Confirmed":"Pending"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Location */}
+            {selected.location_lat&&<div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>📍 Location</div>
+              <div style={{fontSize:12,color:T.text,marginBottom:4}}>{selected.location_name||"Location shared"}</div>
+              <a href={`https://maps.google.com/?q=${selected.location_lat},${selected.location_lng}`} target="_blank" rel="noreferrer"
+                style={{fontSize:11,color:WA_GREEN,textDecoration:"none"}}>📍 Open in Maps</a>
+            </div>}
+
+            {/* Message Stats */}
+            <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>💬 Conversation</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontSize:12,color:T.textMuted}}>Total messages</span>
+                  <span style={{fontSize:12,fontWeight:600,color:T.text}}>{selected.messages?.length||0}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontSize:12,color:T.textMuted}}>Follow-ups sent</span>
+                  <span style={{fontSize:12,fontWeight:600,color:T.text}}>{selected.followup_count||0}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontSize:12,color:T.textMuted}}>Read receipts</span>
+                  <span style={{fontSize:12,fontWeight:600,color:T.text}}>{selected.messages?.filter(m=>m.is_read)?.length||0} read</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Reactions */}
+            {selected.messages?.some(m=>m.reaction)&&<div style={{padding:"12px 16px"}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>👆 Reactions</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {selected.messages?.filter(m=>m.reaction).map((m,i)=>(
+                  <div key={i} style={{background:T.card2,borderRadius:8,padding:"4px 8px",fontSize:13}}>{m.reaction}</div>
+                ))}
+              </div>
+            </div>}
+          </div>}
         </>}
 
         {/* ══ LEADS KANBAN ══ */}
