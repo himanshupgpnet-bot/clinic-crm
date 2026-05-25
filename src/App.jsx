@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.16";
+const CRM_VERSION = "2.9.17";
 
 // Responsive hook
 function useWindowSize() {
@@ -1171,6 +1171,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         .kc{border-radius:12px;min-height:200px;transition:background .15s}.kc.over{background:${dark?"#1a2e23":"#dcfce7"}!important}
         .kcard{cursor:grab;transition:transform .15s,box-shadow .15s}.kcard:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.15)}.kcard:active{cursor:grabbing}
         .cc{background:${T.card};border:1px solid ${T.border};border-radius:14px;padding:20px;margin-bottom:16px}
+        @media(min-width:640px){
+          .hide-desktop{display:none!important}
+        }
         @media(max-width:639px){
           .hide-mobile{display:none!important}
           .mobile-full{width:100%!important}
@@ -1400,8 +1403,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
       {/* NAV */}
       <div style={navStyle}>
-        {/* Hamburger */}
-        <button className="tb" onClick={()=>setMenuOpen(m=>!m)}
+        {/* Hamburger - mobile only */}
+        <button className="tb hide-desktop" onClick={()=>setMenuOpen(m=>!m)}
           style={{width:38,height:38,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4,padding:8,flexShrink:0}}>
           {[0,1,2].map(i=><div key={i} style={{width:18,height:2,background:menuOpen?WA_GREEN:T.textMuted,borderRadius:2,transition:"all .2s",transform:menuOpen?(i===0?"rotate(45deg) translate(4px,4px)":i===2?"rotate(-45deg) translate(4px,-4px)":"scaleX(0)"):"none"}}/>)}
         </button>
@@ -1418,19 +1421,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>
         </div>
 
-        {/* Desktop tabs */}
-        <div className="hide-mobile" style={{display:"flex",gap:2}}>
-          {TABS.filter(t=>!t.adminOnly||isAdmin).filter(t=>canSee(t.id)).map(t=>(
-            <button key={t.id} className="tb" onClick={()=>safeSetTab(t.id)}
-              style={{display:"flex",alignItems:"center",gap:4,padding:"6px 10px",borderRadius:18,
-                background:tab===t.id?`${WA_GREEN}18`:"transparent",
-                color:tab===t.id?WA_GREEN:T.textMuted,fontWeight:tab===t.id?700:500,fontSize:12}}>
-              <span>{t.icon}</span><span>{t.label}</span>
-              {t.id==="crm"&&totalUnread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700}}>{totalUnread}</span>}
-              {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700}}>{hotCount+warmCount}</span>}
-            </button>
-          ))}
-        </div>
+
 
         <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:8}}>
           <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11}}>
@@ -1506,6 +1497,49 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       </>}
 
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+
+        {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
+        <div className="hide-mobile" style={{width:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden"}}>
+          {/* Logo + company */}
+          <div style={{padding:"16px 12px 12px",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:currentUser?.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},#128C7E)`}}>
+                {currentUser?.logo_url
+                  ?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="logo"/>
+                  :<span style={{fontSize:14}}>🤖</span>}
+              </div>
+              <div style={{minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Nexora CRM"}</div>
+                <div style={{fontSize:10,color:T.textMuted}}>{isAdmin?"Admin":"WhatsApp"}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Nav items */}
+          <div style={{flex:1,padding:"8px 8px",display:"flex",flexDirection:"column",gap:2}}>
+            {TABS.filter(t=>!t.adminOnly||isAdmin).filter(t=>canSee(t.id)).map(t=>(
+              <button key={t.id} onClick={()=>safeSetTab(t.id)}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",width:"100%",
+                  background:tab===t.id?`${WA_GREEN}15`:"transparent",
+                  borderLeft:tab===t.id?`3px solid ${WA_GREEN}`:"3px solid transparent",
+                  color:tab===t.id?WA_GREEN:T.text,fontWeight:tab===t.id?700:400,fontSize:13}}>
+                <span style={{fontSize:16,flexShrink:0}}>{t.icon}</span>
+                <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.label}</span>
+                {t.id==="crm"&&totalUnread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{totalUnread}</span>}
+                {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{hotCount+warmCount}</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Bottom info */}
+          <div style={{padding:"10px 12px",borderTop:`1px solid ${T.border}`,fontSize:10,color:T.textFaint}}>
+            <div>v{CRM_VERSION}</div>
+            <div style={{marginTop:2}}>
+              <span style={{color:backendStatus==="online"?WA_GREEN:"#ef4444"}}>● </span>
+              {backendStatus==="online"?"Live":"Offline"}
+            </div>
+          </div>
+        </div>
 
         {/* ══ CRM TAB ══ */}
         {tab==="crm"&&<>
