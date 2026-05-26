@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.21";
+const CRM_VERSION = "2.9.22";
 
 // Responsive hook
 function useWindowSize() {
@@ -898,7 +898,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   async function fetchArchived() {
     try {
       const r = await fetch(`${API}/api/conversations?archived=true`,{headers:authHeaders()});
-      if(r.ok) setArchivedContacts(await r.json());
+      if(r.ok) {
+        const all = await r.json();
+        setArchivedContacts(all.filter(c=>c.archived===true));
+      }
     } catch {}
   }
 
@@ -1641,7 +1644,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
               {/* Archived contacts list */}
               {showArchived&&<div style={{flex:1,overflowY:"auto"}}>
-                <div style={{padding:"8px 12px",fontSize:11,color:T.textFaint,fontWeight:600}}>📦 ARCHIVED ({archivedContacts.length})</div>
+                <div style={{padding:"8px 12px",fontSize:11,color:T.textFaint,fontWeight:600}}>📦 ARCHIVED ({archivedContacts.filter(c=>c.archived===true).length})</div>
                 {archivedContacts.length===0&&<div style={{padding:"16px",textAlign:"center",fontSize:12,color:T.textFaint}}>No archived contacts</div>}
                 {archivedContacts.map(c=>(
                   <div key={c.id} style={{padding:"10px 12px",borderBottom:`1px solid ${T.border}40`,display:"flex",alignItems:"center",gap:8}}>
