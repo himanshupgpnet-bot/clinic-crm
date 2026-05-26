@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.22";
+const CRM_VERSION = "2.9.23";
 
 // Responsive hook
 function useWindowSize() {
@@ -1217,6 +1217,57 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       `}</style>
 
       {/* EXPORT CSV MODAL */}
+      {/* ARCHIVED CONTACTS MODAL */}
+      {showArchived&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}}>
+        <div style={{background:T.card,borderRadius:20,width:"100%",maxWidth:480,maxHeight:"80vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
+          {/* Header */}
+          <div style={{padding:"18px 20px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <div style={{fontWeight:800,fontSize:16,color:T.text}}>📦 Archived Contacts</div>
+              <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{archivedContacts.length} archived contact{archivedContacts.length!==1?"s":""}</div>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              {archivedContacts.length>0&&<button onClick={async()=>{
+                if(!confirm(`Restore all ${archivedContacts.length} contacts?`)) return;
+                for(const c of archivedContacts){
+                  await fetch(`${API}/api/conversations/${c.id}/archive`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({archived:false})});
+                }
+                setArchivedContacts([]);
+                fetchConversations();
+              }} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                ↩️ Restore All
+              </button>}
+              <button onClick={()=>setShowArchived(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:20,color:T.textMuted}}>✕</button>
+            </div>
+          </div>
+          {/* List */}
+          <div style={{flex:1,overflowY:"auto"}}>
+            {archivedContacts.length===0&&<div style={{padding:40,textAlign:"center",color:T.textFaint}}>
+              <div style={{fontSize:40,marginBottom:8}}>📭</div>
+              <div style={{fontSize:14,fontWeight:600}}>No archived contacts</div>
+            </div>}
+            {archivedContacts.map(c=>(
+              <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 20px",borderBottom:`1px solid ${T.border}`,
+                transition:"background .15s"}}>
+                <div style={{width:40,height:40,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||c.phone}</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{c.phone}</div>
+                  {c.archived_by&&<div style={{fontSize:10,color:T.textFaint,marginTop:1}}>Archived by {c.archived_by} {c.archived_at?`· ${new Date(c.archived_at).toLocaleDateString("en-MY")}`:""}</div>}
+                </div>
+                <button onClick={async()=>{
+                  await fetch(`${API}/api/conversations/${c.id}/archive`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({archived:false})});
+                  setArchivedContacts(p=>p.filter(x=>x.id!==c.id));
+                  fetchConversations();
+                }} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:"transparent",color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
+                  ↩️ Restore
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>}
+
       {exportModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}}>
         <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:480,boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
           <div style={{fontWeight:800,fontSize:18,marginBottom:4,color:T.text}}>📥 Download Chats</div>
@@ -1642,24 +1693,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>{setInboxFilter(f.id);setShowArchived(false);}} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id&&!showArchived?WA_GREEN:T.input,color:inboxFilter===f.id&&!showArchived?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
                 <button onClick={()=>{setShowArchived(p=>!p);if(!archivedContacts.length)fetchArchived();}} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:showArchived?WA_GREEN:T.input,color:showArchived?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>📦</button>
               </div>
-              {/* Archived contacts list */}
-              {showArchived&&<div style={{flex:1,overflowY:"auto"}}>
-                <div style={{padding:"8px 12px",fontSize:11,color:T.textFaint,fontWeight:600}}>📦 ARCHIVED ({archivedContacts.filter(c=>c.archived===true).length})</div>
-                {archivedContacts.length===0&&<div style={{padding:"16px",textAlign:"center",fontSize:12,color:T.textFaint}}>No archived contacts</div>}
-                {archivedContacts.map(c=>(
-                  <div key={c.id} style={{padding:"10px 12px",borderBottom:`1px solid ${T.border}40`,display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{width:36,height:36,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:12,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
-                      <div style={{fontSize:10,color:T.textFaint}}>{c.phone}</div>
-                      {c.archived_by&&<div style={{fontSize:10,color:T.textFaint}}>by {c.archived_by}</div>}
-                    </div>
-                    <button onClick={()=>unarchiveContact(c.id)} style={{padding:"4px 8px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:"transparent",color:WA_GREEN,fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
-                      ↩️ Restore
-                    </button>
-                  </div>
-                ))}
-              </div>}
+
               {inboxFilter==="manual"&&!showArchived&&<div style={{marginBottom:6}}>
                 <button onClick={()=>{
                   const offContacts = filtered.filter(c=>!c.botActive);
