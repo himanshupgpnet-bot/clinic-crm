@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.24";
+const CRM_VERSION = "2.9.25";
 
 // Responsive hook
 function useWindowSize() {
@@ -1206,6 +1206,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           .cc{padding:14px!important}
           .kc{min-height:120px!important}
           input,textarea,select{font-size:16px!important} /* prevent iOS zoom */
+          .mobile-chat-input{padding-bottom:env(safe-area-inset-bottom,12px)!important}
+          .mobile-topbar{padding-top:env(safe-area-inset-top,0px)!important}
+          .contacts-list{padding-bottom:70px!important}
+          body{overscroll-behavior:none}
         }
         @media(max-width:1023px){
           .hide-tablet{display:none!important}
@@ -1215,6 +1219,34 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           .tablet-stack{flex-direction:column!important}
         }
       `}</style>
+
+      {/* MOBILE BOTTOM NAV */}
+      {isMobile&&<div style={{position:"fixed",bottom:0,left:0,right:0,
+        background:T.nav,borderTop:`1px solid ${T.border}`,
+        display:"flex",zIndex:100,
+        paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
+        {[
+          {id:"crm",icon:"💬",label:"Inbox",badge:totalUnread},
+          {id:"leads",icon:"🎯",label:"Leads",badge:(hotCount+warmCount)||0},
+          {id:"analytics",icon:"📊",label:"Stats"},
+          {id:"settings",icon:"⚙️",label:"Settings"},
+          ...(isAdmin?[{id:"admin",icon:"👑",label:"Admin"}]:[]),
+        ].filter(t=>canSee(t.id)).map(t=>(
+          <button key={t.id} onClick={()=>safeSetTab(t.id)}
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
+              justifyContent:"center",padding:"8px 0",border:"none",
+              background:"transparent",cursor:"pointer",position:"relative",
+              color:tab===t.id?WA_GREEN:T.textMuted,fontFamily:"inherit"}}>
+            <span style={{fontSize:20}}>{t.icon}</span>
+            <span style={{fontSize:9,fontWeight:tab===t.id?700:400,marginTop:2}}>{t.label}</span>
+            {t.badge>0&&<span style={{position:"absolute",top:4,right:"50%",transform:"translateX(160%)",
+              background:"#ef4444",color:"#fff",borderRadius:10,
+              padding:"1px 4px",fontSize:9,fontWeight:700,minWidth:14,textAlign:"center"}}>
+              {t.badge>99?"99+":t.badge}
+            </span>}
+          </button>
+        ))}
+      </div>}
 
       {/* EXPORT CSV MODAL */}
       {/* ARCHIVED CONTACTS MODAL */}
@@ -1879,11 +1911,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 })}
                 <div ref={messagesEndRef}/>
               </div>
-              <div style={{padding:"8px 10px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:6,alignItems:"flex-end"}}>
+              <div className="mobile-chat-input" style={{padding:"8px 10px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:6,alignItems:"flex-end",
+                paddingBottom:isMobile?"calc(70px + env(safe-area-inset-bottom, 8px))":"8px"}}>
                 <textarea value={reply} onChange={e=>setReply(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAgentReply();}}}
                   placeholder={selected.botActive?"Bot is active — toggle off to reply":"Type a message..."} disabled={selected.botActive} rows={1}
-                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:20,padding:"9px 14px",color:selected.botActive?T.textFaint:T.text,fontSize:13,maxHeight:100}}/>
-                <button className="sb" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()} style={{width:40,height:40,borderRadius:"50%",border:"none",background:selected.botActive||!reply.trim()?T.card2:WA_GREEN,color:selected.botActive||!reply.trim()?T.textFaint:"#fff",fontSize:16,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0}}>➤</button>
+                  style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:20,padding:"9px 14px",color:selected.botActive?T.textFaint:T.text,fontSize:isMobile?15:13,maxHeight:100}}/>
+                <button className="sb" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()} style={{width:isMobile?44:40,height:isMobile?44:40,borderRadius:"50%",border:"none",background:selected.botActive||!reply.trim()?T.card2:WA_GREEN,color:selected.botActive||!reply.trim()?T.textFaint:"#fff",fontSize:18,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0}}>➤</button>
               </div>
             </div>
           ):<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,background:T.chatBg}}><div style={{fontSize:48}}>💬</div><div style={{fontSize:15,fontWeight:600}}>Select a conversation</div></div>}
