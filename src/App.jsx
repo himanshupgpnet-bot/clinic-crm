@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.20";
+const CRM_VERSION = "2.9.21";
 
 // Responsive hook
 function useWindowSize() {
@@ -146,6 +146,8 @@ export default function App() {
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
   const [archiveConfirm, setArchiveConfirm] = useState(null);
+  const [archivedContacts, setArchivedContacts] = useState([]);
+  const [showArchived, setShowArchived] = useState(false);
   const [bulkBotModal, setBulkBotModal] = useState(null);
   const [exportModal, setExportModal] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -885,11 +887,28 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   async function archiveContact(id) {
     try {
-      await fetch(`${API}/api/conversations/${id}/archive`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({archived:true})});
+      await fetch(`${API}/api/conversations/${id}/archive`,{method:"PATCH",headers:authHeaders(),
+        body:JSON.stringify({archived:true, archived_by:currentUser?.username||"unknown"})});
       setContacts(p=>p.filter(x=>x.id!==id));
       if(selected?.id===id) setSelected(null);
     } catch {}
     setArchiveConfirm(null);
+  }
+
+  async function fetchArchived() {
+    try {
+      const r = await fetch(`${API}/api/conversations?archived=true`,{headers:authHeaders()});
+      if(r.ok) setArchivedContacts(await r.json());
+    } catch {}
+  }
+
+  async function unarchiveContact(phone) {
+    try {
+      await fetch(`${API}/api/conversations/${phone}/archive`,{method:"PATCH",headers:authHeaders(),
+        body:JSON.stringify({archived:false})});
+      setArchivedContacts(p=>p.filter(x=>x.id!==phone));
+      fetchConversations();
+    } catch {}
   }
 
   async function sendAgentReply() {
@@ -1617,9 +1636,28 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {["all","open","resolved"].map(f=><button key={f} onClick={()=>setFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:filter===f?WA_GREEN:T.input,color:filter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,textTransform:"capitalize",fontFamily:"inherit"}}>{f}</button>)}
               </div>
               <div style={{display:"flex",gap:3,marginBottom:5}}>
-                {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>setInboxFilter(f.id)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id?WA_GREEN:T.input,color:inboxFilter===f.id?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
+                {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>{setInboxFilter(f.id);setShowArchived(false);}} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id&&!showArchived?WA_GREEN:T.input,color:inboxFilter===f.id&&!showArchived?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
+                <button onClick={()=>{setShowArchived(p=>!p);if(!archivedContacts.length)fetchArchived();}} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:showArchived?WA_GREEN:T.input,color:showArchived?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>📦</button>
               </div>
-              {inboxFilter==="manual"&&<div style={{marginBottom:6}}>
+              {/* Archived contacts list */}
+              {showArchived&&<div style={{flex:1,overflowY:"auto"}}>
+                <div style={{padding:"8px 12px",fontSize:11,color:T.textFaint,fontWeight:600}}>📦 ARCHIVED ({archivedContacts.length})</div>
+                {archivedContacts.length===0&&<div style={{padding:"16px",textAlign:"center",fontSize:12,color:T.textFaint}}>No archived contacts</div>}
+                {archivedContacts.map(c=>(
+                  <div key={c.id} style={{padding:"10px 12px",borderBottom:`1px solid ${T.border}40`,display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:36,height:36,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:12,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:600,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                      <div style={{fontSize:10,color:T.textFaint}}>{c.phone}</div>
+                      {c.archived_by&&<div style={{fontSize:10,color:T.textFaint}}>by {c.archived_by}</div>}
+                    </div>
+                    <button onClick={()=>unarchiveContact(c.id)} style={{padding:"4px 8px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:"transparent",color:WA_GREEN,fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
+                      ↩️ Restore
+                    </button>
+                  </div>
+                ))}
+              </div>}
+              {inboxFilter==="manual"&&!showArchived&&<div style={{marginBottom:6}}>
                 <button onClick={()=>{
                   const offContacts = filtered.filter(c=>!c.botActive);
                   if(offContacts.length===0) return;
@@ -2003,7 +2041,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {id:"hot",  label:"🔥 Hot Leads",  sub:"Ready to close",    color:"#ef4444", bg:"#fef2f2", dark:"#2d1515", border:"#fca5a5"},
                 {id:"warm", label:"🟡 Warm Leads", sub:"Needs nurturing",   color:"#f59e0b", bg:"#fffbeb", dark:"#2d2010", border:"#fcd34d"},
                 {id:"cold", label:"🔵 Browsing",   sub:"Low priority",      color:"#3b82f6", bg:"#eff6ff", dark:"#0f1e35", border:"#93c5fd"},
-                {id:"done", label:"✅ Done",        sub:"Auto-archives 24h", color:"#22c55e", bg:"#f0fdf4", dark:"#0f2d1a", border:"#86efac"},
+                {id:"done", label:"✅ Done",        sub:"Booking confirmed", color:"#22c55e", bg:"#f0fdf4", dark:"#0f2d1a", border:"#86efac"},
               ].map(col=>{
                 const colContacts = contacts.filter(c=>{
                   if(col.id==="done") return (c.pipelineStage||"new")==="done";
