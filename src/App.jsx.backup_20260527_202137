@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.26";
+const CRM_VERSION = "2.9.25";
 
 // Responsive hook
 function useWindowSize() {
@@ -158,8 +158,6 @@ export default function App() {
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showRightPanel, setShowRightPanel] = useState(false);
-  const [adHistory, setAdHistory] = useState([]);
-  const [adHistoryPage, setAdHistoryPage] = useState(0);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [selectedChats, setSelectedChats] = useState(new Set());
   const [selectMode, setSelectMode] = useState(false);
@@ -881,20 +879,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(p==="90d") { setDateFrom(daysAgo(89)); setDateTo(t); }
   }
 
-  async function fetchAdHistory(phone) {
-    try {
-      const p = phone.replace("+","");
-      const r = await fetch(`${API}/api/conversations/${p}/ad-history`, {headers:authHeaders()});
-      if(r.ok) { setAdHistory(await r.json()); setAdHistoryPage(0); }
-      else setAdHistory([]);
-    } catch { setAdHistory([]); }
-  }
-
   async function selectContact(c) {
     setSelected(c); setMenuOpen(false);
     try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders()}); } catch {}
     setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:0}:x));
-    fetchAdHistory(c.phone);
   }
 
   async function archiveContact(id) {
@@ -1962,59 +1950,22 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
             </div>
 
-            {/* Ad/Lead Source with History */}
+            {/* Ad/Lead Source */}
             <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:1}}>📢 Lead Source</div>
-                {adHistory.length>0&&<div style={{fontSize:10,color:T.textMuted}}>{adHistory.length} ad{adHistory.length>1?"s":""} total</div>}
-              </div>
-              {adHistory.length>0 ? (
-                <div>
-                  {/* Pagination dots */}
-                  {adHistory.length>1&&<div style={{display:"flex",gap:4,marginBottom:8,justifyContent:"center"}}>
-                    {adHistory.map((_,i)=>(
-                      <button key={i} onClick={()=>setAdHistoryPage(i)}
-                        style={{width:8,height:8,borderRadius:"50%",border:"none",cursor:"pointer",padding:0,
-                          background:adHistoryPage===i?WA_GREEN:T.border}}>
-                      </button>
-                    ))}
-                  </div>}
-                  {/* Current page ad */}
-                  {adHistory[adHistoryPage]&&<div style={{background:`${WA_GREEN}10`,borderRadius:8,padding:"10px 12px",border:`1px solid ${WA_GREEN}30`}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <div style={{fontSize:11,fontWeight:700,color:WA_GREEN}}>
-                        {adHistoryPage===0?"Latest":"#"+(adHistory.length-adHistoryPage)}
-                      </div>
-                      <div style={{fontSize:10,color:T.textFaint}}>
-                        {new Date(adHistory[adHistoryPage].created_at).toLocaleDateString("en-MY")}
-                      </div>
-                    </div>
-                    <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:4}}>
-                      📌 {adHistory[adHistoryPage].ad_headline||"Ad"}
-                    </div>
-                    {adHistory[adHistoryPage].first_message&&<div style={{fontSize:11,color:T.textMuted,marginBottom:4,fontStyle:"italic"}}>
-                      "{adHistory[adHistoryPage].first_message}"
-                    </div>}
-                    {adHistory[adHistoryPage].ad_id&&<div style={{fontSize:10,color:T.textFaint,marginBottom:2}}>
-                      Ad ID: {adHistory[adHistoryPage].ad_id}
-                    </div>}
-                    {adHistory[adHistoryPage].ad_source&&<a href={adHistory[adHistoryPage].ad_source} target="_blank" rel="noreferrer"
-                      style={{fontSize:11,color:WA_GREEN,textDecoration:"none"}}>🔗 View Ad</a>}
-                    {adHistory.length>1&&<div style={{display:"flex",gap:4,marginTop:8}}>
-                      <button onClick={()=>setAdHistoryPage(p=>Math.min(p+1,adHistory.length-1))} disabled={adHistoryPage>=adHistory.length-1}
-                        style={{flex:1,padding:"4px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>
-                        ← Older
-                      </button>
-                      <button onClick={()=>setAdHistoryPage(p=>Math.max(p-1,0))} disabled={adHistoryPage<=0}
-                        style={{flex:1,padding:"4px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>
-                        Newer →
-                      </button>
-                    </div>}
-                  </div>}
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>📢 Lead Source</div>
+              {selected.ad_source||selected.ad_headline||selected.ad_id
+                ?<div style={{background:`${WA_GREEN}10`,borderRadius:8,padding:"10px 12px",border:`1px solid ${WA_GREEN}30`}}>
+                  <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:4}}>
+                    {selected.ad_source_type==="ad"?"📱 Facebook/Instagram Ad":
+                     selected.ad_source_type==="post"?"📝 Social Post":
+                     selected.ad_source_type?"🔗 "+selected.ad_source_type:"📢 Paid Ad"}
+                  </div>
+                  {selected.ad_headline&&<div style={{fontSize:12,color:T.text,marginBottom:4}}>📌 {selected.ad_headline}</div>}
+                  {selected.ad_id&&<div style={{fontSize:11,color:T.textMuted,marginBottom:2}}>Ad ID: {selected.ad_id}</div>}
+                  {selected.ad_source&&<a href={selected.ad_source} target="_blank" rel="noreferrer" style={{fontSize:11,color:WA_GREEN,textDecoration:"none",wordBreak:"break-all"}}>🔗 View Ad</a>}
                 </div>
-              ):(
-                <div style={{fontSize:12,color:T.textFaint,fontStyle:"italic"}}>Organic / Direct message</div>
-              )}
+                :<div style={{fontSize:12,color:T.textFaint,fontStyle:"italic"}}>Organic / Direct message</div>
+              }
             </div>
 
             {/* Lead Details */}
