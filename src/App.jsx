@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.26";
+const CRM_VERSION = "2.9.27";
 
 // Responsive hook
 function useWindowSize() {
@@ -159,6 +159,7 @@ export default function App() {
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [adHistory, setAdHistory] = useState([]);
+  const manualUnread = useRef(new Set()); // track manually marked unread contacts
   const [adHistoryPage, setAdHistoryPage] = useState(0);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [selectedChats, setSelectedChats] = useState(new Set());
@@ -618,7 +619,7 @@ export default function App() {
       const data = await res.json();
       setContacts(prev => {
         return data.map(newC => {
-          if (selected?.id === newC.id) return {...newC, unread: 0};
+          if (selected?.id === newC.id && !manualUnread.current.has(newC.id)) return {...newC, unread: 0};
           return newC;
         });
       });
@@ -1814,7 +1815,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {/* Mark as unread button — shows on hover */}
                   <button className="unread-btn" onClick={e=>{
                     e.stopPropagation();
-                    setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:x.unread>0?0:1}:x));
+                    const newUnread = c.unread>0?0:1;
+                    if(newUnread>0) {
+                      manualUnread.current.add(c.id);
+                    } else {
+                      manualUnread.current.delete(c.id);
+                    }
+                    setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:newUnread}:x));
+                    // Persist to backend
+                    fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders(),
+                      body:JSON.stringify({unread:newUnread})}).catch(()=>{});
                   }} title={c.unread>0?"Mark as read":"Mark as unread"}
                     style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",
                       background:"none",border:"none",cursor:"pointer",
