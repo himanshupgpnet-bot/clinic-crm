@@ -1,34 +1,10 @@
-// Nexora CRM Service Worker v1.0
-const CACHE_NAME = 'nexora-crm-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-];
-
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
-  );
-  self.skipWaiting();
-});
-
+// Nexora CRM Service Worker - No cache, always fresh
+self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
-  );
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))));
   self.clients.claim();
 });
-
+// Always network - never cache
 self.addEventListener('fetch', event => {
-  // Network first for API calls
-  if (event.request.url.includes('/api/')) {
-    event.respondWith(fetch(event.request).catch(() => new Response('offline', {status: 503})));
-    return;
-  }
-  // Cache first for static assets
-  event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
-  );
+  event.respondWith(fetch(event.request));
 });

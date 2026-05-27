@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.28";
+const CRM_VERSION = "2.9.29";
 
 // Responsive hook
 function useWindowSize() {
@@ -1127,10 +1127,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(!inboxDateFilter) return true;
     return c.lastDate===inboxDateFilter;
   }).sort((a,b)=>{
-    // Sort by latest message date+time only — newest first
-    const ta = a.lastDate&&a.lastTime ? new Date(`${a.lastDate}T${a.lastTime}`) : new Date(0);
-    const tb = b.lastDate&&b.lastTime ? new Date(`${b.lastDate}T${b.lastTime}`) : new Date(0);
-    return tb-ta;
+    // Sort by latest message — newest first
+    // lastDate is dd/mm/yyyy, lastTime is HH:MM AM/PM
+    const parseDate = (d,t) => {
+      if(!d) return new Date(0);
+      try {
+        const parts = d.split("/");
+        if(parts.length===3) {
+          const iso = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          return t ? new Date(`${iso} ${t}`) : new Date(iso);
+        }
+        return new Date(d+(t?" "+t:""));
+      } catch { return new Date(0); }
+    };
+    return parseDate(b.lastDate,b.lastTime) - parseDate(a.lastDate,a.lastTime);
   });
 
   const totalUnread = contacts.reduce((s,c)=>s+c.unread,0);
