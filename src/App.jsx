@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.27";
+const CRM_VERSION = "2.9.28";
 
 // Responsive hook
 function useWindowSize() {
@@ -893,6 +893,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   async function selectContact(c) {
     setSelected(c); setMenuOpen(false);
+    // Clear manual unread flag when contact is clicked
+    manualUnread.current.delete(c.id);
     try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders()}); } catch {}
     setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:0}:x));
     fetchAdHistory(c.phone);
@@ -1125,9 +1127,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(!inboxDateFilter) return true;
     return c.lastDate===inboxDateFilter;
   }).sort((a,b)=>{
-    if(b.unread!==a.unread) return b.unread-a.unread;
-    const ta = a.lastDate&&a.lastTime ? new Date(`${a.lastDate} ${a.lastTime}`) : new Date(0);
-    const tb = b.lastDate&&b.lastTime ? new Date(`${b.lastDate} ${b.lastTime}`) : new Date(0);
+    // Sort by latest message date+time only — newest first
+    const ta = a.lastDate&&a.lastTime ? new Date(`${a.lastDate}T${a.lastTime}`) : new Date(0);
+    const tb = b.lastDate&&b.lastTime ? new Date(`${b.lastDate}T${b.lastTime}`) : new Date(0);
     return tb-ta;
   });
 
