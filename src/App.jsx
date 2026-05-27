@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.29";
+const CRM_VERSION = "2.9.30";
 
 // Responsive hook
 function useWindowSize() {
@@ -1127,8 +1127,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(!inboxDateFilter) return true;
     return c.lastDate===inboxDateFilter;
   }).sort((a,b)=>{
-    // Sort by latest message — newest first
-    // lastDate is dd/mm/yyyy, lastTime is HH:MM AM/PM
+    // Unread first, then by latest message date/time
+    if((b.unread>0)!==(a.unread>0)) return (b.unread>0)?1:-1;
     const parseDate = (d,t) => {
       if(!d) return new Date(0);
       try {
