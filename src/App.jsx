@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.33";
+const CRM_VERSION = "2.9.34";
 
 // Responsive hook
 function useWindowSize() {
@@ -1805,29 +1805,51 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     background:selectedChats.has(c.phone)?"#ef4444":"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
                     {selectedChats.has(c.phone)&&<span style={{color:"#fff",fontSize:11,fontWeight:700}}>✓</span>}
                   </div>}
-                  <div style={{width:42,height:42,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
+                  {/* Avatar with online indicator */}
+                  <div style={{position:"relative",flexShrink:0}}>
+                    <div style={{width:44,height:44,borderRadius:"50%",background:getColor(c.name||"?"),
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontWeight:700,fontSize:14,color:"#fff",
+                      boxShadow:`0 0 0 2px ${selected?.id===c.id?WA_GREEN:"transparent"}`}}>
+                      {c.avatar||"?"}
+                    </div>
+                    {c.unread>0&&<div style={{position:"absolute",top:-2,right:-2,
+                      background:WA_GREEN,color:"#fff",borderRadius:"50%",
+                      width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",
+                      fontSize:9,fontWeight:800,border:`2px solid ${T.sidebar}`}}>
+                      {c.unread>9?"9+":c.unread}
+                    </div>}
+                  </div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
-                      <span style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
-                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                        <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?600:400}}>{c.lastTime}</span>
-                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>{c.lastDate.split("-").reverse().join("/")}</span>}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:3}}>
+                      <span style={{fontWeight:c.unread>0?700:600,fontSize:13,color:T.text,
+                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>
+                        {c.name}
+                      </span>
+                      <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,
+                        fontWeight:c.unread>0?700:400,flexShrink:0,marginLeft:4}}>
+                        {c.lastTime}
+                      </span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:12,color:c.unread>0?T.text:T.textMuted,
+                        fontWeight:c.unread>0?500:400,
+                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:155}}>
+                        {c.lastMessage||"No messages"}
+                      </span>
+                      <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+                        {!c.botActive&&<span style={{fontSize:9,color:"#f59e0b",fontWeight:700,
+                          background:"#fffbeb",padding:"1px 5px",borderRadius:4,border:"1px solid #fcd34d"}}>Manual</span>}
+                        {c.lead==="hot"&&<span style={{fontSize:9,color:"#ef4444"}}>🔥</span>}
+                        {c.lead==="warm"&&<span style={{fontSize:9,color:"#f59e0b"}}>●</span>}
                       </div>
                     </div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
-                      <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>{c.lastMessage||"No messages"}</span>
-                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                        {!c.botActive&&<span style={{fontSize:9,color:"#f59e0b",fontWeight:700,background:"#fffbeb",padding:"1px 5px",borderRadius:6,border:"1px solid #fcd34d"}}>👤 Manual</span>}
-                        {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700}}>{c.unread}</span>}
-                      </div>
-                    </div>
-                    {/* Show Turn Bot ON button when in Manual filter */}
-                    {inboxFilter==="manual"&&!c.botActive&&<div onClick={e=>{e.stopPropagation();toggleBot(c.id);}} style={{marginTop:4,display:"flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:8,background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer",width:"fit-content"}}>
+                    {inboxFilter==="manual"&&!c.botActive&&<div onClick={e=>{e.stopPropagation();toggleBot(c.id);}} 
+                      style={{marginTop:4,display:"inline-flex",alignItems:"center",gap:4,padding:"2px 8px",
+                        borderRadius:6,background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer"}}>
                       <span style={{fontSize:10,color:WA_GREEN,fontWeight:700}}>🤖 Turn Bot ON</span>
                     </div>}
-
                   </div>
-                  {/* Mark as unread button — shows on hover */}
 
                 </div>
               ))}
@@ -1894,9 +1916,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   const isOut=msg.from!=="user";
                   return <div key={msg.id||i} className="mb" style={{display:"flex",justifyContent:isOut?"flex-end":"flex-start",alignItems:"flex-end",gap:6}}>
                     {!isOut&&<div style={{width:26,height:26,borderRadius:"50%",background:getColor(selected.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>{selected.avatar}</div>}
-                    <div style={{maxWidth:"65%"}}>
-                      <div style={{background:isOut?T.msgOut:T.msgIn,borderRadius:isOut?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"8px 12px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",fontWeight:700,marginBottom:2}}>{msg.from==="bot"?"🤖 Sara":msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}</div>}
+                    <div style={{maxWidth:"68%"}}>
+                      <div style={{background:isOut?T.msgOut:T.msgIn,
+                        borderRadius:isOut?"18px 4px 18px 18px":"4px 18px 18px 18px",
+                        padding:"9px 13px",
+                        boxShadow:isOut?"0 1px 3px rgba(0,0,0,.15)":"0 1px 3px rgba(0,0,0,.08)"}}>
+                        {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",
+                          fontWeight:700,marginBottom:3,letterSpacing:0.3}}>
+                          {msg.from==="bot"?"🤖 Sara":msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
+                        </div>}
                         {msg.mediaUrl && msg.text?.startsWith("[Image") ? (
                           <div>
                             <img src={msg.mediaUrl} alt="image" style={{maxWidth:"100%",maxHeight:220,borderRadius:8,display:"block",cursor:"pointer"}} onClick={()=>window.open(msg.mediaUrl,"_blank")}/>
@@ -1922,7 +1950,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         ) : (
                           <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
                         )}
-                        <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{formatMsgTime(msg.time, msg.date)}</div>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:4,marginTop:4}}>
+                          <span style={{fontSize:10,color:T.textFaint,opacity:0.7}}>{formatMsgTime(msg.time, msg.date)}</span>
+                          {isOut&&msg.is_read&&<span style={{fontSize:10,color:WA_GREEN}}>✓✓</span>}
+                          {isOut&&!msg.is_read&&<span style={{fontSize:10,color:T.textFaint,opacity:0.5}}>✓</span>}
+                        </div>
                       </div>
                       {msg.sources?.length>0&&<div style={{marginTop:4,paddingLeft:4}}>{msg.sources.map(s=><SourceBadge key={s.id} s={s}/>)}</div>}
                     </div>
@@ -1945,8 +1977,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             
             {/* Header */}
             <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.nav}}>
-              <div style={{fontWeight:700,fontSize:13,color:T.text}}>ℹ️ Customer Info</div>
-              <button onClick={()=>setShowRightPanel(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted}}>✕</button>
+              <div style={{fontWeight:700,fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:1}}>Contact Details</div>
+              <button onClick={()=>setShowRightPanel(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:18,color:T.textMuted,lineHeight:1}}>×</button>
             </div>
 
             {/* Profile */}
