@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.32";
+const CRM_VERSION = "2.9.33";
 
 // Responsive hook
 function useWindowSize() {
@@ -620,7 +620,13 @@ export default function App() {
       const data = await res.json();
       setContacts(prev => {
         return data.map(newC => {
-          if (selectedRef.current?.id === newC.id) return {...newC, unread: 0};
+          if (selectedRef.current?.id === newC.id) {
+            // Auto-mark as read in backend if unread > 0
+            if(newC.unread > 0) {
+              fetch(`${API}/api/conversations/${newC.id}/read`,{method:"PATCH",headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`}}).catch(()=>{});
+            }
+            return {...newC, unread: 0};
+          }
           return newC;
         });
       });
