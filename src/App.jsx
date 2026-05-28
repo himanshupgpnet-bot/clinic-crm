@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.30";
+const CRM_VERSION = "2.9.31";
 
 // Responsive hook
 function useWindowSize() {
@@ -159,7 +159,7 @@ export default function App() {
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [adHistory, setAdHistory] = useState([]);
-  const manualUnread = useRef(new Set()); // track manually marked unread contacts
+
   const [adHistoryPage, setAdHistoryPage] = useState(0);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [selectedChats, setSelectedChats] = useState(new Set());
@@ -619,7 +619,7 @@ export default function App() {
       const data = await res.json();
       setContacts(prev => {
         return data.map(newC => {
-          if (selected?.id === newC.id && !manualUnread.current.has(newC.id)) return {...newC, unread: 0};
+          if (selected?.id === newC.id) return {...newC, unread: 0};
           return newC;
         });
       });
@@ -893,8 +893,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   async function selectContact(c) {
     setSelected(c); setMenuOpen(false);
-    // Clear manual unread flag when contact is clicked
-    manualUnread.current.delete(c.id);
     try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders()}); } catch {}
     setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:0}:x));
     fetchAdHistory(c.phone);
@@ -1127,8 +1125,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(!inboxDateFilter) return true;
     return c.lastDate===inboxDateFilter;
   }).sort((a,b)=>{
-    // Unread first, then by latest message date/time
-    if((b.unread>0)!==(a.unread>0)) return (b.unread>0)?1:-1;
     const parseDate = (d,t) => {
       if(!d) return new Date(0);
       try {
@@ -1211,7 +1207,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
         textarea:focus,input:focus,select:focus{outline:none}textarea{resize:none}
-        .ci{transition:background .15s;cursor:pointer;position:relative}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}.ci .unread-btn{opacity:0;transition:opacity .2s}.ci:hover .unread-btn{opacity:1}
+        .ci{transition:background .15s;cursor:pointer;position:relative}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}
         .mb{animation:fadeUp .2s ease}@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         .sc{transition:transform .15s}.sc:hover{transform:translateY(-2px)}
         .tb{transition:all .15s;cursor:pointer;border:none;background:transparent;font-family:inherit}
@@ -1825,25 +1821,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
                   </div>
                   {/* Mark as unread button — shows on hover */}
-                  <button className="unread-btn" onClick={e=>{
-                    e.stopPropagation();
-                    const newUnread = c.unread>0?0:1;
-                    if(newUnread>0) {
-                      manualUnread.current.add(c.id);
-                    } else {
-                      manualUnread.current.delete(c.id);
-                    }
-                    setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:newUnread}:x));
-                    // Persist to backend
-                    fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders(),
-                      body:JSON.stringify({unread:newUnread})}).catch(()=>{});
-                  }} title={c.unread>0?"Mark as read":"Mark as unread"}
-                    style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",
-                      background:"none",border:"none",cursor:"pointer",
-                      fontSize:13,color:T.textMuted,padding:"4px 6px",borderRadius:6,
-                      background:T.card2}}>
-                    {c.unread>0?"✓":"●"}
-                  </button>
+
                 </div>
               ))}
             </div>
