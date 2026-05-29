@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.43";
+const CRM_VERSION = "2.9.44";
 
 // Responsive hook
 function useWindowSize() {
@@ -1656,32 +1656,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
             color:T.textFaint,fontSize:14}}>›</button>}
         <div className="hide-mobile nav-sidebar" style={{width:52,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
-          {/* Logo + company */}
-          <div style={{padding:"16px 12px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:currentUser?.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},#128C7E)`}}>
-                {currentUser?.logo_url
-                  ?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="logo"/>
-                  :<span style={{fontSize:14}}>🤖</span>}
-              </div>
-              <div style={{minWidth:0}}>
-                <div style={{fontWeight:700,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Nexora CRM"}</div>
-                <div style={{fontSize:10,color:T.textMuted}}>{isAdmin?"Admin":"WhatsApp"}</div>
-              </div>
-            </div>
-
-          </div>
+          
 
           {/* Nav items */}
-          <div style={{flex:1,padding:"8px 6px",display:"flex",flexDirection:"column",gap:2}}>
+          <div style={{flex:1,padding:"6px 4px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
             {TABS.filter(t=>!t.adminOnly||isAdmin).filter(t=>canSee(t.id)).map(t=>(
               <div key={t.id} style={{position:"relative"}} className="nav-item-wrap">
                 <button onClick={()=>safeSetTab(t.id)}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",width:"100%",
-                    background:tab===t.id?`${WA_GREEN}15`:"transparent",
-                    borderLeft:tab===t.id?`3px solid ${WA_GREEN}`:"3px solid transparent",
-                    color:tab===t.id?WA_GREEN:T.text,fontWeight:tab===t.id?700:400,fontSize:13,
-                    justifyContent:"center"}}>
+                  style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 0",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",width:"100%",
+                    background:tab===t.id?`${WA_GREEN}20`:"transparent",
+                    color:tab===t.id?WA_GREEN:T.textMuted,position:"relative"}}>
                   <span style={{fontSize:20,flexShrink:0}}>{t.icon}</span>
                   {t.id==="crm"&&totalUnread>0&&<span style={{position:"absolute",top:4,right:4,background:WA_GREEN,color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,border:`2px solid ${T.sidebar}`}}>{totalUnread>9?"9+":totalUnread}</span>}
                   {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{position:"absolute",top:4,right:4,background:"#ef4444",color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,border:`2px solid ${T.sidebar}`}}>{(hotCount+warmCount)>9?"9+":(hotCount+warmCount)}</span>}
