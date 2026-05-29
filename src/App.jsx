@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.40";
+const CRM_VERSION = "2.9.41";
 
 // Responsive hook
 function useWindowSize() {
@@ -162,10 +162,10 @@ export default function App() {
   const [adHistory, setAdHistory] = useState([]);
 
   const [adHistoryPage, setAdHistoryPage] = useState(0);
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(true);
   const [selectedChats, setSelectedChats] = useState(new Set());
   const [selectMode, setSelectMode] = useState(false);
-  const [showInboxStats, setShowInboxStats] = useState(true);
+  const [showInboxStats, setShowInboxStats] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [broadcastClinic, setBroadcastClinic] = useState(null);
   const [contactPickerSearch, setContactPickerSearch] = useState("");
