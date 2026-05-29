@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.46";
+const CRM_VERSION = "2.9.47";
 
 // Responsive hook
 function useWindowSize() {
@@ -1233,7 +1233,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           .hide-desktop{display:none!important}
         }
         .nav-item-wrap:hover .nav-tooltip{opacity:1!important;visibility:visible!important}
-        .nav-sidebar .nav-version{overflow:hidden;white-space:nowrap}
+        
         .nav-tooltip{
           position:absolute;left:58px;top:50%;transform:translateY(-50%);
           background:#111827;color:#fff;padding:6px 12px;border-radius:8px;
@@ -1244,6 +1244,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         .nav-tooltip::after{content:"";position:absolute;right:100%;top:50%;
           transform:translateY(-50%);border:5px solid transparent;border-right-color:#111827}
         .nav-item-wrap:hover .nav-tooltip{opacity:1;visibility:visible}
+        @keyframes pulse{0%{transform:scale(1);opacity:.8}70%{transform:scale(2.2);opacity:0}100%{transform:scale(1);opacity:0}}
+        .pulse-ring{position:absolute;top:0;left:0;width:10px;height:10px;border-radius:50%;
+          background:#25D366;animation:pulse 2s ease-out infinite}
         @media(max-width:639px){
           .hide-mobile{display:none!important}
           .mobile-full{width:100%!important}
@@ -1694,9 +1697,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             })()}
           </div>
 
-          {/* Bottom info */}
-          <div style={{padding:"10px 8px",borderTop:`1px solid ${T.border}`,textAlign:"center"}}>
-            <span style={{color:backendStatus==="online"?WA_GREEN:"#ef4444",fontSize:14}}>●</span>
+          {/* Bottom status dot with pulse */}
+          <div style={{padding:"12px 0",display:"flex",justifyContent:"center",alignItems:"center"}}>
+            <div style={{position:"relative",width:10,height:10}}>
+              <div style={{width:10,height:10,borderRadius:"50%",
+                background:backendStatus==="online"?WA_GREEN:"#ef4444"}}/>
+              {backendStatus==="online"&&<div className="pulse-ring"/>}
+            </div>
           </div>
         </div>
 
