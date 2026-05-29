@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.47";
+const CRM_VERSION = "2.9.48";
 
 // Responsive hook
 function useWindowSize() {
@@ -1645,10 +1645,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:11,fontWeight:700}}>{hotCount+warmCount}</span>}
             </button>
           ))}
-          <div style={{marginTop:"auto",padding:"8px",fontSize:11,color:T.textFaint,borderTop:`1px solid ${T.border}`,paddingTop:12}}>
-            <div>CRM v{CRM_VERSION} · API v{backendVersion||"..."}</div>
-            <div style={{marginTop:2}}>Backend: <span style={{color:backendStatus==="online"?WA_GREEN:"#ef4444"}}>{backendStatus}</span></div>
-          </div>
+
         </div>
       </>}
 
