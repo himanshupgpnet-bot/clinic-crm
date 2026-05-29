@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.38";
+const CRM_VERSION = "2.9.39";
 
 // Responsive hook
 function useWindowSize() {
@@ -165,6 +165,7 @@ export default function App() {
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [selectedChats, setSelectedChats] = useState(new Set());
   const [selectMode, setSelectMode] = useState(false);
+  const [showInboxStats, setShowInboxStats] = useState(true);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [broadcastClinic, setBroadcastClinic] = useState(null);
   const [contactPickerSearch, setContactPickerSearch] = useState("");
@@ -1703,14 +1704,22 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   ))}
                 </select>
               </div>}
-              <div style={{display:"flex",gap:5,marginBottom:8}}>
+              {/* Stats toggle button */}
+              <button onClick={()=>setShowInboxStats(p=>!p)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+                background:"none",border:"none",cursor:"pointer",padding:"2px 0 6px",fontFamily:"inherit"}}>
+                <span style={{fontSize:10,color:T.textFaint,fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>
+                  {contacts.length} contacts · {hotCount}🔥 {warmCount}🟡
+                </span>
+                <span style={{fontSize:11,color:T.textFaint}}>{showInboxStats?"▲":"▼"}</span>
+              </button>
+              {showInboxStats&&<div style={{display:"flex",gap:5,marginBottom:8}}>
                 {[{label:"Total",value:contacts.length,color:T.textMuted},{label:"Open",value:contacts.filter(c=>c.status==="open").length,color:WA_GREEN},{label:"🔥",value:hotCount,color:"#ef4444"},{label:"🟡",value:warmCount,color:"#f59e0b"}].map(s=>(
                   <div key={s.label} className="sc" style={{flex:1,background:T.card2,borderRadius:8,padding:"5px 3px",textAlign:"center",border:`1px solid ${T.border}`}}>
                     <div style={{fontSize:14,fontWeight:700,color:s.color}}>{s.value}</div>
                     <div style={{fontSize:9,color:T.textFaint}}>{s.label}</div>
                   </div>
                 ))}
-              </div>
+              </div>}
               <div style={{display:"flex",gap:4,marginBottom:4}}>
                 <button onClick={()=>setExportModal(true)} style={{flex:1,padding:"6px",borderRadius:8,border:`1px solid ${T.border}`,
                   background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",
