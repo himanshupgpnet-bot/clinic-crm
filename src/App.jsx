@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.41";
+const CRM_VERSION = "2.9.42";
 
 // Responsive hook
 function useWindowSize() {
@@ -1232,6 +1232,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         @media(min-width:640px){
           .hide-desktop{display:none!important}
         }
+        .nav-item-wrap:hover .nav-tooltip{opacity:1!important;visibility:visible!important}
+        .nav-sidebar .nav-version{overflow:hidden;white-space:nowrap}
+        .nav-tooltip{position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
+          background:#1f2937;color:#fff;padding:5px 10px;border-radius:8px;
+          font-size:12px;font-weight:600;white-space:nowrap;z-index:999;
+          opacity:0;visibility:hidden;transition:opacity .15s;pointer-events:none;
+          box-shadow:0 4px 12px rgba(0,0,0,.3)}
+        .nav-tooltip::before{content:"";position:absolute;right:100%;top:50%;
+          transform:translateY(-50%);border:5px solid transparent;
+          border-right-color:#1f2937}
         @media(max-width:639px){
           .hide-mobile{display:none!important}
           .mobile-full{width:100%!important}
@@ -1645,7 +1655,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           style={{width:24,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,
             border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
             color:T.textFaint,fontSize:14}}>›</button>}
-        <div className="hide-mobile" style={{width:navCollapsed?0:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",transition:"width .2s",position:"relative"}}>
+        <div className="hide-mobile nav-sidebar" style={{width:navCollapsed?52:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",transition:"width .2s",position:"relative"}}>
           {/* Logo + company */}
           <div style={{padding:"16px 12px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1659,33 +1669,43 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div style={{fontSize:10,color:T.textMuted}}>{isAdmin?"Admin":"WhatsApp"}</div>
               </div>
             </div>
-            <button onClick={()=>setNavCollapsed(true)} title="Collapse sidebar"
-              style={{border:"none",background:"none",cursor:"pointer",color:T.textFaint,fontSize:16,padding:2,flexShrink:0}}>‹</button>
+            <button onClick={()=>setNavCollapsed(p=>!p)} title={navCollapsed?"Expand":"Collapse"}
+              style={{border:"none",background:"none",cursor:"pointer",color:T.textFaint,fontSize:16,padding:2,flexShrink:0}}>
+              {navCollapsed?"›":"‹"}
+            </button>
           </div>
 
           {/* Nav items */}
-          <div style={{flex:1,padding:"8px 8px",display:"flex",flexDirection:"column",gap:2}}>
+          <div style={{flex:1,padding:"8px 6px",display:"flex",flexDirection:"column",gap:2}}>
             {TABS.filter(t=>!t.adminOnly||isAdmin).filter(t=>canSee(t.id)).map(t=>(
-              <button key={t.id} onClick={()=>safeSetTab(t.id)}
-                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",width:"100%",
-                  background:tab===t.id?`${WA_GREEN}15`:"transparent",
-                  borderLeft:tab===t.id?`3px solid ${WA_GREEN}`:"3px solid transparent",
-                  color:tab===t.id?WA_GREEN:T.text,fontWeight:tab===t.id?700:400,fontSize:13}}>
-                <span style={{fontSize:16,flexShrink:0}}>{t.icon}</span>
-                <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.label}</span>
-                {t.id==="crm"&&totalUnread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{totalUnread}</span>}
-                {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{hotCount+warmCount}</span>}
-              </button>
+              <div key={t.id} style={{position:"relative"}} className="nav-item-wrap">
+                <button onClick={()=>safeSetTab(t.id)}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",width:"100%",
+                    background:tab===t.id?`${WA_GREEN}15`:"transparent",
+                    borderLeft:tab===t.id?`3px solid ${WA_GREEN}`:"3px solid transparent",
+                    color:tab===t.id?WA_GREEN:T.text,fontWeight:tab===t.id?700:400,fontSize:13,
+                    justifyContent:navCollapsed?"center":"flex-start"}}>
+                  <span style={{fontSize:18,flexShrink:0}}>{t.icon}</span>
+                  {!navCollapsed&&<span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.label}</span>}
+                  {!navCollapsed&&t.id==="crm"&&totalUnread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{totalUnread}</span>}
+                  {!navCollapsed&&t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{hotCount+warmCount}</span>}
+                  {navCollapsed&&t.id==="crm"&&totalUnread>0&&<span style={{position:"absolute",top:4,right:4,background:WA_GREEN,color:"#fff",borderRadius:"50%",width:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700}}>{totalUnread>9?"9+":totalUnread}</span>}
+                </button>
+                {navCollapsed&&<div className="nav-tooltip">{t.label}{t.id==="crm"&&totalUnread>0?` (${totalUnread})`:""}</div>}
+              </div>
             ))}
           </div>
 
           {/* Bottom info */}
-          <div style={{padding:"10px 12px",borderTop:`1px solid ${T.border}`,fontSize:10,color:T.textFaint}}>
-            <div>v{CRM_VERSION}</div>
-            <div style={{marginTop:2}}>
-              <span style={{color:backendStatus==="online"?WA_GREEN:"#ef4444"}}>● </span>
-              {backendStatus==="online"?"Live":"Offline"}
-            </div>
+          <div className="nav-version" style={{padding:"10px 8px",borderTop:`1px solid ${T.border}`,fontSize:10,color:T.textFaint,textAlign:navCollapsed?"center":"left"}}>
+            {navCollapsed
+              ?<span style={{color:backendStatus==="online"?WA_GREEN:"#ef4444",fontSize:14}}>●</span>
+              :<><div>v{CRM_VERSION}</div>
+                <div style={{marginTop:2}}>
+                  <span style={{color:backendStatus==="online"?WA_GREEN:"#ef4444"}}>● </span>
+                  {backendStatus==="online"?"Live":"Offline"}
+                </div></>
+            }
           </div>
         </div>
 
