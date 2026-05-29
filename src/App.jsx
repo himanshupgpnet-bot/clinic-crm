@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.34";
+const CRM_VERSION = "2.9.36";
 
 // Responsive hook
 function useWindowSize() {
@@ -621,9 +621,12 @@ export default function App() {
       setContacts(prev => {
         return data.map(newC => {
           if (selectedRef.current?.id === newC.id) {
-            // Auto-mark as read in backend if unread > 0
             if(newC.unread > 0) {
-              fetch(`${API}/api/conversations/${newC.id}/read`,{method:"PATCH",headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`}}).catch(()=>{});
+              fetch(`${API}/api/conversations/${newC.id}/read`,{
+                method:"PATCH",
+                headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`},
+                body: JSON.stringify({unread:0})
+              }).catch(()=>{});
             }
             return {...newC, unread: 0};
           }
@@ -1722,24 +1725,40 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {selectMode?"✕ Cancel":"☑️ Select"}
                 </button>
               </div>
-              {/* Bulk delete bar */}
-              {selectMode&&selectedChats.size>0&&<div style={{display:"flex",gap:4,marginBottom:4}}>
-                <div style={{flex:1,padding:"6px",borderRadius:8,background:"#fef2f2",fontSize:11,color:"#ef4444",fontWeight:600,textAlign:"center"}}>
-                  {selectedChats.size} selected
+              {/* Bulk action bar */}
+              {selectMode&&selectedChats.size>0&&<div style={{marginBottom:4}}>
+                <div style={{padding:"5px 8px",borderRadius:8,background:T.card2,fontSize:11,color:T.textMuted,fontWeight:600,textAlign:"center",marginBottom:4}}>
+                  {selectedChats.size} chat{selectedChats.size>1?"s":""} selected
                 </div>
-                <button onClick={async()=>{
-                  if(!confirm(`Delete ${selectedChats.size} chats? This cannot be undone.`)) return;
-                  const phones = [...selectedChats];
-                  for(const phone of phones){
-                    await fetch(`${API}/api/conversations/${phone.replace("+","")}`,{method:"DELETE",headers:authHeaders()});
-                  }
-                  setSelectedChats(new Set());
-                  setSelectMode(false);
-                  fetchConversations();
-                  if(selected && selectedChats.has(selected.phone)) setSelected(null);
-                }} style={{padding:"6px 10px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  🗑️ Delete
-                </button>
+                <div style={{display:"flex",gap:4}}>
+                  {/* Mark as Unread */}
+                  <button onClick={async()=>{
+                    const phones = [...selectedChats];
+                    for(const phone of phones){
+                      const p = phone.replace("+","");
+                      await fetch(`${API}/api/conversations/${p}/read`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({unread:1})});
+                    }
+                    setSelectedChats(new Set());
+                    setSelectMode(false);
+                    fetchConversations();
+                  }} style={{flex:1,padding:"6px 4px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    🔴 Unread
+                  </button>
+                  {/* Delete */}
+                  <button onClick={async()=>{
+                    if(!confirm(`Delete ${selectedChats.size} chat${selectedChats.size>1?"s":""}? This cannot be undone.`)) return;
+                    const phones = [...selectedChats];
+                    for(const phone of phones){
+                      await fetch(`${API}/api/conversations/${phone.replace("+","")}`,{method:"DELETE",headers:authHeaders()});
+                    }
+                    setSelectedChats(new Set());
+                    setSelectMode(false);
+                    fetchConversations();
+                    if(selected && selectedChats.has(selected.phone)) setSelected(null);
+                  }} style={{flex:1,padding:"6px 4px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    🗑️ Delete
+                  </button>
+                </div>
               </div>}
               <div style={{position:"relative",marginBottom:6}}>
                 <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:12,color:T.textFaint}}>🔍</span>
@@ -1826,10 +1845,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>
                         {c.name}
                       </span>
-                      <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,
-                        fontWeight:c.unread>0?700:400,flexShrink:0,marginLeft:4}}>
-                        {c.lastTime}
-                      </span>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",flexShrink:0,marginLeft:4}}>
+                        <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?700:400}}>
+                          {c.lastTime}
+                        </span>
+                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>
+                          {c.lastDate.includes("/")?c.lastDate:c.lastDate.split("-").reverse().join("/")}
+                        </span>}
+                      </div>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <span style={{fontSize:12,color:c.unread>0?T.text:T.textMuted,
