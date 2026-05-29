@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.39";
+const CRM_VERSION = "2.9.40";
 
 // Responsive hook
 function useWindowSize() {
@@ -1693,7 +1693,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {tab==="crm"&&<>
           <div style={{width:isMobile?"100%":isTablet?260:300,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,
             ...(isMobile&&selected?{display:"none"}:{})}}>
-            <div style={{padding:"10px 10px 8px",borderBottom:`1px solid ${T.border}`}}>
+            {/* Toggle button */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",borderBottom:`1px solid ${T.border}`}}>
+              <span style={{fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:1}}>
+                {contacts.length} Chats
+              </span>
+              <button onClick={()=>setShowInboxStats(p=>!p)} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                {showInboxStats?"Hide ▲":"Filters ▼"}
+              </button>
+            </div>
+            <div style={{display:showInboxStats?"block":"none",padding:"10px 10px 8px",borderBottom:showInboxStats?`1px solid ${T.border}`:"none"}}>
               {/* Admin client selector dropdown */}
               {isAdmin&&adminOverview.length>0&&<div style={{marginBottom:8}}>
                 <select value={inboxClinic||""} onChange={e=>{setInboxClinic(e.target.value||null);}}
@@ -1704,15 +1713,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   ))}
                 </select>
               </div>}
-              {/* Stats toggle button */}
-              <button onClick={()=>setShowInboxStats(p=>!p)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
-                background:"none",border:"none",cursor:"pointer",padding:"2px 0 6px",fontFamily:"inherit"}}>
-                <span style={{fontSize:10,color:T.textFaint,fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>
-                  {contacts.length} contacts · {hotCount}🔥 {warmCount}🟡
-                </span>
-                <span style={{fontSize:11,color:T.textFaint}}>{showInboxStats?"▲":"▼"}</span>
-              </button>
-              {showInboxStats&&<div style={{display:"flex",gap:5,marginBottom:8}}>
+              <div style={{display:"flex",gap:5,marginBottom:8}}>
                 {[{label:"Total",value:contacts.length,color:T.textMuted},{label:"Open",value:contacts.filter(c=>c.status==="open").length,color:WA_GREEN},{label:"🔥",value:hotCount,color:"#ef4444"},{label:"🟡",value:warmCount,color:"#f59e0b"}].map(s=>(
                   <div key={s.label} className="sc" style={{flex:1,background:T.card2,borderRadius:8,padding:"5px 3px",textAlign:"center",border:`1px solid ${T.border}`}}>
                     <div style={{fontSize:14,fontWeight:700,color:s.color}}>{s.value}</div>
