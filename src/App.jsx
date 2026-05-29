@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.44";
+const CRM_VERSION = "2.9.45";
 
 // Responsive hook
 function useWindowSize() {
@@ -1234,14 +1234,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         }
         .nav-item-wrap:hover .nav-tooltip{opacity:1!important;visibility:visible!important}
         .nav-sidebar .nav-version{overflow:hidden;white-space:nowrap}
-        .nav-tooltip{position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
-          background:#1f2937;color:#fff;padding:5px 10px;border-radius:8px;
-          font-size:12px;font-weight:600;white-space:nowrap;z-index:999;
-          opacity:0;visibility:hidden;transition:opacity .15s;pointer-events:none;
-          box-shadow:0 4px 12px rgba(0,0,0,.3)}
-        .nav-tooltip::before{content:"";position:absolute;right:100%;top:50%;
-          transform:translateY(-50%);border:5px solid transparent;
-          border-right-color:#1f2937}
+        .nav-tooltip{position:fixed;left:60px;
+          background:#1f2937;color:#fff;padding:6px 12px;border-radius:8px;
+          font-size:12px;font-weight:600;white-space:nowrap;z-index:9999;
+          opacity:0;visibility:hidden;transition:opacity .2s;pointer-events:none;
+          box-shadow:0 4px 16px rgba(0,0,0,.3)}
+        .nav-item-wrap:hover .nav-tooltip{opacity:1!important;visibility:visible!important}
         @media(max-width:639px){
           .hide-mobile{display:none!important}
           .mobile-full{width:100%!important}
@@ -1650,11 +1648,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
 
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
-        {/* Expand button when sidebar collapsed */}
-        {navCollapsed&&<button className="hide-mobile" onClick={()=>setNavCollapsed(false)}
-          style={{width:24,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,
-            border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
-            color:T.textFaint,fontSize:14}}>›</button>}
+
         <div className="hide-mobile nav-sidebar" style={{width:52,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
           
 
@@ -1670,7 +1664,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {t.id==="crm"&&totalUnread>0&&<span style={{position:"absolute",top:4,right:4,background:WA_GREEN,color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,border:`2px solid ${T.sidebar}`}}>{totalUnread>9?"9+":totalUnread}</span>}
                   {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{position:"absolute",top:4,right:4,background:"#ef4444",color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,border:`2px solid ${T.sidebar}`}}>{(hotCount+warmCount)>9?"9+":(hotCount+warmCount)}</span>}
                 </button>
-                <div className="nav-tooltip">{t.label}{t.id==="crm"&&totalUnread>0?` (${totalUnread})`:""}</div>
+                <div style={{
+                  position:"absolute",left:"calc(100% + 10px)",top:"50%",transform:"translateY(-50%)",
+                  background:"#1f2937",color:"#fff",padding:"5px 12px",borderRadius:8,
+                  fontSize:12,fontWeight:600,whiteSpace:"nowrap",zIndex:9999,
+                  pointerEvents:"none",boxShadow:"0 4px 12px rgba(0,0,0,.3)",
+                  opacity:0,transition:"opacity .15s"
+                }} className="nav-tooltip">
+                  {t.label}{t.id==="crm"&&totalUnread>0?` (${totalUnread})`:""}
+                </div>
               </div>
             ))}
           </div>
