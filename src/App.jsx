@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.45";
+const CRM_VERSION = "2.9.46";
 
 // Responsive hook
 function useWindowSize() {
@@ -1234,12 +1234,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         }
         .nav-item-wrap:hover .nav-tooltip{opacity:1!important;visibility:visible!important}
         .nav-sidebar .nav-version{overflow:hidden;white-space:nowrap}
-        .nav-tooltip{position:fixed;left:60px;
-          background:#1f2937;color:#fff;padding:6px 12px;border-radius:8px;
-          font-size:12px;font-weight:600;white-space:nowrap;z-index:9999;
-          opacity:0;visibility:hidden;transition:opacity .2s;pointer-events:none;
-          box-shadow:0 4px 16px rgba(0,0,0,.3)}
-        .nav-item-wrap:hover .nav-tooltip{opacity:1!important;visibility:visible!important}
+        .nav-tooltip{
+          position:absolute;left:58px;top:50%;transform:translateY(-50%);
+          background:#111827;color:#fff;padding:6px 12px;border-radius:8px;
+          font-size:11px;font-weight:600;white-space:nowrap;z-index:9999;
+          opacity:0;visibility:hidden;pointer-events:none;
+          box-shadow:0 4px 16px rgba(0,0,0,.4);
+          transition:opacity .15s,visibility .15s}
+        .nav-tooltip::after{content:"";position:absolute;right:100%;top:50%;
+          transform:translateY(-50%);border:5px solid transparent;border-right-color:#111827}
+        .nav-item-wrap:hover .nav-tooltip{opacity:1;visibility:visible}
         @media(max-width:639px){
           .hide-mobile{display:none!important}
           .mobile-full{width:100%!important}
@@ -1654,27 +1658,40 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
           {/* Nav items */}
           <div style={{flex:1,padding:"6px 4px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
-            {TABS.filter(t=>!t.adminOnly||isAdmin).filter(t=>canSee(t.id)).map(t=>(
-              <div key={t.id} style={{position:"relative"}} className="nav-item-wrap">
-                <button onClick={()=>safeSetTab(t.id)}
-                  style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 0",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",width:"100%",
-                    background:tab===t.id?`${WA_GREEN}20`:"transparent",
-                    color:tab===t.id?WA_GREEN:T.textMuted,position:"relative"}}>
-                  <span style={{fontSize:20,flexShrink:0}}>{t.icon}</span>
-                  {t.id==="crm"&&totalUnread>0&&<span style={{position:"absolute",top:4,right:4,background:WA_GREEN,color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,border:`2px solid ${T.sidebar}`}}>{totalUnread>9?"9+":totalUnread}</span>}
-                  {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{position:"absolute",top:4,right:4,background:"#ef4444",color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,border:`2px solid ${T.sidebar}`}}>{(hotCount+warmCount)>9?"9+":(hotCount+warmCount)}</span>}
-                </button>
-                <div style={{
-                  position:"absolute",left:"calc(100% + 10px)",top:"50%",transform:"translateY(-50%)",
-                  background:"#1f2937",color:"#fff",padding:"5px 12px",borderRadius:8,
-                  fontSize:12,fontWeight:600,whiteSpace:"nowrap",zIndex:9999,
-                  pointerEvents:"none",boxShadow:"0 4px 12px rgba(0,0,0,.3)",
-                  opacity:0,transition:"opacity .15s"
-                }} className="nav-tooltip">
-                  {t.label}{t.id==="crm"&&totalUnread>0?` (${totalUnread})`:""}
+            {(()=>{
+              const visibleTabs = TABS.filter(t=>!t.adminOnly||isAdmin).filter(t=>canSee(t.id));
+              const iconSize = visibleTabs.length <= 5 ? 26 : visibleTabs.length <= 7 ? 22 : 20;
+              const padding = visibleTabs.length <= 5 ? "12px 0" : visibleTabs.length <= 7 ? "10px 0" : "8px 0";
+              return visibleTabs.map(t=>(
+                <div key={t.id} style={{position:"relative"}} className="nav-item-wrap">
+                  <button onClick={()=>safeSetTab(t.id)} title={t.label}
+                    style={{display:"flex",alignItems:"center",justifyContent:"center",
+                      padding,borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",width:"100%",
+                      background:tab===t.id?`${WA_GREEN}20`:"transparent",
+                      color:tab===t.id?WA_GREEN:T.textMuted,position:"relative",
+                      transition:"background .15s"}}>
+                    <span style={{fontSize:iconSize}}>{t.icon}</span>
+                    {t.id==="crm"&&totalUnread>0&&<span style={{
+                      position:"absolute",top:6,right:6,
+                      background:WA_GREEN,color:"#fff",borderRadius:10,
+                      minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",
+                      fontSize:9,fontWeight:800,padding:"0 3px",
+                      border:`2px solid ${T.sidebar}`,lineHeight:1
+                    }}>{totalUnread>99?"99+":totalUnread}</span>}
+                    {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{
+                      position:"absolute",top:6,right:6,
+                      background:"#ef4444",color:"#fff",borderRadius:10,
+                      minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",
+                      fontSize:9,fontWeight:800,padding:"0 3px",
+                      border:`2px solid ${T.sidebar}`,lineHeight:1
+                    }}>{(hotCount+warmCount)>99?"99+":(hotCount+warmCount)}</span>}
+                  </button>
+                  <div className="nav-tooltip">
+                    {t.label}{t.id==="crm"&&totalUnread>0?` · ${totalUnread} unread`:""}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
 
           {/* Bottom info */}
