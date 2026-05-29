@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.42";
+const CRM_VERSION = "2.9.43";
 
 // Responsive hook
 function useWindowSize() {
@@ -162,7 +162,7 @@ export default function App() {
   const [adHistory, setAdHistory] = useState([]);
 
   const [adHistoryPage, setAdHistoryPage] = useState(0);
-  const [navCollapsed, setNavCollapsed] = useState(true);
+  const [navCollapsed, setNavCollapsed] = useState(true); // always icon-only
   const [selectedChats, setSelectedChats] = useState(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [showInboxStats, setShowInboxStats] = useState(false);
@@ -1655,7 +1655,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           style={{width:24,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,
             border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
             color:T.textFaint,fontSize:14}}>›</button>}
-        <div className="hide-mobile nav-sidebar" style={{width:navCollapsed?52:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",transition:"width .2s",position:"relative"}}>
+        <div className="hide-mobile nav-sidebar" style={{width:52,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
           {/* Logo + company */}
           <div style={{padding:"16px 12px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1669,10 +1669,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div style={{fontSize:10,color:T.textMuted}}>{isAdmin?"Admin":"WhatsApp"}</div>
               </div>
             </div>
-            <button onClick={()=>setNavCollapsed(p=>!p)} title={navCollapsed?"Expand":"Collapse"}
-              style={{border:"none",background:"none",cursor:"pointer",color:T.textFaint,fontSize:16,padding:2,flexShrink:0}}>
-              {navCollapsed?"›":"‹"}
-            </button>
+
           </div>
 
           {/* Nav items */}
@@ -1684,28 +1681,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     background:tab===t.id?`${WA_GREEN}15`:"transparent",
                     borderLeft:tab===t.id?`3px solid ${WA_GREEN}`:"3px solid transparent",
                     color:tab===t.id?WA_GREEN:T.text,fontWeight:tab===t.id?700:400,fontSize:13,
-                    justifyContent:navCollapsed?"center":"flex-start"}}>
-                  <span style={{fontSize:18,flexShrink:0}}>{t.icon}</span>
-                  {!navCollapsed&&<span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.label}</span>}
-                  {!navCollapsed&&t.id==="crm"&&totalUnread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{totalUnread}</span>}
-                  {!navCollapsed&&t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:10,padding:"1px 5px",fontSize:10,fontWeight:700,flexShrink:0}}>{hotCount+warmCount}</span>}
-                  {navCollapsed&&t.id==="crm"&&totalUnread>0&&<span style={{position:"absolute",top:4,right:4,background:WA_GREEN,color:"#fff",borderRadius:"50%",width:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700}}>{totalUnread>9?"9+":totalUnread}</span>}
+                    justifyContent:"center"}}>
+                  <span style={{fontSize:20,flexShrink:0}}>{t.icon}</span>
+                  {t.id==="crm"&&totalUnread>0&&<span style={{position:"absolute",top:4,right:4,background:WA_GREEN,color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,border:`2px solid ${T.sidebar}`}}>{totalUnread>9?"9+":totalUnread}</span>}
+                  {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{position:"absolute",top:4,right:4,background:"#ef4444",color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,border:`2px solid ${T.sidebar}`}}>{(hotCount+warmCount)>9?"9+":(hotCount+warmCount)}</span>}
                 </button>
-                {navCollapsed&&<div className="nav-tooltip">{t.label}{t.id==="crm"&&totalUnread>0?` (${totalUnread})`:""}</div>}
+                <div className="nav-tooltip">{t.label}{t.id==="crm"&&totalUnread>0?` (${totalUnread})`:""}</div>
               </div>
             ))}
           </div>
 
           {/* Bottom info */}
-          <div className="nav-version" style={{padding:"10px 8px",borderTop:`1px solid ${T.border}`,fontSize:10,color:T.textFaint,textAlign:navCollapsed?"center":"left"}}>
-            {navCollapsed
-              ?<span style={{color:backendStatus==="online"?WA_GREEN:"#ef4444",fontSize:14}}>●</span>
-              :<><div>v{CRM_VERSION}</div>
-                <div style={{marginTop:2}}>
-                  <span style={{color:backendStatus==="online"?WA_GREEN:"#ef4444"}}>● </span>
-                  {backendStatus==="online"?"Live":"Offline"}
-                </div></>
-            }
+          <div style={{padding:"10px 8px",borderTop:`1px solid ${T.border}`,textAlign:"center"}}>
+            <span style={{color:backendStatus==="online"?WA_GREEN:"#ef4444",fontSize:14}}>●</span>
           </div>
         </div>
 
