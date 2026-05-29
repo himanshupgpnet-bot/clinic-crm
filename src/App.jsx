@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.36";
+const CRM_VERSION = "2.9.38";
 
 // Responsive hook
 function useWindowSize() {
@@ -1735,12 +1735,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <button onClick={async()=>{
                     const phones = [...selectedChats];
                     for(const phone of phones){
-                      const p = phone.replace("+","");
-                      await fetch(`${API}/api/conversations/${p}/read`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({unread:1})});
+                      // phone is stored as "+60123..." — strip + for API
+                      const p = phone.startsWith("+")?phone.slice(1):phone;
+                      const r = await fetch(`${API}/api/conversations/${p}/read`,{
+                        method:"PATCH",
+                        headers:authHeaders(),
+                        body:JSON.stringify({unread:1})
+                      });
+                      console.log("Unread API:", p, r.status);
                     }
+                    // Update local state immediately
+                    setContacts(p=>p.map(c=>selectedChats.has(c.phone)?{...c,unread:1}:c));
                     setSelectedChats(new Set());
                     setSelectMode(false);
-                    fetchConversations();
                   }} style={{flex:1,padding:"6px 4px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                     🔴 Unread
                   </button>
