@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.51";
+const CRM_VERSION = "2.9.52";
 
 // Responsive hook
 function useWindowSize() {
@@ -155,6 +155,7 @@ export default function App() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [templateButtons, setTemplateButtons] = useState([]);
+  const [templateVarSamples, setTemplateVarSamples] = useState({});
   const [newTemplate, setNewTemplate] = useState({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
   const [broadcastContacts, setBroadcastContacts] = useState([]);
   const [broadcastProgress, setBroadcastProgress] = useState(null);
@@ -1298,30 +1299,29 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
       {/* EXPORT CSV MODAL */}
       {/* TEMPLATE CREATOR MODAL */}
-      {showTemplateForm&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:3000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:20,backdropFilter:"blur(4px)",overflowY:"auto"}}>
-        <div style={{background:T.card,borderRadius:16,width:"100%",maxWidth:1000,marginTop:20,marginBottom:20,boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
-          {/* Modal Header */}
+      {showTemplateForm&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:3000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px",backdropFilter:"blur(4px)",overflowY:"auto"}}>
+        <div style={{background:T.card,borderRadius:16,width:"100%",maxWidth:1100,marginTop:20,marginBottom:20,boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
+          {/* Header */}
           <div style={{padding:"16px 24px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div style={{fontWeight:800,fontSize:16,color:T.text}}>{newTemplate.id?"Edit Template":"Create Template"}</div>
-            <button onClick={()=>{setShowTemplateForm(false);setTemplateButtons([]);}} style={{border:"none",background:"none",cursor:"pointer",fontSize:20,color:T.textMuted}}>✕</button>
+            <div style={{fontWeight:800,fontSize:16,color:T.text}}>{newTemplate.id?"Edit Template":"Create New Template"}</div>
+            <button onClick={()=>{setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});}} style={{border:"none",background:"none",cursor:"pointer",fontSize:22,color:T.textMuted,lineHeight:1}}>×</button>
           </div>
 
-          {/* Modal Body - Two columns */}
-          <div style={{display:"flex",gap:0}}>
-            {/* Left - Form */}
-            <div style={{flex:1,padding:24,overflowY:"auto",maxHeight:"80vh"}}>
-              
-              {/* Template Name + Language */}
+          <div style={{display:"flex"}}>
+            {/* LEFT — Form */}
+            <div style={{flex:1,padding:24,overflowY:"auto",maxHeight:"85vh"}}>
+
+              {/* Name + Language + Category */}
               <div style={{display:"flex",gap:12,marginBottom:20}}>
                 <div style={{flex:2}}>
-                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:6}}>Template Name *</label>
+                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:5}}>Template Name *</label>
                   <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_")}))}
                     placeholder="e.g. eecp_anniversary_promo"
                     style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
-                  <div style={{fontSize:10,color:T.textFaint,marginTop:3}}>Lowercase letters, numbers and underscores only</div>
+                  <div style={{fontSize:10,color:T.textFaint,marginTop:3}}>Lowercase, numbers and underscores only</div>
                 </div>
                 <div style={{flex:1}}>
-                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:6}}>Language</label>
+                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:5}}>Language</label>
                   <select value={newTemplate.language||"en"} onChange={e=>setNewTemplate(p=>({...p,language:e.target.value}))}
                     style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit"}}>
                     <option value="en">English</option>
@@ -1332,7 +1332,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </select>
                 </div>
                 <div style={{flex:1}}>
-                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:6}}>Category</label>
+                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:5}}>Category</label>
                   <select value={newTemplate.category||"MARKETING"} onChange={e=>setNewTemplate(p=>({...p,category:e.target.value}))}
                     style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit"}}>
                     <option value="MARKETING">Marketing</option>
@@ -1342,219 +1342,253 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>
               </div>
 
-              {/* Content Section */}
-              <div style={{background:T.card2,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
-                <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:12}}>Content</div>
-
-                {/* Media Sample */}
-                <div style={{marginBottom:14}}>
-                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:6}}>Media Sample <span style={{fontWeight:400,color:T.textFaint}}>· Optional</span></label>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    {["None","Image","Video","Document"].map(m=>(
-                      <button key={m} onClick={()=>setNewTemplate(p=>({...p,header_type:m.toLowerCase()==="none"?"none":m.toLowerCase(),header_value:""}))}
-                        style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${(newTemplate.header_type||"none")===m.toLowerCase()?"#1877f2":T.border}`,
-                          background:(newTemplate.header_type||"none")===m.toLowerCase()?"#e7f3ff":"transparent",
-                          color:(newTemplate.header_type||"none")===m.toLowerCase()?"#1877f2":T.textMuted,
-                          fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                        {m==="None"?"🚫":m==="Image"?"🖼️":m==="Video"?"🎥":"📄"} {m}
-                      </button>
-                    ))}
-                  </div>
-                  {newTemplate.header_type==="image"&&<div style={{marginTop:8}}>
-                    <input type="file" accept="image/*" id="tmpl-img" style={{display:"none"}} onChange={async e=>{
+              {/* Media Sample */}
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:6}}>Media Sample <span style={{fontWeight:400,color:T.textFaint}}>· Optional</span></label>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>
+                  {[{id:"none",label:"None",icon:"🚫"},{id:"image",label:"Image",icon:"🖼️"},{id:"video",label:"Video",icon:"🎥"},{id:"document",label:"Document",icon:"📄"}].map(m=>(
+                    <button key={m.id} onClick={()=>setNewTemplate(p=>({...p,header_type:m.id,header_value:""}))}
+                      style={{padding:"7px 16px",borderRadius:20,border:`1.5px solid ${(newTemplate.header_type||"none")===m.id?"#1877f2":T.border}`,
+                        background:(newTemplate.header_type||"none")===m.id?"#e7f3ff":"transparent",
+                        color:(newTemplate.header_type||"none")===m.id?"#1877f2":T.textMuted,
+                        fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                      {m.icon} {m.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Upload for image/video/document */}
+                {["image","video","document"].includes(newTemplate.header_type)&&<div>
+                  <input type="file" id="tmpl-media"
+                    accept={newTemplate.header_type==="image"?"image/*":newTemplate.header_type==="video"?"video/*":".pdf,.doc,.docx"}
+                    style={{display:"none"}} onChange={async e=>{
                       const file=e.target.files[0];if(!file)return;
                       const fd=new FormData();fd.append("file",file);
                       const r=await fetch(`${API}/api/upload/media`,{method:"POST",headers:{"Authorization":`Bearer ${authToken}`},body:fd});
-                      if(r.ok){const d=await r.json();setNewTemplate(p=>({...p,header_value:d.url||d.media_url||""}));}
+                      if(r.ok){const d=await r.json();setNewTemplate(p=>({...p,header_value:d.url||d.media_url||d.file_url||""}));}
+                      else alert("Upload failed");
                     }}/>
-                    <button onClick={()=>document.getElementById("tmpl-img").click()}
-                      style={{padding:"8px 16px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:T.input,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                      {newTemplate.header_value?"✅ Image uploaded — click to change":"📎 Upload Image"}
+                  <button onClick={()=>document.getElementById("tmpl-media").click()}
+                    style={{padding:"9px 16px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:T.input,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                    {newTemplate.header_value
+                      ?`✅ ${newTemplate.header_type} uploaded — click to change`
+                      :`📎 Upload ${newTemplate.header_type}`}
+                  </button>
+                </div>}
+              </div>
+
+              {/* Header text */}
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:5}}>Header <span style={{fontWeight:400,color:T.textFaint}}>· Optional · max 60 chars</span></label>
+                <input value={(newTemplate.header_type==="none"||newTemplate.header_type==="text")?newTemplate.header_value||"":""}
+                  onChange={e=>setNewTemplate(p=>({...p,header_type:"text",header_value:e.target.value}))} maxLength={60}
+                  disabled={["image","video","document"].includes(newTemplate.header_type)}
+                  placeholder="Add a short line of text to the header"
+                  style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",
+                    opacity:["image","video","document"].includes(newTemplate.header_type)?0.4:1}}/>
+              </div>
+
+              {/* Body with toolbar */}
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:5}}>Body *</label>
+                <textarea id="tmpl-body" value={newTemplate.body_text||""} onChange={e=>setNewTemplate(p=>({...p,body_text:e.target.value}))}
+                  placeholder={"Hello {{name}}, we're celebrating our 1-Year Anniversary! 🎉"}
+                  rows={5} style={{width:"100%",padding:"9px 12px",borderRadius:"8px 8px 0 0",border:`1.5px solid ${T.border}`,borderBottom:"none",background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",lineHeight:1.6}}/>
+                {/* Toolbar */}
+                <div style={{display:"flex",alignItems:"center",gap:4,padding:"6px 10px",border:`1.5px solid ${T.border}`,borderTop:`1px solid ${T.border}30`,borderRadius:"0 0 8px 8px",background:T.card2}}>
+                  {[
+                    {icon:"😊",title:"Emoji",action:()=>setNewTemplate(p=>({...p,body_text:(p.body_text||"")+"😊"}))},
+                    {icon:"B",title:"Bold",style:{fontWeight:800},action:()=>{const ta=document.getElementById("tmpl-body");const s=ta.selectionStart,e=ta.selectionEnd;const t=ta.value;setNewTemplate(p=>({...p,body_text:t.slice(0,s)+"*"+t.slice(s,e)+"*"+t.slice(e)}));}},
+                    {icon:"I",title:"Italic",style:{fontStyle:"italic"},action:()=>{const ta=document.getElementById("tmpl-body");const s=ta.selectionStart,e=ta.selectionEnd;const t=ta.value;setNewTemplate(p=>({...p,body_text:t.slice(0,s)+"_"+t.slice(s,e)+"_"+t.slice(e)}));}},
+                    {icon:"S",title:"Strikethrough",style:{textDecoration:"line-through"},action:()=>{const ta=document.getElementById("tmpl-body");const s=ta.selectionStart,e=ta.selectionEnd;const t=ta.value;setNewTemplate(p=>({...p,body_text:t.slice(0,s)+"~"+t.slice(s,e)+"~"+t.slice(e)}));}},
+                    {icon:"</>",title:"Monospace",action:()=>{const ta=document.getElementById("tmpl-body");const s=ta.selectionStart,e=ta.selectionEnd;const t=ta.value;setNewTemplate(p=>({...p,body_text:t.slice(0,s)+"```"+t.slice(s,e)+"```"+t.slice(e)}));}},
+                  ].map((btn,i)=>(
+                    <button key={i} onClick={btn.action} title={btn.title}
+                      style={{padding:"4px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit",...(btn.style||{})}}>
+                      {btn.icon}
                     </button>
-                  </div>}
+                  ))}
+                  <div style={{flex:1}}/>
+                  <button onClick={()=>{
+                    const vars=(newTemplate.body_text||"").match(/{{(\w+)}}/g)||[];
+                    const nextNum=vars.length+1;
+                    setNewTemplate(p=>({...p,body_text:(p.body_text||"")+`{{var${nextNum}}}`}));
+                  }} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:"#1877f2",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    + Add variable
+                  </button>
                 </div>
-
-                {/* Header text */}
-                <div style={{marginBottom:14}}>
-                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:6}}>Header <span style={{fontWeight:400,color:T.textFaint}}>· Optional</span></label>
-                  <input value={newTemplate.header_value&&newTemplate.header_type==="text"?newTemplate.header_value:""} 
-                    onChange={e=>setNewTemplate(p=>({...p,header_type:"text",header_value:e.target.value}))}
-                    placeholder="Add a short line of text to the header (max 60 chars)" maxLength={60}
-                    disabled={newTemplate.header_type!=="text"&&newTemplate.header_type!=="none"&&newTemplate.header_type!==undefined}
-                    style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",
-                      opacity:newTemplate.header_type==="image"||newTemplate.header_type==="video"||newTemplate.header_type==="document"?0.4:1}}/>
-                </div>
-
-                {/* Body */}
-                <div style={{marginBottom:14}}>
-                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:6}}>Body *</label>
-                  <textarea value={newTemplate.body_text||""} onChange={e=>setNewTemplate(p=>({...p,body_text:e.target.value}))}
-                    placeholder={"Hello {{1}}, we're celebrating our 1-Year Anniversary with exclusive offers just for you! 🎉"}
-                    rows={5} style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",lineHeight:1.6}}/>
-                  <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-                    <div style={{fontSize:10,color:T.textFaint}}>Use {"{{"+"1}}"} for variables e.g. customer name</div>
-                    <div style={{fontSize:10,color:(newTemplate.body_text||"").length>900?"#ef4444":T.textFaint}}>{(newTemplate.body_text||"").length}/1024</div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div>
-                  <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:6}}>Footer <span style={{fontWeight:400,color:T.textFaint}}>· Optional · Max 60 chars</span></label>
-                  <input value={newTemplate.footer_text||""} onChange={e=>setNewTemplate(p=>({...p,footer_text:e.target.value}))} maxLength={60}
-                    placeholder="e.g. Reply STOP to unsubscribe"
-                    style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                <div style={{fontSize:10,color:(newTemplate.body_text||"").length>900?"#ef4444":T.textFaint,textAlign:"right",marginTop:3}}>
+                  {(newTemplate.body_text||"").length}/1024
                 </div>
               </div>
 
-              {/* Buttons Section */}
-              <div style={{background:T.card2,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${T.border}`}}>
-                <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:4}}>Buttons <span style={{fontWeight:400,color:T.textFaint,fontSize:12}}>· Optional</span></div>
-                <div style={{fontSize:11,color:T.textFaint,marginBottom:12}}>Add up to 3 buttons. More than 3 will appear as a list.</div>
-                
+              {/* Variable Samples */}
+              {(()=>{
+                const vars=[...new Set((newTemplate.body_text||"").match(/{{(\w+)}}/g)||[])];
+                if(vars.length===0) return null;
+                return <div style={{background:"#fffbeb",borderRadius:10,padding:14,marginBottom:16,border:"1px solid #fcd34d"}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#92400e",marginBottom:4}}>Variable Samples</div>
+                  <div style={{fontSize:11,color:"#78350f",marginBottom:10}}>Include sample values to help Meta review your template. Do not use real customer data.</div>
+                  {vars.map((v,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <div style={{padding:"6px 10px",borderRadius:6,background:"#fef3c7",border:"1px solid #fcd34d",fontSize:11,fontWeight:700,color:"#92400e",whiteSpace:"nowrap",minWidth:80,textAlign:"center"}}>{v}</div>
+                      <span style={{color:T.textFaint,fontSize:12}}>→</span>
+                      <input value={templateVarSamples[v]||""} onChange={e=>setTemplateVarSamples(p=>({...p,[v]:e.target.value}))}
+                        placeholder={`Sample value for ${v}`}
+                        style={{flex:1,padding:"6px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+                    </div>
+                  ))}
+                </div>;
+              })()}
+
+              {/* Footer */}
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:5}}>Footer <span style={{fontWeight:400,color:T.textFaint}}>· Optional · max 60 chars</span></label>
+                <input value={newTemplate.footer_text||""} onChange={e=>setNewTemplate(p=>({...p,footer_text:e.target.value}))} maxLength={60}
+                  placeholder="e.g. Reply STOP to unsubscribe"
+                  style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+              </div>
+
+              {/* Buttons */}
+              <div style={{background:T.card2,borderRadius:12,padding:16,marginBottom:20,border:`1px solid ${T.border}`}}>
+                <div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:2}}>Buttons <span style={{fontWeight:400,color:T.textFaint,fontSize:11}}>· Optional</span></div>
+                <div style={{fontSize:11,color:T.textFaint,marginBottom:12}}>Add up to 10 buttons. More than 3 appear as a list.</div>
                 {templateButtons.map((btn,i)=>(
                   <div key={i} style={{background:T.bg,borderRadius:8,padding:12,marginBottom:8,border:`1px solid ${T.border}`}}>
-                    <div style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
-                      <select value={btn.type} onChange={e=>{const b=[...templateButtons];b[i]={...b[i],type:e.target.value,value:""};setTemplateButtons(b);}}
+                    <div style={{display:"flex",gap:8,marginBottom:8}}>
+                      <select value={btn.type} onChange={e=>{const b=[...templateButtons];b[i]={type:e.target.value,text:"",value:""};setTemplateButtons(b);}}
                         style={{flex:1,padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                        <option value="QUICK_REPLY">Quick Reply</option>
-                        <option value="PHONE_NUMBER">Call Phone Number</option>
-                        <option value="URL">Visit Website</option>
-                        <option value="COPY_CODE">Copy Offer Code</option>
+                        <option value="QUICK_REPLY">↩️ Custom (Quick Reply)</option>
+                        <option value="URL">🔗 Visit Website</option>
+                        <option value="PHONE_NUMBER">📞 Call Phone Number</option>
+                        <option value="COPY_CODE">📋 Copy Offer Code</option>
                       </select>
                       <button onClick={()=>setTemplateButtons(p=>p.filter((_,j)=>j!==i))}
-                        style={{padding:"6px 10px",borderRadius:8,border:"none",background:"#fef2f2",color:"#ef4444",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>✕</button>
+                        style={{padding:"6px 10px",borderRadius:8,border:"none",background:"#fef2f2",color:"#ef4444",cursor:"pointer",fontSize:14}}>×</button>
                     </div>
                     <input value={btn.text||""} onChange={e=>{const b=[...templateButtons];b[i]={...b[i],text:e.target.value};setTemplateButtons(b);}}
-                      placeholder="Button text" maxLength={25}
-                      style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",marginBottom:6}}/>
-                    {btn.type==="PHONE_NUMBER"&&<input value={btn.value||""} onChange={e=>{const b=[...templateButtons];b[i]={...b[i],value:e.target.value};setTemplateButtons(b);}}
-                      placeholder="+60112345678" style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}
+                      placeholder="Button text (max 25 chars)" maxLength={25}
+                      style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",marginBottom:btn.type!=="QUICK_REPLY"?6:0}}/>
                     {btn.type==="URL"&&<input value={btn.value||""} onChange={e=>{const b=[...templateButtons];b[i]={...b[i],value:e.target.value};setTemplateButtons(b);}}
-                      placeholder="https://everahealth.com" style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}
+                      placeholder="https://example.com"
+                      style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}
+                    {btn.type==="PHONE_NUMBER"&&<input value={btn.value||""} onChange={e=>{const b=[...templateButtons];b[i]={...b[i],value:e.target.value};setTemplateButtons(b);}}
+                      placeholder="+60112345678"
+                      style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}
                     {btn.type==="COPY_CODE"&&<input value={btn.value||""} onChange={e=>{const b=[...templateButtons];b[i]={...b[i],value:e.target.value};setTemplateButtons(b);}}
-                      placeholder="Offer code e.g. SAVE20" style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}
+                      placeholder="Offer code e.g. SAVE20"
+                      style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}
                   </div>
                 ))}
-                
-                {templateButtons.length<3&&<button onClick={()=>setTemplateButtons(p=>[...p,{type:"QUICK_REPLY",text:"",value:""}])}
-                  style={{padding:"8px 16px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:"transparent",color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit",width:"100%"}}>
-                  + Add Button
+                {templateButtons.length<10&&<button onClick={()=>setTemplateButtons(p=>[...p,{type:"QUICK_REPLY",text:"",value:""}])}
+                  style={{width:"100%",padding:"9px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:"transparent",color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                  + Add button
                 </button>}
               </div>
 
-              {/* Action buttons */}
+              {/* Actions */}
               <div style={{display:"flex",gap:10}}>
-                <button onClick={()=>{setShowTemplateForm(false);setTemplateButtons([]);}}
+                <button onClick={()=>{setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});}}
                   style={{flex:1,padding:"11px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                   Cancel
                 </button>
                 <button onClick={async()=>{
                   if(!newTemplate.template_name?.trim()) return alert("Template name required");
                   if(!newTemplate.body_text?.trim()) return alert("Body text required");
-                  const payload = {
-                    template_name:newTemplate.template_name.trim(),
-                    language:newTemplate.language||"en",
-                    category:newTemplate.category||"MARKETING",
-                    header_type:newTemplate.header_type||"none",
-                    header_value:newTemplate.header_value||"",
-                    body_text:newTemplate.body_text.trim(),
-                    footer_text:newTemplate.footer_text||"",
-                    variables:[],status:"draft",
-                    buttons:JSON.stringify(templateButtons)
-                  };
-                  const url = newTemplate.id?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
-                  const r = await fetch(url,{method:newTemplate.id?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
-                  if(r.ok){
-                    const saved = newTemplate.id?{...newTemplate,...payload}:await r.json();
-                    if(newTemplate.id){setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));}
-                    else{setTemplates(p=>[saved,...p]);}
-                    setSelectedTemplate(saved);
-                    setShowTemplateForm(false);setTemplateButtons([]);
-                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
-                  }
-                }} style={{flex:1,padding:"11px",borderRadius:10,border:"none",background:T.card2,color:T.text,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:`1px solid ${T.border}`}}>
+                  const payload={template_name:newTemplate.template_name.trim(),language:newTemplate.language||"en",category:newTemplate.category||"MARKETING",
+                    header_type:newTemplate.header_type||"none",header_value:newTemplate.header_value||"",body_text:newTemplate.body_text.trim(),
+                    footer_text:newTemplate.footer_text||"",variables:JSON.stringify(templateVarSamples),buttons:JSON.stringify(templateButtons),status:"draft"};
+                  const url=newTemplate.id?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
+                  const r=await fetch(url,{method:newTemplate.id?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
+                  if(r.ok){const saved=newTemplate.id?{...newTemplate,...payload}:await r.json();
+                    if(newTemplate.id)setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));else setTemplates(p=>[saved,...p]);
+                    setSelectedTemplate(saved);setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});
+                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});}
+                }} style={{flex:1,padding:"11px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                   💾 Save Draft
                 </button>
                 <button onClick={async()=>{
                   if(!newTemplate.template_name?.trim()) return alert("Template name required");
                   if(!newTemplate.body_text?.trim()) return alert("Body text required");
-                  const payload = {
-                    template_name:newTemplate.template_name.trim(),
-                    language:newTemplate.language||"en",
-                    category:newTemplate.category||"MARKETING",
-                    header_type:newTemplate.header_type||"none",
-                    header_value:newTemplate.header_value||"",
-                    body_text:newTemplate.body_text.trim(),
-                    footer_text:newTemplate.footer_text||"",
-                    variables:[],status:"pending",
-                    buttons:JSON.stringify(templateButtons)
-                  };
-                  const url = newTemplate.id?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
-                  const r = await fetch(url,{method:newTemplate.id?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
-                  if(r.ok){
-                    const saved = newTemplate.id?{...newTemplate,...payload}:await r.json();
-                    const r2 = await fetch(`${API}/api/templates/${saved.id}/submit`,{method:"POST",headers:authHeaders()});
-                    const d2 = await r2.json();
-                    if(r2.ok){alert(`✅ Submitted to Meta!\nStatus: ${d2.meta_status}\nCheck back in 24-48 hours.`);}
-                    else{alert(`Draft saved. Meta error: ${d2.error}`);}
-                    if(newTemplate.id){setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));}
-                    else{setTemplates(p=>[saved,...p]);}
-                    setSelectedTemplate(saved);
-                    setShowTemplateForm(false);setTemplateButtons([]);
-                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
-                  }
+                  const payload={template_name:newTemplate.template_name.trim(),language:newTemplate.language||"en",category:newTemplate.category||"MARKETING",
+                    header_type:newTemplate.header_type||"none",header_value:newTemplate.header_value||"",body_text:newTemplate.body_text.trim(),
+                    footer_text:newTemplate.footer_text||"",variables:JSON.stringify(templateVarSamples),buttons:JSON.stringify(templateButtons),status:"pending"};
+                  const url=newTemplate.id?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
+                  const r=await fetch(url,{method:newTemplate.id?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
+                  if(r.ok){const saved=newTemplate.id?{...newTemplate,...payload}:await r.json();
+                    const r2=await fetch(`${API}/api/templates/${saved.id}/submit`,{method:"POST",headers:authHeaders()});
+                    const d2=await r2.json();
+                    if(r2.ok)alert("✅ Submitted to Meta! Status: "+d2.meta_status+"\nCheck back in 24-48 hours.");
+                    else alert("Draft saved. Meta error: "+d2.error);
+                    if(newTemplate.id)setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));else setTemplates(p=>[saved,...p]);
+                    setSelectedTemplate(saved);setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});
+                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});}
                 }} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:"#1877f2",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                   🚀 Save & Submit to Meta
                 </button>
               </div>
             </div>
 
-            {/* Right - Live WhatsApp Preview */}
-            <div style={{width:280,flexShrink:0,borderLeft:`1px solid ${T.border}`,padding:24,background:T.card2}}>
-              <div style={{fontSize:12,fontWeight:700,color:T.textMuted,marginBottom:12,textTransform:"uppercase",letterSpacing:1}}>Template Preview</div>
-              {/* Phone mockup */}
-              <div style={{background:"#ddd9d0",borderRadius:12,padding:16,minHeight:300}}>
-                <div style={{maxWidth:"85%"}}>
-                  {/* Image header */}
-                  {newTemplate.header_type==="image"&&<div style={{background:"#c8c0b4",borderRadius:"8px 8px 0 0",height:120,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-                    {newTemplate.header_value?<img src={newTemplate.header_value} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:"#888",fontSize:12}}>🖼️ Image header</span>}
-                  </div>}
-                  {/* Bubble */}
-                  <div style={{background:"#fff",borderRadius:newTemplate.header_type==="image"?"0 0 8px 8px":"4px 12px 12px 12px",padding:"10px 12px",boxShadow:"0 1px 3px rgba(0,0,0,.15)"}}>
-                    {/* Text header */}
-                    {newTemplate.header_type==="text"&&newTemplate.header_value&&
-                      <div style={{fontWeight:800,fontSize:14,color:"#111",marginBottom:6}}>{newTemplate.header_value}</div>}
-                    {/* Body */}
-                    <div style={{fontSize:13,color:"#111",lineHeight:1.6,whiteSpace:"pre-wrap",wordBreak:"break-word",minHeight:40}}>
-                      {newTemplate.body_text||<span style={{color:"#bbb",fontStyle:"italic"}}>Your message here...</span>}
-                    </div>
-                    {/* Footer */}
-                    {newTemplate.footer_text&&<div style={{fontSize:11,color:"#888",marginTop:6,paddingTop:6,borderTop:"1px solid #f0f0f0"}}>{newTemplate.footer_text}</div>}
-                    {/* Timestamp */}
-                    <div style={{fontSize:10,color:"#aaa",textAlign:"right",marginTop:6}}>
-                      {new Date().toLocaleTimeString("en-MY",{hour:"2-digit",minute:"2-digit"})} ✓✓
-                    </div>
-                  </div>
-                  {/* Buttons preview */}
-                  {templateButtons.length>0&&<div style={{marginTop:4,display:"flex",flexDirection:"column",gap:3}}>
-                    {templateButtons.slice(0,3).map((btn,i)=>(
-                      <div key={i} style={{background:"#fff",borderRadius:8,padding:"8px 12px",textAlign:"center",fontSize:12,fontWeight:600,color:"#1877f2",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                        {btn.type==="PHONE_NUMBER"?"📞":btn.type==="URL"?"🔗":btn.type==="COPY_CODE"?"📋":"↩️"} {btn.text||"Button"}
-                      </div>
-                    ))}
-                    {templateButtons.length>3&&<div style={{background:"#fff",borderRadius:8,padding:"8px 12px",textAlign:"center",fontSize:12,color:"#1877f2",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                      ☰ See all options
-                    </div>}
-                  </div>}
-                </div>
+            {/* RIGHT — Live Preview */}
+            <div style={{width:300,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.card2,borderRadius:"0 16px 16px 0",display:"flex",flexDirection:"column"}}>
+              <div style={{padding:"16px 20px",borderBottom:`1px solid ${T.border}`}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:1}}>Template Preview</div>
               </div>
-              <div style={{fontSize:10,color:T.textFaint,textAlign:"center",marginTop:8}}>Updates live as you type</div>
+              <div style={{flex:1,padding:20,overflowY:"auto"}}>
+                {/* WhatsApp-like background */}
+                <div style={{background:"#ddd9d0",borderRadius:12,padding:16,minHeight:300}}>
+                  <div style={{maxWidth:"90%"}}>
+                    {/* Image header preview */}
+                    {newTemplate.header_type==="image"&&<div style={{borderRadius:"8px 8px 0 0",height:140,background:"#c4bdb4",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                      {newTemplate.header_value?<img src={newTemplate.header_value} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{color:"#888",fontSize:12}}>🖼️ Image preview</span>}
+                    </div>}
+                    {newTemplate.header_type==="video"&&<div style={{borderRadius:"8px 8px 0 0",height:100,background:"#333",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <span style={{color:"#fff",fontSize:24}}>▶️</span>
+                    </div>}
+                    {newTemplate.header_type==="document"&&<div style={{borderRadius:"8px 8px 0 0",padding:"10px 12px",background:"#e8f4ff",display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid #ccc"}}>
+                      <span style={{fontSize:20}}>📄</span><span style={{fontSize:12,color:"#333"}}>Document</span>
+                    </div>}
+                    {/* Bubble */}
+                    <div style={{background:"#fff",
+                      borderRadius:["image","video","document"].includes(newTemplate.header_type)?"0 0 12px 12px":"4px 12px 12px 12px",
+                      padding:"10px 12px",boxShadow:"0 1px 3px rgba(0,0,0,.15)"}}>
+                      {/* Text header */}
+                      {newTemplate.header_type==="text"&&newTemplate.header_value&&
+                        <div style={{fontWeight:800,fontSize:14,color:"#111",marginBottom:6}}>{newTemplate.header_value}</div>}
+                      {/* Body with variable substitution */}
+                      <div style={{fontSize:13,color:"#111",lineHeight:1.6,whiteSpace:"pre-wrap",wordBreak:"break-word",minHeight:40}}>
+                        {(newTemplate.body_text||"").replace(/{{(\w+)}}/g,(_,v)=>templateVarSamples[`{{${v}}}`]||`[${v}]`) ||
+                          <span style={{color:"#bbb",fontStyle:"italic"}}>Your message here...</span>}
+                      </div>
+                      {/* Footer */}
+                      {newTemplate.footer_text&&<div style={{fontSize:11,color:"#888",marginTop:6,paddingTop:6,borderTop:"1px solid #f0f0f0"}}>{newTemplate.footer_text}</div>}
+                      <div style={{fontSize:10,color:"#aaa",textAlign:"right",marginTop:6}}>
+                        {new Date().toLocaleTimeString("en-MY",{hour:"2-digit",minute:"2-digit"})} ✓✓
+                      </div>
+                    </div>
+                    {/* Buttons preview */}
+                    {templateButtons.filter(b=>b.text).length>0&&<div style={{marginTop:4,display:"flex",flexDirection:"column",gap:2}}>
+                      {templateButtons.slice(0,3).filter(b=>b.text).map((btn,i)=>(
+                        <div key={i} style={{background:"#fff",borderRadius:8,padding:"9px 12px",textAlign:"center",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                          <span style={{fontSize:12,fontWeight:600,color:"#00a884"}}>
+                            {btn.type==="PHONE_NUMBER"?"📞 ":btn.type==="URL"?"🔗 ":btn.type==="COPY_CODE"?"📋 ":"↩️ "}
+                            {btn.text}
+                          </span>
+                        </div>
+                      ))}
+                      {templateButtons.length>3&&<div style={{background:"#fff",borderRadius:8,padding:"9px 12px",textAlign:"center",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                        <span style={{fontSize:12,color:"#00a884"}}>☰ See all options</span>
+                      </div>}
+                    </div>}
+                  </div>
+                </div>
+                <div style={{fontSize:10,color:T.textFaint,textAlign:"center",marginTop:8}}>Updates live as you type</div>
+              </div>
             </div>
           </div>
         </div>
       </div>}
 
-      {/* ARCHIVED CONTACTS MODAL */}
+      {/* ARCHIVED CONTACTS MODAL */}      {/* ARCHIVED CONTACTS MODAL */}
       {showArchived&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}}>
         <div style={{background:T.card,borderRadius:20,width:"100%",maxWidth:480,maxHeight:"80vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
           {/* Header */}
