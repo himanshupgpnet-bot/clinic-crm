@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.52";
+const CRM_VERSION = "2.9.53";
 
 // Responsive hook
 function useWindowSize() {
@@ -156,6 +156,8 @@ export default function App() {
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [templateButtons, setTemplateButtons] = useState([]);
   const [templateVarSamples, setTemplateVarSamples] = useState({});
+  const [templateVarType, setTemplateVarType] = useState("name");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [newTemplate, setNewTemplate] = useState({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
   const [broadcastContacts, setBroadcastContacts] = useState([]);
   const [broadcastProgress, setBroadcastProgress] = useState(null);
@@ -1342,6 +1344,26 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>
               </div>
 
+              {/* Type of Variable */}
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:5}}>
+                  Type of variable 
+                  <span style={{marginLeft:4,fontSize:10,color:T.textFaint,fontWeight:400,cursor:"help"}} title="Name variables look like {{name}}, Number variables look like {{1}}">ℹ️</span>
+                </label>
+                <div style={{display:"flex",gap:8}}>
+                  {[{id:"name",label:"Name",example:"{{name}}",desc:"e.g. {{name}}, {{city}}"},{id:"number",label:"Number",example:"{{1}}",desc:"e.g. {{1}}, {{2}}, {{3}}"}].map(v=>(
+                    <button key={v.id} onClick={()=>setTemplateVarType(v.id)}
+                      style={{flex:1,padding:"9px 12px",borderRadius:8,border:`1.5px solid ${templateVarType===v.id?"#1877f2":T.border}`,
+                        background:templateVarType===v.id?"#e7f3ff":"transparent",
+                        color:templateVarType===v.id?"#1877f2":T.textMuted,
+                        cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                      <div style={{fontSize:12,fontWeight:700}}>{v.label}</div>
+                      <div style={{fontSize:10,opacity:.7,marginTop:2}}>{v.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Media Sample */}
               <div style={{marginBottom:16}}>
                 <label style={{fontSize:12,fontWeight:700,color:T.text,display:"block",marginBottom:6}}>Media Sample <span style={{fontWeight:400,color:T.textFaint}}>· Optional</span></label>
@@ -1396,7 +1418,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {/* Toolbar */}
                 <div style={{display:"flex",alignItems:"center",gap:4,padding:"6px 10px",border:`1.5px solid ${T.border}`,borderTop:`1px solid ${T.border}30`,borderRadius:"0 0 8px 8px",background:T.card2}}>
                   {[
-                    {icon:"😊",title:"Emoji",action:()=>setNewTemplate(p=>({...p,body_text:(p.body_text||"")+"😊"}))},
+                    {icon:"😊",title:"Emoji",action:()=>setShowEmojiPicker(p=>!p)},
                     {icon:"B",title:"Bold",style:{fontWeight:800},action:()=>{const ta=document.getElementById("tmpl-body");const s=ta.selectionStart,e=ta.selectionEnd;const t=ta.value;setNewTemplate(p=>({...p,body_text:t.slice(0,s)+"*"+t.slice(s,e)+"*"+t.slice(e)}));}},
                     {icon:"I",title:"Italic",style:{fontStyle:"italic"},action:()=>{const ta=document.getElementById("tmpl-body");const s=ta.selectionStart,e=ta.selectionEnd;const t=ta.value;setNewTemplate(p=>({...p,body_text:t.slice(0,s)+"_"+t.slice(s,e)+"_"+t.slice(e)}));}},
                     {icon:"S",title:"Strikethrough",style:{textDecoration:"line-through"},action:()=>{const ta=document.getElementById("tmpl-body");const s=ta.selectionStart,e=ta.selectionEnd;const t=ta.value;setNewTemplate(p=>({...p,body_text:t.slice(0,s)+"~"+t.slice(s,e)+"~"+t.slice(e)}));}},
@@ -1409,13 +1431,30 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   ))}
                   <div style={{flex:1}}/>
                   <button onClick={()=>{
-                    const vars=(newTemplate.body_text||"").match(/{{(\w+)}}/g)||[];
-                    const nextNum=vars.length+1;
-                    setNewTemplate(p=>({...p,body_text:(p.body_text||"")+`{{var${nextNum}}}`}));
+                    if(templateVarType==="number"){
+                      const nums=(newTemplate.body_text||"").match(/{{\d+}}/g)||[];
+                      const next=nums.length+1;
+                      setNewTemplate(p=>({...p,body_text:(p.body_text||"")+`{{${next}}}`}));
+                    } else {
+                      const names=(newTemplate.body_text||"").match(/{{[a-z_]+}}/g)||[];
+                      const defaultNames=["name","city","date","time","amount","product"];
+                      const next=defaultNames[names.length]||`var${names.length+1}`;
+                      setNewTemplate(p=>({...p,body_text:(p.body_text||"")+`{{${next}}}`}));
+                    }
                   }} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:"#1877f2",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                     + Add variable
                   </button>
                 </div>
+                {/* Emoji picker */}
+                {showEmojiPicker&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:10,marginTop:4,display:"flex",flexWrap:"wrap",gap:4,maxHeight:160,overflowY:"auto",boxShadow:"0 4px 16px rgba(0,0,0,.15)"}}>
+                  {["😊","😀","😂","🥰","😍","🤩","👋","👍","👏","🙏","❤️","🔥","✅","⭐","🎉","🎊","💯","🏥","💊","💪","🧬","🩺","📅","📞","📱","💬","🔔","⏰","📍","🗓️","✨","🌟","💫","🎁","🎀","🛍️","💰","💵","🏷️","📢","📣","🔊","📩","📧","💌","🤝","👨‍⚕️","👩‍⚕️","🩻","🧪","💉","🏃","🧘","🍎","🥗","🎯","💡","🔑","🏆","🥇","🎖️","👑","💎","🌈","☀️","🌙","⚡","🌺","🌸","🍀","🌿"].map(e=>(
+                    <button key={e} onClick={()=>{setNewTemplate(p=>({...p,body_text:(p.body_text||"")+e}));setShowEmojiPicker(false);}}
+                      style={{fontSize:20,padding:"4px 6px",border:"none",background:"none",cursor:"pointer",borderRadius:6,lineHeight:1}}
+                      title={e}>
+                      {e}
+                    </button>
+                  ))}
+                </div>}
                 <div style={{fontSize:10,color:(newTemplate.body_text||"").length>900?"#ef4444":T.textFaint,textAlign:"right",marginTop:3}}>
                   {(newTemplate.body_text||"").length}/1024
                 </div>
