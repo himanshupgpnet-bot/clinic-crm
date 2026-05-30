@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.56";
+const CRM_VERSION = "2.9.57";
 
 // Responsive hook
 function useWindowSize() {
@@ -3841,6 +3841,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   setSelectedTemplate(t||null);
                 }} style={{flex:1,padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit"}}>
                   <option value="">— Select a template —</option>
+                  {templates.filter(t=>t.status==="approved").map(t=>(
+                    <option key={t.id} value={t.id}>{t.template_name} ({t.language})</option>
+                  ))}
                 </select>
                 <button onClick={()=>setShowTemplateForm(p=>!p)} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:showTemplateForm?WA_GREEN:"transparent",color:showTemplateForm?"#fff":WA_GREEN,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
                   {showTemplateForm?"✕ Close":"+ Add Template"}
