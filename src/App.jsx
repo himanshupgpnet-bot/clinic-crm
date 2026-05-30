@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.53";
+const CRM_VERSION = "2.9.55";
 
 // Responsive hook
 function useWindowSize() {
@@ -158,6 +158,8 @@ export default function App() {
   const [templateVarSamples, setTemplateVarSamples] = useState({});
   const [templateVarType, setTemplateVarType] = useState("name");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [templateSubmitting, setTemplateSubmitting] = useState(false);
+  const [templateSubmitResult, setTemplateSubmitResult] = useState(null);
   const [newTemplate, setNewTemplate] = useState({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
   const [broadcastContacts, setBroadcastContacts] = useState([]);
   const [broadcastProgress, setBroadcastProgress] = useState(null);
@@ -1548,21 +1550,33 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <button onClick={async()=>{
                   if(!newTemplate.template_name?.trim()) return alert("Template name required");
                   if(!newTemplate.body_text?.trim()) return alert("Body text required");
-                  const payload={template_name:newTemplate.template_name.trim(),language:newTemplate.language||"en",category:newTemplate.category||"MARKETING",
-                    header_type:newTemplate.header_type||"none",header_value:newTemplate.header_value||"",body_text:newTemplate.body_text.trim(),
-                    footer_text:newTemplate.footer_text||"",variables:JSON.stringify(templateVarSamples),buttons:JSON.stringify(templateButtons),status:"pending"};
-                  const url=newTemplate.id?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
-                  const r=await fetch(url,{method:newTemplate.id?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
-                  if(r.ok){const saved=newTemplate.id?{...newTemplate,...payload}:await r.json();
+                  setTemplateSubmitting(true);
+                  setTemplateSubmitResult(null);
+                  try {
+                    const payload={template_name:newTemplate.template_name.trim(),language:newTemplate.language||"en",category:newTemplate.category||"MARKETING",
+                      header_type:newTemplate.header_type||"none",header_value:newTemplate.header_value||"",body_text:newTemplate.body_text.trim(),
+                      footer_text:newTemplate.footer_text||"",variables:JSON.stringify(templateVarSamples),buttons:JSON.stringify(templateButtons),status:"pending"};
+                    const url=newTemplate.id?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
+                    const r=await fetch(url,{method:newTemplate.id?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
+                    if(!r.ok){setTemplateSubmitting(false);setTemplateSubmitResult({ok:false,msg:"Failed to save template"});return;}
+                    const saved=newTemplate.id?{...newTemplate,...payload}:await r.json();
+                    // Submit to Meta
                     const r2=await fetch(`${API}/api/templates/${saved.id}/submit`,{method:"POST",headers:authHeaders()});
                     const d2=await r2.json();
-                    if(r2.ok)alert("✅ Submitted to Meta! Status: "+d2.meta_status+"\nCheck back in 24-48 hours.");
-                    else alert("Draft saved. Meta error: "+d2.error);
-                    if(newTemplate.id)setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));else setTemplates(p=>[saved,...p]);
-                    setSelectedTemplate(saved);setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});
-                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});}
-                }} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:"#1877f2",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  🚀 Save & Submit to Meta
+                    setTemplateSubmitting(false);
+                    if(r2.ok){
+                      setTemplateSubmitResult({ok:true,msg:`Template submitted successfully!`,status:d2.meta_status,id:d2.meta_id});
+                      if(newTemplate.id)setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));else setTemplates(p=>[saved,...p]);
+                      setSelectedTemplate(saved);
+                    } else {
+                      setTemplateSubmitResult({ok:false,msg:d2.error||"Meta submission failed"});
+                    }
+                  } catch(e){
+                    setTemplateSubmitting(false);
+                    setTemplateSubmitResult({ok:false,msg:"Network error: "+e.message});
+                  }
+                }} disabled={templateSubmitting} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:templateSubmitting?"#93c5fd":"#1877f2",color:"#fff",fontSize:13,fontWeight:700,cursor:templateSubmitting?"not-allowed":"pointer",fontFamily:"inherit"}}>
+                  {templateSubmitting?"⏳ Submitting...":"🚀 Save & Submit to Meta"}
                 </button>
               </div>
             </div>
@@ -1627,7 +1641,125 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>
       </div>}
 
-      {/* ARCHIVED CONTACTS MODAL */}      {/* ARCHIVED CONTACTS MODAL */}
+      {/* TEMPLATE SUBMISSION RESULT MODAL */}
+      {(templateSubmitting||templateSubmitResult)&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:T.card,borderRadius:20,padding:32,maxWidth:420,width:"100%",textAlign:"center",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
+          {templateSubmitting&&<>
+            <div style={{fontSize:40,marginBottom:16}}>⏳</div>
+            <div style={{fontWeight:800,fontSize:18,color:T.text,marginBottom:8}}>Submitting to Meta...</div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:20}}>Please wait while we send your template for approval</div>
+            {/* Progress bar */}
+            <div style={{background:T.card2,borderRadius:20,height:8,overflow:"hidden"}}>
+              <div style={{height:"100%",background:"#1877f2",borderRadius:20,width:"100%",animation:"progress-slide 2s ease-in-out infinite"}}/>
+            </div>
+            <style>{`@keyframes progress-slide{0%{width:0%;margin-left:0}50%{width:80%;margin-left:0}100%{width:0%;margin-left:100%}}`}</style>
+          </>}
+          {!templateSubmitting&&templateSubmitResult&&<>
+            <div style={{fontSize:48,marginBottom:16}}>{templateSubmitResult.ok?"✅":"❌"}</div>
+            <div style={{fontWeight:800,fontSize:18,color:templateSubmitResult.ok?"#16a34a":"#ef4444",marginBottom:8}}>
+              {templateSubmitResult.ok?"Submitted Successfully!":"Submission Failed"}
+            </div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:templateSubmitResult.ok?12:20,lineHeight:1.6}}>
+              {templateSubmitResult.msg}
+            </div>
+            {templateSubmitResult.ok&&<>
+              <div style={{background:"#f0fdf4",borderRadius:10,padding:"10px 16px",marginBottom:20,border:"1px solid #bbf7d0"}}>
+                <div style={{fontSize:12,color:"#16a34a",fontWeight:600}}>Status: {templateSubmitResult.status||"PENDING"}</div>
+                {templateSubmitResult.id&&<div style={{fontSize:11,color:"#6b7280",marginTop:4}}>Meta ID: {templateSubmitResult.id}</div>}
+                <div style={{fontSize:11,color:"#6b7280",marginTop:4}}>Meta will review in 24-48 hours</div>
+              </div>
+            </>}
+            {!templateSubmitResult.ok&&<div style={{background:"#fef2f2",borderRadius:10,padding:"10px 16px",marginBottom:20,border:"1px solid #fecaca",fontSize:12,color:"#991b1b",textAlign:"left"}}>
+              <div style={{fontWeight:700,marginBottom:4}}>Possible reasons:</div>
+              <div>• Template name already exists in Meta</div>
+              <div>• Invalid content or formatting</div>
+              <div>• WhatsApp Business Account not configured</div>
+              <div>• Token expired or invalid</div>
+            </div>}
+            <div style={{display:"flex",gap:8}}>
+              {templateSubmitResult.ok&&<button onClick={()=>{
+                setTemplateSubmitResult(null);setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});
+                setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
+              }} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:"#16a34a",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                ✓ Done
+              </button>}
+              {!templateSubmitResult.ok&&<>
+                <button onClick={()=>setTemplateSubmitResult(null)}
+                  style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  ← Fix & Retry
+                </button>
+                <button onClick={()=>{
+                  setTemplateSubmitResult(null);setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});
+                  setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
+                }} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                  Close
+                </button>
+              </>}
+            </div>
+          </>}
+        </div>
+      </div>}
+
+      {/* ARCHIVED CONTACTS MODAL */}      {/* TEMPLATE SUBMISSION RESULT MODAL */}
+      {(templateSubmitting||templateSubmitResult)&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:T.card,borderRadius:20,padding:32,maxWidth:420,width:"100%",textAlign:"center",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
+          {templateSubmitting&&<>
+            <div style={{fontSize:40,marginBottom:16}}>⏳</div>
+            <div style={{fontWeight:800,fontSize:18,color:T.text,marginBottom:8}}>Submitting to Meta...</div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:20}}>Please wait while we send your template for approval</div>
+            {/* Progress bar */}
+            <div style={{background:T.card2,borderRadius:20,height:8,overflow:"hidden"}}>
+              <div style={{height:"100%",background:"#1877f2",borderRadius:20,width:"100%",animation:"progress-slide 2s ease-in-out infinite"}}/>
+            </div>
+            <style>{`@keyframes progress-slide{0%{width:0%;margin-left:0}50%{width:80%;margin-left:0}100%{width:0%;margin-left:100%}}`}</style>
+          </>}
+          {!templateSubmitting&&templateSubmitResult&&<>
+            <div style={{fontSize:48,marginBottom:16}}>{templateSubmitResult.ok?"✅":"❌"}</div>
+            <div style={{fontWeight:800,fontSize:18,color:templateSubmitResult.ok?"#16a34a":"#ef4444",marginBottom:8}}>
+              {templateSubmitResult.ok?"Submitted Successfully!":"Submission Failed"}
+            </div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:templateSubmitResult.ok?12:20,lineHeight:1.6}}>
+              {templateSubmitResult.msg}
+            </div>
+            {templateSubmitResult.ok&&<>
+              <div style={{background:"#f0fdf4",borderRadius:10,padding:"10px 16px",marginBottom:20,border:"1px solid #bbf7d0"}}>
+                <div style={{fontSize:12,color:"#16a34a",fontWeight:600}}>Status: {templateSubmitResult.status||"PENDING"}</div>
+                {templateSubmitResult.id&&<div style={{fontSize:11,color:"#6b7280",marginTop:4}}>Meta ID: {templateSubmitResult.id}</div>}
+                <div style={{fontSize:11,color:"#6b7280",marginTop:4}}>Meta will review in 24-48 hours</div>
+              </div>
+            </>}
+            {!templateSubmitResult.ok&&<div style={{background:"#fef2f2",borderRadius:10,padding:"10px 16px",marginBottom:20,border:"1px solid #fecaca",fontSize:12,color:"#991b1b",textAlign:"left"}}>
+              <div style={{fontWeight:700,marginBottom:4}}>Possible reasons:</div>
+              <div>• Template name already exists in Meta</div>
+              <div>• Invalid content or formatting</div>
+              <div>• WhatsApp Business Account not configured</div>
+              <div>• Token expired or invalid</div>
+            </div>}
+            <div style={{display:"flex",gap:8}}>
+              {templateSubmitResult.ok&&<button onClick={()=>{
+                setTemplateSubmitResult(null);setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});
+                setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
+              }} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:"#16a34a",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                ✓ Done
+              </button>}
+              {!templateSubmitResult.ok&&<>
+                <button onClick={()=>setTemplateSubmitResult(null)}
+                  style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  ← Fix & Retry
+                </button>
+                <button onClick={()=>{
+                  setTemplateSubmitResult(null);setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});
+                  setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
+                }} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                  Close
+                </button>
+              </>}
+            </div>
+          </>}
+        </div>
+      </div>}
+
+      {/* ARCHIVED CONTACTS MODAL */}
       {showArchived&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}}>
         <div style={{background:T.card,borderRadius:20,width:"100%",maxWidth:480,maxHeight:"80vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
           {/* Header */}
@@ -3709,14 +3841,40 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   setSelectedTemplate(t||null);
                 }} style={{flex:1,padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit"}}>
                   <option value="">— Select a template —</option>
-                  {templates.map(t=>(
-                    <option key={t.id} value={t.id}>{t.template_name} ({t.language}) {t.status==="approved"?"✅":"⏳"}</option>
-                  ))}
                 </select>
                 <button onClick={()=>setShowTemplateForm(p=>!p)} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:showTemplateForm?WA_GREEN:"transparent",color:showTemplateForm?"#fff":WA_GREEN,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
                   {showTemplateForm?"✕ Close":"+ Add Template"}
                 </button>
               </div>
+
+              {/* Template cards list */}
+              {templates.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
+                {templates.map(t=>{
+                  const statusColor = t.status==="approved"?"#16a34a":t.status==="rejected"?"#ef4444":t.status==="pending"?"#d97706":"#6b7280";
+                  const statusBg = t.status==="approved"?"#dcfce7":t.status==="rejected"?"#fef2f2":t.status==="pending"?"#fef9c3":"#f1f5f9";
+                  const statusLabel = t.status==="approved"?"✅ Approved":t.status==="rejected"?"❌ Rejected":t.status==="pending"?"⏳ Pending":"📝 Draft";
+                  return <div key={t.id} onClick={()=>setSelectedTemplate(t)}
+                    style={{padding:"10px 12px",borderRadius:10,border:`1.5px solid ${selectedTemplate?.id===t.id?WA_GREEN:T.border}`,
+                      background:selectedTemplate?.id===t.id?`${WA_GREEN}08`:T.card2,cursor:"pointer",
+                      display:"flex",alignItems:"center",gap:10,transition:"all .15s"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.template_name}</div>
+                      <div style={{fontSize:10,color:T.textFaint,marginTop:1}}>{t.language} · {t.category}</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                      <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700,background:statusBg,color:statusColor,whiteSpace:"nowrap"}}>
+                        {statusLabel}
+                      </span>
+                      {t.meta_template_id&&<button onClick={async e=>{e.stopPropagation();
+                        const r=await fetch(`${API}/api/templates/${t.id}/status`,{headers:authHeaders()});
+                        if(r.ok){const d=await r.json();fetchTemplates(broadcastClinic?.clinic_id||null);}
+                      }} style={{fontSize:9,padding:"1px 6px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                        🔄 Refresh
+                      </button>}
+                    </div>
+                  </div>;
+                })}
+              </div>}
 
               {/* Selected template preview */}
               {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`}}>
