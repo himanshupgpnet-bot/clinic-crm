@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.49";
+const CRM_VERSION = "2.9.48";
 
 // Responsive hook
 function useWindowSize() {
@@ -3388,54 +3388,18 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
 
               {/* Selected template preview */}
-              {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`}}>
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                  <span style={{fontSize:20}}>📋</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</div>
-                    <div style={{fontSize:11,color:T.textMuted}}>{selectedTemplate.language||"en"} · {selectedTemplate.category||"MARKETING"}</div>
-                  </div>
-                  <button onClick={()=>{setNewTemplate({...selectedTemplate});setShowTemplateForm(true);}}
-                    style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                    ✏️ Edit
-                  </button>
+              {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:20}}>📋</span>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>Meta WhatsApp Template · Ready to send</div>
+                  {selectedTemplate.header_value&&<div style={{fontSize:11,color:WA_GREEN,marginTop:2}}>🖼️ Image attached</div>}
                 </div>
-                {/* Status badge */}
-                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                  <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:700,
-                    background:selectedTemplate.status==="approved"?"#dcfce7":
-                              selectedTemplate.status==="rejected"?"#fef2f2":"#fef9c3",
-                    color:selectedTemplate.status==="approved"?"#16a34a":
-                          selectedTemplate.status==="rejected"?"#ef4444":"#854d0e"}}>
-                    {selectedTemplate.status==="approved"?"✅ Approved":
-                     selectedTemplate.status==="rejected"?"❌ Rejected":
-                     selectedTemplate.status==="pending"?"⏳ Pending Approval":"📝 Draft"}
-                  </span>
-                  {selectedTemplate.meta_template_id&&<button onClick={async()=>{
-                    const r = await fetch(`${API}/api/templates/${selectedTemplate.id}/status`,{headers:authHeaders()});
-                    if(r.ok){
-                      const d = await r.json();
-                      fetchTemplates(broadcastClinic?.clinic_id||null);
-                      alert(`Status: ${d.meta_status}`);
-                    }
-                  }} style={{fontSize:10,padding:"3px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                    🔄 Check Status
-                  </button>}
-                  {!selectedTemplate.meta_template_id&&<button onClick={async()=>{
-                    const r = await fetch(`${API}/api/templates/${selectedTemplate.id}/submit`,{method:"POST",headers:authHeaders()});
-                    const d = await r.json();
-                    if(r.ok){
-                      alert(`✅ Submitted! Status: ${d.meta_status}`);
-                      fetchTemplates(broadcastClinic?.clinic_id||null);
-                    } else alert(`❌ ${d.error}`);
-                  }} style={{fontSize:10,padding:"3px 8px",borderRadius:6,border:"none",background:"#1877f2",color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
-                    🚀 Submit to Meta
-                  </button>}
-                </div>
-                {selectedTemplate.body_text&&selectedTemplate.body_text!==selectedTemplate.template_name&&
-                  <div style={{marginTop:8,fontSize:12,color:T.text,background:T.bg,borderRadius:8,padding:"8px 10px",lineHeight:1.5}}>
-                    {selectedTemplate.body_text}
-                  </div>}
+                <button onClick={()=>{setNewTemplate({...selectedTemplate});setShowTemplateForm(true);}}
+                  style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                  ✏️ Edit
+                </button>
+                <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:"#dcfce7",color:"#16a34a",fontWeight:600}}>✅ Active</span>
               </div>}
 
               {/* Add template form — just template name, Meta has everything else */}
@@ -3477,48 +3441,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {newTemplate.header_value&&<div style={{marginBottom:12}}>
                   <img src={newTemplate.header_value} alt="preview" style={{maxWidth:"100%",maxHeight:120,borderRadius:8,border:`1px solid ${T.border}`}} onError={e=>e.target.style.display="none"}/>
                 </div>}
-                {/* Body text field */}
-                <div style={{marginBottom:10}}>
-                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Message Body *</div>
-                  <div style={{fontSize:10,color:T.textFaint,marginBottom:4}}>Use {"{{1}}"} for first variable, {"{{2}}"} for second etc.</div>
-                  <textarea value={newTemplate.body_text||""} onChange={e=>setNewTemplate(p=>({...p,body_text:e.target.value}))}
-                    placeholder={"Hello {{1}}, we're celebrating our 1-Year Anniversary!..."}
-                    rows={4} style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:0}}/>
-                </div>
-                {/* Footer */}
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Footer Text <span style={{color:T.textFaint,fontWeight:400}}>(optional)</span></div>
-                  <input value={newTemplate.footer_text||""} onChange={e=>setNewTemplate(p=>({...p,footer_text:e.target.value}))}
-                    placeholder="Reply STOP to unsubscribe"
-                    style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
-                </div>
-                {/* Language + Category */}
-                <div style={{display:"flex",gap:8,marginBottom:12}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Language</div>
-                    <select value={newTemplate.language||"en"} onChange={e=>setNewTemplate(p=>({...p,language:e.target.value}))}
-                      style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                      <option value="en">English</option>
-                      <option value="en_US">English (US)</option>
-                      <option value="ms">Malay</option>
-                      <option value="zh_CN">Chinese</option>
-                      <option value="ta">Tamil</option>
-                    </select>
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Category</div>
-                    <select value={newTemplate.category||"MARKETING"} onChange={e=>setNewTemplate(p=>({...p,category:e.target.value}))}
-                      style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                      <option value="MARKETING">Marketing</option>
-                      <option value="UTILITY">Utility</option>
-                      <option value="AUTHENTICATION">Authentication</option>
-                    </select>
-                  </div>
-                </div>
-                {/* Save button */}
                 <button onClick={async()=>{
                   if(!newTemplate.template_name.trim()) return alert("Template name is required");
-                  if(!newTemplate.body_text?.trim()) return alert("Message body is required");
                   const isEdit = !!newTemplate.id;
                   const payload = {
                     template_name: newTemplate.template_name.trim(),
@@ -3526,9 +3450,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     category: newTemplate.category||"MARKETING",
                     header_type: newTemplate.header_value?"image":"none",
                     header_value: newTemplate.header_value||"",
-                    body_text: newTemplate.body_text.trim(),
-                    footer_text: newTemplate.footer_text||"",
-                    variables:[], status:"pending"
+                    body_text: newTemplate.template_name.trim(),
+                    footer_text:"", variables:[], status:"approved"
                   };
                   const url = isEdit 
                     ? `${API}/api/templates/${newTemplate.id}`
@@ -3538,34 +3461,21 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   const method = isEdit ? "PATCH" : "POST";
                   const r = await fetch(url,{method,headers:authHeaders(),body:JSON.stringify(payload)});
                   if(r.ok){
-                    const saved = isEdit ? {...newTemplate,...payload} : await r.json();
                     if(isEdit){
-                      setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));
-                      setSelectedTemplate(saved);
+                      const updated = {...newTemplate,...payload};
+                      setTemplates(p=>p.map(t=>t.id===newTemplate.id?updated:t));
+                      setSelectedTemplate(updated);
                     } else {
-                      setTemplates(p=>[saved,...p]);
-                      setSelectedTemplate(saved);
+                      const t = await r.json();
+                      setTemplates(p=>[t,...p]);
+                      setSelectedTemplate(t);
                     }
                     setShowTemplateForm(false);
-                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
+                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"approved"});
                   }
-                }} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:T.card2,color:T.text,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:8,border:`1px solid ${T.border}`}}>
-                  💾 {newTemplate.id?"Update":"Save"} Template
+                }} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  💾 {newTemplate.id?"Update Template":"Save Template"}
                 </button>
-                {/* Submit to Meta button */}
-                {newTemplate.id&&<button onClick={async()=>{
-                  const r = await fetch(`${API}/api/templates/${newTemplate.id}/submit`,{method:"POST",headers:authHeaders()});
-                  const d = await r.json();
-                  if(r.ok){
-                    alert(`✅ Submitted to Meta! Status: ${d.meta_status}. Check back in 24-48 hours.`);
-                    fetchTemplates(broadcastClinic?.clinic_id||null);
-                    setShowTemplateForm(false);
-                  } else {
-                    alert(`❌ Error: ${d.error}`);
-                  }
-                }} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"#1877f2",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  🚀 Submit to Meta for Approval
-                </button>}
               </div>}
             </div>
 
