@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.55";
+const CRM_VERSION = "2.9.56";
 
 // Responsive hook
 function useWindowSize() {
@@ -3884,7 +3884,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     <div style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</div>
                     <div style={{fontSize:11,color:T.textMuted}}>{selectedTemplate.language||"en"} · {selectedTemplate.category||"MARKETING"}</div>
                   </div>
-                  <button onClick={()=>{setNewTemplate({...selectedTemplate});setShowTemplateForm(true);}}
+                  <button onClick={()=>{
+                    setNewTemplate({...selectedTemplate});
+                    // Restore buttons
+                    try{const b=typeof selectedTemplate.buttons==="string"?JSON.parse(selectedTemplate.buttons||"[]"):selectedTemplate.buttons||[];setTemplateButtons(b);}catch{setTemplateButtons([]);}
+                    // Restore variable samples
+                    try{const v=typeof selectedTemplate.variables==="string"?JSON.parse(selectedTemplate.variables||"{}"):selectedTemplate.variables||{};setTemplateVarSamples(typeof v==="object"&&!Array.isArray(v)?v:{});}catch{setTemplateVarSamples({});}
+                    setShowTemplateForm(true);
+                  }}
                     style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
                     ✏️ Edit
                   </button>
@@ -3910,7 +3917,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   }} style={{fontSize:10,padding:"3px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
                     🔄 Check Status
                   </button>}
-                  {!selectedTemplate.meta_template_id&&<button onClick={async()=>{
+                  {selectedTemplate.status!=="approved"&&<button onClick={async()=>{
                     const r = await fetch(`${API}/api/templates/${selectedTemplate.id}/submit`,{method:"POST",headers:authHeaders()});
                     const d = await r.json();
                     if(r.ok){
@@ -3921,9 +3928,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     🚀 Submit to Meta
                   </button>}
                 </div>
-                {selectedTemplate.body_text&&selectedTemplate.body_text!==selectedTemplate.template_name&&
-                  <div style={{marginTop:8,fontSize:12,color:T.text,background:T.bg,borderRadius:8,padding:"8px 10px",lineHeight:1.5}}>
-                    {selectedTemplate.body_text}
+                {selectedTemplate.body_text&&<div style={{marginTop:8,fontSize:12,color:T.text,background:T.bg,borderRadius:8,padding:"8px 10px",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
+                    {(()=>{
+                      try{
+                        const vars=typeof selectedTemplate.variables==="string"?JSON.parse(selectedTemplate.variables||"{}"):selectedTemplate.variables||{};
+                        if(typeof vars==="object"&&!Array.isArray(vars)){
+                          return selectedTemplate.body_text.replace(/{{(\w+)}}/g,(_,k)=>vars[`{{${k}}}`]||`[${k}]`);
+                        }
+                      }catch{}
+                      return selectedTemplate.body_text;
+                    })()}
                   </div>}
               </div>}
 
