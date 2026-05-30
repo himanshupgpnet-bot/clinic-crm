@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.49";
+const CRM_VERSION = "2.9.50";
 
 // Responsive hook
 function useWindowSize() {
@@ -3438,134 +3438,187 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </div>}
               </div>}
 
-              {/* Add template form — just template name, Meta has everything else */}
+              {/* Template form — Meta-like with live preview */}
               {showTemplateForm&&<div style={{marginTop:14,borderTop:`1px solid ${T.border}`,paddingTop:14}}>
-                <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Add Template</div>
-                <div style={{fontSize:11,color:T.textFaint,marginBottom:12}}>Enter the exact template name as registered in Meta WhatsApp Manager.</div>
-                <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value}))}
-                  placeholder="e.g. eecp_promo_with_image"
-                  style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
-                <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Header Image <span style={{color:T.textFaint,fontWeight:400}}>(if template has image header)</span></div>
-                {/* Upload image file */}
-                <input type="file" accept="image/*" id="template-img-upload" style={{display:"none"}} onChange={async e=>{
-                  const file = e.target.files[0];
-                  if(!file) return;
-                  const formData = new FormData();
-                  formData.append("file", file);
-                  try {
-                    const r = await fetch(`${API}/api/upload/media`, {
-                      method:"POST",
-                      headers:{"Authorization":`Bearer ${authToken}`},
-                      body: formData
-                    });
-                    const d = await r.json();
-                    if(d.url) {
-                      setNewTemplate(p=>({...p, header_value:d.url, header_type:"image"}));
-                    }
-                  } catch(err) {
-                    alert("Upload failed: " + err.message);
-                  }
-                }}/>
-                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
-                  <label htmlFor="template-img-upload" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:`1.5px dashed ${T.border}`,cursor:"pointer",color:T.textMuted,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>
-                    📎 Upload Image
-                  </label>
-                  <input value={newTemplate.header_value||""} onChange={e=>setNewTemplate(p=>({...p,header_value:e.target.value,header_type:e.target.value?"image":"none"}))}
-                    placeholder="or paste image URL here"
-                    style={{flex:1,background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
-                </div>
-                {newTemplate.header_value&&<div style={{marginBottom:12}}>
-                  <img src={newTemplate.header_value} alt="preview" style={{maxWidth:"100%",maxHeight:120,borderRadius:8,border:`1px solid ${T.border}`}} onError={e=>e.target.style.display="none"}/>
-                </div>}
-                {/* Body text field */}
-                <div style={{marginBottom:10}}>
-                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Message Body *</div>
-                  <div style={{fontSize:10,color:T.textFaint,marginBottom:4}}>Use {"{{1}}"} for first variable, {"{{2}}"} for second etc.</div>
-                  <textarea value={newTemplate.body_text||""} onChange={e=>setNewTemplate(p=>({...p,body_text:e.target.value}))}
-                    placeholder={"Hello {{1}}, we're celebrating our 1-Year Anniversary!..."}
-                    rows={4} style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:0}}/>
-                </div>
-                {/* Footer */}
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Footer Text <span style={{color:T.textFaint,fontWeight:400}}>(optional)</span></div>
-                  <input value={newTemplate.footer_text||""} onChange={e=>setNewTemplate(p=>({...p,footer_text:e.target.value}))}
-                    placeholder="Reply STOP to unsubscribe"
-                    style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
-                </div>
-                {/* Language + Category */}
-                <div style={{display:"flex",gap:8,marginBottom:12}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Language</div>
-                    <select value={newTemplate.language||"en"} onChange={e=>setNewTemplate(p=>({...p,language:e.target.value}))}
-                      style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                      <option value="en">English</option>
-                      <option value="en_US">English (US)</option>
-                      <option value="ms">Malay</option>
-                      <option value="zh_CN">Chinese</option>
-                      <option value="ta">Tamil</option>
-                    </select>
+                <div style={{display:"flex",gap:16}}>
+                  {/* Left — Form */}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:T.text}}>
+                      {newTemplate.id?"Edit Template":"Create Template"}
+                    </div>
+
+                    {/* Template Name */}
+                    <div style={{marginBottom:10}}>
+                      <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Template Name *</div>
+                      <div style={{fontSize:10,color:T.textFaint,marginBottom:4}}>Lowercase, no spaces (use underscores)</div>
+                      <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value.toLowerCase().replace(/\s+/g,"_")}))}
+                        placeholder="e.g. eecp_anniversary_promo"
+                        style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                    </div>
+
+                    {/* Language + Category */}
+                    <div style={{display:"flex",gap:8,marginBottom:10}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Language</div>
+                        <select value={newTemplate.language||"en"} onChange={e=>setNewTemplate(p=>({...p,language:e.target.value}))}
+                          style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                          <option value="en">English</option>
+                          <option value="en_US">English (US)</option>
+                          <option value="ms">Malay</option>
+                          <option value="zh_CN">Chinese (Simplified)</option>
+                          <option value="ta">Tamil</option>
+                        </select>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Category</div>
+                        <select value={newTemplate.category||"MARKETING"} onChange={e=>setNewTemplate(p=>({...p,category:e.target.value}))}
+                          style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                          <option value="MARKETING">Marketing</option>
+                          <option value="UTILITY">Utility</option>
+                          <option value="AUTHENTICATION">Authentication</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Header */}
+                    <div style={{marginBottom:10}}>
+                      <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Header <span style={{color:T.textFaint,fontWeight:400}}>(optional)</span></div>
+                      <select value={newTemplate.header_type||"none"} onChange={e=>setNewTemplate(p=>({...p,header_type:e.target.value,header_value:""}))}
+                        style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",marginBottom:6}}>
+                        <option value="none">None</option>
+                        <option value="text">Text</option>
+                        <option value="image">Image</option>
+                      </select>
+                      {newTemplate.header_type==="text"&&<input value={newTemplate.header_value||""} onChange={e=>setNewTemplate(p=>({...p,header_value:e.target.value}))}
+                        placeholder="Header text (max 60 chars)" maxLength={60}
+                        style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}
+                      {newTemplate.header_type==="image"&&<div>
+                        <input type="file" accept="image/*" id="tmpl-img" style={{display:"none"}} onChange={async e=>{
+                          const file = e.target.files[0]; if(!file) return;
+                          const fd = new FormData(); fd.append("file",file);
+                          const r = await fetch(`${API}/api/upload/media`,{method:"POST",headers:{"Authorization":`Bearer ${authToken}`},body:fd});
+                          if(r.ok){const d=await r.json();setNewTemplate(p=>({...p,header_value:d.url||d.media_url||""}));}
+                        }}/>
+                        <button onClick={()=>document.getElementById("tmpl-img").click()}
+                          style={{width:"100%",padding:"8px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                          {newTemplate.header_value?"✅ Image uploaded — click to change":"📎 Upload image"}
+                        </button>
+                      </div>}
+                    </div>
+
+                    {/* Body */}
+                    <div style={{marginBottom:10}}>
+                      <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Body *</div>
+                      <div style={{fontSize:10,color:T.textFaint,marginBottom:4}}>Use {`{{1}}`} for variables. Max 1024 chars.</div>
+                      <textarea value={newTemplate.body_text||""} onChange={e=>setNewTemplate(p=>({...p,body_text:e.target.value}))}
+                        placeholder={`Hello {{1}}, we're celebrating our anniversary! Join us for exclusive offers. 🎉`}
+                        rows={5} style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",lineHeight:1.5}}/>
+                      <div style={{fontSize:10,color:T.textFaint,textAlign:"right"}}>{(newTemplate.body_text||"").length}/1024</div>
+                    </div>
+
+                    {/* Footer */}
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Footer <span style={{color:T.textFaint,fontWeight:400}}>(optional, max 60 chars)</span></div>
+                      <input value={newTemplate.footer_text||""} onChange={e=>setNewTemplate(p=>({...p,footer_text:e.target.value}))} maxLength={60}
+                        placeholder="e.g. Reply STOP to unsubscribe"
+                        style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                    </div>
+
+                    {/* Buttons */}
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={async()=>{
+                        if(!newTemplate.template_name?.trim()) return alert("Template name required");
+                        if(!newTemplate.body_text?.trim()) return alert("Body text required");
+                        const isEdit = !!newTemplate.id;
+                        const payload = {
+                          template_name:newTemplate.template_name.trim(),
+                          language:newTemplate.language||"en",
+                          category:newTemplate.category||"MARKETING",
+                          header_type:newTemplate.header_type||"none",
+                          header_value:newTemplate.header_value||"",
+                          body_text:newTemplate.body_text.trim(),
+                          footer_text:newTemplate.footer_text||"",
+                          variables:[],status:"draft"
+                        };
+                        const url = isEdit?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
+                        const r = await fetch(url,{method:isEdit?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
+                        if(r.ok){
+                          const saved = isEdit?{...newTemplate,...payload}:await r.json();
+                          if(isEdit){setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));setSelectedTemplate(saved);}
+                          else{setTemplates(p=>[saved,...p]);setSelectedTemplate(saved);}
+                          setShowTemplateForm(false);
+                          setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
+                        }
+                      }} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                        💾 Save Draft
+                      </button>
+                      <button onClick={async()=>{
+                        if(!newTemplate.template_name?.trim()) return alert("Template name required");
+                        if(!newTemplate.body_text?.trim()) return alert("Body text required");
+                        const isEdit = !!newTemplate.id;
+                        const payload = {
+                          template_name:newTemplate.template_name.trim(),
+                          language:newTemplate.language||"en",
+                          category:newTemplate.category||"MARKETING",
+                          header_type:newTemplate.header_type||"none",
+                          header_value:newTemplate.header_value||"",
+                          body_text:newTemplate.body_text.trim(),
+                          footer_text:newTemplate.footer_text||"",
+                          variables:[],status:"pending"
+                        };
+                        const url = isEdit?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
+                        const r = await fetch(url,{method:isEdit?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
+                        if(r.ok){
+                          const saved = isEdit?{...newTemplate,...payload}:await r.json();
+                          // Now submit to Meta
+                          const r2 = await fetch(`${API}/api/templates/${saved.id}/submit`,{method:"POST",headers:authHeaders()});
+                          const d2 = await r2.json();
+                          if(r2.ok){
+                            alert(`✅ Submitted to Meta! Status: ${d2.meta_status}\nCheck back in 24-48 hours for approval.`);
+                            fetchTemplates(broadcastClinic?.clinic_id||null);
+                          } else {
+                            alert(`Saved as draft. Meta submission failed: ${d2.error}`);
+                          }
+                          setShowTemplateForm(false);
+                          setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
+                        }
+                      }} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:"#1877f2",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                        🚀 Submit to Meta
+                      </button>
+                    </div>
                   </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Category</div>
-                    <select value={newTemplate.category||"MARKETING"} onChange={e=>setNewTemplate(p=>({...p,category:e.target.value}))}
-                      style={{width:"100%",padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                      <option value="MARKETING">Marketing</option>
-                      <option value="UTILITY">Utility</option>
-                      <option value="AUTHENTICATION">Authentication</option>
-                    </select>
+
+                  {/* Right — Live WhatsApp Preview */}
+                  <div style={{width:220,flexShrink:0}}>
+                    <div style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:8,textAlign:"center",textTransform:"uppercase",letterSpacing:1}}>Preview</div>
+                    <div style={{background:"#e5ddd5",borderRadius:12,padding:12,minHeight:200,backgroundImage:"url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23b2a99a' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")"}}>
+                      {/* Message bubble */}
+                      <div style={{background:"#fff",borderRadius:"4px 12px 12px 12px",padding:"8px 10px",maxWidth:"90%",boxShadow:"0 1px 2px rgba(0,0,0,.15)"}}>
+                        {/* Header */}
+                        {newTemplate.header_type==="image"&&<div style={{background:"#f0f0f0",borderRadius:6,height:100,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:6,overflow:"hidden"}}>
+                          {newTemplate.header_value
+                            ?<img src={newTemplate.header_value} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="header"/>
+                            :<span style={{color:"#aaa",fontSize:11}}>🖼️ Image</span>}
+                        </div>}
+                        {newTemplate.header_type==="text"&&newTemplate.header_value&&
+                          <div style={{fontWeight:700,fontSize:13,color:"#111",marginBottom:4}}>{newTemplate.header_value}</div>}
+                        {/* Body */}
+                        <div style={{fontSize:12,color:"#111",lineHeight:1.5,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
+                          {newTemplate.body_text||<span style={{color:"#aaa"}}>Your message will appear here...</span>}
+                        </div>
+                        {/* Footer */}
+                        {newTemplate.footer_text&&<div style={{fontSize:10,color:"#888",marginTop:4,borderTop:"1px solid #f0f0f0",paddingTop:4}}>{newTemplate.footer_text}</div>}
+                        {/* Timestamp */}
+                        <div style={{fontSize:10,color:"#aaa",textAlign:"right",marginTop:4}}>
+                          {new Date().toLocaleTimeString("en-MY",{hour:"2-digit",minute:"2-digit"})} ✓✓
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{fontSize:10,color:T.textFaint,textAlign:"center",marginTop:6}}>
+                      Live preview updates as you type
+                    </div>
                   </div>
                 </div>
-                {/* Save button */}
-                <button onClick={async()=>{
-                  if(!newTemplate.template_name.trim()) return alert("Template name is required");
-                  if(!newTemplate.body_text?.trim()) return alert("Message body is required");
-                  const isEdit = !!newTemplate.id;
-                  const payload = {
-                    template_name: newTemplate.template_name.trim(),
-                    language: newTemplate.language||"en",
-                    category: newTemplate.category||"MARKETING",
-                    header_type: newTemplate.header_value?"image":"none",
-                    header_value: newTemplate.header_value||"",
-                    body_text: newTemplate.body_text.trim(),
-                    footer_text: newTemplate.footer_text||"",
-                    variables:[], status:"pending"
-                  };
-                  const url = isEdit 
-                    ? `${API}/api/templates/${newTemplate.id}`
-                    : (isAdmin && broadcastClinic 
-                        ? `${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`
-                        : `${API}/api/templates`);
-                  const method = isEdit ? "PATCH" : "POST";
-                  const r = await fetch(url,{method,headers:authHeaders(),body:JSON.stringify(payload)});
-                  if(r.ok){
-                    const saved = isEdit ? {...newTemplate,...payload} : await r.json();
-                    if(isEdit){
-                      setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));
-                      setSelectedTemplate(saved);
-                    } else {
-                      setTemplates(p=>[saved,...p]);
-                      setSelectedTemplate(saved);
-                    }
-                    setShowTemplateForm(false);
-                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
-                  }
-                }} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:T.card2,color:T.text,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:8,border:`1px solid ${T.border}`}}>
-                  💾 {newTemplate.id?"Update":"Save"} Template
-                </button>
-                {/* Submit to Meta button */}
-                {newTemplate.id&&<button onClick={async()=>{
-                  const r = await fetch(`${API}/api/templates/${newTemplate.id}/submit`,{method:"POST",headers:authHeaders()});
-                  const d = await r.json();
-                  if(r.ok){
-                    alert(`✅ Submitted to Meta! Status: ${d.meta_status}. Check back in 24-48 hours.`);
-                    fetchTemplates(broadcastClinic?.clinic_id||null);
-                    setShowTemplateForm(false);
-                  } else {
-                    alert(`❌ Error: ${d.error}`);
-                  }
-                }} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"#1877f2",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  🚀 Submit to Meta for Approval
-                </button>}
               </div>}
             </div>
 
