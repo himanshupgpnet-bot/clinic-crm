@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.64";
+const CRM_VERSION = "2.9.66";
 
 // Responsive hook
 function useWindowSize() {
@@ -1139,15 +1139,31 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     return c.lastDate===inboxDateFilter;
   }).sort((a,b)=>{
     const parseDate = (d,t) => {
-      if(!d) return new Date(0);
+      if(!d) return 0;
       try {
-        const parts = d.split("/");
-        if(parts.length===3) {
-          const iso = `${parts[2]}-${parts[1]}-${parts[0]}`;
-          return t ? new Date(`${iso} ${t}`) : new Date(iso);
+        let day,mon,yr,hr=0,min=0;
+        if(d.includes("-")){
+          // YYYY-MM-DD format from DB
+          const p=d.split("-");
+          yr=parseInt(p[0]);mon=parseInt(p[1])-1;day=parseInt(p[2]);
+        } else if(d.includes("/")){
+          // dd/mm/yyyy format
+          const p=d.split("/");
+          if(p[2]&&p[2].length===4){day=parseInt(p[0]);mon=parseInt(p[1])-1;yr=parseInt(p[2]);}
+          else{yr=parseInt(p[0]);mon=parseInt(p[1])-1;day=parseInt(p[2]);}
+        } else return 0;
+        if(t){
+          const tp=t.replace(/\s+/g," ").trim();
+          const isPM=tp.toUpperCase().includes("PM");
+          const isAM=tp.toUpperCase().includes("AM");
+          const timePart=tp.replace(/[APap][Mm]/g,"").trim();
+          const tc=timePart.split(":");
+          hr=parseInt(tc[0])||0;min=parseInt(tc[1])||0;
+          if(isPM&&hr!==12)hr+=12;
+          if(isAM&&hr===12)hr=0;
         }
-        return new Date(d+(t?" "+t:""));
-      } catch { return new Date(0); }
+        return new Date(yr,mon,day,hr,min).getTime();
+      } catch { return 0; }
     };
     return parseDate(b.lastDate,b.lastTime) - parseDate(a.lastDate,a.lastTime);
   });
