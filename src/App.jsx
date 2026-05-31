@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.67";
+const CRM_VERSION = "2.9.68";
 
 // Responsive hook
 function useWindowSize() {
@@ -449,9 +449,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
-    { version:"2.9.67", date:"May 31 2026", tag:"FIX", color:"#3b82f6", items:[
-      "🔒 Bot test now routes through backend — API key never in browser",
-      "🤖 Bot test uses your stored API key and live knowledge base",
+    { version:"2.9.68", date:"May 31 2026", tag:"NEW", color:"#10b981", items:[
+      "🧪 Test Bot: sandbox mode — edit prompt/KB without touching live",
+      "👥 Admin can select any client to test their bot",
+      "🔍 Chat Analyser — paste broken chat, AI diagnoses and gives exact fixes",
+      "🚀 Publish sandbox to live with one click",
     ]},
     { version:"2.9.6", date:"May 21 2026", tag:"NEW", color:"#10b981", items:[
       "📎 Images, documents, audio and video from WhatsApp now show in CRM",
@@ -1100,32 +1102,23 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()}); fetchKnowledge(kbClinic?.clinic_id); } catch {}
   }
 
-
+  function parseBotResponse(raw) {
+    const lines=raw.trim().split("\n"); let sources=[],text=raw.trim();
+    try{const l=lines[lines.length-1].trim();if(l.startsWith('{"sources"')){sources=JSON.parse(l).sources||[];text=lines.slice(0,-1).join("\\n").trim();}}catch{}
+    return {text,sources};
+  }
 
   async function sendBotMessage() {
     if(!botInput.trim()||botLoading) return;
     const userMsg={from:"user",text:botInput.trim(),time:ts(),sources:[]};
     setBotConvo(p=>[...p,userMsg]); setBotInput(""); setBotLoading(true);
     try {
-      const history=[...botConvo,userMsg].map(m=>({
-        role:m.from==="user"?"user":"assistant",
-        content:m.text
-      }));
-      const res=await fetch(`${API}/api/bot/test`,{
-        method:"POST",
-        headers:authHeaders(),
-        body:JSON.stringify({history})
-      });
-      if(!res.ok){
-        const err=await res.json().catch(()=>({}));
-        setBotConvo(p=>[...p,{from:"bot",text:`⚠️ ${err.error||"Server error — check API key in Settings"}`,time:ts(),sources:[]}]);
-      } else {
-        const data=await res.json();
-        setBotConvo(p=>[...p,{from:"bot",text:data.text||"⚠️ No response",time:ts(),sources:data.sources||[]}]);
-      }
-    } catch(e) {
-      setBotConvo(p=>[...p,{from:"bot",text:"⚠️ Could not reach server.",time:ts(),sources:[]}]);
-    }
+      const history=[...botConvo,userMsg].map(m=>({role:m.from==="user"?"user":"assistant",content:m.from==="user"?m.text:m.text+`\n{"sources":[]}`}));
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:history})});
+      const data=await res.json();
+      const {text,sources}=parseBotResponse(data.content?.[0]?.text||"⚠️ No response");
+      setBotConvo(p=>[...p,{from:"bot",text,time:ts(),sources}]);
+    } catch { setBotConvo(p=>[...p,{from:"bot",text:"⚠️ Error.",time:ts(),sources:[]}]); }
     setBotLoading(false);
   }
 
@@ -2759,39 +2752,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>
         </div>}
 
-        {tab==="bot"&&<div style={{flex:1,display:"flex",flexDirection:"column",maxWidth:680,margin:"0 auto",width:"100%"}}>
-          <div style={{padding:"10px 14px",background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${WA_GREEN},${WA_GREEN})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🤖</div>
-              <div><div style={{fontWeight:700,fontSize:13}}>Sara — Nexora Bot</div><div style={{fontSize:11,color:T.textMuted}}>Test with live Knowledge Base</div></div>
-            </div>
-            <button onClick={()=>setBotConvo([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}])} style={{padding:"5px 12px",borderRadius:16,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Reset</button>
-          </div>
-          <div style={{flex:1,overflowY:"auto",padding:14,paddingBottom:80,background:T.chatBg,display:"flex",flexDirection:"column",gap:7}}>
-            {botConvo.map((msg,i)=>(
-              <div key={i} className="mb" style={{display:"flex",justifyContent:msg.from==="user"?"flex-end":"flex-start"}}>
-                <div style={{maxWidth:"72%",background:msg.from==="user"?T.msgOut:T.msgIn,borderRadius:msg.from==="user"?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"9px 13px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                  <div style={{fontSize:10,color:msg.from==="user"?"#34B7F1":WA_GREEN,fontWeight:700,marginBottom:3}}>{msg.from==="user"?"👤 You":"🤖 Sara"}</div>
-                  <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
-                  <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{formatMsgTime(msg.time, msg.date)}</div>
-                  {msg.sources?.length>0&&<div style={{marginTop:4}}>{msg.sources.map(s=><SourceBadge key={s.id} s={s}/>)}</div>}
-                </div>
-              </div>
-            ))}
-            {botLoading&&<div style={{display:"flex",justifyContent:"flex-start"}}>
-              <div style={{background:T.msgIn,borderRadius:"4px 16px 16px 16px",padding:"10px 14px"}}>
-                <div style={{display:"flex",gap:4}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:T.textMuted,animation:`bounce 1.2s ${i*0.2}s infinite`}}/>)}</div>
-              </div>
-            </div>}
-            <div ref={botEndRef}/>
-          </div>
-          <div style={{padding:"8px 10px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:6,alignItems:"center"}}>
-            <input value={botInput} onChange={e=>setBotInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendBotMessage();}}}
-              placeholder="Ask the bot anything..." disabled={botLoading}
-              style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:20,padding:"9px 14px",color:T.text,fontSize:13}}/>
-            <button className="sb" onClick={sendBotMessage} disabled={botLoading||!botInput.trim()} style={{width:40,height:40,borderRadius:"50%",border:"none",background:botLoading||!botInput.trim()?T.card2:WA_GREEN,color:botLoading||!botInput.trim()?T.textFaint:"#fff",fontSize:16,cursor:botLoading?"not-allowed":"pointer",flexShrink:0}}>➤</button>
-          </div>
-        </div>}
+        {tab==="bot"&&<BotTestTab
+          T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
+          currentUser={currentUser} authToken={authToken}
+          adminOverview={adminOverview} API={API} ts={ts}
+          formatMsgTime={formatMsgTime} botEndRef={botEndRef}
+          qaData={qaData} SourceBadge={SourceBadge}
+        />}
 
         {tab==="kb"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
@@ -4093,6 +4060,448 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {tab==="admin"&&isAdmin&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal}/></div>}
 
       </div>
+    </div>
+  );
+}
+
+// ── BOT TEST TAB ──────────────────────────────────────────────────────────────
+function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOverview, API, ts, formatMsgTime, botEndRef, qaData, SourceBadge}) {
+  const authHeaders = () => ({"Content-Type":"application/json","Authorization":`Bearer ${authToken}`});
+
+  // Which client's sandbox we're testing
+  const [botClinicId, setBotClinicId] = React.useState(isAdmin ? null : currentUser?.clinic_id);
+  const [botClinicName, setBotClinicName] = React.useState(isAdmin ? "" : (currentUser?.company_name||"Your Bot"));
+
+  // Sandbox state
+  const [sandbox, setSandbox] = React.useState(null);  // {system_prompt, welcome_message, qa}
+  const [sandboxLoading, setSandboxLoading] = React.useState(false);
+  const [sandboxDirty, setSandboxDirty] = React.useState(false);
+  const [sandboxSaving, setSandboxSaving] = React.useState(false);
+  const [publishLoading, setPublishLoading] = React.useState(false);
+  const [publishResult, setPublishResult] = React.useState(null);
+
+  // Panel tabs: "editor" | "chat" | "analyser"
+  const [panel, setPanel] = React.useState("chat");
+
+  // Chat
+  const [convo, setConvo] = React.useState([{from:"bot",text:"👋 Hi! I'm the sandbox bot 😊\nHow can I help you today?",time:ts(),sources:[]}]);
+  const [input, setInput] = React.useState("");
+  const [chatLoading, setChatLoading] = React.useState(false);
+
+  // Analyser
+  const [brokenChat, setBrokenChat] = React.useState("");
+  const [analysing, setAnalysing] = React.useState(false);
+  const [analysis, setAnalysis] = React.useState("");
+
+  // New QA for sandbox editor
+  const [newQ, setNewQ] = React.useState("");
+  const [newA, setNewA] = React.useState("");
+  const [editQAId, setEditQAId] = React.useState(null);
+  const [editQText, setEditQText] = React.useState("");
+  const [editAText, setEditAText] = React.useState("");
+
+  const loadSandbox = async (clinicId) => {
+    if(!clinicId) return;
+    setSandboxLoading(true); setSandbox(null); setSandboxDirty(false);
+    try {
+      const r = await fetch(`${API}/api/bot/sandbox/${clinicId}`, {headers:authHeaders()});
+      if(r.ok) { const d = await r.json(); setSandbox(d); }
+      else setSandbox({system_prompt:"",welcome_message:"",qa:[]});
+    } catch { setSandbox({system_prompt:"",welcome_message:"",qa:[]}); }
+    setSandboxLoading(false);
+  };
+
+  React.useEffect(()=>{ if(botClinicId) loadSandbox(botClinicId); }, [botClinicId]);
+
+  // Auto-load for non-admin
+  React.useEffect(()=>{ if(!isAdmin && currentUser?.clinic_id) { setBotClinicId(currentUser.clinic_id); } }, []);
+
+  const saveSandbox = async () => {
+    if(!botClinicId||!sandbox) return;
+    setSandboxSaving(true);
+    try {
+      await fetch(`${API}/api/bot/sandbox/${botClinicId}`, {
+        method:"PATCH", headers:authHeaders(),
+        body:JSON.stringify(sandbox)
+      });
+      setSandboxDirty(false);
+      flash("💾 Sandbox saved!");
+    } catch { flash("❌ Save failed"); }
+    setSandboxSaving(false);
+  };
+
+  const resetSandbox = async () => {
+    if(!botClinicId) return;
+    if(!confirm("Reset sandbox from live data? Your sandbox edits will be lost.")) return;
+    try {
+      await fetch(`${API}/api/bot/sandbox/${botClinicId}/reset`, {method:"POST",headers:authHeaders()});
+      await loadSandbox(botClinicId);
+      flash("🔄 Sandbox reset from live data");
+    } catch { flash("❌ Reset failed"); }
+  };
+
+  const publishSandbox = async () => {
+    if(!botClinicId) return;
+    if(!confirm(`Publish sandbox to LIVE for ${botClinicName}? This will replace the current live KB and system prompt.`)) return;
+    setPublishLoading(true); setPublishResult(null);
+    try {
+      const r = await fetch(`${API}/api/bot/sandbox/${botClinicId}/publish`, {method:"POST",headers:authHeaders()});
+      const d = await r.json();
+      if(r.ok) setPublishResult({ok:true, msg:`✅ Published! ${d.published_qa} Q&A pairs now live.`});
+      else setPublishResult({ok:false, msg:`❌ ${d.error}`});
+    } catch { setPublishResult({ok:false, msg:"❌ Network error"}); }
+    setPublishLoading(false);
+  };
+
+  const sendMessage = async () => {
+    if(!input.trim()||chatLoading||!botClinicId) return;
+    const userMsg = {from:"user",text:input.trim(),time:ts(),sources:[]};
+    setConvo(p=>[...p,userMsg]); setInput(""); setChatLoading(true);
+    try {
+      const history = [...convo,userMsg].map(m=>({role:m.from==="user"?"user":"assistant",content:m.text}));
+      const r = await fetch(`${API}/api/bot/sandbox/${botClinicId}/chat`, {
+        method:"POST", headers:authHeaders(),
+        body:JSON.stringify({history})
+      });
+      if(r.ok) {
+        const d = await r.json();
+        setConvo(p=>[...p,{from:"bot",text:d.text||"⚠️ No response",time:ts(),sources:d.sources||[]}]);
+      } else {
+        const err = await r.json().catch(()=>({}));
+        setConvo(p=>[...p,{from:"bot",text:`⚠️ ${err.error||"Error"}`,time:ts(),sources:[]}]);
+      }
+    } catch { setConvo(p=>[...p,{from:"bot",text:"⚠️ Could not reach server.",time:ts(),sources:[]}]); }
+    setChatLoading(false);
+  };
+
+  const runAnalysis = async () => {
+    if(!brokenChat.trim()||!botClinicId) return;
+    setAnalysing(true); setAnalysis("");
+    try {
+      const r = await fetch(`${API}/api/bot/analyse`, {
+        method:"POST", headers:authHeaders(),
+        body:JSON.stringify({clinic_id:botClinicId, conversation:brokenChat})
+      });
+      const d = await r.json();
+      setAnalysis(d.analysis||d.error||"No response");
+    } catch { setAnalysis("❌ Network error"); }
+    setAnalysing(false);
+  };
+
+  // Apply AI suggestion to sandbox
+  const applySuggestion = (text) => {
+    // Look for ADD: lines and auto-add to sandbox QA
+    const addLines = text.match(/ADD:\s*Q:\s*(.+?)\s*\|\s*A:\s*(.+)/g)||[];
+    if(addLines.length>0 && sandbox) {
+      const newPairs = addLines.map(l=>{
+        const m = l.match(/ADD:\s*Q:\s*(.+?)\s*\|\s*A:\s*(.+)/);
+        return m ? {question:m[1].trim(),answer:m[2].trim(),is_static:false} : null;
+      }).filter(Boolean);
+      setSandbox(p=>({...p, qa:[...(p.qa||[]),...newPairs]}));
+      setSandboxDirty(true);
+      flash(`➕ Added ${newPairs.length} Q&A pair(s) to sandbox`);
+    } else {
+      flash("Copy the suggestions above and apply them manually in the Editor tab");
+    }
+  };
+
+  // Flash message
+  const [flashMsg, setFlashMsg] = React.useState("");
+  const flash = (msg) => { setFlashMsg(msg); setTimeout(()=>setFlashMsg(""),3000); };
+
+  const PANELS = [
+    {id:"editor", icon:"✏️", label:"Editor"},
+    {id:"chat",   icon:"💬", label:"Test Chat"},
+    {id:"analyser",icon:"🔍",label:"Analyser"},
+  ];
+
+  if(!botClinicId && isAdmin) {
+    return (
+      <div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
+        {/* Admin client picker */}
+        <div style={{width:240,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
+          <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1}}>Select Client to Test</div>
+          {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>(
+            <div key={c.clinic_id} onClick={()=>{setBotClinicId(c.clinic_id);setBotClinicName(c.company_name||c.username||"Client");}}
+              style={{padding:"12px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${T.border}40`}}>
+              <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
+              </div>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:T.text}}>{c.company_name||c.username}</div>
+                <div style={{fontSize:10,color:T.textMuted}}>{c.industry||"Client"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,color:T.textMuted}}>
+          <div style={{fontSize:48}}>👈</div>
+          <div style={{fontWeight:700,fontSize:16}}>Select a client to start testing</div>
+          <div style={{fontSize:13}}>Each client has their own sandbox — changes here never affect live</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:T.bg}}>
+
+      {/* Top bar */}
+      <div style={{background:T.nav,borderBottom:`1px solid ${T.border}`,padding:"8px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0,flexWrap:"wrap"}}>
+        {/* Client picker pill — admin only */}
+        {isAdmin&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderRadius:20,background:`${WA_GREEN}15`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer"}}
+          onClick={()=>{setBotClinicId(null);setSandbox(null);setConvo([{from:"bot",text:"👋 Hi! I'm the sandbox bot 😊\nHow can I help you today?",time:ts(),sources:[]}]);}}>
+          <span style={{fontSize:11,fontWeight:700,color:WA_GREEN}}>🏢 {botClinicName}</span>
+          <span style={{fontSize:10,color:WA_GREEN,opacity:.7}}>✕ change</span>
+        </div>}
+
+        {/* Panel tabs */}
+        <div style={{display:"flex",gap:4,flex:1}}>
+          {PANELS.map(p=>(
+            <button key={p.id} onClick={()=>setPanel(p.id)}
+              style={{padding:"5px 14px",borderRadius:16,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:panel===p.id?700:400,
+                background:panel===p.id?WA_GREEN:T.card2,
+                color:panel===p.id?"#fff":T.textMuted}}>
+              {p.icon} {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Sandbox status + actions */}
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          {sandboxDirty&&<span style={{fontSize:11,color:"#f59e0b",fontWeight:600}}>● Unsaved changes</span>}
+          <button onClick={resetSandbox}
+            style={{padding:"5px 10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+            🔄 Reset from Live
+          </button>
+          {sandboxDirty&&<button onClick={saveSandbox} disabled={sandboxSaving}
+            style={{padding:"5px 12px",borderRadius:10,border:"none",background:"#3b82f6",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            {sandboxSaving?"Saving...":"💾 Save Sandbox"}
+          </button>}
+          <button onClick={publishSandbox} disabled={publishLoading}
+            style={{padding:"5px 14px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            {publishLoading?"Publishing...":"🚀 Publish to Live"}
+          </button>
+        </div>
+      </div>
+
+      {/* Flash message */}
+      {flashMsg&&<div style={{background:"#1e293b",color:"#fff",padding:"8px 16px",fontSize:12,fontWeight:600,textAlign:"center",flexShrink:0}}>
+        {flashMsg}
+      </div>}
+
+      {/* Publish result */}
+      {publishResult&&<div style={{background:publishResult.ok?"#f0fdf4":"#fef2f2",color:publishResult.ok?"#166534":"#dc2626",
+        padding:"8px 16px",fontSize:12,fontWeight:600,textAlign:"center",flexShrink:0,
+        border:`1px solid ${publishResult.ok?"#86efac":"#fca5a5"}`}}>
+        {publishResult.msg}
+        <button onClick={()=>setPublishResult(null)} style={{marginLeft:12,border:"none",background:"none",cursor:"pointer",fontSize:14,color:"inherit"}}>✕</button>
+      </div>}
+
+      {sandboxLoading&&<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:T.textMuted,fontSize:13}}>Loading sandbox...</div>}
+
+      {!sandboxLoading&&<div style={{flex:1,display:"flex",overflow:"hidden"}}>
+
+        {/* ── PANEL: EDITOR ── */}
+        {panel==="editor"&&<div style={{flex:1,overflowY:"auto",padding:20,paddingBottom:80}}>
+          <div style={{maxWidth:700,margin:"0 auto"}}>
+
+            {/* Sandbox badge */}
+            <div style={{background:"#fef9c3",border:"1px solid #fde68a",borderRadius:10,padding:"8px 14px",marginBottom:16,fontSize:12,color:"#854d0e",fontWeight:600,display:"flex",alignItems:"center",gap:8}}>
+              🧪 <strong>Sandbox Mode</strong> — Changes here are isolated. Use "🚀 Publish to Live" when ready to go live.
+            </div>
+
+            {/* System Prompt */}
+            <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:18,marginBottom:14}}>
+              <div style={{fontWeight:800,fontSize:14,marginBottom:4}}>⚙️ Bot Personality & Behaviour</div>
+              <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Edit safely — won't affect live until you publish</div>
+              <textarea value={sandbox?.system_prompt||""} rows={6}
+                onChange={e=>{setSandbox(p=>({...p,system_prompt:e.target.value}));setSandboxDirty(true);}}
+                style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+            </div>
+
+            {/* Welcome Message */}
+            <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:18,marginBottom:14}}>
+              <div style={{fontWeight:800,fontSize:14,marginBottom:4}}>👋 Welcome Message</div>
+              <textarea value={sandbox?.welcome_message||""} rows={2}
+                onChange={e=>{setSandbox(p=>({...p,welcome_message:e.target.value}));setSandboxDirty(true);}}
+                style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+            </div>
+
+            {/* Q&A editor */}
+            <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:18,marginBottom:14}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                <div>
+                  <div style={{fontWeight:800,fontSize:14}}>📋 Knowledge Base ({(sandbox?.qa||[]).length} entries)</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Edit sandbox KB — won't affect live</div>
+                </div>
+              </div>
+
+              {/* Add new QA */}
+              <div style={{background:T.card2,borderRadius:10,padding:12,marginBottom:12,border:`1px solid ${T.border}`}}>
+                <input value={newQ} onChange={e=>setNewQ(e.target.value)}
+                  placeholder="New question..."
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/>
+                <textarea value={newA} onChange={e=>setNewA(e.target.value)} rows={2}
+                  placeholder="Answer..."
+                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8,boxSizing:"border-box"}}/>
+                <button onClick={()=>{
+                  if(!newQ.trim()||!newA.trim()) return;
+                  setSandbox(p=>({...p,qa:[...(p.qa||[]),{question:newQ.trim(),answer:newA.trim(),is_static:false}]}));
+                  setSandboxDirty(true); setNewQ(""); setNewA("");
+                }} style={{padding:"6px 16px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  ➕ Add to Sandbox
+                </button>
+              </div>
+
+              {/* QA list */}
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {(sandbox?.qa||[]).map((qa,i)=>(
+                  <div key={i} style={{background:T.card2,borderRadius:10,padding:"10px 12px",border:`1px solid ${T.border}`}}>
+                    {editQAId===i
+                      ?<div>
+                        <input value={editQText} onChange={e=>setEditQText(e.target.value)}
+                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:7,padding:"7px 10px",color:T.text,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/>
+                        <textarea value={editAText} onChange={e=>setEditAText(e.target.value)} rows={2}
+                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:7,padding:"7px 10px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8,boxSizing:"border-box"}}/>
+                        <div style={{display:"flex",gap:6}}>
+                          <button onClick={()=>{
+                            const updated=[...(sandbox?.qa||[])];
+                            updated[i]={...updated[i],question:editQText,answer:editAText};
+                            setSandbox(p=>({...p,qa:updated})); setSandboxDirty(true); setEditQAId(null);
+                          }} style={{padding:"4px 12px",borderRadius:7,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+                          <button onClick={()=>setEditQAId(null)} style={{padding:"4px 12px",borderRadius:7,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                        </div>
+                      </div>
+                      :<div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                        <div style={{width:20,height:20,borderRadius:5,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:WA_GREEN,flexShrink:0,marginTop:2}}>{i+1}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:2}}>{qa.question}</div>
+                          <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
+                        </div>
+                        <div style={{display:"flex",gap:4,flexShrink:0}}>
+                          <button onClick={()=>{setEditQAId(i);setEditQText(qa.question);setEditAText(qa.answer);}}
+                            style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                          <button onClick={()=>{
+                            const updated=(sandbox?.qa||[]).filter((_,j)=>j!==i);
+                            setSandbox(p=>({...p,qa:updated})); setSandboxDirty(true);
+                          }} style={{padding:"3px 8px",borderRadius:6,border:"1px solid #ef444430",background:"#ef444408",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                        </div>
+                      </div>}
+                  </div>
+                ))}
+                {(sandbox?.qa||[]).length===0&&<div style={{textAlign:"center",padding:24,color:T.textFaint,fontSize:12}}>No Q&A in sandbox yet</div>}
+              </div>
+            </div>
+          </div>
+        </div>}
+
+        {/* ── PANEL: TEST CHAT ── */}
+        {panel==="chat"&&<div style={{flex:1,display:"flex",flexDirection:"column",maxWidth:680,margin:"0 auto",width:"100%"}}>
+          {/* Sandbox info bar */}
+          <div style={{background:"#fef9c3",borderBottom:"1px solid #fde68a",padding:"5px 14px",fontSize:11,color:"#854d0e",fontWeight:600,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+            <span>🧪 Using sandbox KB — {(sandbox?.qa||[]).length} entries · save sandbox before testing to see changes</span>
+            <button onClick={()=>{setConvo([{from:"bot",text:"👋 Hi! I'm the sandbox bot 😊\nHow can I help you today?",time:ts(),sources:[]}]);}}
+              style={{border:"none",background:"none",cursor:"pointer",fontSize:11,color:"#854d0e",fontWeight:700}}>↺ Reset chat</button>
+          </div>
+          <div style={{flex:1,overflowY:"auto",padding:14,paddingBottom:20,background:T.chatBg,display:"flex",flexDirection:"column",gap:7}}>
+            {convo.map((msg,i)=>(
+              <div key={i} className="mb" style={{display:"flex",justifyContent:msg.from==="user"?"flex-end":"flex-start"}}>
+                <div style={{maxWidth:"72%",background:msg.from==="user"?T.msgOut:T.msgIn,borderRadius:msg.from==="user"?"16px 4px 16px 16px":"4px 16px 16px 16px",padding:"9px 13px",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                  <div style={{fontSize:10,color:msg.from==="user"?"#34B7F1":WA_GREEN,fontWeight:700,marginBottom:3}}>{msg.from==="user"?"👤 You":"🤖 Sandbox Bot"}</div>
+                  <div style={{fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",color:T.text}}>{msg.text}</div>
+                  <div style={{fontSize:10,color:T.textFaint,textAlign:"right",marginTop:2}}>{msg.time}</div>
+                </div>
+              </div>
+            ))}
+            {chatLoading&&<div style={{display:"flex",justifyContent:"flex-start"}}>
+              <div style={{background:T.msgIn,borderRadius:"4px 16px 16px 16px",padding:"10px 14px"}}>
+                <div style={{display:"flex",gap:4}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:T.textMuted,animation:`bounce 1.2s ${i*0.2}s infinite`}}/>)}</div>
+              </div>
+            </div>}
+            <div ref={botEndRef}/>
+          </div>
+          <div style={{padding:"8px 10px",background:T.nav,borderTop:`1px solid ${T.border}`,display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+            <input value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}}
+              placeholder={botClinicId?"Ask the sandbox bot anything...":"Select a client first"}
+              disabled={chatLoading||!botClinicId}
+              style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:20,padding:"9px 14px",color:T.text,fontSize:13}}/>
+            <button onClick={sendMessage} disabled={chatLoading||!input.trim()||!botClinicId}
+              style={{width:40,height:40,borderRadius:"50%",border:"none",
+                background:chatLoading||!input.trim()||!botClinicId?T.card2:WA_GREEN,
+                color:chatLoading||!input.trim()||!botClinicId?T.textFaint:"#fff",
+                fontSize:16,cursor:chatLoading?"not-allowed":"pointer",flexShrink:0}}>➤</button>
+          </div>
+        </div>}
+
+        {/* ── PANEL: ANALYSER ── */}
+        {panel==="analyser"&&<div style={{flex:1,overflowY:"auto",padding:20,paddingBottom:80}}>
+          <div style={{maxWidth:760,margin:"0 auto"}}>
+
+            <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:20,marginBottom:16}}>
+              <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>🔍 Chat Analyser</div>
+              <div style={{fontSize:12,color:T.textMuted,marginBottom:16,lineHeight:1.6}}>
+                Paste a real conversation that went wrong. The AI will read your <strong>current sandbox</strong> prompt and KB, diagnose exactly what failed, and give you the precise text to fix it.
+              </div>
+
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Paste the broken conversation here:</div>
+              <textarea value={brokenChat} onChange={e=>setBrokenChat(e.target.value)} rows={10}
+                placeholder={"Customer: How much is the consultation?\nBot: I'm sorry, I don't have that information.\nCustomer: You useless lah\n\n(Bot should have answered RM100 from the KB)"}
+                style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:10,
+                  padding:"12px 14px",color:T.text,fontSize:12,fontFamily:"monospace",
+                  resize:"vertical",boxSizing:"border-box",minHeight:180,lineHeight:1.6}}/>
+
+              <button onClick={runAnalysis} disabled={analysing||!brokenChat.trim()||!botClinicId}
+                style={{marginTop:12,padding:"10px 24px",borderRadius:10,border:"none",
+                  background:analysing||!brokenChat.trim()||!botClinicId?"#94a3b8":"#7c3aed",
+                  color:"#fff",fontSize:13,fontWeight:700,cursor:analysing?"not-allowed":"pointer",fontFamily:"inherit",
+                  display:"flex",alignItems:"center",gap:8}}>
+                {analysing?"🔍 Analysing...":"🔍 Analyse & Fix"}
+              </button>
+            </div>
+
+            {/* Analysis result */}
+            {analysing&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:20,textAlign:"center",color:T.textMuted}}>
+              <div style={{fontSize:32,marginBottom:8}}>🤖</div>
+              <div style={{fontWeight:600}}>AI is reading your prompt, KB, and conversation...</div>
+            </div>}
+
+            {analysis&&!analysing&&<div style={{background:T.card,border:`1px solid #7c3aed40`,borderRadius:14,padding:20}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+                <div style={{fontWeight:800,fontSize:15,color:"#7c3aed"}}>🤖 AI Diagnosis</div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>applySuggestion(analysis)}
+                    style={{padding:"5px 14px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    ➕ Apply ADD suggestions to Sandbox
+                  </button>
+                  <button onClick={()=>setPanel("editor")}
+                    style={{padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                    ✏️ Go to Editor
+                  </button>
+                </div>
+              </div>
+              {/* Render analysis with section highlights */}
+              <div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.8,color:T.text,fontFamily:"inherit"}}>
+                {analysis.split("\n").map((line,i)=>{
+                  const isHeader = /^(1\.|2\.|3\.|4\.|DIAGNOS|SYSTEM PROMPT|KB FIX|SUMMARY|ADD:|EDIT:)/i.test(line.trim());
+                  const isAdd = /^ADD:/i.test(line.trim());
+                  const isEdit = /^EDIT:/i.test(line.trim());
+                  return <div key={i} style={{
+                    fontWeight:isHeader?700:400,
+                    color:isAdd?WA_GREEN:isEdit?"#f59e0b":isHeader?"#7c3aed":T.text,
+                    background:isAdd?`${WA_GREEN}10`:isEdit?"#fffbeb":undefined,
+                    borderRadius:isAdd||isEdit?6:undefined,
+                    padding:isAdd||isEdit?"2px 8px":undefined,
+                    marginBottom:isHeader?4:0,
+                  }}>{line||"\u00a0"}</div>;
+                })}
+              </div>
+            </div>}
+          </div>
+        </div>}
+
+      </div>}
     </div>
   );
 }
