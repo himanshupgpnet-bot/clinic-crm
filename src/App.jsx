@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.48";
+const CRM_VERSION = "2.9.59";
 
 // Responsive hook
 function useWindowSize() {
@@ -1296,6 +1296,67 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       </div>}
 
       {/* EXPORT CSV MODAL */}
+      {/* TEMPLATE FORM — Simple inline */}
+
+      {/* ARCHIVED CONTACTS MODAL */}      {/* ARCHIVED CONTACTS MODAL */}      {/* TEMPLATE SUBMISSION RESULT MODAL */}
+      {(templateSubmitting||templateSubmitResult)&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:T.card,borderRadius:20,padding:32,maxWidth:420,width:"100%",textAlign:"center",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
+          {templateSubmitting&&<>
+            <div style={{fontSize:40,marginBottom:16}}>⏳</div>
+            <div style={{fontWeight:800,fontSize:18,color:T.text,marginBottom:8}}>Submitting to Meta...</div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:20}}>Please wait while we send your template for approval</div>
+            {/* Progress bar */}
+            <div style={{background:T.card2,borderRadius:20,height:8,overflow:"hidden"}}>
+              <div style={{height:"100%",background:"#1877f2",borderRadius:20,width:"100%",animation:"progress-slide 2s ease-in-out infinite"}}/>
+            </div>
+            <style>{`@keyframes progress-slide{0%{width:0%;margin-left:0}50%{width:80%;margin-left:0}100%{width:0%;margin-left:100%}}`}</style>
+          </>}
+          {!templateSubmitting&&templateSubmitResult&&<>
+            <div style={{fontSize:48,marginBottom:16}}>{templateSubmitResult.ok?"✅":"❌"}</div>
+            <div style={{fontWeight:800,fontSize:18,color:templateSubmitResult.ok?"#16a34a":"#ef4444",marginBottom:8}}>
+              {templateSubmitResult.ok?"Submitted Successfully!":"Submission Failed"}
+            </div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:templateSubmitResult.ok?12:20,lineHeight:1.6}}>
+              {templateSubmitResult.msg}
+            </div>
+            {templateSubmitResult.ok&&<>
+              <div style={{background:"#f0fdf4",borderRadius:10,padding:"10px 16px",marginBottom:20,border:"1px solid #bbf7d0"}}>
+                <div style={{fontSize:12,color:"#16a34a",fontWeight:600}}>Status: {templateSubmitResult.status||"PENDING"}</div>
+                {templateSubmitResult.id&&<div style={{fontSize:11,color:"#6b7280",marginTop:4}}>Meta ID: {templateSubmitResult.id}</div>}
+                <div style={{fontSize:11,color:"#6b7280",marginTop:4}}>Meta will review in 24-48 hours</div>
+              </div>
+            </>}
+            {!templateSubmitResult.ok&&<div style={{background:"#fef2f2",borderRadius:10,padding:"10px 16px",marginBottom:20,border:"1px solid #fecaca",fontSize:12,color:"#991b1b",textAlign:"left"}}>
+              <div style={{fontWeight:700,marginBottom:4}}>Possible reasons:</div>
+              <div>• Template name already exists in Meta</div>
+              <div>• Invalid content or formatting</div>
+              <div>• WhatsApp Business Account not configured</div>
+              <div>• Token expired or invalid</div>
+            </div>}
+            <div style={{display:"flex",gap:8}}>
+              {templateSubmitResult.ok&&<button onClick={()=>{
+                setTemplateSubmitResult(null);setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});
+                setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
+              }} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:"#16a34a",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                ✓ Done
+              </button>}
+              {!templateSubmitResult.ok&&<>
+                <button onClick={()=>setTemplateSubmitResult(null)}
+                  style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  ← Fix & Retry
+                </button>
+                <button onClick={()=>{
+                  setTemplateSubmitResult(null);setShowTemplateForm(false);setTemplateButtons([]);setTemplateVarSamples({});
+                  setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"draft"});
+                }} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                  Close
+                </button>
+              </>}
+            </div>
+          </>}
+        </div>
+      </div>}
+
       {/* ARCHIVED CONTACTS MODAL */}
       {showArchived&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}}>
         <div style={{background:T.card,borderRadius:20,width:"100%",maxWidth:480,maxHeight:"80vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
@@ -3378,8 +3439,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   setSelectedTemplate(t||null);
                 }} style={{flex:1,padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit"}}>
                   <option value="">— Select a template —</option>
-                  {templates.map(t=>(
-                    <option key={t.id} value={t.id}>{t.template_name} ({t.language}) {t.status==="approved"?"✅":"⏳"}</option>
+                  {templates.filter(t=>t.status==="approved").map(t=>(
+                    <option key={t.id} value={t.id}>{t.template_name} ({t.language})</option>
                   ))}
                 </select>
                 <button onClick={()=>setShowTemplateForm(p=>!p)} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:showTemplateForm?WA_GREEN:"transparent",color:showTemplateForm?"#fff":WA_GREEN,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
@@ -3387,94 +3448,149 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </button>
               </div>
 
-              {/* Selected template preview */}
-              {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontSize:20}}>📋</span>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</div>
-                  <div style={{fontSize:11,color:T.textMuted}}>Meta WhatsApp Template · Ready to send</div>
-                  {selectedTemplate.header_value&&<div style={{fontSize:11,color:WA_GREEN,marginTop:2}}>🖼️ Image attached</div>}
-                </div>
-                <button onClick={()=>{setNewTemplate({...selectedTemplate});setShowTemplateForm(true);}}
-                  style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                  ✏️ Edit
-                </button>
-                <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:"#dcfce7",color:"#16a34a",fontWeight:600}}>✅ Active</span>
+              {/* Template cards list */}
+              {templates.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
+                {templates.map(t=>{
+                  const statusColor = t.status==="approved"?"#16a34a":t.status==="rejected"?"#ef4444":t.status==="pending"?"#d97706":"#6b7280";
+                  const statusBg = t.status==="approved"?"#dcfce7":t.status==="rejected"?"#fef2f2":t.status==="pending"?"#fef9c3":"#f1f5f9";
+                  const statusLabel = t.status==="approved"?"✅ Approved":t.status==="rejected"?"❌ Rejected":t.status==="pending"?"⏳ Pending":"📝 Draft";
+                  return <div key={t.id} onClick={()=>setSelectedTemplate(t)}
+                    style={{padding:"10px 12px",borderRadius:10,border:`1.5px solid ${selectedTemplate?.id===t.id?WA_GREEN:T.border}`,
+                      background:selectedTemplate?.id===t.id?`${WA_GREEN}08`:T.card2,cursor:"pointer",
+                      display:"flex",alignItems:"center",gap:10,transition:"all .15s"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.template_name}</div>
+                      <div style={{fontSize:10,color:T.textFaint,marginTop:1}}>{t.language} · {t.category}</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                      <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700,background:statusBg,color:statusColor,whiteSpace:"nowrap"}}>
+                        {statusLabel}
+                      </span>
+                      {t.meta_template_id&&<button onClick={async e=>{e.stopPropagation();
+                        const r=await fetch(`${API}/api/templates/${t.id}/status`,{headers:authHeaders()});
+                        if(r.ok){const d=await r.json();fetchTemplates(broadcastClinic?.clinic_id||null);}
+                      }} style={{fontSize:9,padding:"1px 6px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                        🔄 Refresh
+                      </button>}
+                    </div>
+                  </div>;
+                })}
               </div>}
 
-              {/* Add template form — just template name, Meta has everything else */}
-              {showTemplateForm&&<div style={{marginTop:14,borderTop:`1px solid ${T.border}`,paddingTop:14}}>
-                <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Add Template</div>
-                <div style={{fontSize:11,color:T.textFaint,marginBottom:12}}>Enter the exact template name as registered in Meta WhatsApp Manager.</div>
-                <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value}))}
-                  placeholder="e.g. eecp_promo_with_image"
-                  style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
-                <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:4}}>Header Image <span style={{color:T.textFaint,fontWeight:400}}>(if template has image header)</span></div>
-                {/* Upload image file */}
-                <input type="file" accept="image/*" id="template-img-upload" style={{display:"none"}} onChange={async e=>{
-                  const file = e.target.files[0];
-                  if(!file) return;
-                  const formData = new FormData();
-                  formData.append("file", file);
-                  try {
-                    const r = await fetch(`${API}/api/upload/media`, {
-                      method:"POST",
-                      headers:{"Authorization":`Bearer ${authToken}`},
-                      body: formData
-                    });
-                    const d = await r.json();
-                    if(d.url) {
-                      setNewTemplate(p=>({...p, header_value:d.url, header_type:"image"}));
-                    }
-                  } catch(err) {
-                    alert("Upload failed: " + err.message);
-                  }
-                }}/>
-                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
-                  <label htmlFor="template-img-upload" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,border:`1.5px dashed ${T.border}`,cursor:"pointer",color:T.textMuted,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>
-                    📎 Upload Image
-                  </label>
-                  <input value={newTemplate.header_value||""} onChange={e=>setNewTemplate(p=>({...p,header_value:e.target.value,header_type:e.target.value?"image":"none"}))}
-                    placeholder="or paste image URL here"
-                    style={{flex:1,background:T.input,border:`1.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+              {/* Selected template preview */}
+              {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                  <span style={{fontSize:20}}>📋</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</div>
+                    <div style={{fontSize:11,color:T.textMuted}}>{selectedTemplate.language||"en"} · {selectedTemplate.category||"MARKETING"}</div>
+                  </div>
+                  <button onClick={()=>{
+                    setNewTemplate({...selectedTemplate});
+                    // Restore buttons
+                    try{const b=typeof selectedTemplate.buttons==="string"?JSON.parse(selectedTemplate.buttons||"[]"):selectedTemplate.buttons||[];setTemplateButtons(b);}catch{setTemplateButtons([]);}
+                    // Restore variable samples
+                    try{const v=typeof selectedTemplate.variables==="string"?JSON.parse(selectedTemplate.variables||"{}"):selectedTemplate.variables||{};setTemplateVarSamples(typeof v==="object"&&!Array.isArray(v)?v:{});}catch{setTemplateVarSamples({});}
+                    setShowTemplateForm(true);
+                  }}
+                    style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                    ✏️ Edit
+                  </button>
                 </div>
-                {newTemplate.header_value&&<div style={{marginBottom:12}}>
-                  <img src={newTemplate.header_value} alt="preview" style={{maxWidth:"100%",maxHeight:120,borderRadius:8,border:`1px solid ${T.border}`}} onError={e=>e.target.style.display="none"}/>
-                </div>}
-                <button onClick={async()=>{
-                  if(!newTemplate.template_name.trim()) return alert("Template name is required");
-                  const isEdit = !!newTemplate.id;
-                  const payload = {
-                    template_name: newTemplate.template_name.trim(),
-                    language: newTemplate.language||"en",
-                    category: newTemplate.category||"MARKETING",
-                    header_type: newTemplate.header_value?"image":"none",
-                    header_value: newTemplate.header_value||"",
-                    body_text: newTemplate.template_name.trim(),
-                    footer_text:"", variables:[], status:"approved"
-                  };
-                  const url = isEdit 
-                    ? `${API}/api/templates/${newTemplate.id}`
-                    : (isAdmin && broadcastClinic 
-                        ? `${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`
-                        : `${API}/api/templates`);
-                  const method = isEdit ? "PATCH" : "POST";
-                  const r = await fetch(url,{method,headers:authHeaders(),body:JSON.stringify(payload)});
-                  if(r.ok){
-                    if(isEdit){
-                      const updated = {...newTemplate,...payload};
-                      setTemplates(p=>p.map(t=>t.id===newTemplate.id?updated:t));
-                      setSelectedTemplate(updated);
-                    } else {
-                      const t = await r.json();
-                      setTemplates(p=>[t,...p]);
-                      setSelectedTemplate(t);
+                {/* Status badge */}
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:700,
+                    background:selectedTemplate.status==="approved"?"#dcfce7":
+                              selectedTemplate.status==="rejected"?"#fef2f2":"#fef9c3",
+                    color:selectedTemplate.status==="approved"?"#16a34a":
+                          selectedTemplate.status==="rejected"?"#ef4444":"#854d0e"}}>
+                    {selectedTemplate.status==="approved"?"✅ Approved":
+                     selectedTemplate.status==="rejected"?"❌ Rejected":
+                     selectedTemplate.status==="pending"?"⏳ Pending Approval":"📝 Draft"}
+                  </span>
+                  {selectedTemplate.meta_template_id&&<button onClick={async()=>{
+                    const r = await fetch(`${API}/api/templates/${selectedTemplate.id}/status`,{headers:authHeaders()});
+                    if(r.ok){
+                      const d = await r.json();
+                      fetchTemplates(broadcastClinic?.clinic_id||null);
+                      alert(`Status: ${d.meta_status}`);
                     }
+                  }} style={{fontSize:10,padding:"3px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                    🔄 Check Status
+                  </button>}
+                  {selectedTemplate.status!=="approved"&&<button onClick={async()=>{
+                    const r = await fetch(`${API}/api/templates/${selectedTemplate.id}/submit`,{method:"POST",headers:authHeaders()});
+                    const d = await r.json();
+                    if(r.ok){
+                      alert(`✅ Submitted! Status: ${d.meta_status}`);
+                      fetchTemplates(broadcastClinic?.clinic_id||null);
+                    } else alert(`❌ ${d.error}`);
+                  }} style={{fontSize:10,padding:"3px 8px",borderRadius:6,border:"none",background:"#1877f2",color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
+                    🚀 Submit to Meta
+                  </button>}
+                </div>
+                {selectedTemplate.body_text&&<div style={{marginTop:8,fontSize:12,color:T.text,background:T.bg,borderRadius:8,padding:"8px 10px",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
+                    {(()=>{
+                      try{
+                        const vars=typeof selectedTemplate.variables==="string"?JSON.parse(selectedTemplate.variables||"{}"):selectedTemplate.variables||{};
+                        if(typeof vars==="object"&&!Array.isArray(vars)){
+                          return selectedTemplate.body_text.replace(/{{(\w+)}}/g,(_,k)=>vars[`{{${k}}}`]||`[${k}]`);
+                        }
+                      }catch{}
+                      return selectedTemplate.body_text;
+                    })()}
+                  </div>}
+              </div>}
+
+              {/* Add template form — simple */}
+              {showTemplateForm&&<div style={{marginTop:14,borderTop:`1px solid ${T.border}`,paddingTop:14}}> 
+                <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Add Template</div>
+                <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>Enter the exact template name as registered in Meta WhatsApp Manager.</div>
+                <div style={{marginBottom:10}}>
+                  <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value}))}
+                    placeholder="e.g. eecp_promo_with_image"
+                    style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:6}}>Header Image <span style={{fontWeight:400,color:T.textFaint}}>(if template has image header)</span></div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <div>
+                      <input type="file" accept="image/*" id="tmpl-img-simple" style={{display:"none"}} onChange={async e=>{
+                        const file=e.target.files[0];if(!file)return;
+                        const fd=new FormData();fd.append("file",file);
+                        const r=await fetch(`${API}/api/upload/media`,{method:"POST",headers:{"Authorization":`Bearer ${authToken}`},body:fd});
+                        if(r.ok){const d=await r.json();setNewTemplate(p=>({...p,header_value:d.url||d.media_url||"",header_type:"image"}));}
+                      }}/>
+                      <button onClick={()=>document.getElementById("tmpl-img-simple").click()}
+                        style={{padding:"8px 14px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                        🖼️ Upload Image
+                      </button>
+                    </div>
+                    <input value={newTemplate.header_value||""} onChange={e=>setNewTemplate(p=>({...p,header_value:e.target.value,header_type:e.target.value?"image":"none"}))}
+                      placeholder="or paste image URL here"
+                      style={{flex:1,background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+                  </div>
+                  {newTemplate.header_value&&<div style={{fontSize:10,color:WA_GREEN,marginTop:4}}>✅ {newTemplate.header_value.split("/").pop()}</div>}
+                </div>
+
+                <button onClick={async()=>{
+                  if(!newTemplate.template_name?.trim()) return alert("Template name required");
+                  const isEdit=!!newTemplate.id;
+                  const payload={template_name:newTemplate.template_name.trim(),language:newTemplate.language||"en",
+                    category:"MARKETING",header_type:newTemplate.header_value?"image":"none",
+                    header_value:newTemplate.header_value||"",body_text:newTemplate.template_name.trim(),
+                    footer_text:"",variables:[],status:newTemplate.status||"approved"};
+                  const url=isEdit?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
+                  const r=await fetch(url,{method:isEdit?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
+                  if(r.ok){
+                    const saved=isEdit?{...newTemplate,...payload}:await r.json();
+                    if(isEdit)setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));
+                    else{setTemplates(p=>[saved,...p]);setSelectedTemplate(saved);}
                     setShowTemplateForm(false);
                     setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"approved"});
                   }
-                }} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  💾 {newTemplate.id?"Update Template":"Save Template"}
+                }} style={{width:"100%",padding:"11px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  💾 Save Template
                 </button>
               </div>}
             </div>
