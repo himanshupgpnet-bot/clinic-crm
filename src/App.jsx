@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.66";
+const CRM_VERSION = "2.9.67";
 
 // Responsive hook
 function useWindowSize() {
@@ -449,6 +449,10 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.67", date:"May 31 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔒 Bot test now routes through backend — API key never in browser",
+      "🤖 Bot test uses your stored API key and live knowledge base",
+    ]},
     { version:"2.9.6", date:"May 21 2026", tag:"NEW", color:"#10b981", items:[
       "📎 Images, documents, audio and video from WhatsApp now show in CRM",
       "🖼️ Click images to open full size",
@@ -1096,23 +1100,32 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()}); fetchKnowledge(kbClinic?.clinic_id); } catch {}
   }
 
-  function parseBotResponse(raw) {
-    const lines=raw.trim().split("\n"); let sources=[],text=raw.trim();
-    try{const l=lines[lines.length-1].trim();if(l.startsWith('{"sources"')){sources=JSON.parse(l).sources||[];text=lines.slice(0,-1).join("\\n").trim();}}catch{}
-    return {text,sources};
-  }
+
 
   async function sendBotMessage() {
     if(!botInput.trim()||botLoading) return;
     const userMsg={from:"user",text:botInput.trim(),time:ts(),sources:[]};
     setBotConvo(p=>[...p,userMsg]); setBotInput(""); setBotLoading(true);
     try {
-      const history=[...botConvo,userMsg].map(m=>({role:m.from==="user"?"user":"assistant",content:m.from==="user"?m.text:m.text+`\n{"sources":[]}`}));
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:history})});
-      const data=await res.json();
-      const {text,sources}=parseBotResponse(data.content?.[0]?.text||"⚠️ No response");
-      setBotConvo(p=>[...p,{from:"bot",text,time:ts(),sources}]);
-    } catch { setBotConvo(p=>[...p,{from:"bot",text:"⚠️ Error.",time:ts(),sources:[]}]); }
+      const history=[...botConvo,userMsg].map(m=>({
+        role:m.from==="user"?"user":"assistant",
+        content:m.text
+      }));
+      const res=await fetch(`${API}/api/bot/test`,{
+        method:"POST",
+        headers:authHeaders(),
+        body:JSON.stringify({history})
+      });
+      if(!res.ok){
+        const err=await res.json().catch(()=>({}));
+        setBotConvo(p=>[...p,{from:"bot",text:`⚠️ ${err.error||"Server error — check API key in Settings"}`,time:ts(),sources:[]}]);
+      } else {
+        const data=await res.json();
+        setBotConvo(p=>[...p,{from:"bot",text:data.text||"⚠️ No response",time:ts(),sources:data.sources||[]}]);
+      }
+    } catch(e) {
+      setBotConvo(p=>[...p,{from:"bot",text:"⚠️ Could not reach server.",time:ts(),sources:[]}]);
+    }
     setBotLoading(false);
   }
 
