@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.68";
+const CRM_VERSION = "2.9.69";
 
 // Responsive hook
 function useWindowSize() {
@@ -449,6 +449,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.69", date:"May 31 2026", tag:"NEW", color:"#10b981", items:[
+      "🔍 Analyser: describe what went wrong + get specific Accept/Reject fixes",
+      "✅ Accept fixes go to sandbox only — review in Editor before publishing",
+      "💡 AI suggests exact prompt changes and KB Q&A pairs to fix bot issues",
+    ]},
     { version:"2.9.68", date:"May 31 2026", tag:"NEW", color:"#10b981", items:[
       "🧪 Test Bot: sandbox mode — edit prompt/KB without touching live",
       "👥 Admin can select any client to test their bot",
@@ -4090,7 +4095,11 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
 
   // Analyser
   const [brokenChat, setBrokenChat] = React.useState("");
+  const [issueDesc, setIssueDesc] = React.useState("");
   const [analysing, setAnalysing] = React.useState(false);
+  const [suggestions, setSuggestions] = React.useState([]);
+  const [diagnosis, setDiagnosis] = React.useState("");
+  const [accepted, setAccepted] = React.useState({});
   const [analysis, setAnalysis] = React.useState("");
 
   // New QA for sandbox editor
@@ -4176,16 +4185,60 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
 
   const runAnalysis = async () => {
     if(!brokenChat.trim()||!botClinicId) return;
-    setAnalysing(true); setAnalysis("");
+    setAnalysing(true); setSuggestions([]); setDiagnosis(""); setAccepted({});
     try {
       const r = await fetch(`${API}/api/bot/analyse`, {
         method:"POST", headers:authHeaders(),
-        body:JSON.stringify({clinic_id:botClinicId, conversation:brokenChat})
+        body:JSON.stringify({clinic_id:botClinicId, conversation:brokenChat, issue:issueDesc})
       });
       const d = await r.json();
-      setAnalysis(d.analysis||d.error||"No response");
-    } catch { setAnalysis("❌ Network error"); }
+      if(d.error){ setDiagnosis("❌ " + d.error); setAnalysing(false); return; }
+      // Try parse structured JSON
+      try {
+        const parsed = typeof d.analysis === "string" ? JSON.parse(d.analysis) : d;
+        setDiagnosis(parsed.diagnosis||"");
+        setSuggestions((parsed.suggestions||[]).map((s,i)=>({...s,id:i})));
+        setAccepted({});
+      } catch {
+        // Fallback: show raw text
+        setDiagnosis(d.analysis||d.error||"No response");
+        setSuggestions([]);
+      }
+    } catch { setDiagnosis("❌ Network error"); }
     setAnalysing(false);
+  };
+
+  const applyAccepted = async () => {
+    if(!sandbox) return;
+    let newSandbox = {...sandbox, qa:[...(sandbox.qa||[])]};
+    let changed = false;
+    suggestions.forEach((s,i)=>{
+      if(!accepted[i]) return;
+      if(s.type==="kb_add") {
+        newSandbox.qa.push({question:s.question, answer:s.answer, is_static:false});
+        changed = true;
+      } else if(s.type==="kb_edit") {
+        newSandbox.qa = newSandbox.qa.map(q=>
+          q.question===s.old_question ? {...q, answer:s.new_answer} : q
+        );
+        changed = true;
+      } else if(s.type==="prompt") {
+        if(s.action==="replace" && s.old_text) {
+          newSandbox.system_prompt = (newSandbox.system_prompt||"").replace(s.old_text, s.new_text);
+        } else {
+          newSandbox.system_prompt = (newSandbox.system_prompt||"") + "\n" + s.new_text;
+        }
+        changed = true;
+      }
+    });
+    if(changed) {
+      setSandbox(newSandbox);
+      setSandboxDirty(true);
+      flash("✅ Changes applied to sandbox — review in Editor tab");
+      setPanel("editor");
+    } else {
+      flash("No changes selected — tick at least one suggestion");
+    }
   };
 
   // Apply AI suggestion to sandbox
@@ -4439,65 +4492,140 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
         {panel==="analyser"&&<div style={{flex:1,overflowY:"auto",padding:20,paddingBottom:80}}>
           <div style={{maxWidth:760,margin:"0 auto"}}>
 
+            {/* Input card */}
             <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:20,marginBottom:16}}>
               <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>🔍 Chat Analyser</div>
               <div style={{fontSize:12,color:T.textMuted,marginBottom:16,lineHeight:1.6}}>
-                Paste a real conversation that went wrong. The AI will read your <strong>current sandbox</strong> prompt and KB, diagnose exactly what failed, and give you the precise text to fix it.
+                Paste a broken conversation + describe what went wrong. AI reads your sandbox prompt and KB, then gives you specific accept/reject fixes.
               </div>
 
-              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Paste the broken conversation here:</div>
-              <textarea value={brokenChat} onChange={e=>setBrokenChat(e.target.value)} rows={10}
-                placeholder={"Customer: How much is the consultation?\nBot: I'm sorry, I don't have that information.\nCustomer: You useless lah\n\n(Bot should have answered RM100 from the KB)"}
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>1. Paste the broken conversation:</div>
+              <textarea value={brokenChat} onChange={e=>setBrokenChat(e.target.value)} rows={8}
+                placeholder={"Customer: How much is the consultation?\nBot: I'm sorry, I don't have that information.\nCustomer: You useless lah"}
                 style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:10,
                   padding:"12px 14px",color:T.text,fontSize:12,fontFamily:"monospace",
-                  resize:"vertical",boxSizing:"border-box",minHeight:180,lineHeight:1.6}}/>
+                  resize:"vertical",boxSizing:"border-box",minHeight:140,lineHeight:1.6,marginBottom:12}}/>
+
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>2. Describe what went wrong:</div>
+              <textarea value={issueDesc} onChange={e=>setIssueDesc(e.target.value)} rows={3}
+                placeholder={"e.g. Bot said it doesn't know the consultation fee, but it should answer RM100. Also bot was too formal when it should be friendly."}
+                style={{width:"100%",background:T.input,border:`1.5px solid #7c3aed40`,borderRadius:10,
+                  padding:"12px 14px",color:T.text,fontSize:12,fontFamily:"inherit",
+                  resize:"vertical",boxSizing:"border-box",lineHeight:1.6,marginBottom:12}}/>
 
               <button onClick={runAnalysis} disabled={analysing||!brokenChat.trim()||!botClinicId}
-                style={{marginTop:12,padding:"10px 24px",borderRadius:10,border:"none",
+                style={{padding:"10px 24px",borderRadius:10,border:"none",
                   background:analysing||!brokenChat.trim()||!botClinicId?"#94a3b8":"#7c3aed",
-                  color:"#fff",fontSize:13,fontWeight:700,cursor:analysing?"not-allowed":"pointer",fontFamily:"inherit",
-                  display:"flex",alignItems:"center",gap:8}}>
-                {analysing?"🔍 Analysing...":"🔍 Analyse & Fix"}
+                  color:"#fff",fontSize:13,fontWeight:700,cursor:analysing?"not-allowed":"pointer",fontFamily:"inherit"}}>
+                {analysing?"🔍 Analysing...":"🔍 Analyse & Get Fixes"}
               </button>
             </div>
 
-            {/* Analysis result */}
-            {analysing&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:20,textAlign:"center",color:T.textMuted}}>
+            {/* Loading */}
+            {analysing&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:24,textAlign:"center",color:T.textMuted}}>
               <div style={{fontSize:32,marginBottom:8}}>🤖</div>
-              <div style={{fontWeight:600}}>AI is reading your prompt, KB, and conversation...</div>
+              <div style={{fontWeight:600}}>AI is reading sandbox prompt, KB, and conversation...</div>
             </div>}
 
-            {analysis&&!analysing&&<div style={{background:T.card,border:`1px solid #7c3aed40`,borderRadius:14,padding:20}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-                <div style={{fontWeight:800,fontSize:15,color:"#7c3aed"}}>🤖 AI Diagnosis</div>
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>applySuggestion(analysis)}
-                    style={{padding:"5px 14px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                    ➕ Apply ADD suggestions to Sandbox
-                  </button>
-                  <button onClick={()=>setPanel("editor")}
-                    style={{padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                    ✏️ Go to Editor
-                  </button>
+            {/* Results */}
+            {!analysing&&(diagnosis||suggestions.length>0)&&<div>
+
+              {/* Diagnosis */}
+              {diagnosis&&<div style={{background:"#fef9c3",border:"1px solid #fde68a",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#854d0e",fontWeight:600}}>
+                🔎 <strong>Root cause:</strong> {diagnosis}
+              </div>}
+
+              {/* Suggestions */}
+              {suggestions.length>0&&<div style={{background:T.card,border:`1px solid #7c3aed30`,borderRadius:14,padding:20,marginBottom:16}}>
+                <div style={{fontWeight:800,fontSize:15,color:"#7c3aed",marginBottom:4}}>💡 Suggested Fixes ({suggestions.length})</div>
+                <div style={{fontSize:12,color:T.textMuted,marginBottom:16}}>Review each suggestion — tick to accept, then click Apply.</div>
+
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+                  {suggestions.map((s,i)=>{
+                    const isAccepted = accepted[i];
+                    const typeColor = s.type==="prompt"?"#7c3aed":s.type==="kb_add"?WA_GREEN:"#f59e0b";
+                    const typeLabel = s.type==="prompt"?"⚙️ System Prompt":s.type==="kb_add"?"➕ Add to KB":"✏️ Edit KB";
+                    return (
+                      <div key={i} onClick={()=>setAccepted(p=>({...p,[i]:!p[i]}))}
+                        style={{borderRadius:12,border:`2px solid ${isAccepted?typeColor:T.border}`,
+                          background:isAccepted?`${typeColor}08`:T.card2,
+                          padding:"14px 16px",cursor:"pointer",transition:"all .15s"}}>
+                        <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+                          {/* Checkbox */}
+                          <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${isAccepted?typeColor:T.border}`,
+                            background:isAccepted?typeColor:"transparent",
+                            display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
+                            {isAccepted&&<span style={{color:"#fff",fontSize:13,fontWeight:700}}>✓</span>}
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            {/* Type badge */}
+                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                              <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700,
+                                background:`${typeColor}15`,color:typeColor,border:`1px solid ${typeColor}30`}}>
+                                {typeLabel}
+                              </span>
+                              {s.action&&<span style={{fontSize:10,color:T.textFaint}}>{s.action}</span>}
+                            </div>
+                            {/* Description */}
+                            <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:8}}>{s.description}</div>
+                            {/* Content preview */}
+                            {s.type==="prompt"&&<div>
+                              {s.old_text&&<div style={{marginBottom:6}}>
+                                <div style={{fontSize:10,color:"#ef4444",fontWeight:700,marginBottom:2}}>REPLACE:</div>
+                                <div style={{background:"#fef2f2",borderRadius:6,padding:"6px 10px",fontSize:11,color:"#dc2626",fontFamily:"monospace"}}>{s.old_text}</div>
+                              </div>}
+                              <div>
+                                <div style={{fontSize:10,color:WA_GREEN,fontWeight:700,marginBottom:2}}>{s.old_text?"WITH:":"ADD TO PROMPT:"}</div>
+                                <div style={{background:`${WA_GREEN}10`,borderRadius:6,padding:"6px 10px",fontSize:11,color:T.text,fontFamily:"monospace"}}>{s.new_text}</div>
+                              </div>
+                            </div>}
+                            {s.type==="kb_add"&&<div>
+                              <div style={{fontSize:10,color:WA_GREEN,fontWeight:700,marginBottom:2}}>NEW Q&A:</div>
+                              <div style={{background:`${WA_GREEN}10`,borderRadius:6,padding:"8px 10px",fontSize:11}}>
+                                <div style={{fontWeight:700,color:T.text,marginBottom:4}}>Q: {s.question}</div>
+                                <div style={{color:T.textMuted}}>A: {s.answer}</div>
+                              </div>
+                            </div>}
+                            {s.type==="kb_edit"&&<div>
+                              <div style={{fontSize:10,color:"#f59e0b",fontWeight:700,marginBottom:2}}>EDIT EXISTING:</div>
+                              <div style={{background:"#fffbeb",borderRadius:6,padding:"8px 10px",fontSize:11}}>
+                                <div style={{fontWeight:700,color:T.text,marginBottom:4}}>Q: {s.old_question}</div>
+                                <div style={{color:T.textMuted}}>New A: {s.new_answer}</div>
+                              </div>
+                            </div>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-              {/* Render analysis with section highlights */}
-              <div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.8,color:T.text,fontFamily:"inherit"}}>
-                {analysis.split("\n").map((line,i)=>{
-                  const isHeader = /^(1\.|2\.|3\.|4\.|DIAGNOS|SYSTEM PROMPT|KB FIX|SUMMARY|ADD:|EDIT:)/i.test(line.trim());
-                  const isAdd = /^ADD:/i.test(line.trim());
-                  const isEdit = /^EDIT:/i.test(line.trim());
-                  return <div key={i} style={{
-                    fontWeight:isHeader?700:400,
-                    color:isAdd?WA_GREEN:isEdit?"#f59e0b":isHeader?"#7c3aed":T.text,
-                    background:isAdd?`${WA_GREEN}10`:isEdit?"#fffbeb":undefined,
-                    borderRadius:isAdd||isEdit?6:undefined,
-                    padding:isAdd||isEdit?"2px 8px":undefined,
-                    marginBottom:isHeader?4:0,
-                  }}>{line||"\u00a0"}</div>;
-                })}
-              </div>
+
+                {/* Apply button */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{fontSize:12,color:T.textMuted}}>
+                    {Object.values(accepted).filter(Boolean).length} of {suggestions.length} selected
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>setAccepted(Object.fromEntries(suggestions.map((_,i)=>[i,true])))}
+                      style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                      Select All
+                    </button>
+                    <button onClick={applyAccepted}
+                      disabled={Object.values(accepted).filter(Boolean).length===0}
+                      style={{padding:"7px 20px",borderRadius:8,border:"none",
+                        background:Object.values(accepted).filter(Boolean).length===0?"#94a3b8":"#7c3aed",
+                        color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      ✅ Apply to Sandbox & Review in Editor
+                    </button>
+                  </div>
+                </div>
+              </div>}
+
+              {suggestions.length===0&&diagnosis&&!analysing&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:12,padding:16,fontSize:12,color:T.textMuted,textAlign:"center"}}>
+                No specific fixes suggested — the issue may need manual review in the Editor tab.
+              </div>}
             </div>}
+
           </div>
         </div>}
 
