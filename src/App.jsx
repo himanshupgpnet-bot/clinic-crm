@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.60";
+const CRM_VERSION = "2.9.62";
 
 // Responsive hook
 function useWindowSize() {
@@ -3432,10 +3432,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </div>
                   <button onClick={()=>{
                     setNewTemplate({...selectedTemplate});
-                    // Restore buttons
-                    try{const b=typeof selectedTemplate.buttons==="string"?JSON.parse(selectedTemplate.buttons||"[]"):selectedTemplate.buttons||[];setTemplateButtons(b);}catch{setTemplateButtons([]);}
-                    // Restore variable samples
-                    try{const v=typeof selectedTemplate.variables==="string"?JSON.parse(selectedTemplate.variables||"{}"):selectedTemplate.variables||{};setTemplateVarSamples(typeof v==="object"&&!Array.isArray(v)?v:{});}catch{setTemplateVarSamples({});}
                     setShowTemplateForm(true);
                   }}
                     style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
@@ -3515,7 +3511,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       placeholder="or paste image URL here"
                       style={{flex:1,background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
                   </div>
-                  {newTemplate.header_value&&<div style={{fontSize:10,color:WA_GREEN,marginTop:4}}>✅ {newTemplate.header_value.split("/").pop()}</div>}
+                  {newTemplate.header_value&&<div style={{marginTop:8}}>
+                    <img src={newTemplate.header_value} alt="preview"
+                      style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:`1px solid ${T.border}`}}
+                      onError={e=>e.target.style.display="none"}/>
+                    <div style={{fontSize:10,color:WA_GREEN,marginTop:4}}>✅ {newTemplate.header_value.split("/").pop()}</div>
+                  </div>}
                 </div>
 
                 <button onClick={async()=>{
