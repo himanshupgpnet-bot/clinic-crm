@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.62";
+const CRM_VERSION = "2.9.63";
 
 // Responsive hook
 function useWindowSize() {
@@ -3511,11 +3511,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       placeholder="or paste image URL here"
                       style={{flex:1,background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
                   </div>
-                  {newTemplate.header_value&&<div style={{marginTop:8}}>
+                  {newTemplate.header_value&&<div style={{marginTop:8,display:"flex",alignItems:"center",gap:8}}>
                     <img src={newTemplate.header_value} alt="preview"
-                      style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:`1px solid ${T.border}`}}
+                      style={{width:60,height:60,objectFit:"cover",borderRadius:8,border:`1px solid ${T.border}`,flexShrink:0}}
                       onError={e=>e.target.style.display="none"}/>
-                    <div style={{fontSize:10,color:WA_GREEN,marginTop:4}}>✅ {newTemplate.header_value.split("/").pop()}</div>
+                    <div style={{fontSize:10,color:WA_GREEN}}>✅ {newTemplate.header_value.split("/").pop()}</div>
                   </div>}
                 </div>
 
