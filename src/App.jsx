@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.63";
+const CRM_VERSION = "2.9.64";
 
 // Responsive hook
 function useWindowSize() {
@@ -3388,7 +3388,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     <option key={t.id} value={t.id}>{t.template_name} ({t.language})</option>
                   ))}
                 </select>
-                <button onClick={()=>setShowTemplateForm(p=>!p)} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:showTemplateForm?WA_GREEN:"transparent",color:showTemplateForm?"#fff":WA_GREEN,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                <button onClick={()=>{
+                  if(!showTemplateForm){
+                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"approved"});
+                  }
+                  setShowTemplateForm(p=>!p);
+                }} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:showTemplateForm?WA_GREEN:"transparent",color:showTemplateForm?"#fff":WA_GREEN,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
                   {showTemplateForm?"✕ Close":"+ Add Template"}
                 </button>
               </div>
@@ -3511,11 +3516,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       placeholder="or paste image URL here"
                       style={{flex:1,background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
                   </div>
-                  {newTemplate.header_value&&<div style={{marginTop:8,display:"flex",alignItems:"center",gap:8}}>
+                  {newTemplate.header_value&&<div style={{marginTop:8}}>
                     <img src={newTemplate.header_value} alt="preview"
-                      style={{width:60,height:60,objectFit:"cover",borderRadius:8,border:`1px solid ${T.border}`,flexShrink:0}}
+                      style={{width:"100%",maxHeight:120,objectFit:"contain",borderRadius:8,border:`1px solid ${T.border}`}}
                       onError={e=>e.target.style.display="none"}/>
-                    <div style={{fontSize:10,color:WA_GREEN}}>✅ {newTemplate.header_value.split("/").pop()}</div>
+                    <div style={{fontSize:10,color:WA_GREEN,marginTop:4}}>✅ {newTemplate.header_value.split("/").pop()}</div>
                   </div>}
                 </div>
 
