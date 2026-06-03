@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.72";
+const CRM_VERSION = "2.9.73";
 
 // Responsive hook
 function useWindowSize() {
@@ -58,6 +58,7 @@ const TABS = [
   {id:"kb",           icon:"📋", label:"Knowledge"},
   {id:"integrations", icon:"🔌", label:"Integrations"},
   {id:"settings",     icon:"⚙️", label:"Settings"},
+  {id:"notes",        icon:"📝", label:"Notes"},
   {id:"broadcast",    icon:"📢", label:"Broadcast"},
   {id:"admin",        icon:"👑", label:"Admin", adminOnly:true},
 ];
@@ -180,6 +181,9 @@ export default function App() {
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState({});
+  const [notes, setNotes] = useState([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [notesClinic, setNotesClinic] = useState(null);
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelogSeen, setChangelogSeen] = useState("");
   const [dark, setDark] = useState(false);
@@ -198,7 +202,7 @@ export default function App() {
     if (!currentUser) return false;
     if (isAdmin) return true;
     if (!permissions || permissions === "all") return true;
-    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:"can_settings", integrations:"can_integrations", broadcast:"can_broadcast", admin:false };
+    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:"can_settings", integrations:"can_integrations", broadcast:"can_broadcast", notes:"can_notes", admin:false };
     return map[tab] ? permissions[map[tab]] : false;
   };
 
@@ -449,21 +453,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
-    { version:"2.9.72", date:"Jun 3 2026", tag:"FIX", color:"#3b82f6", items:[
-      "🔧 Inbox: removed stray } showing in sidebar stats area",
-    ]},
-    { version:"2.9.71", date:"Jun 2 2026", tag:"FIX", color:"#3b82f6", items:[
-      "🔍 Analyser: properly strips markdown — clean readable output",
-      "🤖 AI prompt stricter JSON-only instruction",
-    ]},
-    { version:"2.9.70", date:"Jun 2 2026", tag:"FIX", color:"#3b82f6", items:[
-      "🔍 Analyser: clean display of AI analysis — no more markdown symbols",
-      "📋 Full analysis shown when no structured fixes extracted",
-    ]},
-    { version:"2.9.69", date:"May 31 2026", tag:"NEW", color:"#10b981", items:[
-      "🔍 Analyser: describe what went wrong + get specific Accept/Reject fixes",
-      "✅ Accept fixes go to sandbox only — review in Editor before publishing",
-      "💡 AI suggests exact prompt changes and KB Q&A pairs to fix bot issues",
+    { version:"2.9.73", date:"Jun 3 2026", tag:"NEW", color:"#10b981", items:[
+      "📝 Notes tab — agents write sticky notes per contact",
+      "👁️ Client users see their notes, mark done, click to jump to chat",
+      "✅ Done notes strikethrough and move to bottom",
+      "🔐 can_notes permission — share/unshare from Admin panel",
     ]},
     { version:"2.9.68", date:"May 31 2026", tag:"NEW", color:"#10b981", items:[
       "🧪 Test Bot: sandbox mode — edit prompt/KB without touching live",
@@ -1779,7 +1773,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     <div style={{fontSize:9,color:T.textFaint}}>{s.label}</div>
                   </div>
                 ))}
-              </div>
+              </div>}
               <div style={{display:"flex",gap:4,marginBottom:4}}>
                 <button onClick={()=>setExportModal(true)} style={{flex:1,padding:"6px",borderRadius:8,border:`1px solid ${T.border}`,
                   background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",
@@ -3683,6 +3677,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>
         </div>}
 
+        {tab==="notes"&&<NotesTab
+          T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
+          currentUser={currentUser} authToken={authToken}
+          adminOverview={adminOverview} API={API} ts={ts}
+          notes={notes} setNotes={setNotes}
+          notesLoading={notesLoading} setNotesLoading={setNotesLoading}
+          notesClinic={notesClinic} setNotesClinic={setNotesClinic}
+          onJumpToChat={(contact_id, contact_name)=>{
+            setTab("crm");
+            const c = contacts.find(x=>x.id===contact_id||x.phone===contact_id);
+            if(c) selectContact(c);
+          }}
+        />}
         {tab==="integrations"&&<IntegrationsTab
           T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
           currentUser={currentUser} authToken={authToken}
@@ -4106,11 +4113,7 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
 
   // Analyser
   const [brokenChat, setBrokenChat] = React.useState("");
-  const [issueDesc, setIssueDesc] = React.useState("");
   const [analysing, setAnalysing] = React.useState(false);
-  const [suggestions, setSuggestions] = React.useState([]);
-  const [diagnosis, setDiagnosis] = React.useState("");
-  const [accepted, setAccepted] = React.useState({});
   const [analysis, setAnalysis] = React.useState("");
 
   // New QA for sandbox editor
@@ -4196,60 +4199,16 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
 
   const runAnalysis = async () => {
     if(!brokenChat.trim()||!botClinicId) return;
-    setAnalysing(true); setSuggestions([]); setDiagnosis(""); setAccepted({});
+    setAnalysing(true); setAnalysis("");
     try {
       const r = await fetch(`${API}/api/bot/analyse`, {
         method:"POST", headers:authHeaders(),
-        body:JSON.stringify({clinic_id:botClinicId, conversation:brokenChat, issue:issueDesc})
+        body:JSON.stringify({clinic_id:botClinicId, conversation:brokenChat})
       });
       const d = await r.json();
-      if(d.error){ setDiagnosis("❌ " + d.error); setAnalysing(false); return; }
-      // Try parse structured JSON
-      try {
-        const parsed = typeof d.analysis === "string" ? JSON.parse(d.analysis) : d;
-        setDiagnosis(parsed.diagnosis||"");
-        setSuggestions((parsed.suggestions||[]).map((s,i)=>({...s,id:i})));
-        setAccepted({});
-      } catch {
-        // Fallback: show raw text
-        setDiagnosis(d.analysis||d.error||"No response");
-        setSuggestions([]);
-      }
-    } catch { setDiagnosis("❌ Network error"); }
+      setAnalysis(d.analysis||d.error||"No response");
+    } catch { setAnalysis("❌ Network error"); }
     setAnalysing(false);
-  };
-
-  const applyAccepted = async () => {
-    if(!sandbox) return;
-    let newSandbox = {...sandbox, qa:[...(sandbox.qa||[])]};
-    let changed = false;
-    suggestions.forEach((s,i)=>{
-      if(!accepted[i]) return;
-      if(s.type==="kb_add") {
-        newSandbox.qa.push({question:s.question, answer:s.answer, is_static:false});
-        changed = true;
-      } else if(s.type==="kb_edit") {
-        newSandbox.qa = newSandbox.qa.map(q=>
-          q.question===s.old_question ? {...q, answer:s.new_answer} : q
-        );
-        changed = true;
-      } else if(s.type==="prompt") {
-        if(s.action==="replace" && s.old_text) {
-          newSandbox.system_prompt = (newSandbox.system_prompt||"").replace(s.old_text, s.new_text);
-        } else {
-          newSandbox.system_prompt = (newSandbox.system_prompt||"") + "\n" + s.new_text;
-        }
-        changed = true;
-      }
-    });
-    if(changed) {
-      setSandbox(newSandbox);
-      setSandboxDirty(true);
-      flash("✅ Changes applied to sandbox — review in Editor tab");
-      setPanel("editor");
-    } else {
-      flash("No changes selected — tick at least one suggestion");
-    }
   };
 
   // Apply AI suggestion to sandbox
@@ -4272,21 +4231,6 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
   // Flash message
   const [flashMsg, setFlashMsg] = React.useState("");
   const flash = (msg) => { setFlashMsg(msg); setTimeout(()=>setFlashMsg(""),3000); };
-
-  const cleanMd = (text) => {
-    if(!text) return "";
-    let t = text;
-    t = t.split("\n").map(line => {
-      if(line.match(/^#{1,3} /)) return line.replace(/^#{1,3} /, "");
-      if(line.match(/^> /)) return "→ " + line.replace(/^> /, "");
-      if(line.match(/^```/)) return "";
-      if(line.match(/^---+$/)) return "";
-      return line;
-    }).join("\n");
-    t = t.split("**").map((s,i) => i % 2 === 0 ? s : s).join("");
-    t = t.replace(/\n\n\n+/g, "\n\n");
-    return t.trim();
-  };
 
   const PANELS = [
     {id:"editor", icon:"✏️", label:"Editor"},
@@ -4518,157 +4462,318 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
         {panel==="analyser"&&<div style={{flex:1,overflowY:"auto",padding:20,paddingBottom:80}}>
           <div style={{maxWidth:760,margin:"0 auto"}}>
 
-            {/* Input card */}
             <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:20,marginBottom:16}}>
               <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>🔍 Chat Analyser</div>
               <div style={{fontSize:12,color:T.textMuted,marginBottom:16,lineHeight:1.6}}>
-                Paste a broken conversation + describe what went wrong. AI reads your sandbox prompt and KB, then gives you specific accept/reject fixes.
+                Paste a real conversation that went wrong. The AI will read your <strong>current sandbox</strong> prompt and KB, diagnose exactly what failed, and give you the precise text to fix it.
               </div>
 
-              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>1. Paste the broken conversation:</div>
-              <textarea value={brokenChat} onChange={e=>setBrokenChat(e.target.value)} rows={8}
-                placeholder={"Customer: How much is the consultation?\nBot: I'm sorry, I don't have that information.\nCustomer: You useless lah"}
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Paste the broken conversation here:</div>
+              <textarea value={brokenChat} onChange={e=>setBrokenChat(e.target.value)} rows={10}
+                placeholder={"Customer: How much is the consultation?\nBot: I'm sorry, I don't have that information.\nCustomer: You useless lah\n\n(Bot should have answered RM100 from the KB)"}
                 style={{width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:10,
                   padding:"12px 14px",color:T.text,fontSize:12,fontFamily:"monospace",
-                  resize:"vertical",boxSizing:"border-box",minHeight:140,lineHeight:1.6,marginBottom:12}}/>
-
-              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>2. Describe what went wrong:</div>
-              <textarea value={issueDesc} onChange={e=>setIssueDesc(e.target.value)} rows={3}
-                placeholder={"e.g. Bot said it doesn't know the consultation fee, but it should answer RM100. Also bot was too formal when it should be friendly."}
-                style={{width:"100%",background:T.input,border:`1.5px solid #7c3aed40`,borderRadius:10,
-                  padding:"12px 14px",color:T.text,fontSize:12,fontFamily:"inherit",
-                  resize:"vertical",boxSizing:"border-box",lineHeight:1.6,marginBottom:12}}/>
+                  resize:"vertical",boxSizing:"border-box",minHeight:180,lineHeight:1.6}}/>
 
               <button onClick={runAnalysis} disabled={analysing||!brokenChat.trim()||!botClinicId}
-                style={{padding:"10px 24px",borderRadius:10,border:"none",
+                style={{marginTop:12,padding:"10px 24px",borderRadius:10,border:"none",
                   background:analysing||!brokenChat.trim()||!botClinicId?"#94a3b8":"#7c3aed",
-                  color:"#fff",fontSize:13,fontWeight:700,cursor:analysing?"not-allowed":"pointer",fontFamily:"inherit"}}>
-                {analysing?"🔍 Analysing...":"🔍 Analyse & Get Fixes"}
+                  color:"#fff",fontSize:13,fontWeight:700,cursor:analysing?"not-allowed":"pointer",fontFamily:"inherit",
+                  display:"flex",alignItems:"center",gap:8}}>
+                {analysing?"🔍 Analysing...":"🔍 Analyse & Fix"}
               </button>
             </div>
 
-            {/* Loading */}
-            {analysing&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:24,textAlign:"center",color:T.textMuted}}>
+            {/* Analysis result */}
+            {analysing&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:20,textAlign:"center",color:T.textMuted}}>
               <div style={{fontSize:32,marginBottom:8}}>🤖</div>
-              <div style={{fontWeight:600}}>AI is reading sandbox prompt, KB, and conversation...</div>
+              <div style={{fontWeight:600}}>AI is reading your prompt, KB, and conversation...</div>
             </div>}
 
-            {/* Results */}
-            {!analysing&&(diagnosis||suggestions.length>0)&&<div>
-
-              {/* Diagnosis */}
-              {diagnosis&&<div style={{background:"#fef9c3",border:"1px solid #fde68a",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
-                <div style={{fontSize:12,fontWeight:700,color:"#854d0e",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>🔎 Root Cause</div>
-                <div style={{fontSize:13,color:"#78350f",lineHeight:1.7,whiteSpace:"pre-wrap"}}>
-                  {cleanMd(diagnosis)}
+            {analysis&&!analysing&&<div style={{background:T.card,border:`1px solid #7c3aed40`,borderRadius:14,padding:20}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+                <div style={{fontWeight:800,fontSize:15,color:"#7c3aed"}}>🤖 AI Diagnosis</div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>applySuggestion(analysis)}
+                    style={{padding:"5px 14px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    ➕ Apply ADD suggestions to Sandbox
+                  </button>
+                  <button onClick={()=>setPanel("editor")}
+                    style={{padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                    ✏️ Go to Editor
+                  </button>
                 </div>
-              </div>}
-
-              {/* Suggestions */}
-              {suggestions.length>0&&<div style={{background:T.card,border:`1px solid #7c3aed30`,borderRadius:14,padding:20,marginBottom:16}}>
-                <div style={{fontWeight:800,fontSize:15,color:"#7c3aed",marginBottom:4}}>💡 Suggested Fixes ({suggestions.length})</div>
-                <div style={{fontSize:12,color:T.textMuted,marginBottom:16}}>Review each suggestion — tick to accept, then click Apply.</div>
-
-                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
-                  {suggestions.map((s,i)=>{
-                    const isAccepted = accepted[i];
-                    const typeColor = s.type==="prompt"?"#7c3aed":s.type==="kb_add"?WA_GREEN:"#f59e0b";
-                    const typeLabel = s.type==="prompt"?"⚙️ System Prompt":s.type==="kb_add"?"➕ Add to KB":"✏️ Edit KB";
-                    return (
-                      <div key={i} onClick={()=>setAccepted(p=>({...p,[i]:!p[i]}))}
-                        style={{borderRadius:12,border:`2px solid ${isAccepted?typeColor:T.border}`,
-                          background:isAccepted?`${typeColor}08`:T.card2,
-                          padding:"14px 16px",cursor:"pointer",transition:"all .15s"}}>
-                        <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                          {/* Checkbox */}
-                          <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${isAccepted?typeColor:T.border}`,
-                            background:isAccepted?typeColor:"transparent",
-                            display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
-                            {isAccepted&&<span style={{color:"#fff",fontSize:13,fontWeight:700}}>✓</span>}
-                          </div>
-                          <div style={{flex:1,minWidth:0}}>
-                            {/* Type badge */}
-                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                              <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700,
-                                background:`${typeColor}15`,color:typeColor,border:`1px solid ${typeColor}30`}}>
-                                {typeLabel}
-                              </span>
-                              {s.action&&<span style={{fontSize:10,color:T.textFaint}}>{s.action}</span>}
-                            </div>
-                            {/* Description */}
-                            <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:8}}>{s.description}</div>
-                            {/* Content preview */}
-                            {s.type==="prompt"&&<div>
-                              {s.old_text&&<div style={{marginBottom:6}}>
-                                <div style={{fontSize:10,color:"#ef4444",fontWeight:700,marginBottom:2}}>REPLACE:</div>
-                                <div style={{background:"#fef2f2",borderRadius:6,padding:"6px 10px",fontSize:11,color:"#dc2626",fontFamily:"monospace"}}>{s.old_text}</div>
-                              </div>}
-                              <div>
-                                <div style={{fontSize:10,color:WA_GREEN,fontWeight:700,marginBottom:2}}>{s.old_text?"WITH:":"ADD TO PROMPT:"}</div>
-                                <div style={{background:`${WA_GREEN}10`,borderRadius:6,padding:"6px 10px",fontSize:11,color:T.text,fontFamily:"monospace"}}>{s.new_text}</div>
-                              </div>
-                            </div>}
-                            {s.type==="kb_add"&&<div>
-                              <div style={{fontSize:10,color:WA_GREEN,fontWeight:700,marginBottom:2}}>NEW Q&A:</div>
-                              <div style={{background:`${WA_GREEN}10`,borderRadius:6,padding:"8px 10px",fontSize:11}}>
-                                <div style={{fontWeight:700,color:T.text,marginBottom:4}}>Q: {s.question}</div>
-                                <div style={{color:T.textMuted}}>A: {s.answer}</div>
-                              </div>
-                            </div>}
-                            {s.type==="kb_edit"&&<div>
-                              <div style={{fontSize:10,color:"#f59e0b",fontWeight:700,marginBottom:2}}>EDIT EXISTING:</div>
-                              <div style={{background:"#fffbeb",borderRadius:6,padding:"8px 10px",fontSize:11}}>
-                                <div style={{fontWeight:700,color:T.text,marginBottom:4}}>Q: {s.old_question}</div>
-                                <div style={{color:T.textMuted}}>New A: {s.new_answer}</div>
-                              </div>
-                            </div>}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Apply button */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div style={{fontSize:12,color:T.textMuted}}>
-                    {Object.values(accepted).filter(Boolean).length} of {suggestions.length} selected
-                  </div>
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>setAccepted(Object.fromEntries(suggestions.map((_,i)=>[i,true])))}
-                      style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                      Select All
-                    </button>
-                    <button onClick={applyAccepted}
-                      disabled={Object.values(accepted).filter(Boolean).length===0}
-                      style={{padding:"7px 20px",borderRadius:8,border:"none",
-                        background:Object.values(accepted).filter(Boolean).length===0?"#94a3b8":"#7c3aed",
-                        color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                      ✅ Apply to Sandbox & Review in Editor
-                    </button>
-                  </div>
-                </div>
-              </div>}
-
-              {suggestions.length===0&&diagnosis&&!analysing&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:20}}>
-                <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:"#7c3aed"}}>📋 Full AI Analysis</div>
-                <div style={{fontSize:12,color:T.textMuted,marginBottom:12,lineHeight:1.6}}>
-                  The AI gave a detailed analysis but could not extract structured fixes. Read below and manually apply changes in the <strong>Editor tab</strong>.
-                </div>
-                <div style={{background:T.card2,borderRadius:10,padding:"14px 16px",fontSize:12,color:T.text,lineHeight:1.8,whiteSpace:"pre-wrap",fontFamily:"inherit",maxHeight:400,overflowY:"auto"}}>
-                  {cleanMd(diagnosis)}
-                </div>
-                <button onClick={()=>setPanel("editor")}
-                  style={{marginTop:12,padding:"8px 18px",borderRadius:8,border:"none",background:"#7c3aed",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  ✏️ Go to Editor to apply manually
-                </button>
-              </div>}
+              </div>
+              {/* Render analysis with section highlights */}
+              <div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.8,color:T.text,fontFamily:"inherit"}}>
+                {analysis.split("\n").map((line,i)=>{
+                  const isHeader = /^(1\.|2\.|3\.|4\.|DIAGNOS|SYSTEM PROMPT|KB FIX|SUMMARY|ADD:|EDIT:)/i.test(line.trim());
+                  const isAdd = /^ADD:/i.test(line.trim());
+                  const isEdit = /^EDIT:/i.test(line.trim());
+                  return <div key={i} style={{
+                    fontWeight:isHeader?700:400,
+                    color:isAdd?WA_GREEN:isEdit?"#f59e0b":isHeader?"#7c3aed":T.text,
+                    background:isAdd?`${WA_GREEN}10`:isEdit?"#fffbeb":undefined,
+                    borderRadius:isAdd||isEdit?6:undefined,
+                    padding:isAdd||isEdit?"2px 8px":undefined,
+                    marginBottom:isHeader?4:0,
+                  }}>{line||"\u00a0"}</div>;
+                })}
+              </div>
             </div>}
-
           </div>
         </div>}
 
       </div>}
+    </div>
+  );
+}
+
+// ── NOTES TAB ─────────────────────────────────────────────────────────────────
+function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOverview, API, ts,
+  notes, setNotes, notesLoading, setNotesLoading, notesClinic, setNotesClinic, onJumpToChat}) {
+
+  const authHeaders = () => ({"Content-Type":"application/json","Authorization":`Bearer ${authToken}`});
+  const [newNote, setNewNote] = React.useState({contact_id:"", contact_name:"", note_text:""});
+  const [showAdd, setShowAdd] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+
+  const clinicId = isAdmin ? notesClinic?.clinic_id : currentUser?.clinic_id;
+
+  const loadNotes = async (cid) => {
+    if(!cid) return;
+    setNotesLoading(true);
+    try {
+      const r = await fetch(`${API}/api/notes?clinic_id=${cid}`, {headers:authHeaders()});
+      if(r.ok) setNotes(await r.json());
+      else setNotes([]);
+    } catch { setNotes([]); }
+    setNotesLoading(false);
+  };
+
+  React.useEffect(()=>{
+    if(!isAdmin && currentUser?.clinic_id) loadNotes(currentUser.clinic_id);
+  }, []);
+
+  React.useEffect(()=>{
+    if(isAdmin && notesClinic?.clinic_id) loadNotes(notesClinic.clinic_id);
+  }, [notesClinic]);
+
+  const addNote = async () => {
+    if(!newNote.contact_id.trim()||!newNote.note_text.trim()||!clinicId) return;
+    setSaving(true);
+    try {
+      const r = await fetch(`${API}/api/notes`, {
+        method:"POST", headers:authHeaders(),
+        body:JSON.stringify({...newNote, clinic_id:clinicId})
+      });
+      if(r.ok) {
+        const n = await r.json();
+        setNotes(p=>[n,...p]);
+        setNewNote({contact_id:"", contact_name:"", note_text:""});
+        setShowAdd(false);
+      }
+    } catch {}
+    setSaving(false);
+  };
+
+  const markDone = async (id, isDone) => {
+    try {
+      const r = await fetch(`${API}/api/notes/${id}/done`, {
+        method:"PATCH", headers:authHeaders(),
+        body:JSON.stringify({is_done:isDone})
+      });
+      if(r.ok) {
+        const updated = await r.json();
+        setNotes(p=>p.map(n=>n.id===id?updated:n).sort((a,b)=>a.is_done-b.is_done));
+      }
+    } catch {}
+  };
+
+  const deleteNote = async (id) => {
+    if(!confirm("Delete this note?")) return;
+    try {
+      await fetch(`${API}/api/notes/${id}`, {method:"DELETE", headers:authHeaders()});
+      setNotes(p=>p.filter(n=>n.id!==id));
+    } catch {}
+  };
+
+  const formatDate = (dt) => {
+    if(!dt) return "";
+    try { return new Date(dt).toLocaleDateString("en-MY",{day:"numeric",month:"short",year:"numeric"}); }
+    catch { return ""; }
+  };
+
+  const activeNotes = notes.filter(n=>!n.is_done);
+  const doneNotes   = notes.filter(n=>n.is_done);
+
+  // Admin — show client picker first
+  if(isAdmin && !notesClinic) {
+    return (
+      <div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
+        <div style={{width:240,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
+          <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1}}>Select Client</div>
+          {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>(
+            <div key={c.clinic_id} onClick={()=>setNotesClinic(c)}
+              style={{padding:"12px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${T.border}40`}}>
+              <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
+              </div>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:T.text}}>{c.company_name||c.username}</div>
+                <div style={{fontSize:10,color:T.textMuted}}>{c.industry||"Client"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,color:T.textMuted}}>
+          <div style={{fontSize:48}}>👈</div>
+          <div style={{fontWeight:700,fontSize:16}}>Select a client to view notes</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{flex:1,display:"flex",flexDirection:"column",background:T.bg,overflow:"hidden"}}>
+
+      {/* Header */}
+      <div style={{background:T.nav,borderBottom:`1px solid ${T.border}`,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,flexShrink:0,flexWrap:"wrap"}}>
+        {isAdmin&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderRadius:20,
+          background:`${WA_GREEN}15`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer"}}
+          onClick={()=>{setNotesClinic(null);setNotes([]);}}>
+          <span style={{fontSize:11,fontWeight:700,color:WA_GREEN}}>🏢 {notesClinic?.company_name||notesClinic?.username}</span>
+          <span style={{fontSize:10,color:WA_GREEN,opacity:.7}}>✕ change</span>
+        </div>}
+        <div style={{flex:1}}>
+          <div style={{fontWeight:800,fontSize:16}}>📝 Contact Notes</div>
+          <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>{activeNotes.length} active · {doneNotes.length} done</div>
+        </div>
+        <button onClick={()=>setShowAdd(p=>!p)}
+          style={{padding:"8px 16px",borderRadius:10,border:"none",background:showAdd?T.card2:WA_GREEN,
+            color:showAdd?T.textMuted:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+          {showAdd?"✕ Cancel":"➕ Add Note"}
+        </button>
+        <button onClick={()=>loadNotes(clinicId)}
+          style={{padding:"8px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+          🔄
+        </button>
+      </div>
+
+      {/* Add note form */}
+      {showAdd&&<div style={{background:T.card,borderBottom:`1px solid ${T.border}`,padding:"16px 20px",flexShrink:0}}>
+        <div style={{maxWidth:600,display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{display:"flex",gap:8}}>
+            <input value={newNote.contact_id} onChange={e=>setNewNote(p=>({...p,contact_id:e.target.value}))}
+              placeholder="Contact phone / ID — e.g. +60123456789"
+              style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+            <input value={newNote.contact_name} onChange={e=>setNewNote(p=>({...p,contact_name:e.target.value}))}
+              placeholder="Contact name"
+              style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+          </div>
+          <textarea value={newNote.note_text} onChange={e=>setNewNote(p=>({...p,note_text:e.target.value}))}
+            placeholder="Note — e.g. Interested in EECP, said will call back next week after salary. Very keen."
+            rows={3}
+            style={{width:"100%",background:T.input,border:`1.5px solid ${WA_GREEN}40`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={addNote} disabled={saving||!newNote.contact_id.trim()||!newNote.note_text.trim()}
+              style={{padding:"8px 20px",borderRadius:8,border:"none",
+                background:saving||!newNote.contact_id.trim()||!newNote.note_text.trim()?"#94a3b8":WA_GREEN,
+                color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+              {saving?"Saving...":"💾 Save Note"}
+            </button>
+            <span style={{fontSize:11,color:T.textFaint}}>Note will be visible to all agents for this client</span>
+          </div>
+        </div>
+      </div>}
+
+      {/* Notes list */}
+      <div style={{flex:1,overflowY:"auto",padding:20}}>
+        {notesLoading&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading notes...</div>}
+
+        {!notesLoading&&notes.length===0&&<div style={{textAlign:"center",padding:60,color:T.textMuted}}>
+          <div style={{fontSize:48,marginBottom:12}}>📝</div>
+          <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>No notes yet</div>
+          <div style={{fontSize:13}}>Click "➕ Add Note" to write your first note</div>
+        </div>}
+
+        {/* Active notes */}
+        {activeNotes.length>0&&<div style={{marginBottom:24}}>
+          <div style={{fontWeight:700,fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>
+            📌 Active ({activeNotes.length})
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+            {activeNotes.map(n=>(
+              <div key={n.id} style={{background:"#fef9c3",border:"1px solid #fde68a",borderRadius:14,padding:16,
+                position:"relative",boxShadow:"0 2px 8px rgba(0,0,0,.08)",
+                transition:"transform .15s,box-shadow .15s"}}
+                onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.12)";}}
+                onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.08)";}}>
+
+                {/* Contact name + jump */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
+                    style={{fontWeight:800,fontSize:14,color:"#854d0e",background:"none",border:"none",cursor:"pointer",padding:0,textAlign:"left",textDecoration:"underline",fontFamily:"inherit"}}>
+                    👤 {n.contact_name||n.contact_id}
+                  </button>
+                  <div style={{display:"flex",gap:4}}>
+                    <button onClick={()=>markDone(n.id,true)}
+                      title="Mark as done"
+                      style={{width:24,height:24,borderRadius:6,border:"1px solid #86efac",background:"#f0fdf4",color:"#16a34a",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit"}}>✓</button>
+                    <button onClick={()=>deleteNote(n.id)}
+                      style={{width:24,height:24,borderRadius:6,border:"1px solid #fca5a5",background:"#fef2f2",color:"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit"}}>✕</button>
+                  </div>
+                </div>
+
+                {/* Note text */}
+                <div style={{fontSize:13,color:"#78350f",lineHeight:1.6,whiteSpace:"pre-wrap",marginBottom:10}}>
+                  {n.note_text}
+                </div>
+
+                {/* Footer */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:"#92400e",opacity:.7}}>
+                  <span>by {n.agent_name||"Agent"}</span>
+                  <span>{formatDate(n.created_at)}</span>
+                </div>
+
+                {/* Jump to chat button */}
+                <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
+                  style={{marginTop:10,width:"100%",padding:"6px",borderRadius:8,border:"1px solid #fde68a",
+                    background:"#fffbeb",color:"#854d0e",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+                    display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                  💬 Jump to Chat
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* Done notes */}
+        {doneNotes.length>0&&<div>
+          <div style={{fontWeight:700,fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>
+            ✅ Done ({doneNotes.length})
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {doneNotes.map(n=>(
+              <div key={n.id} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",
+                display:"flex",alignItems:"center",gap:12,opacity:.6}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:12,color:T.text,textDecoration:"line-through"}}>{n.contact_name||n.contact_id}</div>
+                  <div style={{fontSize:11,color:T.textMuted,textDecoration:"line-through",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.note_text}</div>
+                </div>
+                <div style={{fontSize:10,color:T.textFaint,flexShrink:0}}>{formatDate(n.done_at||n.created_at)}</div>
+                <div style={{display:"flex",gap:4,flexShrink:0}}>
+                  <button onClick={()=>markDone(n.id,false)}
+                    title="Undo done"
+                    style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>↩️</button>
+                  <button onClick={()=>deleteNote(n.id)}
+                    style={{padding:"3px 8px",borderRadius:6,border:"1px solid #fca5a5",background:"#fef2f2",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>}
+      </div>
     </div>
   );
 }
@@ -5137,7 +5242,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
     {key:"can_inbox",label:"💬 Inbox"},{key:"can_leads",label:"🎯 Leads"},
     {key:"can_analytics",label:"📊 Analytics"},{key:"can_testbot",label:"🤖 Test Bot"},
     {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"},
-    {key:"can_integrations",label:"🔌 Integrations"},{key:"can_broadcast",label:"📢 Broadcast"}
+    {key:"can_integrations",label:"🔌 Integrations"},{key:"can_broadcast",label:"📢 Broadcast"},{key:"can_notes",label:"📝 Notes"}
   ];
   const emptyClinic = {name:"",industry:"",website:"",client_domain:"",contact_phone:"",logo_url:"",
     whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",max_seats:1};
