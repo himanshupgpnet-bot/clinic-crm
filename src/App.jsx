@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.69";
+const CRM_VERSION = "2.9.71";
 
 // Responsive hook
 function useWindowSize() {
@@ -449,6 +449,14 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.71", date:"Jun 2 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔍 Analyser: properly strips markdown — clean readable output",
+      "🤖 AI prompt stricter JSON-only instruction",
+    ]},
+    { version:"2.9.70", date:"Jun 2 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔍 Analyser: clean display of AI analysis — no more markdown symbols",
+      "📋 Full analysis shown when no structured fixes extracted",
+    ]},
     { version:"2.9.69", date:"May 31 2026", tag:"NEW", color:"#10b981", items:[
       "🔍 Analyser: describe what went wrong + get specific Accept/Reject fixes",
       "✅ Accept fixes go to sandbox only — review in Editor before publishing",
@@ -4262,6 +4270,24 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
   const [flashMsg, setFlashMsg] = React.useState("");
   const flash = (msg) => { setFlashMsg(msg); setTimeout(()=>setFlashMsg(""),3000); };
 
+  const cleanMd = (text) => {
+    if(!text) return "";
+    return text
+      .replace(/^#{1,3}\s+/gm, "")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/^>\s*/gm, "→ ")
+      .replace(/^`{3}.*$/gm, "")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\|.*\|/g, "")
+      .replace(/^[-]{3,}$/gm, "")
+      .replace(/
+{3,}/g, "
+
+")
+      .trim();
+  };
+
   const PANELS = [
     {id:"editor", icon:"✏️", label:"Editor"},
     {id:"chat",   icon:"💬", label:"Test Chat"},
@@ -4531,8 +4557,11 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
             {!analysing&&(diagnosis||suggestions.length>0)&&<div>
 
               {/* Diagnosis */}
-              {diagnosis&&<div style={{background:"#fef9c3",border:"1px solid #fde68a",borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#854d0e",fontWeight:600}}>
-                🔎 <strong>Root cause:</strong> {diagnosis}
+              {diagnosis&&<div style={{background:"#fef9c3",border:"1px solid #fde68a",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#854d0e",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>🔎 Root Cause</div>
+                <div style={{fontSize:13,color:"#78350f",lineHeight:1.7,whiteSpace:"pre-wrap"}}>
+                  {cleanMd(diagnosis)}
+                </div>
               </div>}
 
               {/* Suggestions */}
@@ -4621,8 +4650,18 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
                 </div>
               </div>}
 
-              {suggestions.length===0&&diagnosis&&!analysing&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:12,padding:16,fontSize:12,color:T.textMuted,textAlign:"center"}}>
-                No specific fixes suggested — the issue may need manual review in the Editor tab.
+              {suggestions.length===0&&diagnosis&&!analysing&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:20}}>
+                <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:"#7c3aed"}}>📋 Full AI Analysis</div>
+                <div style={{fontSize:12,color:T.textMuted,marginBottom:12,lineHeight:1.6}}>
+                  The AI gave a detailed analysis but could not extract structured fixes. Read below and manually apply changes in the <strong>Editor tab</strong>.
+                </div>
+                <div style={{background:T.card2,borderRadius:10,padding:"14px 16px",fontSize:12,color:T.text,lineHeight:1.8,whiteSpace:"pre-wrap",fontFamily:"inherit",maxHeight:400,overflowY:"auto"}}>
+                  {cleanMd(diagnosis)}
+                </div>
+                <button onClick={()=>setPanel("editor")}
+                  style={{marginTop:12,padding:"8px 18px",borderRadius:8,border:"none",background:"#7c3aed",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  ✏️ Go to Editor to apply manually
+                </button>
               </div>}
             </div>}
 
