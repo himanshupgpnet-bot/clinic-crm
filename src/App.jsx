@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.71";
+const CRM_VERSION = "2.9.72";
 
 // Responsive hook
 function useWindowSize() {
@@ -449,6 +449,9 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.72", date:"Jun 3 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 Inbox: removed stray } showing in sidebar stats area",
+    ]},
     { version:"2.9.71", date:"Jun 2 2026", tag:"FIX", color:"#3b82f6", items:[
       "🔍 Analyser: properly strips markdown — clean readable output",
       "🤖 AI prompt stricter JSON-only instruction",
@@ -1776,7 +1779,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     <div style={{fontSize:9,color:T.textFaint}}>{s.label}</div>
                   </div>
                 ))}
-              </div>}
+              </div>
               <div style={{display:"flex",gap:4,marginBottom:4}}>
                 <button onClick={()=>setExportModal(true)} style={{flex:1,padding:"6px",borderRadius:8,border:`1px solid ${T.border}`,
                   background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",
