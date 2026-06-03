@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.73";
+const CRM_VERSION = "2.9.74";
 
 // Responsive hook
 function useWindowSize() {
@@ -453,6 +453,10 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.74", date:"Jun 3 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 Notes tab permission now saves correctly to DB",
+      "🔧 can_notes added to all user permission payloads",
+    ]},
     { version:"2.9.73", date:"Jun 3 2026", tag:"NEW", color:"#10b981", items:[
       "📝 Notes tab — agents write sticky notes per contact",
       "👁️ Client users see their notes, mark done, click to jump to chat",
@@ -5247,7 +5251,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
   const emptyClinic = {name:"",industry:"",website:"",client_domain:"",contact_phone:"",logo_url:"",
     whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",max_seats:1};
   const emptyUser = (clinic_id="") => ({username:"",password:"",clinic_id,
-    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,can_broadcast:false,
+    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,can_broadcast:false,can_notes:false,
     integration_whatsapp:false,integration_telegram:false,integration_instagram:false,
     integration_tiktok:false,integration_messenger:false,integration_calendar:false,integration_calendly:false});
 
@@ -5349,6 +5353,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             can_knowledge:editUser.can_knowledge,can_settings:editUser.can_settings,
             can_broadcast:editUser.can_broadcast||false,
             can_integrations:editUser.can_integrations,
+            can_notes:editUser.can_notes||false,
             integration_whatsapp:editUser.integration_whatsapp,integration_telegram:editUser.integration_telegram,
             integration_instagram:editUser.integration_instagram,integration_tiktok:editUser.integration_tiktok,
             integration_messenger:editUser.integration_messenger,integration_calendar:editUser.integration_calendar,
@@ -5364,6 +5369,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             can_settings:editUser.can_settings,
             can_broadcast:editUser.can_broadcast||false,
             can_integrations:editUser.can_integrations,
+            can_notes:editUser.can_notes||false,
             integration_whatsapp:editUser.integration_whatsapp,
             integration_telegram:editUser.integration_telegram,
             integration_instagram:editUser.integration_instagram,
