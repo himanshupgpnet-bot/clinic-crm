@@ -4272,20 +4272,17 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
 
   const cleanMd = (text) => {
     if(!text) return "";
-    return text
-      .replace(/^#{1,3}\s+/gm, "")
-      .replace(/\*\*(.*?)\*\*/g, "$1")
-      .replace(/\*(.*?)\*/g, "$1")
-      .replace(/^>\s*/gm, "→ ")
-      .replace(/^`{3}.*$/gm, "")
-      .replace(/`([^`]+)`/g, "$1")
-      .replace(/\|.*\|/g, "")
-      .replace(/^[-]{3,}$/gm, "")
-      .replace(/
-{3,}/g, "
-
-")
-      .trim();
+    let t = text;
+    t = t.split("\n").map(line => {
+      if(line.match(/^#{1,3} /)) return line.replace(/^#{1,3} /, "");
+      if(line.match(/^> /)) return "→ " + line.replace(/^> /, "");
+      if(line.match(/^```/)) return "";
+      if(line.match(/^---+$/)) return "";
+      return line;
+    }).join("\n");
+    t = t.split("**").map((s,i) => i % 2 === 0 ? s : s).join("");
+    t = t.replace(/\n\n\n+/g, "\n\n");
+    return t.trim();
   };
 
   const PANELS = [
