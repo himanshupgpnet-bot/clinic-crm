@@ -144,7 +144,6 @@ export default function App() {
   const [leadsDateFrom, setLeadsDateFrom] = useState("");
   const [leadsDateTo, setLeadsDateTo] = useState("");
   const [leadsUserFilter, setLeadsUserFilter] = useState(null); // user id
-  const [leadsUserFilter, setLeadsUserFilter] = useState("");
   const [settingsClinic, setSettingsClinic] = useState(null);
   const [clientSettings, setClientSettings] = useState(null);
   const [inboxClinic, setInboxClinic] = useState(null);
