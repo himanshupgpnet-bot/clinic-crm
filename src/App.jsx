@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.76";
+const CRM_VERSION = "2.9.77";
 
 // Responsive hook
 function useWindowSize() {
@@ -453,6 +453,9 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.77", date:"Jun 6 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 Manual tab: only shows chats where agent replied AND bot is currently OFF",
+    ]},
     { version:"2.9.76", date:"Jun 6 2026", tag:"FIX", color:"#3b82f6", items:[
       "🔧 Manual filter now shows only chats where human agent actually replied",
       "🔧 Mark as read fixed for client users — phone format handling",
@@ -1162,7 +1165,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     (!isAdmin||!inboxClinic||String(c.clinicId||c.clinic_id||1)===String(inboxClinic))
   ).filter(c=>{
     if(inboxFilter==="unread") return c.unread>0;
-    if(inboxFilter==="manual") return c.hasAgentReply;
+    if(inboxFilter==="manual") return c.hasAgentReply && !c.botActive;
     return true;
   }).filter(c=>{
     if(!inboxDateFilter) return true;
