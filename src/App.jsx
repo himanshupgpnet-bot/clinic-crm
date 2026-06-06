@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.74";
+const CRM_VERSION = "2.9.76";
 
 // Responsive hook
 function useWindowSize() {
@@ -453,6 +453,16 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.76", date:"Jun 6 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 Manual filter now shows only chats where human agent actually replied",
+      "🔧 Mark as read fixed for client users — phone format handling",
+    ]},
+    { version:"2.9.75", date:"Jun 3 2026", tag:"NEW", color:"#10b981", items:[
+      "📝 Notes: AI Generate button with date range picker",
+      "🤖 AI reads warm/hot conversations and creates notes for interested-but-not-ready customers",
+      "🔵 AI badge on auto-generated notes",
+      "📅 Presets: Today, 7 days, 30 days",
+    ]},
     { version:"2.9.74", date:"Jun 3 2026", tag:"FIX", color:"#3b82f6", items:[
       "🔧 Notes tab permission now saves correctly to DB",
       "🔧 can_notes added to all user permission payloads",
@@ -1152,7 +1162,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     (!isAdmin||!inboxClinic||String(c.clinicId||c.clinic_id||1)===String(inboxClinic))
   ).filter(c=>{
     if(inboxFilter==="unread") return c.unread>0;
-    if(inboxFilter==="manual") return !c.botActive;
+    if(inboxFilter==="manual") return c.hasAgentReply;
     return true;
   }).filter(c=>{
     if(!inboxDateFilter) return true;
@@ -4541,6 +4551,13 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
   const [newNote, setNewNote] = React.useState({contact_id:"", contact_name:"", note_text:""});
   const [showAdd, setShowAdd] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [generating, setGenerating] = React.useState(false);
+  const [genResult, setGenResult] = React.useState(null); // {created, skipped}
+  const [dateFrom, setDateFrom] = React.useState(()=>{
+    const d = new Date(); d.setDate(d.getDate()-7);
+    return d.toISOString().split("T")[0];
+  });
+  const [dateTo, setDateTo] = React.useState(()=>new Date().toISOString().split("T")[0]);
 
   const clinicId = isAdmin ? notesClinic?.clinic_id : currentUser?.clinic_id;
 
@@ -4562,6 +4579,25 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
   React.useEffect(()=>{
     if(isAdmin && notesClinic?.clinic_id) loadNotes(notesClinic.clinic_id);
   }, [notesClinic]);
+
+  const generateNotes = async () => {
+    if(!clinicId) return;
+    setGenerating(true); setGenResult(null);
+    try {
+      const r = await fetch(`${API}/api/notes/generate`, {
+        method:"POST", headers:authHeaders(),
+        body:JSON.stringify({clinic_id:clinicId, date_from:dateFrom, date_to:dateTo})
+      });
+      const d = await r.json();
+      if(r.ok) {
+        setGenResult({created:d.created||0, skipped:d.skipped||0, processed:d.processed||0});
+        await loadNotes(clinicId);
+      } else {
+        setGenResult({error:d.error||"Failed"});
+      }
+    } catch(e) { setGenResult({error:"Network error"}); }
+    setGenerating(false);
+  };
 
   const addNote = async () => {
     if(!newNote.contact_id.trim()||!newNote.note_text.trim()||!clinicId) return;
@@ -4656,7 +4692,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
         <button onClick={()=>setShowAdd(p=>!p)}
           style={{padding:"8px 16px",borderRadius:10,border:"none",background:showAdd?T.card2:WA_GREEN,
             color:showAdd?T.textMuted:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-          {showAdd?"✕ Cancel":"➕ Add Note"}
+          {showAdd?"✕ Cancel":"✏️ Add Manual Note"}
         </button>
         <button onClick={()=>loadNotes(clinicId)}
           style={{padding:"8px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
@@ -4664,30 +4700,87 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
         </button>
       </div>
 
-      {/* Add note form */}
+      {/* AI Generate Notes Panel */}
+      <div style={{background:dark?"#1a1f2e":"#f0f7ff",borderBottom:`1px solid ${T.border}`,padding:"14px 20px",flexShrink:0}}>
+        <div style={{maxWidth:700,display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:18}}>🤖</span>
+            <div>
+              <div style={{fontWeight:800,fontSize:14,color:T.text}}>AI Auto-Generate Notes</div>
+              <div style={{fontSize:11,color:T.textMuted}}>AI reads warm/hot conversations from selected date range and creates notes for customers who are interested but not ready</div>
+            </div>
+          </div>
+
+          {/* Date range + button */}
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,background:T.card,borderRadius:10,padding:"6px 12px",border:`1px solid ${T.border}`}}>
+              <span style={{fontSize:11,color:T.textMuted,fontWeight:600}}>From</span>
+              <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}
+                style={{background:"transparent",border:"none",color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+              <span style={{fontSize:11,color:T.textMuted,fontWeight:600}}>To</span>
+              <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}
+                style={{background:"transparent",border:"none",color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+            </div>
+
+            {/* Presets */}
+            {[{l:"Today",d:0},{l:"7 days",d:7},{l:"30 days",d:30}].map(p=>(
+              <button key={p.l} onClick={()=>{
+                const t = new Date().toISOString().split("T")[0];
+                const f = new Date(); f.setDate(f.getDate()-p.d);
+                setDateFrom(f.toISOString().split("T")[0]); setDateTo(t);
+              }} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card,
+                color:T.textMuted,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                {p.l}
+              </button>
+            ))}
+
+            <button onClick={generateNotes} disabled={generating||!clinicId}
+              style={{padding:"8px 20px",borderRadius:10,border:"none",
+                background:generating?"#94a3b8":"#7c3aed",
+                color:"#fff",fontSize:13,fontWeight:700,cursor:generating?"not-allowed":"pointer",fontFamily:"inherit",
+                display:"flex",alignItems:"center",gap:6}}>
+              {generating?<>⏳ Analysing conversations...</>:<>🤖 Generate Notes</>}
+            </button>
+          </div>
+
+          {/* Result */}
+          {genResult&&<div style={{padding:"10px 14px",borderRadius:10,fontSize:12,fontWeight:600,
+            background:genResult.error?"#fef2f2":`${WA_GREEN}10`,
+            border:`1px solid ${genResult.error?"#fca5a5":`${WA_GREEN}30`}`,
+            color:genResult.error?"#dc2626":T.text}}>
+            {genResult.error ? `❌ ${genResult.error}` :
+              `✅ Done — analysed ${genResult.processed} conversations · ${genResult.created} notes created · ${genResult.skipped} skipped (already have notes or not interested-but-waiting)`}
+          </div>}
+
+          {/* Criteria info */}
+          <div style={{fontSize:10,color:T.textMuted,lineHeight:1.6}}>
+            <strong>Creates note when customer says:</strong> next time / next week / will think / checking with family / after salary / busy now / not this time / maybe later
+            &nbsp;·&nbsp;<strong>Skips:</strong> already booked, cold leads, existing active note, clearly not interested
+          </div>
+        </div>
+      </div>
+
+      {/* Add manual note form */}
       {showAdd&&<div style={{background:T.card,borderBottom:`1px solid ${T.border}`,padding:"16px 20px",flexShrink:0}}>
         <div style={{maxWidth:600,display:"flex",flexDirection:"column",gap:8}}>
           <div style={{display:"flex",gap:8}}>
             <input value={newNote.contact_id} onChange={e=>setNewNote(p=>({...p,contact_id:e.target.value}))}
-              placeholder="Contact phone / ID — e.g. +60123456789"
+              placeholder="Contact phone — e.g. +60123456789"
               style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
             <input value={newNote.contact_name} onChange={e=>setNewNote(p=>({...p,contact_name:e.target.value}))}
               placeholder="Contact name"
               style={{flex:1,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
           </div>
           <textarea value={newNote.note_text} onChange={e=>setNewNote(p=>({...p,note_text:e.target.value}))}
-            placeholder="Note — e.g. Interested in EECP, said will call back next week after salary. Very keen."
+            placeholder="Note — e.g. Interested in EECP, said will check with husband first. Follow up next week."
             rows={3}
             style={{width:"100%",background:T.input,border:`1.5px solid ${WA_GREEN}40`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <button onClick={addNote} disabled={saving||!newNote.contact_id.trim()||!newNote.note_text.trim()}
-              style={{padding:"8px 20px",borderRadius:8,border:"none",
-                background:saving||!newNote.contact_id.trim()||!newNote.note_text.trim()?"#94a3b8":WA_GREEN,
-                color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-              {saving?"Saving...":"💾 Save Note"}
-            </button>
-            <span style={{fontSize:11,color:T.textFaint}}>Note will be visible to all agents for this client</span>
-          </div>
+          <button onClick={addNote} disabled={saving||!newNote.contact_id.trim()||!newNote.note_text.trim()}
+            style={{alignSelf:"flex-start",padding:"8px 20px",borderRadius:8,border:"none",
+              background:saving||!newNote.contact_id.trim()||!newNote.note_text.trim()?"#94a3b8":WA_GREEN,
+              color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            {saving?"Saving...":"💾 Save Note"}
+          </button>
         </div>
       </div>}
 
@@ -4698,7 +4791,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
         {!notesLoading&&notes.length===0&&<div style={{textAlign:"center",padding:60,color:T.textMuted}}>
           <div style={{fontSize:48,marginBottom:12}}>📝</div>
           <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>No notes yet</div>
-          <div style={{fontSize:13}}>Click "➕ Add Note" to write your first note</div>
+          <div style={{fontSize:13,marginBottom:16}}>Click "🤖 Generate Notes" to auto-create from conversations, or add manually</div>
         </div>}
 
         {/* Active notes */}
@@ -4708,24 +4801,33 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
             {activeNotes.map(n=>(
-              <div key={n.id} style={{background:"#fef9c3",border:"1px solid #fde68a",borderRadius:14,padding:16,
-                position:"relative",boxShadow:"0 2px 8px rgba(0,0,0,.08)",
-                transition:"transform .15s,box-shadow .15s"}}
+              <div key={n.id} style={{background:n.agent_name==="🤖 Auto-Note"?"#fef9c3":"#fff9e6",
+                border:`1px solid ${n.agent_name==="🤖 Auto-Note"?"#fde68a":"#fcd34d"}`,
+                borderRadius:14,padding:16,position:"relative",
+                boxShadow:"0 2px 8px rgba(0,0,0,.08)",transition:"transform .15s,box-shadow .15s"}}
                 onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.12)";}}
                 onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.08)";}}>
 
-                {/* Contact name + jump */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                {/* Auto-note badge */}
+                {n.agent_name==="🤖 Auto-Note"&&<div style={{position:"absolute",top:10,right:10,
+                  fontSize:9,padding:"2px 6px",borderRadius:6,background:"#7c3aed",color:"#fff",fontWeight:700}}>
+                  🤖 AI
+                </div>}
+
+                {/* Contact name */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,paddingRight:n.agent_name==="🤖 Auto-Note"?40:0}}>
                   <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
-                    style={{fontWeight:800,fontSize:14,color:"#854d0e",background:"none",border:"none",cursor:"pointer",padding:0,textAlign:"left",textDecoration:"underline",fontFamily:"inherit"}}>
+                    style={{fontWeight:800,fontSize:14,color:"#854d0e",background:"none",border:"none",
+                      cursor:"pointer",padding:0,textAlign:"left",textDecoration:"underline",fontFamily:"inherit"}}>
                     👤 {n.contact_name||n.contact_id}
                   </button>
                   <div style={{display:"flex",gap:4}}>
-                    <button onClick={()=>markDone(n.id,true)}
-                      title="Mark as done"
-                      style={{width:24,height:24,borderRadius:6,border:"1px solid #86efac",background:"#f0fdf4",color:"#16a34a",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit"}}>✓</button>
+                    <button onClick={()=>markDone(n.id,true)} title="Mark done"
+                      style={{width:24,height:24,borderRadius:6,border:"1px solid #86efac",background:"#f0fdf4",
+                        color:"#16a34a",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✓</button>
                     <button onClick={()=>deleteNote(n.id)}
-                      style={{width:24,height:24,borderRadius:6,border:"1px solid #fca5a5",background:"#fef2f2",color:"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit"}}>✕</button>
+                      style={{width:24,height:24,borderRadius:6,border:"1px solid #fca5a5",background:"#fef2f2",
+                        color:"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                   </div>
                 </div>
 
@@ -4735,14 +4837,14 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                 </div>
 
                 {/* Footer */}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:"#92400e",opacity:.7}}>
-                  <span>by {n.agent_name||"Agent"}</span>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:"#92400e",opacity:.7,marginBottom:8}}>
+                  <span>{n.agent_name||"Agent"}</span>
                   <span>{formatDate(n.created_at)}</span>
                 </div>
 
-                {/* Jump to chat button */}
+                {/* Jump to chat */}
                 <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
-                  style={{marginTop:10,width:"100%",padding:"6px",borderRadius:8,border:"1px solid #fde68a",
+                  style={{width:"100%",padding:"6px",borderRadius:8,border:"1px solid #fde68a",
                     background:"#fffbeb",color:"#854d0e",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
                     display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                   💬 Jump to Chat
@@ -4759,16 +4861,15 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {doneNotes.map(n=>(
-              <div key={n.id} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",
-                display:"flex",alignItems:"center",gap:12,opacity:.6}}>
+              <div key={n.id} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,
+                padding:"10px 14px",display:"flex",alignItems:"center",gap:12,opacity:.6}}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:700,fontSize:12,color:T.text,textDecoration:"line-through"}}>{n.contact_name||n.contact_id}</div>
                   <div style={{fontSize:11,color:T.textMuted,textDecoration:"line-through",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.note_text}</div>
                 </div>
                 <div style={{fontSize:10,color:T.textFaint,flexShrink:0}}>{formatDate(n.done_at||n.created_at)}</div>
                 <div style={{display:"flex",gap:4,flexShrink:0}}>
-                  <button onClick={()=>markDone(n.id,false)}
-                    title="Undo done"
+                  <button onClick={()=>markDone(n.id,false)} title="Undo"
                     style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>↩️</button>
                   <button onClick={()=>deleteNote(n.id)}
                     style={{padding:"3px 8px",borderRadius:6,border:"1px solid #fca5a5",background:"#fef2f2",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
