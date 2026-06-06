@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.79";
+const CRM_VERSION = "2.9.80";
 
 // Responsive hook
 function useWindowSize() {
@@ -143,6 +143,8 @@ export default function App() {
   const [leadsSearch, setLeadsSearch] = useState("");
   const [leadsDateFrom, setLeadsDateFrom] = useState("");
   const [leadsDateTo, setLeadsDateTo] = useState("");
+  const [leadsUserFilter, setLeadsUserFilter] = useState(null); // user id
+  const [leadsUserFilter, setLeadsUserFilter] = useState("");
   const [settingsClinic, setSettingsClinic] = useState(null);
   const [clientSettings, setClientSettings] = useState(null);
   const [inboxClinic, setInboxClinic] = useState(null);
@@ -456,6 +458,16 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.80", date:"Jun 6 2026", tag:"NEW", color:"#10b981", items:[
+      "👤 Leads: filter by assigned user — click any agent name to see their tickets",
+      "🔢 Shows count of open tickets per agent",
+      "✅ Deleted/inactive users auto-removed from filter",
+    ]},
+    { version:"2.9.80", date:"Jun 6 2026", tag:"NEW", color:"#10b981", items:[
+      "👥 Leads: filter by agent — see tickets assigned to specific user",
+      "👤 Unassigned filter — see all unassigned leads at once",
+      "🔄 Syncs with active users only — deleted users auto-removed from filter",
+    ]},
     { version:"2.9.79", date:"Jun 6 2026", tag:"FIX", color:"#3b82f6", items:[
       "📅 Leads: date & time shown on each card",
       "🔍 Leads: date range filter added",
@@ -2342,6 +2354,47 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {(leadsDateFrom||leadsDateTo)&&<button onClick={()=>{setLeadsDateFrom("");setLeadsDateTo("");}}
                     style={{border:"none",background:"none",cursor:"pointer",fontSize:11,color:T.textMuted}}>✕</button>}
                 </div>
+                {/* User filter */}
+                <select value={leadsUserFilter} onChange={e=>setLeadsUserFilter(e.target.value)}
+                  style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:20,
+                    padding:"5px 12px",color:leadsUserFilter?WA_GREEN:T.textMuted,
+                    fontSize:11,fontFamily:"inherit",outline:"none",cursor:"pointer",
+                    fontWeight:leadsUserFilter?700:400}}>
+                  <option value="">👥 All Agents</option>
+                  <option value="unassigned">👤 Unassigned</option>
+                  {clinicUsers.filter(u=>u.active!==false).map(u=>(
+                    <option key={u.id} value={String(u.id)}>@{u.username}</option>
+                  ))}
+                </select>
+                {leadsUserFilter&&<button onClick={()=>setLeadsUserFilter("")}
+                  style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${T.border}`,
+                    background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                  ✕ Clear
+                </button>}
+                {/* User filter pills */}
+                {clinicUsers.filter(u=>u.active!==false).length>0&&<div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+                  <span style={{fontSize:10,color:T.textFaint,fontWeight:600}}>👤</span>
+                  <button onClick={()=>setLeadsUserFilter(null)}
+                    style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${!leadsUserFilter?WA_GREEN:T.border}`,
+                      background:!leadsUserFilter?`${WA_GREEN}15`:"transparent",
+                      color:!leadsUserFilter?WA_GREEN:T.textMuted,
+                      fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    All
+                  </button>
+                  {clinicUsers.filter(u=>u.active!==false).map(u=>(
+                    <button key={u.id} onClick={()=>setLeadsUserFilter(leadsUserFilter===u.id?null:u.id)}
+                      style={{padding:"4px 10px",borderRadius:20,
+                        border:`1px solid ${leadsUserFilter===u.id?WA_GREEN:T.border}`,
+                        background:leadsUserFilter===u.id?`${WA_GREEN}15`:"transparent",
+                        color:leadsUserFilter===u.id?WA_GREEN:T.textMuted,
+                        fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      @{u.username}
+                      {leadsUserFilter===u.id&&<span style={{marginLeft:4,background:WA_GREEN,color:"#fff",borderRadius:10,padding:"0 5px",fontSize:9}}>
+                        {contacts.filter(c=>String(c.assignedTo)===String(u.id)&&(c.pipelineStage||"new")!=="done").length}
+                      </span>}
+                    </button>
+                  ))}
+                </div>}
                 <div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#ef4444",fontWeight:700}}>🔥 {hotCount} Hot</div>
                 <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#f59e0b",fontWeight:700}}>🟡 {warmCount} Warm</div>
               </div>
@@ -2374,6 +2427,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     const d = c.lastDate ? (c.lastDate.includes("/")?c.lastDate.split("/").reverse().join("-"):c.lastDate) : "";
                     if(leadsDateFrom && d < leadsDateFrom) return false;
                     if(leadsDateTo && d > leadsDateTo) return false;
+                  }
+                  // User filter
+                  if(leadsUserFilter && String(c.assignedTo)!==String(leadsUserFilter)) return false;
+                                  if(leadsUserFilter) {
+                    if(leadsUserFilter==="unassigned") {
+                      if(c.assignedTo!=null && c.assignedTo!=="") return false;
+                    } else {
+                      if(String(c.assignedTo)!==leadsUserFilter) return false;
+                    }
                   }
                   return true;
                 }).sort((a,b)=>{
