@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.78";
+const CRM_VERSION = "2.9.79";
 
 // Responsive hook
 function useWindowSize() {
@@ -141,6 +141,8 @@ export default function App() {
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [leadsClinic, setLeadsClinic] = useState(null);
   const [leadsSearch, setLeadsSearch] = useState("");
+  const [leadsDateFrom, setLeadsDateFrom] = useState("");
+  const [leadsDateTo, setLeadsDateTo] = useState("");
   const [settingsClinic, setSettingsClinic] = useState(null);
   const [clientSettings, setClientSettings] = useState(null);
   const [inboxClinic, setInboxClinic] = useState(null);
@@ -454,6 +456,10 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.79", date:"Jun 6 2026", tag:"FIX", color:"#3b82f6", items:[
+      "📅 Leads: date & time shown on each card",
+      "🔍 Leads: date range filter added",
+    ]},
     { version:"2.9.78", date:"Jun 6 2026", tag:"NEW", color:"#10b981", items:[
       "🎯 Leads: drag & drop cards between columns",
       "🔍 Leads: search by name or phone",
@@ -2325,6 +2331,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 12px 6px 30px",color:T.text,fontSize:12,width:180,fontFamily:"inherit"}}/>
                   {leadsSearch&&<button onClick={()=>setLeadsSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:12,color:T.textMuted}}>✕</button>}
                 </div>
+                {/* Date filter */}
+                <div style={{display:"flex",alignItems:"center",gap:4,background:T.card,border:`1px solid ${T.border}`,borderRadius:20,padding:"4px 12px"}}>
+                  <span style={{fontSize:11,color:T.textFaint}}>📅</span>
+                  <input type="date" value={leadsDateFrom} onChange={e=>setLeadsDateFrom(e.target.value)}
+                    style={{background:"transparent",border:"none",color:T.text,fontSize:11,fontFamily:"inherit",outline:"none",width:110}}/>
+                  <span style={{fontSize:10,color:T.textFaint}}>—</span>
+                  <input type="date" value={leadsDateTo} onChange={e=>setLeadsDateTo(e.target.value)}
+                    style={{background:"transparent",border:"none",color:T.text,fontSize:11,fontFamily:"inherit",outline:"none",width:110}}/>
+                  {(leadsDateFrom||leadsDateTo)&&<button onClick={()=>{setLeadsDateFrom("");setLeadsDateTo("");}}
+                    style={{border:"none",background:"none",cursor:"pointer",fontSize:11,color:T.textMuted}}>✕</button>}
+                </div>
                 <div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#ef4444",fontWeight:700}}>🔥 {hotCount} Hot</div>
                 <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#f59e0b",fontWeight:700}}>🟡 {warmCount} Warm</div>
               </div>
@@ -2351,6 +2368,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   if(leadsSearch) {
                     const s = leadsSearch.toLowerCase();
                     if(!c.name?.toLowerCase().includes(s) && !c.phone?.includes(s)) return false;
+                  }
+                  // Date filter
+                  if(leadsDateFrom || leadsDateTo) {
+                    const d = c.lastDate ? (c.lastDate.includes("/")?c.lastDate.split("/").reverse().join("-"):c.lastDate) : "";
+                    if(leadsDateFrom && d < leadsDateFrom) return false;
+                    if(leadsDateTo && d > leadsDateTo) return false;
                   }
                   return true;
                 }).sort((a,b)=>{
@@ -2404,6 +2427,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontWeight:700,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||"Unknown"}</div>
                                 <div style={{fontSize:10,color:T.textFaint}}>{c.phone} {silentText&&<span>· {silentText}</span>}</div>
+                              {c.lastDate&&<div style={{fontSize:10,color:col.color,fontWeight:600,marginTop:2}}>
+                                📅 {c.lastDate.includes("-")?c.lastDate.split("-").reverse().join("/"):c.lastDate} {c.lastTime&&`· ${c.lastTime}`}
+                              </div>}
                               </div>
                               {c.needsHuman&&<span style={{fontSize:14}} title="Needs Human">🚨</span>}
                             </div>
