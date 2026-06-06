@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.80";
+const CRM_VERSION = "2.9.81";
 
 // Responsive hook
 function useWindowSize() {
@@ -457,6 +457,10 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.81", date:"Jun 6 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 Leads: Unassigned now works correctly",
+      "🔧 Leads: removed user filter pills (dropdown works fine)",
+    ]},
     { version:"2.9.80", date:"Jun 6 2026", tag:"NEW", color:"#10b981", items:[
       "👤 Leads: filter by assigned user — click any agent name to see their tickets",
       "🔢 Shows count of open tickets per agent",
@@ -2370,30 +2374,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
                   ✕ Clear
                 </button>}
-                {/* User filter pills */}
-                {clinicUsers.filter(u=>u.active!==false).length>0&&<div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
-                  <span style={{fontSize:10,color:T.textFaint,fontWeight:600}}>👤</span>
-                  <button onClick={()=>setLeadsUserFilter(null)}
-                    style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${!leadsUserFilter?WA_GREEN:T.border}`,
-                      background:!leadsUserFilter?`${WA_GREEN}15`:"transparent",
-                      color:!leadsUserFilter?WA_GREEN:T.textMuted,
-                      fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                    All
-                  </button>
-                  {clinicUsers.filter(u=>u.active!==false).map(u=>(
-                    <button key={u.id} onClick={()=>setLeadsUserFilter(leadsUserFilter===u.id?null:u.id)}
-                      style={{padding:"4px 10px",borderRadius:20,
-                        border:`1px solid ${leadsUserFilter===u.id?WA_GREEN:T.border}`,
-                        background:leadsUserFilter===u.id?`${WA_GREEN}15`:"transparent",
-                        color:leadsUserFilter===u.id?WA_GREEN:T.textMuted,
-                        fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                      @{u.username}
-                      {leadsUserFilter===u.id&&<span style={{marginLeft:4,background:WA_GREEN,color:"#fff",borderRadius:10,padding:"0 5px",fontSize:9}}>
-                        {contacts.filter(c=>String(c.assignedTo)===String(u.id)&&(c.pipelineStage||"new")!=="done").length}
-                      </span>}
-                    </button>
-                  ))}
-                </div>}
+
                 <div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#ef4444",fontWeight:700}}>🔥 {hotCount} Hot</div>
                 <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#f59e0b",fontWeight:700}}>🟡 {warmCount} Warm</div>
               </div>
@@ -2526,13 +2507,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                                 onChange={async e=>{
                                   e.stopPropagation();
                                   const uid = e.target.value ? parseInt(e.target.value) : null;
-                                  const phone = c.id; // c.id is the phone number
+                                  const phone = c.id;
                                   const r = await fetch(`${API}/api/conversations/${phone}/assign`,{
                                     method:"PATCH",
                                     headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`},
                                     body:JSON.stringify({assigned_to:uid})
                                   });
-                                  if(r.ok) fetchConversations();
+                                  if(r.ok) {
+                                    setContacts(prev=>prev.map(x=>x.id===c.id?{...x,assignedTo:uid}:x));
+                                    fetchConversations();
+                                  }
                                 }}
                                 style={{width:"100%",fontSize:10,padding:"4px 8px",borderRadius:8,
                                   border:`1px solid ${T.border}`,background:T.card2,color:T.text,
