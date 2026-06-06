@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.77";
+const CRM_VERSION = "2.9.78";
 
 // Responsive hook
 function useWindowSize() {
@@ -140,6 +140,7 @@ export default function App() {
   const [adminViewClinic, setAdminViewClinic] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [leadsClinic, setLeadsClinic] = useState(null);
+  const [leadsSearch, setLeadsSearch] = useState("");
   const [settingsClinic, setSettingsClinic] = useState(null);
   const [clientSettings, setClientSettings] = useState(null);
   const [inboxClinic, setInboxClinic] = useState(null);
@@ -453,6 +454,13 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.78", date:"Jun 6 2026", tag:"NEW", color:"#10b981", items:[
+      "🎯 Leads: drag & drop cards between columns",
+      "🔍 Leads: search by name or phone",
+      "📅 Leads: sorted newest first within each column",
+      "✋ Leads: Assign to Me button for staff",
+      "⚡ Leads: lead change from inbox reflects instantly in leads tab",
+    ]},
     { version:"2.9.77", date:"Jun 6 2026", tag:"FIX", color:"#3b82f6", items:[
       "🔧 Manual tab: only shows chats where agent replied AND bot is currently OFF",
     ]},
@@ -1019,6 +1027,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   }
 
   async function setManualLead(id,lead) {
+    // Update locally immediately so card moves instantly in leads tab
+    setContacts(prev=>prev.map(c=>c.id===id?{...c,lead}:c));
+    if(selected?.id===id) setSelected(prev=>({...prev,lead}));
     try { await fetch(`${API}/api/conversations/${id}/lead`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({lead})}); fetchConversations(); } catch {}
   }
 
@@ -1156,7 +1167,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   }
 
   function onDragStart(e,id){e.dataTransfer.setData("contactId",id);}
-  async function onDrop(e,stage){e.preventDefault();setDragOver(null);const id=e.dataTransfer.getData("contactId");if(id)await setPipelineStage(id,stage);}
+  async function onDrop(e,stage){
+    e.preventDefault();setDragOver(null);
+    const id=e.dataTransfer.getData("contactId");
+    if(!id) return;
+    // If dropping on done column -> update pipeline stage
+    if(stage==="done") { await setPipelineStage(id,"done"); }
+    // Otherwise update lead score
+    else { await setManualLead(id,stage); }
+  }
 
   const filtered = contacts.filter(c=>
     (filter==="all"||c.status===filter)&&
@@ -2297,7 +2316,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div style={{fontWeight:800,fontSize:17}}>🎯 Lead Board</div>
                 <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>AI-classified leads · Assign to team · Track performance</div>
               </div>
-              <div style={{display:"flex",gap:8}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                {/* Search bar */}
+                <div style={{position:"relative"}}>
+                  <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:T.textFaint}}>🔍</span>
+                  <input value={leadsSearch} onChange={e=>setLeadsSearch(e.target.value)}
+                    placeholder="Search name or phone..."
+                    style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 12px 6px 30px",color:T.text,fontSize:12,width:180,fontFamily:"inherit"}}/>
+                  {leadsSearch&&<button onClick={()=>setLeadsSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:12,color:T.textMuted}}>✕</button>}
+                </div>
                 <div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#ef4444",fontWeight:700}}>🔥 {hotCount} Hot</div>
                 <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#f59e0b",fontWeight:700}}>🟡 {warmCount} Warm</div>
               </div>
@@ -2312,11 +2339,38 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {id:"done", label:"✅ Done",        sub:"Booking confirmed", color:"#22c55e", bg:"#f0fdf4", dark:"#0f2d1a", border:"#86efac"},
               ].map(col=>{
                 const colContacts = contacts.filter(c=>{
-                  if(col.id==="done") return (c.pipelineStage||"new")==="done";
-                  return c.lead===col.id && (c.pipelineStage||"new")!=="done";
+                  // Filter by clinic for admin
+                  if(isAdmin && leadsClinic && String(c.clinicId||c.clinic_id||1)!==String(leadsClinic.clinic_id)) return false;
+                  // Filter by column
+                  if(col.id==="done") {
+                    if((c.pipelineStage||"new")!=="done") return false;
+                  } else {
+                    if(c.lead!==col.id || (c.pipelineStage||"new")==="done") return false;
+                  }
+                  // Search filter
+                  if(leadsSearch) {
+                    const s = leadsSearch.toLowerCase();
+                    if(!c.name?.toLowerCase().includes(s) && !c.phone?.includes(s)) return false;
+                  }
+                  return true;
+                }).sort((a,b)=>{
+                  // Sort newest first by lastDate+lastTime
+                  const parseTs = (c) => {
+                    try {
+                      const d = c.lastDate||""; const t = c.lastTime||"";
+                      if(!d) return 0;
+                      const dp = d.includes("-")?d.split("-"):[d.split("/")[2],d.split("/")[1],d.split("/")[0]];
+                      return new Date(`${dp[0]}-${dp[1]}-${dp[2]} ${t}`).getTime()||0;
+                    } catch { return 0; }
+                  };
+                  return parseTs(b) - parseTs(a);
                 });
                 return (
-                  <div key={col.id} style={{background:dark?col.dark+"60":col.bg,borderRadius:14,border:`1.5px solid ${col.border}`,overflow:"hidden"}}>
+                  <div key={col.id}
+                    onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
+                    onDragLeave={()=>setDragOver(null)}
+                    onDrop={e=>onDrop(e,col.id)}
+                    style={{background:dark?col.dark+"60":col.bg,borderRadius:14,border:`1.5px solid ${dragOver===col.id?col.color:col.border}`,overflow:"hidden",transition:"border .15s"}}>
                     {/* Column header */}
                     <div style={{padding:"12px 14px",borderBottom:`1px solid ${col.border}`,background:dark?col.dark+"80":col.bg}}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -2334,9 +2388,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         const silentMins = c.lastTime ? Math.round((Date.now()-new Date(c.lastTime).getTime())/60000) : null;
                         const silentText = silentMins ? silentMins<60?`${silentMins}m ago`:silentMins<1440?`${Math.floor(silentMins/60)}h ago`:`${Math.floor(silentMins/1440)}d ago` : "";
                         return (
-                          <div key={c.id} onClick={()=>{setTab("crm");selectContact(c);}}
+                          <div key={c.id}
+                            draggable
+                            onDragStart={e=>onDragStart(e,c.id)}
+                            onClick={()=>{setTab("crm");selectContact(c);}}
                             style={{background:T.card,borderRadius:10,padding:12,border:`1px solid ${T.border}`,
-                              borderLeft:`3px solid ${col.color}`,cursor:"pointer",
+                              borderLeft:`3px solid ${col.color}`,cursor:"grab",
                               boxShadow:"0 1px 4px rgba(0,0,0,.06)",transition:"box-shadow .15s"}}
                             onMouseEnter={e=>e.currentTarget.style.boxShadow="0 3px 12px rgba(0,0,0,.12)"}
                             onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,.06)"}>
@@ -2398,6 +2455,21 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                                   <option key={u.id} value={String(u.id)}>@{u.username}</option>
                                 ))}
                               </select>
+                              {/* Self-assign button */}
+                              {!isAdmin&&currentUser&&c.assignedTo!==currentUser.id&&<button
+                                onClick={async e=>{
+                                  e.stopPropagation();
+                                  const r = await fetch(`${API}/api/conversations/${c.id}/assign`,{
+                                    method:"PATCH",headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`},
+                                    body:JSON.stringify({assigned_to:currentUser.id})
+                                  });
+                                  if(r.ok) fetchConversations();
+                                }}
+                                style={{width:"100%",marginTop:4,padding:"4px",borderRadius:8,
+                                  border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,
+                                  color:WA_GREEN,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                                ✋ Assign to Me
+                              </button>}
                             </div>}
 
                             {/* Action buttons */}
