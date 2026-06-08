@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.85";
+const CRM_VERSION = "2.9.86";
 
 // Responsive hook
 function useWindowSize() {
@@ -457,6 +457,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.86", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
+      "📝 Notes: soft delete — never lost from DB, captures who deleted",
+      "✅ Notes: mark done captures who marked done and when",
+      "👁️ Notes: done cards show who marked done",
+    ]},
     { version:"2.9.85", date:"Jun 8 2026", tag:"NEW", color:"#10b981", items:[
       "📝 Notes: Generate Notes button prominent at top",
       "📅 Date range + presets (Today, Yesterday, 7 days, 30 days)",
@@ -4949,7 +4954,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                 </div>
                 <div style={{fontSize:13,color:"#78350f",lineHeight:1.6,whiteSpace:"pre-wrap",marginBottom:10}}>{n.note_text}</div>
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#92400e",opacity:.7,marginBottom:8}}>
-                  <span>{n.agent_name||"Agent"}</span>
+                  <span>by {n.agent_name||"Agent"}</span>
                   <span>{fmt(n.created_at)}</span>
                 </div>
                 <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
@@ -4971,7 +4976,10 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                   <div style={{fontWeight:700,fontSize:12,color:T.text,textDecoration:"line-through"}}>{n.contact_name||n.contact_id}</div>
                   <div style={{fontSize:11,color:T.textMuted,textDecoration:"line-through",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.note_text}</div>
                 </div>
-                <div style={{fontSize:10,color:T.textFaint,flexShrink:0}}>{fmt(n.done_at||n.created_at)}</div>
+                <div style={{fontSize:10,color:T.textFaint,flexShrink:0,textAlign:"right"}}>
+                  {n.done_by&&<div>✓ {n.done_by}</div>}
+                  <div>{fmt(n.done_at||n.created_at)}</div>
+                </div>
                 <div style={{display:"flex",gap:4,flexShrink:0}}>
                   <button onClick={()=>markDone(n.id,false)} style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>↩️</button>
                   <button onClick={()=>deleteNote(n.id)} style={{padding:"3px 8px",borderRadius:6,border:"1px solid #fca5a5",background:"#fef2f2",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
