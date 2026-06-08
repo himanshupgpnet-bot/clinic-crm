@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.83";
+const CRM_VERSION = "2.9.84";
 
 // Responsive hook
 function useWindowSize() {
@@ -457,6 +457,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.84", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 Inbox: removed stray } from sidebar",
+      "🔧 Inbox: removed Resolve button and Resolved filter",
+      "↩️ Leads: Reset All to Warm button in Done column",
+    ]},
     { version:"2.9.83", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
       "✅ Inbox: Done added to lead dropdown",
       "🔧 Inbox: removed pipeline stage dropdown (redundant)",
@@ -1845,7 +1850,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     <div style={{fontSize:9,color:T.textFaint}}>{s.label}</div>
                   </div>
                 ))}
-              </div>}
+              </div>
               <div style={{display:"flex",gap:4,marginBottom:4}}>
                 <button onClick={()=>setExportModal(true)} style={{flex:1,padding:"6px",borderRadius:8,border:`1px solid ${T.border}`,
                   background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",
@@ -1908,7 +1913,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:18,padding:"6px 10px 6px 28px",color:T.text,fontSize:12}}/>
               </div>
               <div style={{display:"flex",gap:3,marginBottom:5}}>
-                {["all","open","resolved"].map(f=><button key={f} onClick={()=>setFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:filter===f?WA_GREEN:T.input,color:filter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,textTransform:"capitalize",fontFamily:"inherit"}}>{f}</button>)}
+                {["all","open"].map(f=><button key={f} onClick={()=>setFilter(f)} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:filter===f?WA_GREEN:T.input,color:filter===f?"#fff":T.textMuted,fontSize:10,fontWeight:600,textTransform:"capitalize",fontFamily:"inherit"}}>{f}</button>)}
               </div>
               <div style={{display:"flex",gap:3,marginBottom:5}}>
                 {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=><button key={f.id} onClick={()=>{setInboxFilter(f.id);setShowArchived(false);}} style={{flex:1,padding:"4px 0",borderRadius:14,border:"none",cursor:"pointer",background:inboxFilter===f.id&&!showArchived?WA_GREEN:T.input,color:inboxFilter===f.id&&!showArchived?"#fff":T.textMuted,fontSize:10,fontWeight:600,fontFamily:"inherit"}}>{f.label}</button>)}
@@ -2042,7 +2047,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </select>
                   
                   <button onClick={()=>toggleBot(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"none",cursor:"pointer",background:selected.botActive?`${WA_GREEN}20`:T.card2,color:selected.botActive?WA_GREEN:T.textMuted,fontSize:11,fontWeight:600,fontFamily:"inherit"}}>🤖 {selected.botActive?"ON":"OFF"}</button>
-                  <button onClick={()=>toggleStatus(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓ Resolve":"↺ Reopen"}</button>
+                  
                   <button onClick={()=>{
                       const rows = [["Time","Date","From","Message"]];
                       (selected.messages||[]).forEach(m=>{
@@ -2456,6 +2461,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         <div style={{background:col.color,color:"#fff",borderRadius:10,padding:"1px 8px",fontSize:11,fontWeight:700,minWidth:22,textAlign:"center"}}>{colContacts.length}</div>
                       </div>
                       <div style={{fontSize:10,color:col.color,opacity:.7,marginTop:2}}>{col.sub}</div>
+                      {col.id==="done"&&colContacts.length>0&&<button onClick={async()=>{
+                        if(!confirm(`Move all ${colContacts.length} Done leads back to Warm?`)) return;
+                        for(const c of colContacts){
+                          await fetch(`${API}/api/conversations/${c.id}/lead`,{method:"PATCH",headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`},body:JSON.stringify({lead:"warm"})});
+                          await fetch(`${API}/api/conversations/${c.id}/pipeline`,{method:"PATCH",headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`},body:JSON.stringify({stage:"new"})});
+                        }
+                        fetchConversations();
+                      }} style={{marginTop:6,width:"100%",padding:"4px",borderRadius:6,border:"1px solid #86efac",background:"#f0fdf4",color:"#16a34a",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                        ↩️ Reset All to Warm
+                      </button>}
                     </div>
 
                     {/* Cards */}
