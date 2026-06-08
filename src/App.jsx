@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.88";
+const CRM_VERSION = "2.9.89";
 
 // Responsive hook
 function useWindowSize() {
@@ -457,6 +457,10 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.89", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 Integrations: client users can now connect WhatsApp and Telegram themselves",
+      "🔧 Integrations: Connect button shows for configured integrations",
+    ]},
     { version:"2.9.88", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
       "🔧 Integrations: WhatsApp/Telegram correctly shows connected/not connected per client",
       "🔧 Integrations: field keys match DB columns",
@@ -5136,7 +5140,7 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
           {visibleConnectors.map(conn=>{
             const connected = conn.isConnected(connData);
             const isEnabled = isAdmin ? true : (permissions==="all"||!permissions||permissions[conn.permKey]);
-            const canConnect = isAdmin; // only admin can connect
+            const canConnect = true; // both admin and client can connect their own integrations
             // notYetBuilt only applies to non-admin users
             const notYetBuilt = !isAdmin && !conn.fields.length && !connected;
 
@@ -5180,11 +5184,11 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
                       alert(conn.label+" integration is coming soon! We are working on it.");
                       return;
                     }
-                    const init={};conn.fields.forEach(f=>{init[f.key]="";});
+                    const init={};conn.fields.forEach(f=>{init[f.key]=connData[f.key]||"";});
                     setConnForm(init);setEditConn(conn);
                   }} style={{fontSize:12,padding:"8px 20px",borderRadius:10,border:"none",
                     background:conn.color,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
-                    🔧 Coming Soon
+                    {conn.fields.length?"🔧 Connect":"Coming Soon"}
                   </button>
                 ):(
                   <span style={{fontSize:11,color:"#94a3b8"}}>Not configured</span>
