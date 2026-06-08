@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.86";
+const CRM_VERSION = "2.9.88";
 
 // Responsive hook
 function useWindowSize() {
@@ -457,6 +457,15 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.88", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 Integrations: WhatsApp/Telegram correctly shows connected/not connected per client",
+      "🔧 Integrations: field keys match DB columns",
+      "🔧 KB: all Evera Health placeholders removed",
+    ]},
+    { version:"2.9.87", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 KB: removed Evera Health hardcoded placeholders",
+      "🔧 Welcome message placeholder now generic",
+    ]},
     { version:"2.9.86", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
       "📝 Notes: soft delete — never lost from DB, captures who deleted",
       "✅ Notes: mark done captures who marked done and when",
@@ -3034,12 +3043,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     <div style={{fontWeight:800,fontSize:14}}>Welcome Message</div>
                     <div style={{fontSize:11,color:T.textMuted,marginTop:2,lineHeight:1.6}}>
                       This message is sent <strong>automatically</strong> when a customer messages for the <strong>very first time</strong>.
-                      Leave blank to skip. Example: "Hi! I'm Sara from Evera Health 😊 How can I help you today?"
+                      Leave blank to skip. Example: "Hi! I'm [Bot Name] from [Company] 😊 How can I help you today?"
                     </div>
                   </div>
                 </div>
                 <textarea value={welcomeMessage} onChange={e=>setWelcomeMessage(e.target.value)} rows={3}
-                  placeholder={"Hi! I'm Sara from Evera Health 😊 How can I help you today?"}
+                  placeholder={"Hi! I'm [Bot Name] from [Company] 😊 How can I help you today?"}
                   style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
                 <button onClick={async()=>{
                   const body = {welcome_message: welcomeMessage};
@@ -5041,15 +5050,15 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
   const ALL_CONNECTORS = [
     {id:"whatsapp",  label:"WhatsApp",  color:"#25D366", permKey:"integration_whatsapp",
      desc:"Receive and reply to WhatsApp messages with AI",
-     isConnected:(d)=>!!(d.phone_number_id||d.whatsapp_number),
-     statusText:(d)=>d.whatsapp_number||"",
-     fields:[{key:"phone_number_id",label:"Phone Number ID",ph:"985068241357564"},
-             {key:"whatsapp_number",label:"WhatsApp Number",ph:"+60 11 1050 7200"},
-             {key:"whatsapp_token",label:"Access Token",ph:"EAAxxxxxxxx",pwd:true}],
+     isConnected:(d)=>!!(d.wa_phone_number_id||d.phone_number_id||d.whatsapp_number),
+     statusText:(d)=>d.wa_phone_number||d.whatsapp_number||"",
+     fields:[{key:"wa_phone_number_id",label:"Phone Number ID",ph:"985068241357564"},
+             {key:"wa_phone_number",label:"WhatsApp Number",ph:"+60 11 1050 7200"},
+             {key:"wa_token",label:"Access Token",ph:"EAAxxxxxxxx",pwd:true}],
      logo:"📱"},
     {id:"telegram",  label:"Telegram",  color:"#229ED9", permKey:"integration_telegram",
      desc:"Get instant lead alerts and notifications",
-     isConnected:(d)=>!!(d.telegram_token&&d.telegram_token.length>5),
+     isConnected:(d)=>!!(d.telegram_token&&d.telegram_token.length>5&&d.telegram_chat_id),
      statusText:(d)=>d.telegram_chat_id?"Chat: "+d.telegram_chat_id:"",
      fields:[{key:"telegram_token",label:"Bot Token",ph:"8664616537:AAGE9wn...",pwd:true},
              {key:"telegram_chat_id",label:"Group Chat ID",ph:"-5277820778"}],
