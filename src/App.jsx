@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.84";
+const CRM_VERSION = "2.9.85";
 
 // Responsive hook
 function useWindowSize() {
@@ -457,6 +457,12 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.85", date:"Jun 8 2026", tag:"NEW", color:"#10b981", items:[
+      "📝 Notes: Generate Notes button prominent at top",
+      "📅 Date range + presets (Today, Yesterday, 7 days, 30 days)",
+      "🤖 AI reads warm/hot conversations and creates notes on demand",
+      "🔧 Removed background auto-note scheduler",
+    ]},
     { version:"2.9.84", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
       "🔧 Inbox: removed stray } from sidebar",
       "🔧 Inbox: removed Resolve button and Resolved filter",
@@ -4838,6 +4844,48 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
         </div>
       </div>
 
+      {/* Generate Notes Panel */}
+      <div style={{background:dark?"#1a1f2e":"#f5f3ff",borderBottom:`1px solid ${T.border}`,padding:"14px 20px",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:700,fontSize:13,color:T.text}}>🤖 Generate Notes from Conversations</div>
+            <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>AI reads warm/hot chats in date range and creates notes for interested-but-not-ready customers</div>
+          </div>
+          <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+            {/* Presets */}
+            {[{l:"Today",d:0},{l:"Yesterday",d:1},{l:"7 days",d:7},{l:"30 days",d:30}].map(p=>(
+              <button key={p.l} onClick={()=>{
+                const to = new Date().toISOString().split("T")[0];
+                const from = new Date(Date.now()-p.d*86400000).toISOString().split("T")[0];
+                setBackfillFrom(from); setBackfillTo(to);
+              }} style={{padding:"4px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                {p.l}
+              </button>
+            ))}
+            <input type="date" value={backfillFrom} onChange={e=>setBackfillFrom(e.target.value)}
+              style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:"5px 8px",color:T.text,fontSize:11,fontFamily:"inherit"}}/>
+            <span style={{color:T.textFaint,fontSize:11}}>to</span>
+            <input type="date" value={backfillTo} onChange={e=>setBackfillTo(e.target.value)}
+              style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:"5px 8px",color:T.text,fontSize:11,fontFamily:"inherit"}}/>
+            <button onClick={runBackfill} disabled={backfilling||!clinicId}
+              style={{padding:"7px 18px",borderRadius:8,border:"none",
+                background:backfilling?"#94a3b8":"#7c3aed",
+                color:"#fff",fontSize:12,fontWeight:700,cursor:backfilling?"not-allowed":"pointer",fontFamily:"inherit",
+                whiteSpace:"nowrap"}}>
+              {backfilling?"⏳ Analysing...":"🤖 Generate Notes"}
+            </button>
+          </div>
+        </div>
+        {backfillResult&&<div style={{marginTop:10,padding:"8px 12px",borderRadius:8,fontSize:12,fontWeight:600,
+          background:backfillResult.ok?"#f0fdf4":"#fef2f2",
+          color:backfillResult.ok?"#166534":"#dc2626",
+          border:`1px solid ${backfillResult.ok?"#86efac":"#fca5a5"}`}}>
+          {backfillResult.ok
+            ?`✅ Done — ${backfillResult.processed} conversations checked · ${backfillResult.created} notes created · ${backfillResult.skipped} skipped`
+            :`❌ ${backfillResult.error}`}
+        </div>}
+      </div>
+
       {/* Add note form */}
       {showAdd&&<div style={{background:T.card,borderBottom:`1px solid ${T.border}`,padding:"14px 20px",flexShrink:0}}>
         <div style={{maxWidth:580,display:"flex",flexDirection:"column",gap:8}}>
@@ -4933,30 +4981,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
           </div>
         </>}
 
-        {/* Backfill — hidden, show only when needed */}
-        {(showBackfill||notes.length>0)&&<div style={{marginTop:24,padding:"14px 18px",borderRadius:12,background:T.card2,border:`1px dashed ${T.border}`}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <div style={{fontSize:12,color:T.textMuted,fontWeight:600}}>🔄 Backfill from old conversations</div>
-            <button onClick={()=>setShowBackfill(p=>!p)} style={{border:"none",background:"none",cursor:"pointer",fontSize:12,color:T.textFaint,fontFamily:"inherit"}}>{showBackfill?"▲ Hide":"▼ Show"}</button>
-          </div>
-          {showBackfill&&<>
-            <div style={{fontSize:11,color:T.textFaint,marginBottom:10}}>AI reads old warm/hot conversations and creates missing notes. Skips if note already exists.</div>
-            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-              <input type="date" value={backfillFrom} onChange={e=>setBackfillFrom(e.target.value)}
-                style={{background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 10px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
-              <span style={{color:T.textFaint,fontSize:12}}>to</span>
-              <input type="date" value={backfillTo} onChange={e=>setBackfillTo(e.target.value)}
-                style={{background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 10px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
-              <button onClick={runBackfill} disabled={backfilling}
-                style={{padding:"6px 16px",borderRadius:8,border:"none",background:backfilling?"#94a3b8":"#7c3aed",color:"#fff",fontSize:12,fontWeight:700,cursor:backfilling?"not-allowed":"pointer",fontFamily:"inherit"}}>
-                {backfilling?"Running...":"▶ Run"}
-              </button>
-            </div>
-            {backfillResult&&<div style={{marginTop:8,fontSize:12,fontWeight:600,color:backfillResult.ok?"#166534":"#dc2626"}}>
-              {backfillResult.ok?`✅ ${backfillResult.created} notes created · ${backfillResult.skipped} skipped · ${backfillResult.processed} processed`:`❌ ${backfillResult.error}`}
-            </div>}
-          </>}
-        </div>}
+
       </div>
     </div>
   );
