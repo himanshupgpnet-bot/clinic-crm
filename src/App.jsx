@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.82";
+const CRM_VERSION = "2.9.83";
 
 // Responsive hook
 function useWindowSize() {
@@ -457,6 +457,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.83", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
+      "✅ Inbox: Done added to lead dropdown",
+      "🔧 Inbox: removed pipeline stage dropdown (redundant)",
+      "⚡ Selecting Done moves card to Done column in Leads tab",
+    ]},
     { version:"2.9.82", date:"Jun 6 2026", tag:"FIX", color:"#3b82f6", items:[
       "📝 Notes: simplified — auto runs every 5 mins in background",
       "🔄 Backfill hidden — available when needed at bottom",
@@ -1054,9 +1059,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   async function setManualLead(id,lead) {
     // Update locally immediately so card moves instantly in leads tab
-    setContacts(prev=>prev.map(c=>c.id===id?{...c,lead}:c));
-    if(selected?.id===id) setSelected(prev=>({...prev,lead}));
-    try { await fetch(`${API}/api/conversations/${id}/lead`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({lead})}); fetchConversations(); } catch {}
+    const stage = lead==="done" ? "done" : undefined;
+    setContacts(prev=>prev.map(c=>c.id===id?{...c,lead,...(stage?{pipelineStage:stage}:{})}:c));
+    if(selected?.id===id) setSelected(prev=>({...prev,lead,...(stage?{pipelineStage:stage}:{})}));
+    try {
+      await fetch(`${API}/api/conversations/${id}/lead`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({lead})});
+      if(stage) await fetch(`${API}/api/conversations/${id}/pipeline`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({stage:"done"})});
+      fetchConversations();
+    } catch {}
   }
 
   async function setPipelineStage(id,stage) {
@@ -2028,11 +2038,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>
                 <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
                   <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                    <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option>
+                    <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option><option value="done">✅ Done</option>
                   </select>
-                  <select value={selected.pipelineStage||"new"} onChange={e=>setPipelineStage(selected.id,e.target.value)} style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"4px 8px",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                    {PIPELINE.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
-                  </select>
+                  
                   <button onClick={()=>toggleBot(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:"none",cursor:"pointer",background:selected.botActive?`${WA_GREEN}20`:T.card2,color:selected.botActive?WA_GREEN:T.textMuted,fontSize:11,fontWeight:600,fontFamily:"inherit"}}>🤖 {selected.botActive?"ON":"OFF"}</button>
                   <button onClick={()=>toggleStatus(selected.id)} style={{padding:"5px 10px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{selected.status==="open"?"✓ Resolve":"↺ Reopen"}</button>
                   <button onClick={()=>{
