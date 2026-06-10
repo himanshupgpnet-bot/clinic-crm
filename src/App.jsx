@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.90";
+const CRM_VERSION = "2.9.91";
 
 // Responsive hook
 function useWindowSize() {
@@ -3760,7 +3760,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   const isEdit=!!newTemplate.id;
                   const payload={template_name:newTemplate.template_name.trim(),language:newTemplate.language||"en",
                     category:"MARKETING",header_type:newTemplate.header_value?"image":"none",
-                    header_value:newTemplate.header_value||"",body_text:newTemplate.template_name.trim(),
+                    header_value:newTemplate.header_value||"",body_text:newTemplate.body_text||newTemplate.template_name.trim(),
                     footer_text:"",variables:[],status:newTemplate.status||"approved"};
                   const url=isEdit?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
                   const r=await fetch(url,{method:isEdit?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
