@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.89";
+const CRM_VERSION = "2.9.90";
 
 // Responsive hook
 function useWindowSize() {
@@ -457,6 +457,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.90", date:"Jun 11 2026", tag:"NEW", color:"#10b981", items:[
+      "📢 Broadcast: template body text field added",
+      "🤖 Bot now reads broadcast content to answer customer questions",
+      "⏱️ AI receives timestamps on all messages for better context",
+    ]},
     { version:"2.9.89", date:"Jun 8 2026", tag:"FIX", color:"#3b82f6", items:[
       "🔧 Integrations: client users can now connect WhatsApp and Telegram themselves",
       "🔧 Integrations: Connect button shows for configured integrations",
@@ -3714,6 +3719,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value}))}
                     placeholder="e.g. eecp_promo_with_image"
                     style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:6}}>Message Body <span style={{fontWeight:400,color:T.textFaint}}>(the text content of your template — bot uses this to answer questions)</span></div>
+                  <textarea value={newTemplate.body_text||""} onChange={e=>setNewTemplate(p=>({...p,body_text:e.target.value}))}
+                    placeholder="e.g. Hello {name}! We're celebrating our 1-Year Anniversary! Package includes 100 Million Stem Cells, Free Blood Test, NAD+ Therapy. Price: RM35,054"
+                    rows={4}
+                    style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                  <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>This text is saved so the bot can answer customer questions about this broadcast</div>
                 </div>
                 <div style={{marginBottom:12}}>
                   <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:6}}>Header Image <span style={{fontWeight:400,color:T.textFaint}}>(if template has image header)</span></div>
