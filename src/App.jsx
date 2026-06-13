@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.94";
+const CRM_VERSION = "2.9.95";
 
 // Responsive hook
 function useWindowSize() {
@@ -458,6 +458,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.95", date:"Jun 13 2026", tag:"NEW", color:"#10b981", items:[
+      "📤 Follow-up messages tagged with agent name in CRM chat",
+      "👤 Agent manual messages show who sent them",
+      "🤖 Follow-up AI rewrote to focus on most recent customer message",
+    ]},
     { version:"2.9.94", date:"Jun 14 2026", tag:"FIX", color:"#3b82f6", items:[
       "🔧 Follow-up: replaced browser popup with nice in-app toast notification",
     ]},
@@ -2209,7 +2214,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         boxShadow:isOut?"0 1px 3px rgba(0,0,0,.15)":"0 1px 3px rgba(0,0,0,.08)"}}>
                         {isOut&&<div style={{fontSize:10,color:msg.from==="bot"?WA_GREEN:"#34B7F1",
                           fontWeight:700,marginBottom:3,letterSpacing:0.3}}>
-                          {msg.from==="bot"?"🤖 Sara":msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
+                          {msg.from==="bot"?(msg.agentName?.startsWith("📤")?msg.agentName:"🤖 Sara"):msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
                         </div>}
                         {msg.mediaUrl && msg.text?.startsWith("[Image") ? (
                           <div>
