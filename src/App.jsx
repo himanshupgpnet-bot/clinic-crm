@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.91";
+const CRM_VERSION = "2.9.92";
 
 // Responsive hook
 function useWindowSize() {
@@ -166,6 +166,7 @@ export default function App() {
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showRightPanel, setShowRightPanel] = useState(false);
+  const [now, setNow] = useState(Date.now());
   const [adHistory, setAdHistory] = useState([]);
 
   const [adHistoryPage, setAdHistoryPage] = useState(0);
@@ -457,6 +458,11 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.92", date:"Jun 13 2026", tag:"NEW", color:"#10b981", items:[
+      "⏱️ 24hr WhatsApp window circular indicator in chat header",
+      "🔴 Follow-up button shows warning when 24hr window expired",
+      "📢 Suggests using Broadcast instead after 24 hours",
+    ]},
     { version:"2.9.90", date:"Jun 11 2026", tag:"NEW", color:"#10b981", items:[
       "📢 Broadcast: template body text field added",
       "🤖 Bot now reads broadcast content to answer customer questions",
@@ -632,6 +638,12 @@ export default function App() {
   }, [selected?.messages?.length]);
 
   useEffect(() => { botEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [botConvo]);
+
+  // Tick every minute to update 24hr window indicator
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(t);
+  }, []);
 
   // Session guard — runs immediately and every 10 seconds
   useEffect(() => {
@@ -2099,10 +2111,42 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {selected.botActive&&<div style={{background:`${WA_GREEN}12`,borderBottom:`1px solid ${WA_GREEN}25`,padding:"4px 14px",fontSize:11,color:WA_DARK}}>🤖 Bot is handling this — toggle off to reply manually</div>}
               {(selected.lead==="hot"||selected.lead==="warm")&&<div style={{background:selected.lead==="hot"?"#fef2f2":"#fffbeb",borderBottom:`1px solid ${selected.lead==="hot"?"#fca5a5":"#fcd34d"}`,padding:"4px 14px",fontSize:11,color:selected.lead==="hot"?"#ef4444":"#f59e0b",display:"flex",alignItems:"center",gap:6}}>
                 {selected.lead==="hot"?"🔥":"🟡"} <strong>{selected.lead==="hot"?"Hot":"Warm"} Lead:</strong> {selected.leadReason||"Keyword match"}
-                <button onClick={()=>sendFollowup(selected.id,1)} disabled={sendingFollowup===selected.id}
-                  style={{marginLeft:"auto",padding:"3px 10px",borderRadius:12,border:"none",background:selected.lead==="hot"?"#ef4444":"#f59e0b",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                  {sendingFollowup===selected.id?"⏳ Sending...":"📤 Follow-up"}
-                </button>
+                {(()=>{
+                  // Calculate 24hr window
+                  const lastUserMsg = selected.messages?.filter(m=>m.from==="user").slice(-1)[0];
+                  const lastUserTime = lastUserMsg?.date && lastUserMsg?.time ? 
+                    new Date(`${lastUserMsg.date.includes("/")?lastUserMsg.date.split("/").reverse().join("-"):lastUserMsg.date}T${lastUserMsg.time.replace(/[APap][Mm]/,"").trim()}`).getTime() : 0;
+                  const hoursElapsed = lastUserTime ? (now - lastUserTime) / 3600000 : 999;
+                  const over24 = hoursElapsed > 24;
+                  const pct = Math.min(100, (hoursElapsed/24)*100);
+                  const circleColor = pct < 50 ? "#22c55e" : pct < 80 ? "#f59e0b" : "#ef4444";
+                  const r = 8; const circ = 2*Math.PI*r;
+                  return <>
+                    {/* 24hr circular indicator */}
+                    <div title={over24?"24hr window expired — cannot send free messages":"24hr window: "+Math.max(0,24-hoursElapsed).toFixed(1)+"hrs left"}
+                      style={{display:"flex",alignItems:"center",gap:4}}>
+                      <svg width="22" height="22" style={{transform:"rotate(-90deg)"}}>
+                        <circle cx="11" cy="11" r={r} fill="none" stroke={T.border} strokeWidth="2.5"/>
+                        <circle cx="11" cy="11" r={r} fill="none" stroke={circleColor} strokeWidth="2.5"
+                          strokeDasharray={circ}
+                          strokeDashoffset={circ*(pct/100)}
+                          strokeLinecap="round"/>
+                      </svg>
+                      {over24&&<span style={{fontSize:9,color:"#ef4444",fontWeight:700}}>24h ❌</span>}
+                    </div>
+                    {/* Follow-up button */}
+                    {over24 ? (
+                      <div style={{padding:"3px 10px",borderRadius:12,background:"#fef2f2",border:"1px solid #fca5a5",fontSize:11,color:"#ef4444",fontWeight:600,maxWidth:200,lineHeight:1.4}}>
+                        ⚠️ 24hr window expired. Use Broadcast to reach this customer.
+                      </div>
+                    ) : (
+                      <button onClick={()=>sendFollowup(selected.id,1)} disabled={sendingFollowup===selected.id}
+                        style={{marginLeft:"auto",padding:"3px 10px",borderRadius:12,border:"none",background:selected.lead==="hot"?"#ef4444":"#f59e0b",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                        {sendingFollowup===selected.id?"⏳ Sending...":"📤 Follow-up"}
+                      </button>
+                    )}
+                  </>;
+                })()}
               </div>}
               <div ref={chatContainerRef} onScroll={()=>{
                 const el = chatContainerRef.current;
