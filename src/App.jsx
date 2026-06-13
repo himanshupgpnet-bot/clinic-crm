@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.93";
+const CRM_VERSION = "2.9.94";
 
 // Responsive hook
 function useWindowSize() {
@@ -458,6 +458,9 @@ export default function App() {
   // ── MAIN APP (authenticated) ──
 
   const CHANGELOG = [
+    { version:"2.9.94", date:"Jun 14 2026", tag:"FIX", color:"#3b82f6", items:[
+      "🔧 Follow-up: replaced browser popup with nice in-app toast notification",
+    ]},
     { version:"2.9.92", date:"Jun 13 2026", tag:"NEW", color:"#10b981", items:[
       "⏱️ 24hr WhatsApp window circular indicator in chat header",
       "🔴 Follow-up button shows warning when 24hr window expired",
@@ -1121,8 +1124,36 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   async function sendFollowup(phone,followupNum) {
     setSendingFollowup(phone);
-    try { const r=await fetch(`${API}/api/conversations/${phone}/followup`,{method:"POST",headers:authHeaders(),body:JSON.stringify({followupNum})}); if(r.ok){fetchConversations();alert("✅ Follow-up sent!");}else alert("❌ Failed"); } catch{alert("❌ Error");}
+    try {
+      const r=await fetch(`${API}/api/conversations/${phone}/followup`,{method:"POST",headers:authHeaders(),body:JSON.stringify({followupNum})});
+      if(r.ok){
+        fetchConversations();
+        showToast("✅ Follow-up sent successfully!","#22c55e");
+      } else {
+        const d=await r.json().catch(()=>({}));
+        showToast("❌ "+(d.error||"Failed to send follow-up"),"#ef4444");
+      }
+    } catch{ showToast("❌ Network error","#ef4444"); }
     setSendingFollowup(null);
+  }
+
+  function showToast(msg, color="#22c55e") {
+    const toast = document.createElement("div");
+    toast.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;
+      background:${color};color:#fff;padding:12px 24px;border-radius:12px;
+      font-size:14px;font-weight:600;font-family:inherit;
+      box-shadow:0 4px 20px rgba(0,0,0,.2);
+      animation:slideUp .3s ease`;
+    toast.textContent = msg;
+    const style = document.createElement("style");
+    style.textContent = "@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}";
+    document.head.appendChild(style);
+    document.body.appendChild(toast);
+    setTimeout(()=>{
+      toast.style.transition="opacity .3s";
+      toast.style.opacity="0";
+      setTimeout(()=>{document.body.removeChild(toast);document.head.removeChild(style);},300);
+    },3000);
   }
 
   async function saveSettings() {
