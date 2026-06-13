@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.95";
+const CRM_VERSION = "2.9.96";
 
 // Responsive hook
 function useWindowSize() {
@@ -1144,14 +1144,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   function showToast(msg, color="#22c55e") {
     const toast = document.createElement("div");
-    toast.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;
+    toast.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;
       background:${color};color:#fff;padding:12px 24px;border-radius:12px;
       font-size:14px;font-weight:600;font-family:inherit;
       box-shadow:0 4px 20px rgba(0,0,0,.2);
       animation:slideUp .3s ease`;
     toast.textContent = msg;
     const style = document.createElement("style");
-    style.textContent = "@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}";
+    style.textContent = "@keyframes slideUp{from{opacity:0;transform:translate(-50%,-50%) scale(0.8)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}";
     document.head.appendChild(style);
     document.body.appendChild(toast);
     setTimeout(()=>{
