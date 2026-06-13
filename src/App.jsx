@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.92";
+const CRM_VERSION = "2.9.93";
 
 // Responsive hook
 function useWindowSize() {
@@ -2114,8 +2114,22 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {(()=>{
                   // Calculate 24hr window
                   const lastUserMsg = selected.messages?.filter(m=>m.from==="user").slice(-1)[0];
-                  const lastUserTime = lastUserMsg?.date && lastUserMsg?.time ? 
-                    new Date(`${lastUserMsg.date.includes("/")?lastUserMsg.date.split("/").reverse().join("-"):lastUserMsg.date}T${lastUserMsg.time.replace(/[APap][Mm]/,"").trim()}`).getTime() : 0;
+                  const lastUserTime = (() => {
+                    if(!lastUserMsg?.date || !lastUserMsg?.time) return 0;
+                    try {
+                      const d = lastUserMsg.date.includes("/")?lastUserMsg.date.split("/").reverse().join("-"):lastUserMsg.date;
+                      const t = lastUserMsg.time.trim();
+                      const isPM = /PM/i.test(t);
+                      const isAM = /AM/i.test(t);
+                      const timePart = t.replace(/[APap][Mm]/g,"").trim();
+                      const [hStr,mStr] = timePart.split(":");
+                      let h = parseInt(hStr)||0;
+                      const m = parseInt(mStr)||0;
+                      if(isPM && h!==12) h+=12;
+                      if(isAM && h===12) h=0;
+                      return new Date(`${d}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00`).getTime();
+                    } catch { return 0; }
+                  })();
                   const hoursElapsed = lastUserTime ? (now - lastUserTime) / 3600000 : 999;
                   const over24 = hoursElapsed > 24;
                   const pct = Math.min(100, (hoursElapsed/24)*100);
