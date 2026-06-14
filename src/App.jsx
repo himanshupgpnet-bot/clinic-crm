@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.96";
+const CRM_VERSION = "2.9.97";
 
 // Responsive hook
 function useWindowSize() {
@@ -4861,6 +4861,8 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
   const [backfillTo, setBackfillTo] = React.useState(()=>new Date().toISOString().split("T")[0]);
   const [backfilling, setBackfilling] = React.useState(false);
   const [backfillResult, setBackfillResult] = React.useState(null);
+  const [editingNoteId, setEditingNoteId] = React.useState(null);
+  const [editingNoteText, setEditingNoteText] = React.useState("");
 
   const clinicId = isAdmin ? notesClinic?.clinic_id : currentUser?.clinic_id;
 
@@ -4913,6 +4915,14 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
   const deleteNote = async (id) => {
     if(!confirm("Delete this note?")) return;
     try { await fetch(`${API}/api/notes/${id}`, {method:"DELETE", headers:authHeaders()}); setNotes(p=>p.filter(n=>n.id!==id)); } catch {}
+  };
+
+  const saveEditNote = async (id) => {
+    if(!editingNoteText.trim()) return;
+    try {
+      const r = await fetch(`${API}/api/notes/${id}`, {method:"PATCH", headers:authHeaders(), body:JSON.stringify({note_text:editingNoteText.trim()})});
+      if(r.ok) { const u = await r.json(); setNotes(p=>p.map(n=>n.id===id?u:n)); setEditingNoteId(null); setEditingNoteText(""); }
+    } catch {}
   };
 
   const fmt = (dt) => { try { return new Date(dt).toLocaleDateString("en-MY",{day:"numeric",month:"short",year:"numeric"}); } catch { return ""; } };
@@ -5068,11 +5078,22 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                   <div style={{display:"flex",gap:4,flexShrink:0}}>
                     <button onClick={()=>markDone(n.id,true)} title="Mark done"
                       style={{width:24,height:24,borderRadius:6,border:"1px solid #86efac",background:"#f0fdf4",color:"#16a34a",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✓</button>
+                    <button onClick={()=>{setEditingNoteId(n.id);setEditingNoteText(n.note_text);}} style={{width:24,height:24,borderRadius:6,border:"1px solid #93c5fd",background:"#eff6ff",color:"#3b82f6",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
                     <button onClick={()=>deleteNote(n.id)}
                       style={{width:24,height:24,borderRadius:6,border:"1px solid #fca5a5",background:"#fef2f2",color:"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                   </div>
                 </div>
-                <div style={{fontSize:13,color:"#78350f",lineHeight:1.6,whiteSpace:"pre-wrap",marginBottom:10}}>{n.note_text}</div>
+                {editingNoteId===n.id ? (
+                  <div style={{marginBottom:10}}>
+                    <textarea value={editingNoteText} onChange={e=>setEditingNoteText(e.target.value)} rows={3} style={{width:"100%",background:"#fffde7",border:"1.5px solid #f59e0b",borderRadius:8,padding:"8px 10px",color:"#78350f",fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                    <div style={{display:"flex",gap:6,marginTop:6}}>
+                      <button onClick={()=>saveEditNote(n.id)} style={{padding:"5px 14px",borderRadius:7,border:"none",background:"#f59e0b",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save</button>
+                      <button onClick={()=>{setEditingNoteId(null);setEditingNoteText("");}} style={{padding:"5px 10px",borderRadius:7,border:"1px solid #fde68a",background:"transparent",color:"#92400e",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{fontSize:13,color:"#78350f",lineHeight:1.6,whiteSpace:"pre-wrap",marginBottom:10}}>{n.note_text}</div>
+                )}
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#92400e",opacity:.7,marginBottom:8}}>
                   <span>by {n.agent_name||"Agent"}</span>
                   <span>{fmt(n.created_at)}</span>
