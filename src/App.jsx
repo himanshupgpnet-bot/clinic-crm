@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.97";
+const CRM_VERSION = "2.9.98";
 
 // Responsive hook
 function useWindowSize() {
@@ -132,6 +132,7 @@ export default function App() {
   const [selectedClinic, setSelectedClinic] = useState(null);
   const selectedClinicRef = useRef(null);
   const selectedRef = useRef(null);
+  const manuallyReadRef = useRef(new Set()); // tracks contacts marked read locally
   const setSelectedClinicWithRef = (c) => {
     selectedClinicRef.current = c;
     setSelectedClinic(c);
@@ -749,6 +750,7 @@ export default function App() {
       const data = await res.json();
       setContacts(prev => {
         return data.map(newC => {
+          // If currently selected chat — keep unread:0 and re-mark read in DB
           if (selectedRef.current?.id === newC.id) {
             if(newC.unread > 0) {
               fetch(`${API}/api/conversations/${newC.id}/read`,{
@@ -758,6 +760,14 @@ export default function App() {
               }).catch(()=>{});
             }
             return {...newC, unread: 0};
+          }
+          // If agent manually read this chat — keep unread:0, don't let poll reset it
+          if (manuallyReadRef.current.has(newC.id) && newC.unread === 0) {
+            return {...newC, unread: 0};
+          }
+          // If new messages arrived for a manually-read chat — clear from set so badge shows
+          if (manuallyReadRef.current.has(newC.id) && newC.unread > 0) {
+            manuallyReadRef.current.delete(newC.id);
           }
           return newC;
         });
@@ -1032,6 +1042,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   async function selectContact(c) {
     setSelected(c); selectedRef.current = c; setMenuOpen(false);
+    manuallyReadRef.current.add(c.id); // remember this chat was read
     try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders()}); } catch {}
     setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:0}:x));
     fetchAdHistory(c.phone);
