@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.98";
+const CRM_VERSION = "2.9.99";
 
 // Responsive hook
 function useWindowSize() {
@@ -2736,16 +2736,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {/* ══ ANALYTICS TAB ══ */}
         {tab==="analytics"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
-          {/* Admin sidebar — client list */}
+          {/* ── ANALYTICS DRILLDOWN STATE ── */}
+          {(()=>{
+            // Analytics drilldown state — defined inline to avoid hook rules
+            return null;
+          })()}
+
+          {/* Admin sidebar */}
           {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Clients</div>
             <div onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);fetchAdminOverview();}}
               style={{padding:"10px 14px",cursor:"pointer",background:!selectedClinic?`${WA_GREEN}15`:"transparent",borderLeft:!selectedClinic?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:28,height:28,borderRadius:8,background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🌐</div>
-              <div>
-                <div style={{fontSize:12,fontWeight:700,color:!selectedClinic?WA_GREEN:T.text}}>All Clients</div>
-                <div style={{fontSize:10,color:T.textMuted}}>{adminOverview.length} total</div>
-              </div>
+              <div style={{fontSize:12,fontWeight:700,color:!selectedClinic?WA_GREEN:T.text}}>All Clients</div>
             </div>
             {overviewLoading&&<div style={{padding:16,textAlign:"center",fontSize:12,color:T.textMuted}}>Loading...</div>}
             {adminOverview.map(c=>(
@@ -2755,7 +2758,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:700,color:selectedClinic?.id===c.id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
+                  <div style={{fontSize:12,fontWeight:700,color:selectedClinic?.clinic_id===c.clinic_id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
                   <div style={{fontSize:10,color:T.textMuted}}>{c.total_contacts||0} contacts</div>
                 </div>
                 <div style={{width:6,height:6,borderRadius:"50%",background:c.active?"#22c55e":"#ef4444",flexShrink:0}}/>
@@ -2764,325 +2767,23 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>}
 
           {/* Main analytics content */}
-          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:80}}>
-            <div style={{maxWidth:1100,margin:"0 auto"}}>
-
-              {/* Admin overview cards — all clients */}
-              {isAdmin&&!selectedClinic&&<>
-                <div style={{fontWeight:800,fontSize:16,marginBottom:12}}>📊 All Clients Performance</div>
-                {overviewLoading&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading...</div>}
-                {!overviewLoading&&adminOverview.length===0&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>No client users yet</div>}
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12,marginBottom:20}}>
-                  {adminOverview.map(c=>(
-                    <div key={c.id} className="cc" style={{padding:16,cursor:"pointer"}}
-                      onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-                        <div style={{width:36,height:36,borderRadius:10,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                          {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:18}}>🏢</span>}
-                        </div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
-                          <div style={{fontSize:10,color:T.textMuted}}>{c.industry||"—"}</div>
-                        </div>
-                        <span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6,background:c.active?"#dcfce7":"#fee2e2",color:c.active?"#166534":"#dc2626"}}>{c.active?"Live":"Off"}</span>
-                      </div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                        {[
-                          {icon:"💬",label:"Messages",value:c.total_messages||0,color:"#3b82f6"},
-                          {icon:"🎯",label:"Leads",value:(c.hot_leads||0)+(c.warm_leads||0),color:"#f59e0b"},
-                          {icon:"🤖",label:"Bot %",value:`${c.bot_performance||0}%`,color:WA_GREEN},
-                          {icon:"✅",label:"Resolved",value:c.resolved_convos||0,color:"#8b5cf6"},
-                        ].map(s=>(
-                          <div key={s.label} style={{background:T.card2,borderRadius:8,padding:"8px 10px"}}>
-                            <div style={{fontSize:10,color:T.textMuted,marginBottom:2}}>{s.icon} {s.label}</div>
-                            <div style={{fontWeight:800,fontSize:16,color:s.color}}>{s.value}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{marginTop:8,display:"flex",justifyContent:"space-between",fontSize:10,color:T.textMuted}}>
-                        <span>🔥 {c.hot_leads||0} hot · 🌡️ {c.warm_leads||0} warm</span>
-                        <span style={{color:WA_GREEN,fontWeight:600}}>{c.conversion_rate||0}% conv.</span>
-                      </div>
-                      <div style={{marginTop:8,fontSize:11,color:WA_GREEN,fontWeight:600,textAlign:"right"}}>View details →</div>
-                    </div>
-                  ))}
-                </div>
-              </>}
-
-              {/* Selected client header */}
-              {isAdmin&&selectedClinic&&<div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,padding:"12px 16px",borderRadius:14,background:T.card,border:`1px solid ${T.border}`}}>
-                <div style={{width:40,height:40,borderRadius:10,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  {selectedClinic.logo_url?<img src={selectedClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:20}}>🏢</span>}
-                </div>
-                <div>
-                  <div style={{fontWeight:800,fontSize:15}}>{selectedClinic.company_name||selectedClinic.username}</div>
-                  <div style={{fontSize:11,color:T.textMuted}}>{selectedClinic.industry||""}</div>
-                </div>
-                <button onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);}} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← All Clients</button>
-              </div>}
-
-              {/* Show detailed analytics when client selected or for client user */}
-              {(!isAdmin||selectedClinic)&&<>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:10}}>
-                  <div><div style={{fontWeight:700,fontSize:17}}>📊 Analytics</div></div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                    {[{id:"7d",label:"7D"},{id:"30d",label:"30D"},{id:"90d",label:"90D"},{id:"custom",label:"Custom"}].map(p=>(
-                      <button key={p.id} onClick={()=>setPreset(p.id)} style={{padding:"5px 12px",borderRadius:16,border:`1px solid ${T.border}`,background:datePreset===p.id?WA_GREEN:T.card,color:datePreset===p.id?"#fff":T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{p.label}</button>
-                    ))}
-                    {datePreset==="custom"&&<>
-                      <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"4px 8px",color:T.text,fontSize:12}}/>
-                      <span style={{color:T.textMuted}}>→</span>
-                      <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"4px 8px",color:T.text,fontSize:12}}/>
-                      <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} style={{padding:"5px 12px",borderRadius:16,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Apply</button>
-                    </>}
-                    {datePreset!=="custom"&&<button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} style={{padding:"5px 12px",borderRadius:16,border:"none",background:T.card2,color:T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>🔄</button>}
-                  </div>
-                </div>
-
-                {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:T.textFaint}}>Loading analytics...</div>}
-
-                {!analyticsLoading&&analytics&&<>
-                  {/* Hero Banner */}
-                  {analytics.growth&&<div style={{background:`linear-gradient(135deg,#0f172a,#1e3a5f)`,borderRadius:16,padding:"24px 28px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
-                    <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,.04)"}}/>
-                    <div style={{position:"absolute",bottom:-30,right:60,width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,.03)"}}/>
-                    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:16,position:"relative"}}>
-                      <div>
-                        <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginBottom:4,letterSpacing:1,textTransform:"uppercase"}}>Period: {analytics.dateFrom} → {analytics.dateTo}</div>
-                        <div style={{fontSize:28,fontWeight:800,marginBottom:4}}>{analytics.growth.thisperiod} <span style={{fontSize:16,fontWeight:400,color:"rgba(255,255,255,.7)"}}>new conversations</span></div>
-                        <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"rgba(255,255,255,.8)"}}>
-                          {analytics.growth.pct!==0&&<span style={{background:analytics.growth.pct>0?"rgba(34,197,94,.2)":"rgba(239,68,68,.2)",color:analytics.growth.pct>0?"#86efac":"#fca5a5",borderRadius:20,padding:"2px 10px",fontWeight:700,fontSize:12}}>
-                            {analytics.growth.pct>0?"▲":"▼"} {Math.abs(analytics.growth.pct)}% vs previous period
-                          </span>}
-                          <span style={{color:"rgba(255,255,255,.5)"}}>·</span>
-                          <span>Bot handled <strong style={{color:"#86efac"}}>{analytics.totals?.botMessages||0}</strong> messages automatically</span>
-                        </div>
-                      </div>
-                      <div style={{textAlign:"right"}}>
-                        <div style={{fontSize:42,fontWeight:900,color:WA_GREEN}}>{analytics.growth.conversionRate}%</div>
-                        <div style={{fontSize:12,color:"rgba(255,255,255,.6)"}}>Conversion Rate</div>
-                        <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:2}}>Contacts → Hot Leads</div>
-                      </div>
-                    </div>
-                  </div>}
-
-                  {/* ── PITCH-READY ANALYTICS DASHBOARD ──────────── */}
-                  {(()=>{
-                    const total   = analytics.totals?.contacts||0;
-                    const hot     = analytics.totals?.hot||0;
-                    const warm    = analytics.totals?.warm||0;
-                    const cold    = Math.max(0,total-hot-warm);
-                    const done    = analytics.totals?.done||0;
-                    const botMsgs = analytics.totals?.botMessages||0;
-                    const userMsgs= analytics.totals?.userMessages||0;
-                    const totalMsgs = botMsgs+userMsgs;
-                    const botRate = totalMsgs>0?Math.round(botMsgs/totalMsgs*100):0;
-                    const followups = analytics.totals?.followups||0;
-                    const convRate  = analytics.growth?.conversionRate||0;
-
-                    return <>
-                      {/* ROW 1 — KPI Cards */}
-                      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":isTablet?"1fr 1fr":"repeat(4,1fr)",gap:10,marginBottom:16}}>
-                        {[
-                          {label:"Total Contacts",  value:total,         sub:"All conversations",     color:"#6366f1",icon:"👥",bg:"#eef2ff"},
-                          {label:"Hot Leads",       value:hot,           sub:`${convRate}% conversion rate`, color:"#ef4444",icon:"🔥",bg:"#fef2f2"},
-                          {label:"Bookings Closed", value:done,          sub:"Pipeline done",          color:"#22c55e",icon:"✅",bg:"#f0fdf4"},
-                          {label:"Bot Automation",  value:`${botRate}%`, sub:`${botMsgs} msgs handled`,color:WA_GREEN, icon:"🤖",bg:`${WA_GREEN}12`},
-                        ].map(k=>(
-                          <div key={k.label} style={{background:T.card,borderRadius:14,padding:"16px 14px",border:`1px solid ${T.border}`,position:"relative",overflow:"hidden"}}>
-                            <div style={{position:"absolute",top:10,right:10,width:36,height:36,borderRadius:10,background:k.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{k.icon}</div>
-                            <div style={{fontSize:30,fontWeight:900,color:k.color,lineHeight:1}}>{k.value}</div>
-                            <div style={{fontSize:12,fontWeight:700,color:T.text,marginTop:4}}>{k.label}</div>
-                            <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{k.sub}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* ROW 2 — Funnel + Bot Donut */}
-                      <div style={{display:"grid",gridTemplateColumns:isSmall?"1fr":"1fr 1fr",gap:12,marginBottom:16}}>
-                        {/* Lead Funnel */}
-                        <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
-                          <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>🎯 Conversion Funnel</div>
-                          <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>First message → booked consultation</div>
-                          {[
-                            {label:"New Contacts",  value:total, color:"#6366f1", pct:100},
-                            {label:"Warm Interest", value:warm,  color:"#f59e0b", pct:total>0?Math.round(warm/total*100):0},
-                            {label:"Hot Intent",    value:hot,   color:"#ef4444", pct:total>0?Math.round(hot/total*100):0},
-                            {label:"✅ Converted",  value:done,  color:"#22c55e", pct:total>0?Math.round(done/total*100):0},
-                          ].map(f=>(
-                            <div key={f.label} style={{marginBottom:10}}>
-                              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3,fontSize:11}}>
-                                <span style={{fontWeight:600,color:T.text}}>{f.label}</span>
-                                <span style={{color:f.color,fontWeight:700}}>{f.value} · {f.pct}%</span>
-                              </div>
-                              <div style={{height:7,borderRadius:4,background:T.border}}>
-                                <div style={{height:7,borderRadius:4,width:`${f.pct}%`,background:f.color,transition:"width .6s ease"}}/>
-                              </div>
-                            </div>
-                          ))}
-                          <div style={{marginTop:10,padding:"8px 12px",background:`${WA_GREEN}08`,borderRadius:10,border:`1px solid ${WA_GREEN}20`,fontSize:10,color:T.textMuted}}>
-                            🤖 AI tagged <strong style={{color:WA_GREEN}}>{hot+warm}</strong> potential patients from {total} conversations
-                          </div>
-                        </div>
-
-                        {/* Bot Performance Donut */}
-                        <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
-                          <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>🤖 Bot Performance</div>
-                          <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>Automation saves your team hours daily</div>
-                          <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:16}}>
-                            <div style={{position:"relative",width:90,height:90,flexShrink:0}}>
-                              <svg width="90" height="90" style={{transform:"rotate(-90deg)"}}>
-                                <circle cx="45" cy="45" r="36" fill="none" stroke={T.border} strokeWidth="10"/>
-                                <circle cx="45" cy="45" r="36" fill="none" stroke={WA_GREEN} strokeWidth="10"
-                                  strokeDasharray={`${2*Math.PI*36}`}
-                                  strokeDashoffset={`${2*Math.PI*36*(1-botRate/100)}`}
-                                  strokeLinecap="round" style={{transition:"stroke-dashoffset .8s ease"}}/>
-                              </svg>
-                              <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
-                                <div style={{fontSize:18,fontWeight:900,color:WA_GREEN,lineHeight:1}}>{botRate}%</div>
-                                <div style={{fontSize:8,color:T.textMuted}}>auto</div>
-                              </div>
-                            </div>
-                            <div style={{flex:1,display:"flex",flexDirection:"column",gap:8}}>
-                              {[
-                                {label:"Bot replies",     value:botMsgs,  color:WA_GREEN},
-                                {label:"Customer msgs",   value:userMsgs, color:"#6366f1"},
-                                {label:"Follow-ups sent", value:followups, color:"#f59e0b"},
-                              ].map(s=>(
-                                <div key={s.label} style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
-                                  <span style={{color:T.textMuted}}><span style={{color:s.color}}>●</span> {s.label}</span>
-                                  <strong style={{color:s.color}}>{s.value}</strong>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          <div style={{padding:"8px 12px",background:"#eff6ff",borderRadius:10,border:"1px solid #bfdbfe",fontSize:10,color:"#1d4ed8"}}>
-                            💡 Bot saves approx <strong>{Math.round(botMsgs*2/60)} hrs</strong> of manual replies this period
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* ROW 3 — Daily Messages Bar Chart */}
-                      {analytics.messagesPerDay?.length>0&&<div style={{background:T.card,borderRadius:14,padding:18,marginBottom:16,border:`1px solid ${T.border}`}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                          <div>
-                            <div style={{fontWeight:800,fontSize:14}}>📅 Daily Activity</div>
-                            <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Bot vs customer messages per day</div>
-                          </div>
-                          <div style={{display:"flex",gap:14,fontSize:11,color:T.textMuted}}>
-                            <span><span style={{color:WA_GREEN,fontWeight:700}}>■</span> Bot</span>
-                            <span><span style={{color:"#6366f1",fontWeight:700}}>■</span> Customer</span>
-                          </div>
-                        </div>
-                        <div style={{display:"flex",alignItems:"flex-end",gap:3,height:100,paddingBottom:4}}>
-                          {analytics.messagesPerDay.slice(-21).map((d,i)=>{
-                            const maxV=Math.max(...analytics.messagesPerDay.slice(-21).map(x=>x.total||0),1);
-                            return (
-                              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:1}} title={`${d.date}: ${d.total||0} total`}>
-                                <div style={{width:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",height:90}}>
-                                  <div style={{width:"100%",minHeight:2,background:"#6366f1",borderRadius:"2px 2px 0 0",opacity:.75,height:`${Math.max(2,((d.user||0)/maxV)*86)}px`}}/>
-                                  <div style={{width:"100%",minHeight:2,background:WA_GREEN,opacity:.9,height:`${Math.max(2,((d.bot||0)/maxV)*86)}px`}}/>
-                                </div>
-                                {analytics.messagesPerDay.slice(-21).length<=10&&<div style={{fontSize:7,color:T.textFaint,marginTop:2}}>{d.date?.slice(5)}</div>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>}
-
-                      {/* ROW 4 — Peak Hours + Lead Quality */}
-                      <div style={{display:"grid",gridTemplateColumns:isSmall?"1fr":"1fr 1fr",gap:12,marginBottom:16}}>
-                        {/* Peak Hours */}
-                        <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
-                          <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>⏰ Peak Activity Hours</div>
-                          <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>When customers message most</div>
-                          <div style={{display:"flex",alignItems:"flex-end",gap:2,height:60}}>
-                            {Array.from({length:24},(_,h)=>{
-                              const cnt=(analytics.peakHours||[]).find(p=>p.hour===h)?.count||0;
-                              const maxH=Math.max(...(analytics.peakHours||[]).map(p=>p.count),1);
-                              const isPeak=cnt===maxH&&cnt>0;
-                              return <div key={h} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}} title={`${h}:00 — ${cnt} msgs`}>
-                                <div style={{width:"100%",background:isPeak?WA_GREEN:cnt>0?`${WA_GREEN}50`:T.border,borderRadius:"2px 2px 0 0",height:`${Math.max(2,(cnt/maxH)*55)}px`}}/>
-                                {h%6===0&&<div style={{fontSize:7,color:T.textFaint,marginTop:2}}>{h}h</div>}
-                              </div>;
-                            })}
-                          </div>
-                          {(()=>{const p=(analytics.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});return p.count>0&&<div style={{marginTop:10,fontSize:11,color:T.textMuted}}>Peak: <strong style={{color:WA_GREEN}}>{p.hour}:00–{p.hour+1}:00</strong> · {p.count} messages</div>;})()}
-                        </div>
-
-                        {/* Lead Quality */}
-                        <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
-                          <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>📊 Lead Quality Split</div>
-                          <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>AI classification breakdown</div>
-                          {[
-                            {label:"🔥 High Intent", value:hot,  pct:total>0?Math.round(hot/total*100):0,  color:"#ef4444"},
-                            {label:"🟡 Interested",  value:warm, pct:total>0?Math.round(warm/total*100):0, color:"#f59e0b"},
-                            {label:"🔵 Browsing",    value:cold, pct:total>0?Math.round(cold/total*100):0, color:"#3b82f6"},
-                          ].map(l=>(
-                            <div key={l.label} style={{marginBottom:10}}>
-                              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
-                                <span style={{fontWeight:600}}>{l.label}</span>
-                                <span style={{color:l.color,fontWeight:700}}>{l.value} ({l.pct}%)</span>
-                              </div>
-                              <div style={{height:7,borderRadius:4,background:T.border}}>
-                                <div style={{height:7,borderRadius:4,width:`${l.pct}%`,background:l.color}}/>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* ROW 5 — Staff Leaderboard */}
-                      {analytics.staffStats?.length>0&&<div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
-                        <div style={{fontWeight:800,fontSize:14,marginBottom:2}}>👥 Team Leaderboard</div>
-                        <div style={{fontSize:11,color:T.textMuted,marginBottom:14}}>Who handled what this period</div>
-                        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
-                          {analytics.staffStats.map((s,i)=>{
-                            const rate=s.assigned_count>0?Math.round((s.done_count||0)/s.assigned_count*100):0;
-                            const medals=["🥇","🥈","🥉"];
-                            return (
-                              <div key={s.id} style={{padding:"14px",background:T.card2,borderRadius:12,border:`1px solid ${T.border}`}}>
-                                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                                  <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff",flexShrink:0}}>
-                                    {medals[i]||s.username?.charAt(0)?.toUpperCase()||"?"}
-                                  </div>
-                                  <div>
-                                    <div style={{fontWeight:700,fontSize:13}}>@{s.username}</div>
-                                    <div style={{fontSize:10,color:T.textMuted}}>{s.assigned_count||0} assigned</div>
-                                  </div>
-                                  <div style={{marginLeft:"auto",textAlign:"right"}}>
-                                    <div style={{fontSize:18,fontWeight:900,color:rate>=50?WA_GREEN:"#f59e0b"}}>{rate}%</div>
-                                    <div style={{fontSize:9,color:T.textMuted}}>close rate</div>
-                                  </div>
-                                </div>
-                                <div style={{height:5,borderRadius:3,background:T.border,marginBottom:8}}>
-                                  <div style={{height:5,borderRadius:3,width:`${rate}%`,background:rate>=70?WA_GREEN:rate>=40?"#f59e0b":"#ef4444"}}/>
-                                </div>
-                                <div style={{display:"flex",gap:8,fontSize:10,color:T.textMuted}}>
-                                  <span>🔥 {s.hot_count||0}</span>
-                                  <span>🟡 {s.warm_count||0}</span>
-                                  <span>✅ {s.done_count||0}</span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>}
-                    </>;
-                  })()}
-                </>}
-              </>}
-
-
-            {!analyticsLoading&&!analytics&&<div style={{textAlign:"center",padding:80,color:T.textFaint}}>
-              <div style={{fontSize:40,marginBottom:12}}>📊</div>
-              <div style={{fontSize:14,fontWeight:600}}>No analytics data yet</div>
-              <div style={{fontSize:12,marginTop:6}}>Data appears as customers message in</div>
-            </div>}
-
-            </div>
+          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:80,position:"relative"}}>
+            <AnalyticsTab
+              T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
+              selectedClinic={selectedClinic} setSelectedClinicWithRef={setSelectedClinicWithRef}
+              fetchAnalytics={fetchAnalytics} fetchAdminOverview={fetchAdminOverview}
+              adminOverview={adminOverview} overviewLoading={overviewLoading}
+              analyticsLoading={analyticsLoading} analytics={analytics}
+              dateFrom={dateFrom} dateTo={dateTo}
+              datePreset={datePreset} setDatePreset={setDatePreset}
+              setDateFrom={setDateFrom} setDateTo={setDateTo}
+              daysAgo={daysAgo} today={today}
+              API={API} authHeaders={authHeaders}
+              contacts={contacts}
+            />
           </div>
         </div>}
+
 
         {tab==="bot"&&<BotTestTab
           T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
@@ -6308,6 +6009,679 @@ This cannot be undone.`,
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ── ANALYTICS TAB COMPONENT ───────────────────────────────────────────────────
+function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedClinicWithRef,
+  fetchAnalytics, fetchAdminOverview, adminOverview, overviewLoading,
+  analyticsLoading, analytics, dateFrom, dateTo, datePreset, setDatePreset,
+  setDateFrom, setDateTo, daysAgo, today, API, authHeaders, contacts}) {
+
+  const [drillOpen, setDrillOpen] = React.useState(false);
+  const [drillType, setDrillType] = React.useState(null);
+  const [drillData, setDrillData] = React.useState(null);
+  const [drillLoading, setDrillLoading] = React.useState(false);
+  const [drillSearch, setDrillSearch] = React.useState("");
+  const [selectedBar, setSelectedBar] = React.useState(null);
+
+  const openDrill = async (type) => {
+    setDrillType(type);
+    setDrillOpen(true);
+    setDrillSearch("");
+    setDrillData(null);
+    if(type==="ads") {
+      setDrillLoading(true);
+      try {
+        const cParam = selectedClinic ? `?clinic_id=${selectedClinic.clinic_id}` : "";
+        const r = await fetch(`${API}/api/analytics/ads${cParam}`, {headers:authHeaders()});
+        if(r.ok) setDrillData(await r.json());
+      } catch {}
+      setDrillLoading(false);
+    } else {
+      setDrillData(analytics);
+    }
+  };
+
+  const closeDrill = () => { setDrillOpen(false); setDrillType(null); setDrillData(null); };
+
+  function setPreset(p) {
+    setDatePreset(p);
+    const t = today();
+    if(p==="7d")  { setDateFrom(daysAgo(6));  setDateTo(t); }
+    if(p==="30d") { setDateFrom(daysAgo(29)); setDateTo(t); }
+    if(p==="90d") { setDateFrom(daysAgo(89)); setDateTo(t); }
+  }
+
+  const a = analytics;
+  const totals = a?.totals || {};
+  const growth = a?.growth || {};
+  const totalMsgs = (totals.botMessages||0)+(totals.userMessages||0)+(totals.agentMessages||0);
+  const botRate = totalMsgs>0 ? Math.round((totals.botMessages||0)/totalMsgs*100) : 0;
+  const hot = totals.hot||0;
+  const warm = totals.warm||0;
+  const total = totals.contacts||0;
+  const cold = Math.max(0, total-hot-warm);
+  const done = totals.done||0;
+
+  // Filtered contacts for drilldown
+  const hotContacts = contacts.filter(c=>c.lead==="hot"&&(c.pipelineStage||"new")!=="done");
+  const bookedContacts = contacts.filter(c=>(c.pipelineStage||c.pipeline_stage)==="done"||c.booking_confirmed);
+
+  const drillTitles = {
+    contacts:`All Contacts (${total})`,
+    hot:`Hot Leads (${hot})`,
+    bookings:`Bookings Closed (${done})`,
+    bot:`Bot Performance`,
+    ads:`Ad Sources`,
+    day:`Day Detail`,
+  };
+
+  // KPI card style
+  const KpiCard = ({icon,val,label,sub,color,bg,trend,type}) => (
+    <div onClick={()=>openDrill(type)}
+      style={{background:T.card,borderRadius:14,padding:"18px 16px",border:`1px solid ${drillOpen&&drillType===type?color:T.border}`,
+        boxShadow:drillOpen&&drillType===type?`0 0 0 2px ${color}30,0 4px 20px rgba(0,0,0,.08)`:`0 1px 3px rgba(0,0,0,.06)`,
+        transition:"all .2s",cursor:"pointer",position:"relative",overflow:"hidden",flex:1,minWidth:0}}
+      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,.1)`;}}
+      onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=drillOpen&&drillType===type?`0 0 0 2px ${color}30,0 4px 20px rgba(0,0,0,.08)`:`0 1px 3px rgba(0,0,0,.06)`;}}
+    >
+      {trend&&<div style={{position:"absolute",top:12,right:12,fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:20,background:"#e8faf0",color:"#00a846"}}>{trend}</div>}
+      <div style={{width:36,height:36,borderRadius:9,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,marginBottom:12}}>{icon}</div>
+      <div style={{fontSize:28,fontWeight:900,letterSpacing:-1,lineHeight:1,color,marginBottom:3}}>{val??"-"}</div>
+      <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:2}}>{label}</div>
+      <div style={{fontSize:10,color:T.textFaint}}>{sub}</div>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,borderRadius:"0 0 14px 14px",background:`linear-gradient(90deg,${color},${color}80)`}}/>
+      <div style={{position:"absolute",bottom:10,right:12,fontSize:9,color:T.textFaint,opacity:.6}}>Click to explore →</div>
+    </div>
+  );
+
+  return (
+    <div style={{maxWidth:1100,margin:"0 auto",width:"100%",position:"relative"}}>
+      <style>{`
+        @keyframes _fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes _slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes _slideInL{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes _barGrow{from{height:0}to{height:100%}}
+        @keyframes _ringFill{from{stroke-dashoffset:276}to{stroke-dashoffset:var(--offset)}}
+        .an1{animation:_fadeUp .4s cubic-bezier(.22,1,.36,1) both}
+        .an2{animation:_fadeUp .4s .08s cubic-bezier(.22,1,.36,1) both}
+        .an3{animation:_fadeUp .4s .16s cubic-bezier(.22,1,.36,1) both}
+        .an4{animation:_fadeUp .4s .24s cubic-bezier(.22,1,.36,1) both}
+        .an5{animation:_fadeUp .4s .32s cubic-bezier(.22,1,.36,1) both}
+        .kpi-hover:hover{transform:translateY(-3px)!important}
+        .bar-hover:hover{opacity:.75}
+        .drill-row:hover{background:${dark?"#ffffff08":"#f8f9fc"}!important}
+      `}</style>
+
+      {/* ── DRILLDOWN OVERLAY ── */}
+      {drillOpen&&<>
+        <div onClick={closeDrill} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:300,backdropFilter:"blur(4px)",animation:"_fadeUp .2s both"}}/>
+        <div style={{position:"fixed",top:0,right:0,bottom:0,width:460,background:T.card,boxShadow:"-4px 0 40px rgba(0,0,0,.15)",zIndex:400,display:"flex",flexDirection:"column",overflow:"hidden",animation:"_slideIn .3s cubic-bezier(.22,1,.36,1) both"}}>
+          {/* Drill header */}
+          <div style={{padding:"18px 22px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:12,flexShrink:0,background:T.nav}}>
+            <button onClick={closeDrill} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>←</button>
+            <div>
+              <div style={{fontWeight:800,fontSize:15,letterSpacing:-.3}}>{drillTitles[drillType]||"Details"}</div>
+              <div style={{fontSize:11,color:T.textFaint,marginTop:1}}>{a?.dateFrom} → {a?.dateTo}</div>
+            </div>
+          </div>
+          {/* Drill body */}
+          <div style={{flex:1,overflowY:"auto",padding:"18px 22px"}}>
+            {drillLoading&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading...</div>}
+
+            {/* ── CONTACTS DRILL ── */}
+            {drillType==="contacts"&&!drillLoading&&<>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+                {[{v:hot,l:"Hot",c:"#ef4444"},{v:warm,l:"Warm",c:"#f59e0b"},{v:cold,l:"Cold",c:"#3b82f6"}].map(s=>(
+                  <div key={s.l} style={{background:T.card2,borderRadius:10,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:20,fontWeight:900,color:s.c}}>{s.v}</div>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:2}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              <input value={drillSearch} onChange={e=>setDrillSearch(e.target.value)}
+                placeholder="Search name or phone..."
+                style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",marginBottom:12,boxSizing:"border-box"}}/>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>All Contacts</div>
+              {contacts.filter(c=>{
+                if(!drillSearch) return true;
+                const s=drillSearch.toLowerCase();
+                return c.name?.toLowerCase().includes(s)||c.phone?.includes(s);
+              }).map((c,i)=>(
+                <div key={c.id} className="drill-row" style={{display:"flex",alignItems:"center",gap:10,padding:"9px 6px",borderBottom:`1px solid ${T.border}40`,borderRadius:8,cursor:"pointer",transition:"background .1s",animation:`_slideInL .3s ${i*0.03}s both`}}>
+                  <div style={{width:34,height:34,borderRadius:"50%",background:c.lead==="hot"?"#ef4444":c.lead==="warm"?"#f59e0b":"#3b82f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:600,color:T.text}}>{c.name||c.phone}</div>
+                    <div style={{fontSize:10,color:T.textFaint,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.phone} · {c.lastDate||""}</div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
+                    <span style={{fontSize:9,padding:"2px 7px",borderRadius:20,fontWeight:700,background:c.lead==="hot"?"#fef2f2":c.lead==="warm"?"#fffbeb":"#eff6ff",color:c.lead==="hot"?"#ef4444":c.lead==="warm"?"#f59e0b":"#3b82f6"}}>{c.lead==="hot"?"🔥 Hot":c.lead==="warm"?"🟡 Warm":"🔵 Cold"}</span>
+                    <span style={{fontSize:10,fontWeight:700,color:c.lead==="hot"?"#ef4444":c.lead==="warm"?"#f59e0b":"#3b82f6"}}>{c.leadScore||0}/100</span>
+                  </div>
+                </div>
+              ))}
+            </>}
+
+            {/* ── HOT LEADS DRILL ── */}
+            {drillType==="hot"&&!drillLoading&&<>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+                {[{v:hot,l:"Total Hot",c:"#ef4444"},{v:done,l:"Converted",c:"#22c55e"},{v:Math.max(0,hot-done),l:"Pending",c:"#f59e0b"}].map(s=>(
+                  <div key={s.l} style={{background:T.card2,borderRadius:10,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:20,fontWeight:900,color:s.c}}>{s.v}</div>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:2}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              {hot>0&&<div style={{padding:"9px 12px",background:"#fef2f2",borderRadius:8,fontSize:11,color:"#dc2626",marginBottom:14,border:"1px solid #fca5a5"}}>
+                🔥 <strong>{Math.max(0,hot-done)} hot leads still open</strong> — follow up before 24hr window expires
+              </div>}
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>Hot leads — follow up now</div>
+              {hotContacts.length===0&&<div style={{textAlign:"center",padding:30,color:T.textFaint,fontSize:12}}>No hot leads right now</div>}
+              {hotContacts.map((c,i)=>(
+                <div key={c.id} className="drill-row" style={{display:"flex",alignItems:"center",gap:10,padding:"10px 6px",borderBottom:`1px solid ${T.border}40`,borderRadius:8,cursor:"pointer",transition:"background .1s",animation:`_slideInL .3s ${i*0.04}s both`}}>
+                  <div style={{width:36,height:36,borderRadius:"50%",background:"#ef4444",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:T.text}}>{c.name||c.phone}</div>
+                    <div style={{fontSize:11,color:T.textFaint,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:1}}>{c.lastMessage||"No message"}</div>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:1}}>{c.phone} · {c.lastDate||""}</div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
+                    <span style={{fontSize:12,fontWeight:800,color:"#ef4444"}}>{c.leadScore||0}/100</span>
+                    <div style={{height:4,width:50,borderRadius:2,background:T.border}}><div style={{height:4,borderRadius:2,background:"#ef4444",width:`${c.leadScore||0}%`}}/></div>
+                  </div>
+                </div>
+              ))}
+            </>}
+
+            {/* ── BOOKINGS DRILL ── */}
+            {drillType==="bookings"&&!drillLoading&&<>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+                {[{v:done,l:"Total Booked",c:"#22c55e"},{v:totals.followups||0,l:"Follow-ups Sent",c:"#f59e0b"}].map(s=>(
+                  <div key={s.l} style={{background:T.card2,borderRadius:10,padding:"12px",textAlign:"center"}}>
+                    <div style={{fontSize:22,fontWeight:900,color:s.c}}>{s.v}</div>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:2}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Confirmed bookings</div>
+              {bookedContacts.length===0&&<div style={{textAlign:"center",padding:30,color:T.textFaint,fontSize:12}}>No bookings in this period</div>}
+              {bookedContacts.map((c,i)=>(
+                <div key={c.id} style={{background:T.card2,borderRadius:12,padding:14,marginBottom:10,border:`1px solid ${T.border}`,animation:`_slideInL .3s ${i*0.05}s both`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <div style={{width:34,height:34,borderRadius:"50%",background:"#22c55e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:700,color:T.text}}>{c.name||c.phone}</div>
+                      <div style={{fontSize:11,color:T.textFaint}}>{c.phone}</div>
+                    </div>
+                    <span style={{background:"#f0fdf4",color:"#166534",fontSize:10,padding:"3px 8px",borderRadius:20,fontWeight:700,border:"1px solid #86efac"}}>✅ Booked</span>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                    {[
+                      {l:"Lead Score",v:`${c.leadScore||0}/100`},
+                      {l:"Pipeline Stage",v:c.pipelineStage||"done"},
+                      {l:"Assigned To",v:c.assignedTo?"Agent #"+c.assignedTo:"Unassigned"},
+                      {l:"Last Contact",v:c.lastDate||"—"},
+                    ].map(r=>(
+                      <div key={r.l}>
+                        <div style={{fontSize:10,color:T.textFaint}}>{r.l}</div>
+                        <div style={{fontSize:11,fontWeight:600,color:T.text}}>{r.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </>}
+
+            {/* ── BOT PERFORMANCE DRILL ── */}
+            {drillType==="bot"&&!drillLoading&&a&&<>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+                {[
+                  {v:totals.botMessages||0,l:"Bot Replies",c:"#00c853"},
+                  {v:totals.userMessages||0,l:"Customer",c:"#6366f1"},
+                  {v:totals.agentMessages||0,l:"Agent",c:"#f59e0b"},
+                ].map(s=>(
+                  <div key={s.l} style={{background:T.card2,borderRadius:10,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:18,fontWeight:900,color:s.c}}>{s.v}</div>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:2}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Donut */}
+              <div style={{display:"flex",alignItems:"center",gap:20,background:T.card2,borderRadius:12,padding:16,marginBottom:16}}>
+                <div style={{position:"relative",width:90,height:90,flexShrink:0}}>
+                  <svg width="90" height="90" style={{transform:"rotate(-90deg)"}}>
+                    <circle cx="45" cy="45" r="38" fill="none" stroke={T.border} strokeWidth="10"/>
+                    <circle cx="45" cy="45" r="38" fill="none" stroke="#00c853" strokeWidth="10"
+                      strokeDasharray="238.8"
+                      strokeDashoffset={238.8*(1-botRate/100)}
+                      strokeLinecap="round"
+                      style={{transition:"stroke-dashoffset 1s ease"}}/>
+                  </svg>
+                  <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
+                    <div style={{fontSize:18,fontWeight:900,color:"#00c853"}}>{botRate}%</div>
+                    <div style={{fontSize:9,color:T.textFaint}}>auto</div>
+                  </div>
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>Bot handled {botRate}% automatically</div>
+                  <div style={{fontSize:11,color:T.textFaint,lineHeight:1.6}}>Saved approx <strong style={{color:"#00c853"}}>{Math.round((totals.botMessages||0)*2/60)} hours</strong> of manual replies this period.</div>
+                </div>
+              </div>
+              {/* Daily breakdown */}
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Daily message breakdown</div>
+              {(a.messagesPerDay||[]).slice(-14).map((d,i)=>{
+                const tot = (d.bot||0)+(d.user||0)+(d.agent||0);
+                const bPct = tot>0?Math.round((d.bot||0)/tot*100):0;
+                return (
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7,animation:`_slideInL .3s ${i*0.02}s both`}}>
+                    <div style={{fontSize:10,color:T.textFaint,width:42,flexShrink:0}}>{d.date?.slice(5)}</div>
+                    <div style={{flex:1,height:6,borderRadius:3,background:T.border,overflow:"hidden"}}>
+                      <div style={{height:6,borderRadius:3,background:"#00c853",width:`${bPct}%`,transition:"width .6s"}}/>
+                    </div>
+                    <div style={{fontSize:10,color:"#00c853",fontWeight:600,width:32,textAlign:"right"}}>{bPct}%</div>
+                    <div style={{fontSize:10,color:T.textFaint,width:40,textAlign:"right"}}>{tot} msgs</div>
+                  </div>
+                );
+              })}
+            </>}
+
+            {/* ── ADS DRILL ── */}
+            {drillType==="ads"&&!drillLoading&&<>
+              {(!drillData||drillData.length===0)&&<div style={{textAlign:"center",padding:40,color:T.textFaint}}>
+                <div style={{fontSize:32,marginBottom:8}}>📢</div>
+                <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>No ad data yet</div>
+                <div style={{fontSize:11}}>Ad clicks will appear here when customers come from Facebook/Instagram ads</div>
+              </div>}
+              {drillData&&drillData.length>0&&<>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+                  {[
+                    {v:drillData.length,l:"Active Ads",c:"#7c3aed"},
+                    {v:drillData.reduce((s,a)=>s+(a.total_leads||0),0),l:"Total Leads",c:"#ef4444"},
+                    {v:drillData.reduce((s,a)=>s+(a.bookings||0),0),l:"Bookings",c:"#22c55e"},
+                  ].map(s=>(
+                    <div key={s.l} style={{background:T.card2,borderRadius:10,padding:"10px",textAlign:"center"}}>
+                      <div style={{fontSize:18,fontWeight:900,color:s.c}}>{s.v}</div>
+                      <div style={{fontSize:10,color:T.textFaint,marginTop:2}}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Best performing ad */}
+                {drillData[0]&&<div style={{padding:"10px 12px",background:"#f5f3ff",borderRadius:8,fontSize:11,color:"#6d28d9",marginBottom:14,border:"1px solid #ddd6fe"}}>
+                  💡 <strong>{drillData[0].ad_headline}</strong> brought the most leads ({drillData[0].total_leads})
+                </div>}
+                <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>All campaigns</div>
+                {drillData.map((ad,i)=>{
+                  const maxLeads = drillData[0]?.total_leads||1;
+                  return (
+                    <div key={i} style={{background:T.card2,borderRadius:12,padding:14,marginBottom:10,border:`1px solid ${T.border}`,cursor:"pointer",transition:"all .15s",animation:`_slideInL .3s ${i*0.05}s both`}}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor=WA_GREEN;e.currentTarget.style.transform="translateX(4px)";}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.transform="none";}}>
+                      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:8}}>
+                        <div style={{flex:1,paddingRight:8}}>
+                          <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:3}}>{ad.ad_headline||"Organic / Direct"}</div>
+                          <div style={{fontSize:10,color:T.textFaint}}>📱 {ad.ad_source_type||"organic"} · {ad.last_seen||""}</div>
+                        </div>
+                        <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700,flexShrink:0,
+                          background:ad.conversion_rate>8?"#f0fdf4":ad.conversion_rate>4?"#fffbeb":"#fef2f2",
+                          color:ad.conversion_rate>8?"#166534":ad.conversion_rate>4?"#854d0e":"#dc2626"}}>
+                          {ad.conversion_rate||0}% conv.
+                        </span>
+                      </div>
+                      {/* Lead bar */}
+                      <div style={{height:5,borderRadius:3,background:T.border,overflow:"hidden",marginBottom:10}}>
+                        <div style={{height:5,borderRadius:3,background:`linear-gradient(90deg,${WA_GREEN},#34d399)`,width:`${Math.round((ad.total_leads/maxLeads)*100)}%`,transition:"width .8s"}}/>
+                      </div>
+                      <div style={{display:"flex",gap:14}}>
+                        {[
+                          {v:ad.total_leads||0,l:"Leads",c:"#7c3aed"},
+                          {v:ad.hot_leads||0,l:"Hot",c:"#ef4444"},
+                          {v:ad.warm_leads||0,l:"Warm",c:"#f59e0b"},
+                          {v:ad.bookings||0,l:"Booked",c:"#22c55e"},
+                        ].map(s=>(
+                          <div key={s.l} style={{textAlign:"center"}}>
+                            <div style={{fontSize:15,fontWeight:800,color:s.c}}>{s.v}</div>
+                            <div style={{fontSize:9,color:T.textFaint}}>{s.l}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {ad.ad_url&&<a href={ad.ad_url} target="_blank" rel="noreferrer"
+                        onClick={e=>e.stopPropagation()}
+                        style={{display:"inline-flex",alignItems:"center",gap:4,marginTop:8,fontSize:11,color:"#2563eb",fontWeight:500,textDecoration:"none"}}>
+                        🔗 View Ad ↗
+                      </a>}
+                    </div>
+                  );
+                })}
+              </>}
+            </>}
+
+            {/* ── DAY DRILL ── */}
+            {drillType==="day"&&drillData&&<>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+                {[
+                  {v:drillData.bot||0,l:"Bot msgs",c:"#00c853"},
+                  {v:drillData.user||0,l:"Customer",c:"#6366f1"},
+                  {v:drillData.agent||0,l:"Agent",c:"#f59e0b"},
+                ].map(s=>(
+                  <div key={s.l} style={{background:T.card2,borderRadius:10,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:20,fontWeight:900,color:s.c}}>{s.v}</div>
+                    <div style={{fontSize:10,color:T.textFaint,marginTop:2}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Conversations active that day</div>
+              {contacts.filter(c=>c.lastDate===drillData.date).slice(0,20).map((c,i)=>(
+                <div key={c.id} className="drill-row" style={{display:"flex",alignItems:"center",gap:10,padding:"8px 6px",borderBottom:`1px solid ${T.border}40`,borderRadius:8,cursor:"pointer",transition:"background .1s",animation:`_slideInL .3s ${i*0.03}s both`}}>
+                  <div style={{width:32,height:32,borderRadius:"50%",background:c.lead==="hot"?"#ef4444":c.lead==="warm"?"#f59e0b":"#3b82f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>{c.avatar||"?"}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:600}}>{c.name||c.phone}</div>
+                    <div style={{fontSize:10,color:T.textFaint,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.lastMessage||""}</div>
+                  </div>
+                  <span style={{fontSize:9,padding:"2px 7px",borderRadius:20,fontWeight:700,background:c.lead==="hot"?"#fef2f2":c.lead==="warm"?"#fffbeb":"#eff6ff",color:c.lead==="hot"?"#ef4444":c.lead==="warm"?"#f59e0b":"#3b82f6"}}>{c.lead==="hot"?"🔥":c.lead==="warm"?"🟡":"🔵"}</span>
+                </div>
+              ))}
+            </>}
+          </div>
+        </div>
+      </>}
+
+      {/* ── HEADER ── */}
+      <div className="an1" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:10}}>
+        <div>
+          <div style={{fontWeight:800,fontSize:20,letterSpacing:-.5,marginBottom:3}}>📊 Analytics</div>
+          <div style={{fontSize:12,color:T.textMuted}}>Click any card to drill down into details</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+          {[{id:"7d",label:"7D"},{id:"30d",label:"30D"},{id:"90d",label:"90D"},{id:"custom",label:"Custom"}].map(p=>(
+            <button key={p.id} onClick={()=>setPreset(p.id)}
+              style={{padding:"6px 14px",borderRadius:16,border:`1px solid ${T.border}`,background:datePreset===p.id?WA_GREEN:T.card,color:datePreset===p.id?"#fff":T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}>
+              {p.label}
+            </button>
+          ))}
+          {datePreset==="custom"&&<>
+            <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:"5px 8px",color:T.text,fontSize:12}}/>
+            <span style={{color:T.textMuted}}>→</span>
+            <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:"5px 8px",color:T.text,fontSize:12}}/>
+            <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} style={{padding:"6px 12px",borderRadius:16,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Apply</button>
+          </>}
+          <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} style={{padding:"6px 10px",borderRadius:16,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🔄</button>
+        </div>
+      </div>
+
+      {/* Admin all-clients view */}
+      {isAdmin&&!selectedClinic&&<>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:12}} className="an2">All Clients Performance</div>
+        {overviewLoading&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading...</div>}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12,marginBottom:20}}>
+          {adminOverview.map((c,i)=>(
+            <div key={c.id} className="cc" style={{padding:16,cursor:"pointer",animation:`_fadeUp .4s ${i*0.05}s both`}}
+              onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                <div style={{width:36,height:36,borderRadius:10,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:18}}>🏢</span>}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
+                  <div style={{fontSize:10,color:T.textMuted}}>{c.industry||"—"}</div>
+                </div>
+                <span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6,background:c.active?"#dcfce7":"#fee2e2",color:c.active?"#166534":"#dc2626"}}>{c.active?"Live":"Off"}</span>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {[
+                  {icon:"💬",label:"Messages",value:c.total_messages||0,color:"#3b82f6"},
+                  {icon:"🎯",label:"Leads",value:(c.hot_leads||0)+(c.warm_leads||0),color:"#f59e0b"},
+                  {icon:"🤖",label:"Bot %",value:`${c.bot_performance||0}%`,color:WA_GREEN},
+                  {icon:"✅",label:"Resolved",value:c.resolved_convos||0,color:"#8b5cf6"},
+                ].map(s=>(
+                  <div key={s.label} style={{background:T.card2,borderRadius:8,padding:"8px 10px"}}>
+                    <div style={{fontSize:10,color:T.textMuted,marginBottom:2}}>{s.icon} {s.label}</div>
+                    <div style={{fontWeight:800,fontSize:16,color:s.color}}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:8,fontSize:11,color:WA_GREEN,fontWeight:600,textAlign:"right"}}>View details →</div>
+            </div>
+          ))}
+        </div>
+      </>}
+
+      {/* Selected client / client user view */}
+      {(!isAdmin||selectedClinic)&&<>
+
+        {/* Selected client header */}
+        {isAdmin&&selectedClinic&&<div className="an2" style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,padding:"12px 16px",borderRadius:14,background:T.card,border:`1px solid ${T.border}`}}>
+          <div style={{width:40,height:40,borderRadius:10,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {selectedClinic.logo_url?<img src={selectedClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:20}}>🏢</span>}
+          </div>
+          <div><div style={{fontWeight:800,fontSize:15}}>{selectedClinic.company_name||selectedClinic.username}</div><div style={{fontSize:11,color:T.textMuted}}>{selectedClinic.industry||""}</div></div>
+          <button onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);}} style={{marginLeft:"auto",padding:"6px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← All Clients</button>
+        </div>}
+
+        {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:T.textFaint}}>
+          <div style={{width:36,height:36,borderRadius:"50%",border:`3px solid ${WA_GREEN}20`,borderTop:`3px solid ${WA_GREEN}`,animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/>
+          Loading analytics...
+        </div>}
+
+        {!analyticsLoading&&a&&<>
+          {/* HERO BANNER */}
+          <div className="an2" style={{background:`linear-gradient(135deg,#0d1117 0%,#1a2332 50%,#0d1b2a 100%)`,borderRadius:18,padding:"24px 28px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:-30,right:-30,width:180,height:180,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,200,83,.1),transparent 70%)",pointerEvents:"none"}}/>
+            <div style={{display:"flex",alignItems:"center",position:"relative",zIndex:1,flexWrap:"wrap",gap:16}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,.4)",letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>{a.dateFrom} → {a.dateTo}</div>
+                <div style={{fontSize:30,fontWeight:900,letterSpacing:-1,lineHeight:1}}>{growth.thisperiod||0} <span style={{fontSize:15,fontWeight:400,color:"rgba(255,255,255,.5)"}}>new conversations</span></div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                  {growth.pct!==0&&<div style={{background:growth.pct>0?"rgba(0,200,83,.2)":"rgba(239,68,68,.2)",color:growth.pct>0?"#4ade80":"#f87171",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>
+                    {growth.pct>0?"▲":"▼"} {Math.abs(growth.pct)}% vs previous period
+                  </div>}
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.55)"}}>Bot handled <strong style={{color:"#4ade80"}}>{totals.botMessages||0}</strong> msgs</div>
+                </div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Conversion Rate</div>
+                <div style={{fontSize:44,fontWeight:900,color:"#00c853",lineHeight:1}}>{growth.conversionRate||0}%</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:4}}>Contacts → Hot Leads</div>
+              </div>
+            </div>
+          </div>
+
+          {/* KPI CARDS */}
+          <div className="an3" style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+            <KpiCard icon="👥" val={total} label="Total Contacts" sub="All conversations" color="#2563eb" bg="#eff6ff" trend={`▲ ${growth.pct||0}%`} type="contacts"/>
+            <KpiCard icon="🔥" val={hot} label="Hot Leads" sub={`${growth.conversionRate||0}% conversion`} color="#ef4444" bg="#fef2f2" trend="High intent" type="hot"/>
+            <KpiCard icon="✅" val={done} label="Bookings Closed" sub="Pipeline done" color="#22c55e" bg="#f0fdf4" trend="Confirmed" type="bookings"/>
+            <KpiCard icon="🤖" val={`${botRate}%`} label="Bot Automation" sub={`${totals.botMessages||0} msgs handled`} color="#00c853" bg="#f0fdf4" trend={`${Math.round((totals.botMessages||0)*2/60)}hrs saved`} type="bot"/>
+            <KpiCard icon="📢" val={`${totals.followups||0}`} label="Ad Sources" sub="Click to see campaigns" color="#7c3aed" bg="#f5f3ff" trend="Campaigns" type="ads"/>
+          </div>
+
+          {/* DAILY CHART + DONUT */}
+          <div className="an4" style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,marginBottom:20}}>
+            {/* Daily bar chart */}
+            <div style={{background:T.card,borderRadius:14,padding:20,border:`1px solid ${T.border}`}}>
+              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:16}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>Daily Activity</div>
+                  <div style={{fontSize:11,color:T.textFaint}}>Click any bar to see that day's details</div>
+                </div>
+                <div style={{display:"flex",gap:12}}>
+                  {[{c:WA_GREEN,l:"Bot"},{c:"#6366f1",l:"Customer"},{c:"#f59e0b",l:"Agent"}].map(l=>(
+                    <div key={l.l} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:T.textMuted}}>
+                      <div style={{width:8,height:8,borderRadius:"50%",background:l.c}}/>
+                      {l.l}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:3,height:100}}>
+                {(a.messagesPerDay||[]).slice(-21).map((d,i)=>{
+                  const tot=(d.bot||0)+(d.user||0)+(d.agent||0);
+                  const maxV=Math.max(...(a.messagesPerDay||[]).slice(-21).map(x=>(x.bot||0)+(x.user||0)+(x.agent||0)),1);
+                  const pct=tot/maxV;
+                  const botH=Math.round(((d.bot||0)/Math.max(tot,1))*pct*96);
+                  const userH=Math.round(((d.user||0)/Math.max(tot,1))*pct*96);
+                  const agentH=Math.round(((d.agent||0)/Math.max(tot,1))*pct*96);
+                  const isSelected=selectedBar===i;
+                  return (
+                    <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",cursor:"pointer"}}
+                      onClick={()=>{
+                        setSelectedBar(i);
+                        setDrillType("day");
+                        setDrillData(d);
+                        setDrillOpen(true);
+                      }}
+                      title={`${d.date}: ${tot} total`}>
+                      <div style={{flex:1,width:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:1,opacity:isSelected?1:.85,transition:"opacity .15s"}}>
+                        {agentH>0&&<div style={{width:"100%",height:`${agentH}px`,background:"#f59e0b",borderRadius:"2px 2px 0 0",minHeight:2}}/>}
+                        {userH>0&&<div style={{width:"100%",height:`${userH}px`,background:"#6366f180",minHeight:2}}/>}
+                        {botH>0&&<div style={{width:"100%",height:`${botH}px`,background:isSelected?WA_GREEN:`${WA_GREEN}90`,borderRadius:agentH===0&&userH===0?"2px 2px 0 0":"0",minHeight:2}}/>}
+                      </div>
+                      {(a.messagesPerDay||[]).slice(-21).length<=14&&<div style={{fontSize:7,color:T.textFaint,marginTop:2}}>{d.date?.slice(5)}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Bot donut */}
+            <div style={{background:T.card,borderRadius:14,padding:20,border:`1px solid ${T.border}`,display:"flex",flexDirection:"column"}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>🤖 Bot Performance</div>
+              <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>Automation this period</div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:1}}>
+                <div style={{position:"relative",width:100,height:100}}>
+                  <svg width="100" height="100" style={{transform:"rotate(-90deg)"}}>
+                    <circle cx="50" cy="50" r="42" fill="none" stroke={T.border} strokeWidth="11"/>
+                    <circle cx="50" cy="50" r="42" fill="none" stroke={WA_GREEN} strokeWidth="11"
+                      strokeDasharray="263.9"
+                      strokeDashoffset={263.9*(1-botRate/100)}
+                      strokeLinecap="round"
+                      style={{transition:"stroke-dashoffset 1s ease"}}/>
+                  </svg>
+                  <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
+                    <div style={{fontSize:20,fontWeight:900,color:WA_GREEN}}>{botRate}%</div>
+                    <div style={{fontSize:9,color:T.textFaint}}>auto</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:7,marginTop:14,width:"100%"}}>
+                  {[{l:"Bot replies",v:totals.botMessages||0,c:WA_GREEN},{l:"Customer",v:totals.userMessages||0,c:"#6366f1"},{l:"Agent",v:totals.agentMessages||0,c:"#f59e0b"},{l:"Follow-ups",v:totals.followups||0,c:"#f59e0b"}].map(s=>(
+                    <div key={s.l} style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+                      <span style={{display:"flex",alignItems:"center",gap:5,color:T.textMuted}}><div style={{width:7,height:7,borderRadius:"50%",background:s.c}}/>{s.l}</span>
+                      <strong style={{color:s.c}}>{s.v}</strong>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginTop:12,padding:"8px 10px",background:`${WA_GREEN}12`,borderRadius:8,fontSize:10,color:"#166534",width:"100%",border:`1px solid ${WA_GREEN}30`}}>
+                  💡 Saved ~<strong>{Math.round((totals.botMessages||0)*2/60)} hrs</strong> of manual replies
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* BOTTOM ROW */}
+          <div className="an5" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:20}}>
+            {/* Funnel */}
+            <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>🎯 Conversion Funnel</div>
+              <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>First message → booking</div>
+              {[
+                {l:"New Contacts",v:total,pct:100,c:"#6366f1"},
+                {l:"Warm Interest",v:warm,pct:total>0?Math.round(warm/total*100):0,c:"#f59e0b"},
+                {l:"Hot Intent",v:hot,pct:total>0?Math.round(hot/total*100):0,c:"#ef4444"},
+                {l:"✅ Converted",v:done,pct:total>0?Math.round(done/total*100):0,c:"#22c55e"},
+              ].map(f=>(
+                <div key={f.l} style={{marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:3,fontSize:11}}>
+                    <span style={{fontWeight:600}}>{f.l}</span>
+                    <span style={{color:f.c,fontWeight:700}}>{f.v} · {f.pct}%</span>
+                  </div>
+                  <div style={{height:7,borderRadius:4,background:T.card2}}>
+                    <div style={{height:7,borderRadius:4,width:`${f.pct}%`,background:f.c,transition:"width .8s ease"}}/>
+                  </div>
+                </div>
+              ))}
+              <div style={{marginTop:10,padding:"8px 10px",background:`${WA_GREEN}08`,borderRadius:8,fontSize:10,color:T.textMuted,border:`1px solid ${WA_GREEN}20`}}>
+                🤖 AI tagged <strong style={{color:WA_GREEN}}>{hot+warm}</strong> potential patients from {total} conversations
+              </div>
+            </div>
+            {/* Peak hours */}
+            <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>⏰ Peak Activity Hours</div>
+              <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>When customers message most</div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:2,height:70}}>
+                {Array.from({length:24},(_,h)=>{
+                  const cnt=(a.peakHours||[]).find(p=>p.hour===h)?.count||0;
+                  const maxH=Math.max(...(a.peakHours||[]).map(p=>p.count),1);
+                  const isPeak=cnt===maxH&&cnt>0;
+                  return <div key={h} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}} title={`${h}:00 — ${cnt} msgs`}>
+                    <div style={{width:"100%",background:isPeak?WA_GREEN:cnt>0?`${WA_GREEN}50`:T.border,borderRadius:"2px 2px 0 0",height:`${Math.max(2,(cnt/maxH)*66)}px`,transition:"height .5s"}}/>
+                    {h%6===0&&<div style={{fontSize:7,color:T.textFaint,marginTop:2}}>{h}h</div>}
+                  </div>;
+                })}
+              </div>
+              {(()=>{const p=(a.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});return p.count>0&&<div style={{marginTop:10,fontSize:11,color:T.textMuted}}>Peak: <strong style={{color:WA_GREEN}}>{p.hour}:00–{p.hour+1}:00</strong> · {p.count} messages</div>;})()}
+            </div>
+            {/* Lead quality */}
+            <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>📊 Lead Quality Split</div>
+              <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>AI classification breakdown</div>
+              {[
+                {l:"🔥 High Intent",v:hot,pct:total>0?Math.round(hot/total*100):0,c:"#ef4444"},
+                {l:"🟡 Interested",v:warm,pct:total>0?Math.round(warm/total*100):0,c:"#f59e0b"},
+                {l:"🔵 Browsing",v:cold,pct:total>0?Math.round(cold/total*100):0,c:"#3b82f6"},
+              ].map(l=>(
+                <div key={l.l} style={{marginBottom:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
+                    <span style={{fontWeight:600}}>{l.l}</span>
+                    <span style={{color:l.c,fontWeight:700}}>{l.v} ({l.pct}%)</span>
+                  </div>
+                  <div style={{height:8,borderRadius:4,background:T.card2}}>
+                    <div style={{height:8,borderRadius:4,width:`${l.pct}%`,background:l.c,transition:"width .8s"}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* STAFF LEADERBOARD */}
+          {a.staffStats?.length>0&&<div className="an5" style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`,marginBottom:20}}>
+            <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>👥 Team Leaderboard</div>
+            <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>Who handled what this period</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
+              {a.staffStats.map((s,i)=>{
+                const rate=s.assigned_count>0?Math.round((s.done_count||0)/s.assigned_count*100):0;
+                const medals=["🥇","🥈","🥉"];
+                return (
+                  <div key={s.id} style={{padding:14,background:T.card2,borderRadius:12,border:`1px solid ${T.border}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                      <div style={{width:34,height:34,borderRadius:"50%",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>
+                        {medals[i]||s.username?.charAt(0)?.toUpperCase()||"?"}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>@{s.username}</div>
+                        <div style={{fontSize:10,color:T.textMuted}}>{s.assigned_count||0} assigned</div>
+                      </div>
+                      <div style={{fontSize:16,fontWeight:900,color:rate>=50?WA_GREEN:"#f59e0b"}}>{rate}%</div>
+                    </div>
+                    <div style={{height:5,borderRadius:3,background:T.border,marginBottom:8}}>
+                      <div style={{height:5,borderRadius:3,width:`${rate}%`,background:rate>=70?WA_GREEN:rate>=40?"#f59e0b":"#ef4444",transition:"width .6s"}}/>
+                    </div>
+                    <div style={{display:"flex",gap:8,fontSize:10,color:T.textMuted}}>
+                      <span>🔥 {s.hot_count||0}</span><span>🟡 {s.warm_count||0}</span><span>✅ {s.done_count||0}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>}
+
+        </>}
+
+        {!analyticsLoading&&!a&&<div style={{textAlign:"center",padding:80,color:T.textFaint}}>
+          <div style={{fontSize:40,marginBottom:12}}>📊</div>
+          <div style={{fontSize:14,fontWeight:600}}>No analytics data yet</div>
+          <div style={{fontSize:12,marginTop:6}}>Data appears as customers message in</div>
+        </div>}
+      </>}
     </div>
   );
 }
