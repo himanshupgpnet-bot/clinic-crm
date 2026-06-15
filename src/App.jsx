@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.100";
+const CRM_VERSION = "2.9.101";
 
 // Responsive hook
 function useWindowSize() {
@@ -2911,6 +2911,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   💾 Save Bot Personality
                 </button>
               </div>
+
+              {/* ── AI PROMPT IMPROVER ── */}
+              {isAdmin&&<AIPromptImprover
+                T={T} WA_GREEN={WA_GREEN} dark={dark}
+                API={API} authHeaders={authHeaders}
+                kbClinic={kbClinic}
+                systemPrompt={systemPrompt} setSystemPrompt={setSystemPrompt}
+                qaData={qaData} setQaData={setQaData}
+                fetchKnowledge={fetchKnowledge}
+                authToken={authToken}
+              />}
 
               {/* ── SECTION 2: ADD KNOWLEDGE ── */}
               <div style={{fontWeight:800,fontSize:15,marginBottom:12,color:T.text}}>📥 Add Knowledge to Your Bot</div>
@@ -6642,6 +6653,203 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           <div style={{fontSize:40,marginBottom:12}}>📊</div>
           <div style={{fontSize:14,fontWeight:600}}>No analytics data yet</div>
           <div style={{fontSize:12,marginTop:6}}>Data appears as customers message in</div>
+        </div>}
+      </>}
+    </div>
+  );
+}
+
+// ── AI PROMPT IMPROVER COMPONENT ─────────────────────────────────────────────
+function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemPrompt, setSystemPrompt, qaData, setQaData, fetchKnowledge, authToken}) {
+  const [loading, setLoading] = React.useState(false);
+  const [result, setResult] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const [days, setDays] = React.useState(7);
+  const [appliedQA, setAppliedQA] = React.useState(new Set());
+  const [appliedPrompt, setAppliedPrompt] = React.useState(new Set());
+  const [savingPrompt, setSavingPrompt] = React.useState(false);
+
+  const analyse = async () => {
+    setLoading(true); setResult(null); setError("");
+    setAppliedQA(new Set()); setAppliedPrompt(new Set());
+    try {
+      const r = await fetch(`${API}/api/knowledge/analyse-and-improve`, {
+        method:"POST", headers:authHeaders(),
+        body: JSON.stringify({clinic_id: kbClinic?.clinic_id, days})
+      });
+      const d = await r.json();
+      if(!r.ok) { setError(d.error||"Failed"); return; }
+      setResult(d);
+    } catch(e) { setError("Network error"); }
+    setLoading(false);
+  };
+
+  const applyQA = async (qa, idx) => {
+    try {
+      const r = await fetch(`${API}/api/knowledge/qa`, {
+        method:"POST", headers:authHeaders(),
+        body: JSON.stringify({question:qa.question, answer:qa.answer, clinic_id:kbClinic?.clinic_id})
+      });
+      if(r.ok) {
+        setAppliedQA(p=>new Set([...p, idx]));
+        fetchKnowledge(kbClinic?.clinic_id);
+      }
+    } catch {}
+  };
+
+  const applyPromptChange = async (suggestion, idx) => {
+    const newPrompt = systemPrompt + "\n\n" + suggestion.suggested_rule;
+    setSystemPrompt(newPrompt);
+    setAppliedPrompt(p=>new Set([...p, idx]));
+    // Auto-save
+    setSavingPrompt(true);
+    try {
+      const body = {prompt: newPrompt};
+      if(kbClinic?.clinic_id) body.clinic_id = kbClinic.clinic_id;
+      await fetch(`${API}/api/knowledge/prompt`, {method:"PATCH", headers:authHeaders(), body:JSON.stringify(body)});
+    } catch {}
+    setSavingPrompt(false);
+  };
+
+  return (
+    <div style={{background:dark?"#1a1f2e":"#f0effe",border:`2px solid rgba(108,99,255,.25)`,borderRadius:16,padding:20,marginBottom:20}}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:16}}>
+        <div style={{width:40,height:40,borderRadius:11,background:"linear-gradient(135deg,#6c63ff,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🤖</div>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:800,fontSize:15,color:T.text}}>AI Prompt Improver</div>
+          <div style={{fontSize:11,color:T.textMuted,marginTop:2,lineHeight:1.6}}>
+            Analyses real conversations — bot failures + agent takeovers — and suggests exact prompt rules and Q&A to add.
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+          <select value={days} onChange={e=>setDays(parseInt(e.target.value))}
+            style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+            <option value={3}>Last 3 days</option>
+            <option value={7}>Last 7 days</option>
+            <option value={14}>Last 14 days</option>
+            <option value={30}>Last 30 days</option>
+          </select>
+          <button onClick={analyse} disabled={loading||!kbClinic}
+            style={{padding:"8px 18px",borderRadius:10,border:"none",background:loading?"#94a3b8":"linear-gradient(135deg,#6c63ff,#5a52e0)",color:"#fff",fontSize:12,fontWeight:700,cursor:loading||!kbClinic?"not-allowed":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,boxShadow:loading?"none":"0 2px 10px rgba(108,99,255,.25)"}}>
+            {loading?"⏳ Analysing...":"🔍 Analyse & Suggest"}
+          </button>
+        </div>
+      </div>
+
+      {!kbClinic&&<div style={{padding:"10px 14px",background:"#fffbeb",borderRadius:8,fontSize:12,color:"#92400e",border:"1px solid #fde68a"}}>⚠️ Select a client from the sidebar first</div>}
+
+      {error&&<div style={{padding:"10px 14px",background:"#fef2f2",borderRadius:8,fontSize:12,color:"#dc2626",border:"1px solid #fca5a5"}}>❌ {error}</div>}
+
+      {loading&&<div style={{textAlign:"center",padding:32}}>
+        <div style={{fontSize:32,marginBottom:10}}>🤖</div>
+        <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:4}}>Analysing conversations...</div>
+        <div style={{fontSize:11,color:T.textMuted}}>Reading agent takeovers, bot failures and current prompt</div>
+      </div>}
+
+      {result&&!loading&&<>
+        {/* Stats */}
+        <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+          {[
+            {l:"Agent takeovers analysed",v:result.agent_pairs_analysed,c:"#6c63ff"},
+            {l:"Bot failures analysed",v:result.bot_failures_analysed,c:"#e11d48"},
+            {l:"Q&A suggestions",v:result.qa_suggestions?.length||0,c:"#16a34a"},
+            {l:"Prompt suggestions",v:result.prompt_suggestions?.length||0,c:"#d97706"},
+          ].map(s=>(
+            <div key={s.l} style={{background:T.card,borderRadius:10,padding:"10px 14px",border:`1px solid ${T.border}`,flex:1,minWidth:120}}>
+              <div style={{fontSize:20,fontWeight:800,color:s.c}}>{s.v}</div>
+              <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+
+        {result.qa_suggestions?.length===0&&result.prompt_suggestions?.length===0&&<div style={{textAlign:"center",padding:24,color:T.textMuted}}>
+          <div style={{fontSize:28,marginBottom:8}}>✅</div>
+          <div style={{fontWeight:600}}>No improvements needed!</div>
+          <div style={{fontSize:11,marginTop:4}}>Bot is handling conversations well in this period.</div>
+        </div>}
+
+        {/* SIDE BY SIDE DIFF */}
+        {(result.qa_suggestions?.length>0||result.prompt_suggestions?.length>0)&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+
+          {/* LEFT — Prompt Changes */}
+          <div>
+            <div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+              <span style={{background:"#fffbeb",color:"#d97706",border:"1px solid #fde68a",borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:700}}>PROMPT CHANGES</span>
+              {savingPrompt&&<span style={{fontSize:10,color:T.textMuted}}>Saving...</span>}
+            </div>
+            {result.prompt_suggestions?.length===0&&<div style={{padding:16,background:T.card,borderRadius:10,border:`1px solid ${T.border}`,fontSize:11,color:T.textMuted,textAlign:"center"}}>No prompt changes needed</div>}
+            {result.prompt_suggestions?.map((s,i)=>(
+              <div key={i} style={{background:T.card,borderRadius:12,border:`1px solid ${appliedPrompt.has(i)?"#86efac":T.border}`,marginBottom:10,overflow:"hidden",opacity:appliedPrompt.has(i)?0.7:1,transition:"all .2s"}}>
+                {/* Issue */}
+                <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.border}`,background:"#fef2f2"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#e11d48",marginBottom:3}}>❌ ISSUE</div>
+                  <div style={{fontSize:12,color:"#0d0f1a",fontWeight:600}}>{s.issue}</div>
+                </div>
+                {/* Current rule */}
+                {s.current_rule&&<div style={{padding:"8px 14px",borderBottom:`1px solid ${T.border}`,background:"#fff7ed"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#d97706",marginBottom:2}}>📋 CURRENT RULE</div>
+                  <div style={{fontSize:11,color:"#92400e",fontStyle:"italic",lineHeight:1.5}}>{s.current_rule}</div>
+                </div>}
+                {/* Suggested rule */}
+                <div style={{padding:"8px 14px",borderBottom:`1px solid ${T.border}`,background:"#f0fdf4"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#16a34a",marginBottom:2}}>✅ SUGGESTED RULE</div>
+                  <div style={{fontSize:11,color:"#166534",lineHeight:1.5}}>{s.suggested_rule}</div>
+                </div>
+                {/* Reason + Apply */}
+                <div style={{padding:"8px 14px",display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{fontSize:10,color:T.textMuted,flex:1,lineHeight:1.5}}>💡 {s.reason}</div>
+                  {appliedPrompt.has(i)
+                    ?<span style={{fontSize:11,color:"#16a34a",fontWeight:700}}>✅ Applied</span>
+                    :<button onClick={()=>applyPromptChange(s,i)}
+                      style={{padding:"5px 14px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#6c63ff,#5a52e0)",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
+                      ✅ Apply
+                    </button>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* RIGHT — Q&A To Add */}
+          <div>
+            <div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:10}}>
+              <span style={{background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:700}}>Q&A TO ADD</span>
+            </div>
+            {result.qa_suggestions?.length===0&&<div style={{padding:16,background:T.card,borderRadius:10,border:`1px solid ${T.border}`,fontSize:11,color:T.textMuted,textAlign:"center"}}>No Q&A additions needed</div>}
+            {result.qa_suggestions?.map((q,i)=>(
+              <div key={i} style={{background:T.card,borderRadius:12,border:`1px solid ${appliedQA.has(i)?"#86efac":T.border}`,marginBottom:10,overflow:"hidden",opacity:appliedQA.has(i)?0.7:1,transition:"all .2s"}}>
+                {/* Source badge */}
+                <div style={{padding:"8px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:9,padding:"2px 7px",borderRadius:20,fontWeight:700,
+                    background:q.source==="agent_takeover"?"#eff6ff":"#fef2f2",
+                    color:q.source==="agent_takeover"?"#2563eb":"#e11d48",
+                    border:`1px solid ${q.source==="agent_takeover"?"#bfdbfe":"#fecdd3"}`}}>
+                    {q.source==="agent_takeover"?"👤 From Agent Reply":"🤖 From Bot Failure"}
+                  </span>
+                  <div style={{fontSize:10,color:T.textMuted,flex:1}}>{q.reason}</div>
+                </div>
+                {/* Q */}
+                <div style={{padding:"8px 14px",borderBottom:`1px solid ${T.border}`}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#6c63ff",marginBottom:2}}>Q:</div>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text}}>{q.question}</div>
+                </div>
+                {/* A */}
+                <div style={{padding:"8px 14px",borderBottom:`1px solid ${T.border}`,background:"#f8f9fc"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#16a34a",marginBottom:2}}>A:</div>
+                  <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{q.answer}</div>
+                </div>
+                {/* Apply */}
+                <div style={{padding:"8px 14px",display:"flex",justifyContent:"flex-end"}}>
+                  {appliedQA.has(i)
+                    ?<span style={{fontSize:11,color:"#16a34a",fontWeight:700}}>✅ Added to KB</span>
+                    :<button onClick={()=>applyQA(q,i)}
+                      style={{padding:"5px 14px",borderRadius:8,border:"none",background:"#16a34a",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      ➕ Add to KB
+                    </button>}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>}
       </>}
     </div>
