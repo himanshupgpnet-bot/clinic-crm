@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.101";
+const CRM_VERSION = "2.9.102";
 
 // Responsive hook
 function useWindowSize() {
@@ -2913,7 +2913,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
 
               {/* ── AI PROMPT IMPROVER ── */}
-              {isAdmin&&<AIPromptImprover
+              {(isAdmin||permissions?.can_prompt_improver)&&<AIPromptImprover
                 T={T} WA_GREEN={WA_GREEN} dark={dark}
                 API={API} authHeaders={authHeaders}
                 kbClinic={kbClinic}
@@ -5285,12 +5285,12 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
     {key:"can_inbox",label:"💬 Inbox"},{key:"can_leads",label:"🎯 Leads"},
     {key:"can_analytics",label:"📊 Analytics"},{key:"can_testbot",label:"🤖 Test Bot"},
     {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"},
-    {key:"can_integrations",label:"🔌 Integrations"},{key:"can_broadcast",label:"📢 Broadcast"},{key:"can_notes",label:"📝 Notes"}
+    {key:"can_integrations",label:"🔌 Integrations"},{key:"can_broadcast",label:"📢 Broadcast"},{key:"can_notes",label:"📝 Notes"},{key:"can_prompt_improver",label:"🤖 AI Improver"}
   ];
   const emptyClinic = {name:"",industry:"",website:"",client_domain:"",contact_phone:"",logo_url:"",
     whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",max_seats:1};
   const emptyUser = (clinic_id="") => ({username:"",password:"",clinic_id,
-    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,can_broadcast:false,can_notes:false,
+    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,can_broadcast:false,can_notes:false,can_prompt_improver:false,
     integration_whatsapp:false,integration_telegram:false,integration_instagram:false,
     integration_tiktok:false,integration_messenger:false,integration_calendar:false,integration_calendly:false});
 
@@ -5393,6 +5393,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             can_broadcast:editUser.can_broadcast||false,
             can_integrations:editUser.can_integrations,
             can_notes:editUser.can_notes||false,
+            can_prompt_improver:editUser.can_prompt_improver||false,
             integration_whatsapp:editUser.integration_whatsapp,integration_telegram:editUser.integration_telegram,
             integration_instagram:editUser.integration_instagram,integration_tiktok:editUser.integration_tiktok,
             integration_messenger:editUser.integration_messenger,integration_calendar:editUser.integration_calendar,
@@ -5409,6 +5410,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
             can_broadcast:editUser.can_broadcast||false,
             can_integrations:editUser.can_integrations,
             can_notes:editUser.can_notes||false,
+            can_prompt_improver:editUser.can_prompt_improver||false,
             integration_whatsapp:editUser.integration_whatsapp,
             integration_telegram:editUser.integration_telegram,
             integration_instagram:editUser.integration_instagram,
