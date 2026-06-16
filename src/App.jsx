@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.102";
+const CRM_VERSION = "2.9.103";
 
 // Responsive hook
 function useWindowSize() {
@@ -3688,6 +3688,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           notes={notes} setNotes={setNotes}
           notesLoading={notesLoading} setNotesLoading={setNotesLoading}
           notesClinic={notesClinic} setNotesClinic={setNotesClinic}
+          contacts={contacts}
           onJumpToChat={(contact_id, contact_name)=>{
             setTab("crm");
             const c = contacts.find(x=>x.id===contact_id||x.phone===contact_id);
@@ -4535,7 +4536,7 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
 
 // ── NOTES TAB ─────────────────────────────────────────────────────────────────
 function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOverview, API, ts,
-  notes, setNotes, notesLoading, setNotesLoading, notesClinic, setNotesClinic, onJumpToChat}) {
+  notes, setNotes, notesLoading, setNotesLoading, notesClinic, setNotesClinic, onJumpToChat, contacts}) {
 
   const authHeaders = () => ({"Content-Type":"application/json","Authorization":`Bearer ${authToken}`});
   const [newNote, setNewNote] = React.useState({contact_id:"", contact_name:"", note_text:""});
@@ -4548,6 +4549,13 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
   const [backfillResult, setBackfillResult] = React.useState(null);
   const [editingNoteId, setEditingNoteId] = React.useState(null);
   const [editingNoteText, setEditingNoteText] = React.useState("");
+  // New: contact picker modal
+  const [showAddModal, setShowAddModal] = React.useState(false);
+  const [contactSearch, setContactSearch] = React.useState("");
+  const [selectedContact, setSelectedContact] = React.useState(null);
+  const [modalNoteText, setModalNoteText] = React.useState("");
+  const [existingNoteWarn, setExistingNoteWarn] = React.useState(null); // {note} if active note exists
+  const [highlightNoteId, setHighlightNoteId] = React.useState(null);
 
   const clinicId = isAdmin ? notesClinic?.clinic_id : currentUser?.clinic_id;
 
@@ -4588,6 +4596,38 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
       if(r.ok) { const n = await r.json(); setNotes(p=>[n,...p]); setNewNote({contact_id:"", contact_name:"", note_text:""}); setShowAdd(false); }
     } catch {}
     setSaving(false);
+  };
+
+  const openAddModal = () => {
+    setShowAddModal(true);
+    setContactSearch("");
+    setSelectedContact(null);
+    setModalNoteText("");
+    setExistingNoteWarn(null);
+  };
+
+  const selectContactForNote = (c) => {
+    setSelectedContact(c);
+    const existing = notes.find(n => !n.is_done && (n.contact_id===c.id||n.contact_id===c.phone));
+    if(existing) { setExistingNoteWarn(existing); } else { setExistingNoteWarn(null); }
+  };
+
+  const saveModalNote = async () => {
+    if(!selectedContact||!modalNoteText.trim()||!clinicId) return;
+    setSaving(true);
+    try {
+      const r = await fetch(`${API}/api/notes`, {method:"POST", headers:authHeaders(),
+        body:JSON.stringify({contact_id:selectedContact.id||selectedContact.phone,contact_name:selectedContact.name||selectedContact.phone,note_text:modalNoteText.trim(),clinic_id:clinicId})});
+      if(r.ok) { const n=await r.json(); setNotes(p=>[n,...p]); setShowAddModal(false); setModalNoteText(""); setSelectedContact(null); }
+    } catch {}
+    setSaving(false);
+  };
+
+  const goToExistingNote = (note) => {
+    setShowAddModal(false); setExistingNoteWarn(null);
+    setHighlightNoteId(note.id); setEditingNoteId(note.id); setEditingNoteText(note.note_text);
+    setTimeout(()=>{ const el=document.getElementById("note-card-"+note.id); if(el) el.scrollIntoView({behavior:"smooth",block:"center"}); }, 100);
+    setTimeout(()=>setHighlightNoteId(null), 3000);
   };
 
   const markDone = async (id, isDone) => {
@@ -4640,6 +4680,112 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",background:T.bg,overflow:"hidden"}}>
 
+      {/* ── CONTACT PICKER MODAL ── */}
+      {showAddModal&&<>
+        <div onClick={()=>{setShowAddModal(false);setExistingNoteWarn(null);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:500,backdropFilter:"blur(4px)"}}/>
+        <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:600,
+          background:T.card,borderRadius:20,width:"min(480px,95vw)",maxHeight:"80vh",display:"flex",flexDirection:"column",
+          boxShadow:"0 20px 60px rgba(0,0,0,.2)",overflow:"hidden",animation:"fadeUp .25s cubic-bezier(.22,1,.36,1)"}}>
+          {/* Modal Header */}
+          <div style={{padding:"18px 20px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+            <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#6c63ff,#5a52e0)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>📝</div>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:800,fontSize:15,color:T.text}}>Add Note</div>
+              <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>Select a contact from your inbox</div>
+            </div>
+            <button onClick={()=>{setShowAddModal(false);setExistingNoteWarn(null);}}
+              style={{width:30,height:30,borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,cursor:"pointer",fontSize:16,color:T.textMuted,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+          </div>
+
+          {/* Existing note warning popup */}
+          {existingNoteWarn&&<div style={{margin:"12px 20px 0",padding:"12px 14px",background:"#fff7ed",borderRadius:12,border:"1px solid #fed7aa",display:"flex",alignItems:"flex-start",gap:10}}>
+            <span style={{fontSize:20,flexShrink:0}}>⚠️</span>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:700,fontSize:12,color:"#c2410c",marginBottom:3}}>Active note already exists for this contact!</div>
+              <div style={{fontSize:11,color:"#92400e",lineHeight:1.5,marginBottom:8}}>"{existingNoteWarn.note_text?.slice(0,80)}{existingNoteWarn.note_text?.length>80?"...":""}"</div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>goToExistingNote(existingNoteWarn)}
+                  style={{padding:"6px 14px",borderRadius:8,border:"none",background:"#d97706",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit Existing Note</button>
+                <button onClick={()=>setExistingNoteWarn(null)}
+                  style={{padding:"6px 12px",borderRadius:8,border:"1px solid #fed7aa",background:"transparent",color:"#92400e",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Create Anyway</button>
+              </div>
+            </div>
+          </div>}
+
+          {/* Selected contact display */}
+          {selectedContact&&!existingNoteWarn&&<div style={{margin:"12px 20px 0",padding:"10px 12px",background:"#f0effe",borderRadius:10,border:"1px solid rgba(108,99,255,.2)",display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6c63ff,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>
+              {(selectedContact.name||"?")[0]?.toUpperCase()}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#0d0f1a"}}>{selectedContact.name}</div>
+              <div style={{fontSize:11,color:"#6b7280"}}>{selectedContact.phone}</div>
+            </div>
+            <button onClick={()=>{setSelectedContact(null);setContactSearch("");}}
+              style={{border:"none",background:"none",cursor:"pointer",color:"#9ca3af",fontSize:16}}>×</button>
+          </div>}
+
+          {/* Search + contact list */}
+          {!selectedContact&&<div style={{padding:"12px 20px 0",flexShrink:0}}>
+            <div style={{position:"relative"}}>
+              <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:"#9ca3af"}}>🔍</span>
+              <input autoFocus value={contactSearch} onChange={e=>setContactSearch(e.target.value)}
+                placeholder="Search by name or phone..."
+                style={{width:"100%",padding:"8px 12px 8px 30px",borderRadius:10,border:`1.5px solid #e8eaef`,background:"#f8f9fc",color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}
+                onFocus={e=>e.target.style.borderColor="#6c63ff"} onBlur={e=>e.target.style.borderColor="#e8eaef"}/>
+            </div>
+          </div>}
+
+          {/* Contact list */}
+          {!selectedContact&&<div style={{flex:1,overflowY:"auto",padding:"8px 20px 14px"}}>
+            {contacts.filter(c=>{
+              if(!contactSearch) return true;
+              const s=contactSearch.toLowerCase();
+              return (c.name||"").toLowerCase().includes(s)||(c.phone||"").includes(s);
+            }).slice(0,30).map((c,i)=>(
+              <div key={c.id} onClick={()=>selectContactForNote(c)}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:10,cursor:"pointer",border:"1px solid transparent",marginBottom:2,transition:"all .15s"}}
+                onMouseEnter={e=>{e.currentTarget.style.background="#f0effe";e.currentTarget.style.borderColor="rgba(108,99,255,.15)";}}
+                onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="transparent";}}>
+                <div style={{width:36,height:36,borderRadius:"50%",background:c.lead==="hot"?"linear-gradient(135deg,#e11d48,#f43f5e)":c.lead==="warm"?"linear-gradient(135deg,#d97706,#f59e0b)":"linear-gradient(135deg,#6c63ff,#8b5cf6)",
+                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0,
+                  boxShadow:c.lead==="hot"?"0 0 0 2px rgba(225,29,72,.2)":c.lead==="warm"?"0 0 0 2px rgba(217,119,6,.15)":"none"}}>
+                  {(c.name||c.phone||"?")[0]?.toUpperCase()}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||c.phone}</div>
+                  <div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>{c.phone}</div>
+                </div>
+                <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+                  {c.lead==="hot"&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:20,fontWeight:700,background:"#fff1f3",color:"#e11d48",border:"1px solid #fecdd3"}}>🔥 Hot</span>}
+                  {c.lead==="warm"&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:20,fontWeight:700,background:"#fffbeb",color:"#d97706",border:"1px solid #fde68a"}}>🟡 Warm</span>}
+                  {notes.some(n=>!n.is_done&&(n.contact_id===c.id||n.contact_id===c.phone))&&
+                    <span style={{fontSize:9,padding:"2px 6px",borderRadius:20,fontWeight:700,background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe"}}>📝 Has note</span>}
+                </div>
+              </div>
+            ))}
+            {contacts.length===0&&<div style={{textAlign:"center",padding:24,color:"#9ca3af",fontSize:12}}>No contacts in inbox yet</div>}
+          </div>}
+
+          {/* Note textarea + save */}
+          {selectedContact&&!existingNoteWarn&&<div style={{padding:"12px 20px 20px",flexShrink:0,borderTop:`1px solid ${T.border}`,marginTop:12}}>
+            <div style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:6}}>Note</div>
+            <textarea value={modalNoteText} onChange={e=>setModalNoteText(e.target.value)}
+              placeholder="Write your note here..." rows={3} autoFocus
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid rgba(108,99,255,.3)",background:"#f0effe",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box",lineHeight:1.55}}
+              onFocus={e=>e.target.style.borderColor="#6c63ff"} onBlur={e=>e.target.style.borderColor="rgba(108,99,255,.3)"}/>
+            <div style={{display:"flex",gap:8,marginTop:10}}>
+              <button onClick={saveModalNote} disabled={saving||!modalNoteText.trim()}
+                style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:saving||!modalNoteText.trim()?"#e8eaef":"linear-gradient(135deg,#6c63ff,#5a52e0)",color:saving||!modalNoteText.trim()?"#9ca3af":"#fff",fontSize:13,fontWeight:700,cursor:saving||!modalNoteText.trim()?"not-allowed":"pointer",fontFamily:"inherit",boxShadow:!saving&&modalNoteText.trim()?"0 2px 10px rgba(108,99,255,.25)":"none"}}>
+                {saving?"⏳ Saving...":"💾 Save Note"}
+              </button>
+              <button onClick={()=>{setShowAddModal(false);setExistingNoteWarn(null);}}
+                style={{padding:"9px 16px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+            </div>
+          </div>}
+        </div>
+      </>}
+
       {/* Header */}
       <div style={{background:T.nav,borderBottom:`1px solid ${T.border}`,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,flexShrink:0,flexWrap:"wrap"}}>
         {isAdmin&&<div onClick={()=>{setNotesClinic(null);setNotes([]);}}
@@ -4655,9 +4801,9 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>setShowAdd(p=>!p)}
-            style={{padding:"8px 16px",borderRadius:10,border:`1px solid ${T.border}`,background:showAdd?T.card2:WA_GREEN,color:showAdd?T.textMuted:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-            {showAdd?"✕ Cancel":"✏️ Add Note"}
+          <button onClick={openAddModal}
+            style={{padding:"8px 16px",borderRadius:10,border:"none",background:`linear-gradient(135deg,#6c63ff,#5a52e0)`,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 2px 10px rgba(108,99,255,.25)"}}>
+            ✏️ Add Note
           </button>
           <button onClick={()=>loadNotes(clinicId)}
             style={{padding:"8px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>🔄</button>
@@ -4749,46 +4895,83 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
         {activeNotes.length>0&&<>
           <div style={{fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>📌 Active ({activeNotes.length})</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12,marginBottom:24}}>
-            {activeNotes.map(n=>(
-              <div key={n.id} style={{background:"#fef9c3",border:"1px solid #fde68a",borderRadius:14,padding:16,
-                boxShadow:"0 2px 8px rgba(0,0,0,.07)",transition:"transform .15s,box-shadow .15s",position:"relative"}}
-                onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.12)";}}
-                onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.07)";}}>
-                {n.agent_name==="🤖 Auto-Note"&&<span style={{position:"absolute",top:10,right:10,fontSize:9,padding:"2px 6px",borderRadius:6,background:"#7c3aed",color:"#fff",fontWeight:700}}>🤖 AI</span>}
-                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:8,paddingRight:n.agent_name==="🤖 Auto-Note"?44:0}}>
-                  <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
-                    style={{fontWeight:800,fontSize:14,color:"#854d0e",background:"none",border:"none",cursor:"pointer",padding:0,textAlign:"left",textDecoration:"underline",fontFamily:"inherit"}}>
-                    👤 {n.contact_name||n.contact_id}
-                  </button>
-                  <div style={{display:"flex",gap:4,flexShrink:0}}>
-                    <button onClick={()=>markDone(n.id,true)} title="Mark done"
-                      style={{width:24,height:24,borderRadius:6,border:"1px solid #86efac",background:"#f0fdf4",color:"#16a34a",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✓</button>
-                    <button onClick={()=>{setEditingNoteId(n.id);setEditingNoteText(n.note_text);}} style={{width:24,height:24,borderRadius:6,border:"1px solid #93c5fd",background:"#eff6ff",color:"#3b82f6",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
-                    <button onClick={()=>deleteNote(n.id)}
-                      style={{width:24,height:24,borderRadius:6,border:"1px solid #fca5a5",background:"#fef2f2",color:"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-                  </div>
-                </div>
-                {editingNoteId===n.id ? (
-                  <div style={{marginBottom:10}}>
-                    <textarea value={editingNoteText} onChange={e=>setEditingNoteText(e.target.value)} rows={3} style={{width:"100%",background:"#fffde7",border:"1.5px solid #f59e0b",borderRadius:8,padding:"8px 10px",color:"#78350f",fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
-                    <div style={{display:"flex",gap:6,marginTop:6}}>
-                      <button onClick={()=>saveEditNote(n.id)} style={{padding:"5px 14px",borderRadius:7,border:"none",background:"#f59e0b",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save</button>
-                      <button onClick={()=>{setEditingNoteId(null);setEditingNoteText("");}} style={{padding:"5px 10px",borderRadius:7,border:"1px solid #fde68a",background:"transparent",color:"#92400e",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+            {activeNotes.map(n=>{
+              const isHot = n.lead==="hot";
+              const isWarm = n.lead==="warm" || !n.lead;
+              const isAI = n.agent_name==="🤖 Auto-Note";
+              const isHighlighted = highlightNoteId===n.id;
+              const stripeColor = isAI?"linear-gradient(90deg,#7c3aed,#8b5cf6)":isHot?"linear-gradient(90deg,#e11d48,#f43f5e)":"linear-gradient(90deg,#d97706,#f59e0b)";
+              const borderColor = isHighlighted?"#6c63ff":isHot?"rgba(225,29,72,.2)":"rgba(217,119,6,.15)";
+              const bgColor = isAI?"linear-gradient(160deg,#fff,#faf5ff)":"#ffffff";
+              return (
+              <div key={n.id} id={"note-card-"+n.id}
+                style={{background:bgColor,border:`1.5px solid ${borderColor}`,borderRadius:16,overflow:"hidden",
+                  boxShadow:isHighlighted?"0 0 0 3px rgba(108,99,255,.25),0 4px 20px rgba(0,0,0,.1)":"0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)",
+                  transition:"all .2s",position:"relative"}}
+                onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 4px 24px rgba(0,0,0,.1)";}}
+                onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=isHighlighted?"0 0 0 3px rgba(108,99,255,.25),0 4px 20px rgba(0,0,0,.1)":"0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)";}}>
+                {/* Top color stripe */}
+                <div style={{height:3,background:stripeColor}}/>
+                {/* AI Badge */}
+                {isAI&&<span style={{position:"absolute",top:10,right:10,fontSize:9,padding:"2px 7px",borderRadius:20,background:"linear-gradient(135deg,#7c3aed,#6d28d9)",color:"#fff",fontWeight:700,display:"flex",alignItems:"center",gap:3}}>🤖 AI</span>}
+                <div style={{padding:14}}>
+                  {/* Contact row */}
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,paddingRight:isAI?44:0}}>
+                    <div style={{width:36,height:36,borderRadius:"50%",background:isHot?"linear-gradient(135deg,#e11d48,#f43f5e)":isAI?"linear-gradient(135deg,#7c3aed,#8b5cf6)":"linear-gradient(135deg,#d97706,#f59e0b)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,.1)"}}>
+                      {(n.contact_name||"?")[0]?.toUpperCase()}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
+                        style={{fontWeight:700,fontSize:13,color:"#0d0f1a",background:"none",border:"none",cursor:"pointer",padding:0,textAlign:"left",fontFamily:"inherit",transition:"color .15s"}}
+                        onMouseEnter={e=>e.target.style.color="#6c63ff"} onMouseLeave={e=>e.target.style.color="#0d0f1a"}>
+                        {n.contact_name||n.contact_id}
+                      </button>
+                      <div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>{n.contact_id}</div>
+                    </div>
+                    <div style={{display:"flex",gap:4,flexShrink:0}}>
+                      <button onClick={()=>markDone(n.id,true)} title="Mark done"
+                        style={{width:26,height:26,borderRadius:7,border:"1px solid #bbf7d0",background:"#f0fdf4",color:"#16a34a",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}
+                        onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.1)"}} onMouseLeave={e=>{e.currentTarget.style.transform="none"}}>✓</button>
+                      <button onClick={()=>{setEditingNoteId(n.id);setEditingNoteText(n.note_text);}}
+                        style={{width:26,height:26,borderRadius:7,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}
+                        onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.1)"}} onMouseLeave={e=>{e.currentTarget.style.transform="none"}}>✏️</button>
+                      <button onClick={()=>deleteNote(n.id)}
+                        style={{width:26,height:26,borderRadius:7,border:"1px solid #fecdd3",background:"#fff1f3",color:"#e11d48",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}
+                        onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.1)"}} onMouseLeave={e=>{e.currentTarget.style.transform="none"}}>✕</button>
                     </div>
                   </div>
-                ) : (
-                  <div style={{fontSize:13,color:"#78350f",lineHeight:1.6,whiteSpace:"pre-wrap",marginBottom:10}}>{n.note_text}</div>
-                )}
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#92400e",opacity:.7,marginBottom:8}}>
-                  <span>by {n.agent_name||"Agent"}</span>
-                  <span>{fmt(n.created_at)}</span>
+                  {/* Note text or edit form */}
+                  {editingNoteId===n.id ? (
+                    <div style={{marginBottom:10}}>
+                      <textarea value={editingNoteText} onChange={e=>setEditingNoteText(e.target.value)} rows={3}
+                        style={{width:"100%",background:"#fffde7",border:"1.5px solid #f59e0b",borderRadius:8,padding:"8px 10px",color:"#78350f",fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                      <div style={{display:"flex",gap:6,marginTop:6}}>
+                        <button onClick={()=>saveEditNote(n.id)} style={{padding:"5px 14px",borderRadius:7,border:"none",background:"#f59e0b",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save</button>
+                        <button onClick={()=>{setEditingNoteId(null);setEditingNoteText("");}} style={{padding:"5px 10px",borderRadius:7,border:"1px solid #fde68a",background:"transparent",color:"#92400e",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{fontSize:12,color:"#374151",lineHeight:1.65,marginBottom:10,padding:"10px 12px",
+                      background:isAI?"#f5f3ff":isHot?"#fff1f3":"#fffbeb",
+                      borderRadius:8,borderLeft:`3px solid ${isAI?"#7c3aed":isHot?"#e11d48":"#d97706"}`}}>
+                      {n.note_text}
+                    </div>
+                  )}
+                  {/* Meta */}
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:10,color:"#9ca3af",marginBottom:10}}>
+                    <span>by {n.agent_name||"Agent"}</span>
+                    <span>{fmt(n.created_at)}</span>
+                  </div>
+                  {/* Jump button */}
+                  <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
+                    style={{width:"100%",padding:"7px",borderRadius:8,border:"1px solid #e8eaef",background:"#f8f9fc",color:"#6b7280",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,transition:"all .15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background="#f0effe";e.currentTarget.style.color="#6c63ff";e.currentTarget.style.borderColor="rgba(108,99,255,.2)";}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="#f8f9fc";e.currentTarget.style.color="#6b7280";e.currentTarget.style.borderColor="#e8eaef";}}>
+                    💬 Jump to Chat
+                  </button>
                 </div>
-                <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
-                  style={{width:"100%",padding:"6px",borderRadius:8,border:"1px solid #fde68a",background:"#fffbeb",color:"#854d0e",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  💬 Jump to Chat
-                </button>
               </div>
-            ))}
+            );})}
           </div>
         </>}
 
