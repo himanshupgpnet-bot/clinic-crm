@@ -4916,7 +4916,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                 {isAI&&<span style={{position:"absolute",top:10,right:10,fontSize:9,padding:"2px 7px",borderRadius:20,background:"linear-gradient(135deg,#7c3aed,#6d28d9)",color:"#fff",fontWeight:700,display:"flex",alignItems:"center",gap:3}}>🤖 AI</span>}
                 <div style={{padding:14}}>
                   {/* Contact row */}
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,paddingRight:isAI?44:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,paddingRight:isAI?44:0}}>
                     <div style={{width:36,height:36,borderRadius:"50%",background:isHot?"linear-gradient(135deg,#e11d48,#f43f5e)":isAI?"linear-gradient(135deg,#7c3aed,#8b5cf6)":"linear-gradient(135deg,#d97706,#f59e0b)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,.1)"}}>
                       {(n.contact_name||"?")[0]?.toUpperCase()}
                     </div>
@@ -4928,17 +4928,18 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                       </button>
                       <div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>{n.contact_id}</div>
                     </div>
-                    <div style={{display:"flex",gap:4,flexShrink:0}}>
-                      <button onClick={()=>markDone(n.id,true)} title="Mark done"
-                        style={{width:26,height:26,borderRadius:7,border:"1px solid #bbf7d0",background:"#f0fdf4",color:"#16a34a",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}
-                        onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.1)"}} onMouseLeave={e=>{e.currentTarget.style.transform="none"}}>✓</button>
-                      <button onClick={()=>{setEditingNoteId(n.id);setEditingNoteText(n.note_text);}}
-                        style={{width:26,height:26,borderRadius:7,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}
-                        onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.1)"}} onMouseLeave={e=>{e.currentTarget.style.transform="none"}}>✏️</button>
-                      <button onClick={()=>deleteNote(n.id)}
-                        style={{width:26,height:26,borderRadius:7,border:"1px solid #fecdd3",background:"#fff1f3",color:"#e11d48",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}
-                        onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.1)"}} onMouseLeave={e=>{e.currentTarget.style.transform="none"}}>✕</button>
-                    </div>
+                  </div>
+                  {/* Action buttons row — separate, below contact */}
+                  <div style={{display:"flex",gap:6,marginBottom:10}}>
+                    <button onClick={()=>markDone(n.id,true)}
+                      style={{flex:1,padding:"5px 0",borderRadius:8,border:"1px solid #bbf7d0",background:"#f0fdf4",color:"#16a34a",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all .15s"}}
+                      onMouseEnter={e=>{e.currentTarget.style.background="#dcfce7"}} onMouseLeave={e=>{e.currentTarget.style.background="#f0fdf4"}}>✓ Done</button>
+                    <button onClick={()=>{setEditingNoteId(n.id);setEditingNoteText(n.note_text);}}
+                      style={{flex:1,padding:"5px 0",borderRadius:8,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all .15s"}}
+                      onMouseEnter={e=>{e.currentTarget.style.background="#dbeafe"}} onMouseLeave={e=>{e.currentTarget.style.background="#eff6ff"}}>✏️ Edit</button>
+                    <button onClick={()=>deleteNote(n.id)}
+                      style={{flex:1,padding:"5px 0",borderRadius:8,border:"1px solid #fecdd3",background:"#fff1f3",color:"#e11d48",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all .15s"}}
+                      onMouseEnter={e=>{e.currentTarget.style.background="#ffe4e6"}} onMouseLeave={e=>{e.currentTarget.style.background="#fff1f3"}}>✕ Delete</button>
                   </div>
                   {/* Note text or edit form */}
                   {editingNoteId===n.id ? (
