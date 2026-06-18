@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.104";
+const CRM_VERSION = "2.9.105";
 
 // Responsive hook
 function useWindowSize() {
@@ -149,6 +149,8 @@ export default function App() {
   const [clientSettings, setClientSettings] = useState(null);
   const [inboxClinic, setInboxClinic] = useState(null);
   const [kbClinic, setKbClinic] = useState(null);
+  const [improverResult, setImproverResult] = useState(null);
+  const [improverDays, setImproverDays] = useState(7);
   const [dateFrom, setDateFrom] = useState(daysAgo(29));
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
@@ -2921,6 +2923,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 qaData={qaData} setQaData={setQaData}
                 fetchKnowledge={fetchKnowledge}
                 authToken={authToken}
+                improverResult={improverResult} setImproverResult={setImproverResult}
+                improverDays={improverDays} setImproverDays={setImproverDays}
                 onViewChat={(name)=>{
                   setTab("crm");
                   const c = contacts.find(x=>(x.name||"").toLowerCase().includes((name||"").toLowerCase()));
@@ -6851,14 +6855,18 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
 }
 
 // ── AI PROMPT IMPROVER COMPONENT ─────────────────────────────────────────────
-function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemPrompt, setSystemPrompt, qaData, setQaData, fetchKnowledge, authToken, onViewChat}) {
+function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemPrompt, setSystemPrompt, qaData, setQaData, fetchKnowledge, authToken, onViewChat, improverResult, setImproverResult, improverDays, setImproverDays}) {
   const [loading, setLoading] = React.useState(false);
-  const [result, setResult] = React.useState(null);
   const [error, setError] = React.useState("");
-  const [days, setDays] = React.useState(7);
   const [appliedQA, setAppliedQA] = React.useState(new Set());
   const [appliedPrompt, setAppliedPrompt] = React.useState(new Set());
   const [savingPrompt, setSavingPrompt] = React.useState(false);
+
+  // Use lifted state — survives tab switches
+  const result = improverResult;
+  const setResult = setImproverResult;
+  const days = improverDays;
+  const setDays = setImproverDays;
 
   const caseLabels = {
     case1:{icon:"👤",label:"Agent Takeover",color:"#2563eb",bg:"#eff6ff",border:"#bfdbfe"},
