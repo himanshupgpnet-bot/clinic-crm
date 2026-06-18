@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.105";
+const CRM_VERSION = "2.9.106";
 
 // Responsive hook
 function useWindowSize() {
@@ -6944,6 +6944,10 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
             style={{padding:"8px 18px",borderRadius:10,border:"none",background:loading?"#94a3b8":"linear-gradient(135deg,#6c63ff,#5a52e0)",color:"#fff",fontSize:12,fontWeight:700,cursor:loading||!kbClinic?"not-allowed":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,boxShadow:loading?"none":"0 2px 10px rgba(108,99,255,.25)"}}>
             {loading?"⏳ Analysing...":"🔍 Analyse & Suggest"}
           </button>
+          {result&&!loading&&<button onClick={()=>{setResult(null);setAppliedQA(new Set());setAppliedPrompt(new Set());setError("");}}
+            style={{padding:"8px 14px",borderRadius:10,border:"1px solid #fecdd3",background:"#fff1f3",color:"#e11d48",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+            🗑️ Clear
+          </button>}
         </div>
       </div>
 
