@@ -4109,7 +4109,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>}
 
         {/* ══ ADMIN TAB ══ */}
-        {tab==="admin"&&isAdmin&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal}/></div>}
+        {tab==="admin"&&isAdmin&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal} adminOverview={adminOverview}/></div>}
 
       </div>
     </div>
@@ -5462,7 +5462,7 @@ function PermGrid({data, setData, PERM_TABS, WA_GREEN, T, INTEGRATION_CONNECTORS
 }
 
 // ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
-function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
+function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverview=[]}) {
   const [view, setView] = useState("clients");
   const [clinics, setClinics] = useState([]);
   const [users, setUsers] = useState([]);
@@ -5978,9 +5978,9 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
       {!loading&&clinics.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
         {[
           {icon:"🏢",v:clinics.length,l:"Total Clients",sub:`${clinics.filter(c=>c.active!==false).length} Active · ${clinics.filter(c=>c.active===false).length} Disabled`,c:"#6c63ff",bg:"#f0effe"},
-          {icon:"👥",v:clinics.reduce((s,c)=>s+(c.total_contacts||0),0),l:"Total Contacts",sub:"Across all clients",c:"#2563eb",bg:"#eff6ff"},
-          {icon:"🔥",v:clinics.reduce((s,c)=>s+(c.hot_leads||0),0),l:"Hot Leads",sub:"All clients combined",c:"#e11d48",bg:"#fff1f3"},
-          {icon:"🤖",v:Math.round(clinics.reduce((s,c)=>s+(c.bot_performance||0),0)/Math.max(clinics.filter(c=>c.active!==false).length,1))+"%",l:"Avg Bot Rate",sub:"Active clients avg",c:"#16a34a",bg:"#f0fdf4"},
+          {icon:"👥",v:adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0),l:"Total Contacts",sub:"Across all clients",c:"#2563eb",bg:"#eff6ff"},
+          {icon:"🔥",v:adminOverview.reduce((s,c)=>s+(c.hot_leads||0),0),l:"Hot Leads",sub:"All clients combined",c:"#e11d48",bg:"#fff1f3"},
+          {icon:"🤖",v:(adminOverview.length>0?Math.round(adminOverview.reduce((s,c)=>s+(c.bot_performance||0),0)/adminOverview.length):0)+"%",l:"Avg Bot Rate",sub:"Active clients avg",c:"#16a34a",bg:"#f0fdf4"},
         ].map(s=>(
           <div key={s.l} style={{background:T.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${T.border}`,boxShadow:"0 1px 3px rgba(0,0,0,.06)",display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:40,height:40,borderRadius:11,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
@@ -6052,93 +6052,61 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0,alignItems:"flex-end"}}>
-                  <div style={{display:"flex",gap:6}}>
-                    <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
-                      style={{padding:"7px 12px",borderRadius:10,border:`1px solid ${WA_GREEN}`,background:WA_GREEN,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
-                      👤 Add User
-                    </button>
-                    <button onClick={()=>{setEditClinic({...clinic,website:clinic.website_url||clinic.contact_email||""});setView("clinic_form");}}
-                      style={{padding:"7px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                      ✏️ Edit
-                    </button>
-                    <button onClick={async()=>{
+              {/* ── ACTIONS ROW ── */}
+              <div style={{padding:"12px 20px",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",borderBottom:`1px solid ${T.border}`}}>
+                <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
+                  style={{padding:"7px 14px",borderRadius:10,border:"none",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 8px ${WA_GREEN}40`}}>
+                  👤 Add User
+                </button>
+                <button onClick={()=>{setEditClinic({...clinic,website:clinic.website_url||clinic.contact_email||""});setView("clinic_form");}}
+                  style={{padding:"7px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  ✏️ Edit
+                </button>
+                <button onClick={async()=>{
                       const res = await fetch(`${API}/api/conversations/export?clinic_id=${clinic.id}`, {headers:authHeaders()});
-                      if(res.ok){
-                        const blob = await res.blob();
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `${clinic.name.replace(/\s+/g,"_")}_chats_${new Date().toISOString().slice(0,10)}.csv`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      }
-                    }} style={{padding:"7px 12px",borderRadius:10,border:"1px solid #7c3aed40",background:"#7c3aed10",color:"#7c3aed",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
-                      📥 Chats
-                    </button>
-                    <button onClick={async()=>{
-                      setConfirmModal({
-                        title:`Reset ${clinic.name}?`,
-                        message:`This will permanently delete all contacts, chats, leads and analytics for this client.
-
-This cannot be undone.`,
-                        icon:"🗑️",danger:true,confirmText:"Yes, Reset Everything",
-                        onConfirm:async()=>{
-                          const r=await fetch(`${API}/api/admin/clients/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
-                          if(r.ok){const d=await r.json();flash(`✅ Reset — ${d.deleted_contacts} contacts deleted`);load();}
-                          else flash("❌ Reset failed");
-                        }
-                      });
+                      if(res.ok){const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`${clinic.name.replace(/\s+/g,"_")}_chats_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);}
+                    }} style={{padding:"7px 12px",borderRadius:10,border:"1px solid #7c3aed40",background:"#7c3aed10",color:"#7c3aed",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  📥 Chats
+                </button>
+                <button onClick={async()=>{
+                      setConfirmModal({title:`Reset ${clinic.name}?`,message:`This will permanently delete all contacts, chats, leads and analytics for this client.\n\nThis cannot be undone.`,icon:"🗑️",danger:true,confirmText:"Yes, Reset Everything",
+                        onConfirm:async()=>{const r=await fetch(`${API}/api/admin/clients/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});if(r.ok){const d=await r.json();flash(`✅ Reset — ${d.deleted_contacts} contacts deleted`);load();}else flash("❌ Reset failed");}});
                     }} style={{padding:"7px 10px",borderRadius:10,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                      🗑️ Reset
-                    </button>
-                    <button onClick={async()=>{
+                  🗑️ Reset
+                </button>
+                <button onClick={async()=>{
                       const isActive = clinic.active !== false;
                       const action = isActive ? "Disable" : "Enable";
-                      setConfirmModal({
-                        title:`${action} ${clinic.name}?`,
-                        message:isActive
-                          ? `Disabling will prevent all users of this client from logging in.`
-                          : `Enabling will allow users of this client to log in again.`,
-                        icon:isActive?"🔴":"🟢",
-                        danger:isActive,
-                        confirmText:`Yes, ${action} Client`,
-                        onConfirm:async()=>{
-                          const r=await fetch(`${API}/api/admin/clients/${clinic.id}`,{
-                            method:"PATCH",headers:authHeaders(),
-                            body:JSON.stringify({active:!isActive})
-                          });
-                          if(r.ok){flash(`✅ ${clinic.name} ${action}d`);load();}
-                          else flash(`❌ ${action} failed`);
-                        }
-                      });
+                      setConfirmModal({title:`${action} ${clinic.name}?`,message:isActive?`Disabling will prevent all users of this client from logging in.`:`Enabling will allow users of this client to log in again.`,icon:isActive?"🔴":"🟢",danger:isActive,confirmText:`Yes, ${action} Client`,
+                        onConfirm:async()=>{const r=await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!isActive})});if(r.ok){flash(`✅ ${clinic.name} ${action}d`);load();}else flash(`❌ ${action} failed`);}});
                     }} style={{padding:"7px 10px",borderRadius:10,
                       border:clinic.active!==false?"1px solid #ef444440":"1px solid #22c55e40",
                       background:clinic.active!==false?"#ef444410":"#22c55e10",
                       color:clinic.active!==false?"#ef4444":"#22c55e",
                       fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                      {clinic.active!==false?"🔴 Disable":"🟢 Enable"}
-                    </button>
-                  </div>
-                </div>
+                  {clinic.active!==false?"🔴 Disable":"🟢 Enable"}
+                </button>
               </div>
 
-              {/* ── PER-CLIENT STATS STRIP ── */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderTop:`1px solid ${T.border}`,borderBottom:`1px solid ${T.border}`,background:T.card2}}>
-                {[
-                  {v:clinic.total_contacts||0,l:"Contacts",c:"#2563eb"},
-                  {v:clinic.hot_leads||0,l:"🔥 Hot Leads",c:"#e11d48"},
-                  {v:clinic.resolved_convos||0,l:"✅ Bookings",c:"#16a34a"},
-                  {v:Math.round((clinic.bot_messages||0)/Math.max((clinic.total_messages||1),1)*100)+"%",l:"🤖 Bot Rate",c:"#16a34a"},
-                  {v:clinic.active_convos||0,l:"💬 Active",c:"#6c63ff"},
-                ].map((s,i)=>(
-                  <div key={s.l} style={{textAlign:"center",padding:"12px 8px",borderRight:i<4?`1px solid ${T.border}`:"none"}}>
-                    <div style={{fontSize:18,fontWeight:900,color:s.c,lineHeight:1,marginBottom:3}}>{s.v}</div>
-                    <div style={{fontSize:9,color:T.textFaint,fontWeight:600}}>{s.l}</div>
-                  </div>
-                ))}
-              </div>
+                            {/* ── PER-CLIENT STATS STRIP ── */}
+              {(()=>{
+                const ov = adminOverview.find(o=>o.clinic_id===clinic.id||o.id===clinic.id)||{};
+                const botRate = ov.total_messages>0?Math.round((ov.bot_messages||0)/ov.total_messages*100):0;
+                return <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderTop:`1px solid ${T.border}`,borderBottom:`1px solid ${T.border}`,background:T.card2}}>
+                  {[
+                    {v:ov.total_contacts||0,l:"Contacts",c:"#2563eb"},
+                    {v:ov.hot_leads||0,l:"🔥 Hot Leads",c:"#e11d48"},
+                    {v:(ov.hot_leads||0)+(ov.warm_leads||0),l:"🟡 Warm+Hot",c:"#d97706"},
+                    {v:botRate+"%",l:"🤖 Bot Rate",c:"#16a34a"},
+                    {v:ov.active_convos||0,l:"💬 Active",c:"#6c63ff"},
+                  ].map((s,i)=>(
+                    <div key={s.l} style={{textAlign:"center",padding:"12px 8px",borderRight:i<4?`1px solid ${T.border}`:"none"}}>
+                      <div style={{fontSize:18,fontWeight:900,color:s.c,lineHeight:1,marginBottom:3}}>{s.v}</div>
+                      <div style={{fontSize:9,color:T.textFaint,fontWeight:600}}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>;
+              })()}
 
               {/* ── STAFF HIERARCHY ── */}
               <div style={{padding:"14px 20px"}}>
@@ -6177,7 +6145,7 @@ This cannot be undone.`,
                           <div style={{display:"flex",alignItems:"center",gap:10}}>
                             {/* Avatar */}
                             <div style={{width:36,height:36,borderRadius:"50%",
-                              background:(()=>{const colors=["linear-gradient(135deg,#6c63ff,#8b5cf6)","linear-gradient(135deg,#3b82f6,#2563eb)","linear-gradient(135deg,#10b981,#059669)","linear-gradient(135deg,#f59e0b,#d97706)","linear-gradient(135deg,#e11d48,#be123c)","linear-gradient(135deg,#8b5cf6,#7c3aed)"];const idx=(u.username?.charCodeAt(0)||0)%colors.length;return isOnline?colors[idx]:"linear-gradient(135deg,#94a3b8,#64748b)"})(),
+                              background:(()=>{const cols=["linear-gradient(135deg,#6c63ff,#8b5cf6)","linear-gradient(135deg,#3b82f6,#2563eb)","linear-gradient(135deg,#10b981,#059669)","linear-gradient(135deg,#f59e0b,#d97706)","linear-gradient(135deg,#e11d48,#be123c)","linear-gradient(135deg,#8b5cf6,#7c3aed)","linear-gradient(135deg,#0891b2,#0e7490)"];return cols[(u.username?.charCodeAt(0)||72)%cols.length];})(),
                               display:"flex",alignItems:"center",justifyContent:"center",
                               fontSize:13,fontWeight:700,color:"#fff",flexShrink:0,position:"relative",boxShadow:"0 2px 6px rgba(0,0,0,.1)"}}>
                               {u.username?.charAt(0)?.toUpperCase()||"?"}
