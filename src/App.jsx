@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.112";
+const CRM_VERSION = "2.9.114";
 
 // Responsive hook
 function useWindowSize() {
@@ -5959,7 +5959,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
 
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:10}}>
         <div>
-          <div style={{fontWeight:900,fontSize:20,letterSpacing:"-.4px",color:T.text}}>🏢 Client Management</div>
+          <div style={{fontWeight:900,fontSize:20,letterSpacing:"-0.4px",color:T.text}}>🏢 Client Management</div>
           <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{clinics.length} clients · {users.length} staff members</div>
         </div>
         <div style={{display:"flex",gap:8}}>
@@ -6064,21 +6064,23 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                 </button>
                 <button onClick={async()=>{
                       const res = await fetch(`${API}/api/conversations/export?clinic_id=${clinic.id}`, {headers:authHeaders()});
-                      if(res.ok){const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`${clinic.name.replace(/\s+/g,"_")}_chats_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);}
+                      if(res.ok){const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=clinic.name.replace(/\s+/g,"_")+"_chats_"+new Date().toISOString().slice(0,10)+".csv";a.click();URL.revokeObjectURL(url);}
                     }} style={{padding:"7px 12px",borderRadius:10,border:"1px solid #7c3aed40",background:"#7c3aed10",color:"#7c3aed",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                   📥 Chats
                 </button>
                 <button onClick={async()=>{
-                      setConfirmModal({title:`Reset ${clinic.name}?`,message:`This will permanently delete all contacts, chats, leads and analytics for this client.\n\nThis cannot be undone.`,icon:"🗑️",danger:true,confirmText:"Yes, Reset Everything",
-                        onConfirm:async()=>{const r=await fetch(`${API}/api/admin/clients/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});if(r.ok){const d=await r.json();flash(`✅ Reset — ${d.deleted_contacts} contacts deleted`);load();}else flash("❌ Reset failed");}});
+                      setConfirmModal({title:"Reset "+clinic.name+"?",message:"This will permanently delete all contacts, chats, leads and analytics for this client.
+
+This cannot be undone.",icon:"🗑️",danger:true,confirmText:"Yes, Reset Everything",
+                        onConfirm:async()=>{const r=await fetch(API+"/api/admin/clients/"+clinic.id+"/reset",{method:"DELETE",headers:authHeaders()});if(r.ok){const d=await r.json();flash("✅ Reset — "+d.deleted_contacts+" contacts deleted");load();}else flash("❌ Reset failed");}});
                     }} style={{padding:"7px 10px",borderRadius:10,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
                   🗑️ Reset
                 </button>
                 <button onClick={async()=>{
                       const isActive = clinic.active !== false;
                       const action = isActive ? "Disable" : "Enable";
-                      setConfirmModal({title:`${action} ${clinic.name}?`,message:isActive?`Disabling will prevent all users of this client from logging in.`:`Enabling will allow users of this client to log in again.`,icon:isActive?"🔴":"🟢",danger:isActive,confirmText:`Yes, ${action} Client`,
-                        onConfirm:async()=>{const r=await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!isActive})});if(r.ok){flash(`✅ ${clinic.name} ${action}d`);load();}else flash(`❌ ${action} failed`);}});
+                      setConfirmModal({title:action+" "+clinic.name+"?",message:isActive?"Disabling will prevent all users of this client from logging in.":"Enabling will allow users of this client to log in again.",icon:isActive?"🔴":"🟢",danger:isActive,confirmText:"Yes, "+action+" Client",
+                        onConfirm:async()=>{const r=await fetch(API+"/api/admin/clients/"+clinic.id,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!isActive})});if(r.ok){flash("✅ "+clinic.name+" "+action+"d");load();}else flash("❌ "+action+" failed");}});
                     }} style={{padding:"7px 10px",borderRadius:10,
                       border:clinic.active!==false?"1px solid #ef444440":"1px solid #22c55e40",
                       background:clinic.active!==false?"#ef444410":"#22c55e10",
