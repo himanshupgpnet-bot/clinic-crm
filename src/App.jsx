@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.110";
+const CRM_VERSION = "2.9.111";
 
 // Responsive hook
 function useWindowSize() {
@@ -5957,19 +5957,41 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
     <div style={{maxWidth:860,margin:"0 auto",padding:"0 4px"}}>
       {msg&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:13,fontWeight:600,color:"#166534"}}>{msg}</div>}
 
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
-        <div style={{fontWeight:800,fontSize:18}}>🏢 Client Management</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:10}}>
+        <div>
+          <div style={{fontWeight:900,fontSize:20,letterSpacing:"-.4px",color:T.text}}>🏢 Client Management</div>
+          <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{clinics.length} clients · {users.length} staff members</div>
+        </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>{setEditUser(emptyUser());setView("user_form");}}
-            style={{padding:"8px 16px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+            style={{padding:"9px 16px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:5}}>
             👤 New User
           </button>
           <button onClick={()=>{setEditClinic({...emptyClinic});setView("clinic_form");}}
-            style={{padding:"8px 16px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-            + Onboard Client
+            style={{padding:"9px 18px",borderRadius:10,border:"none",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 10px ${WA_GREEN}40`,display:"flex",alignItems:"center",gap:5}}>
+            ➕ Onboard Client
           </button>
         </div>
       </div>
+
+      {/* Global summary — all clients combined */}
+      {!loading&&clinics.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+        {[
+          {icon:"🏢",v:clinics.length,l:"Total Clients",sub:`${clinics.filter(c=>c.active!==false).length} Active · ${clinics.filter(c=>c.active===false).length} Disabled`,c:"#6c63ff",bg:"#f0effe"},
+          {icon:"👥",v:clinics.reduce((s,c)=>s+(c.total_contacts||0),0),l:"Total Contacts",sub:"Across all clients",c:"#2563eb",bg:"#eff6ff"},
+          {icon:"🔥",v:clinics.reduce((s,c)=>s+(c.hot_leads||0),0),l:"Hot Leads",sub:"All clients combined",c:"#e11d48",bg:"#fff1f3"},
+          {icon:"🤖",v:Math.round(clinics.reduce((s,c)=>s+(c.bot_performance||0),0)/Math.max(clinics.filter(c=>c.active!==false).length,1))+"%",l:"Avg Bot Rate",sub:"Active clients avg",c:"#16a34a",bg:"#f0fdf4"},
+        ].map(s=>(
+          <div key={s.l} style={{background:T.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${T.border}`,boxShadow:"0 1px 3px rgba(0,0,0,.06)",display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:40,height:40,borderRadius:11,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
+            <div>
+              <div style={{fontSize:22,fontWeight:900,color:s.c,lineHeight:1,marginBottom:2}}>{s.v}</div>
+              <div style={{fontSize:11,color:T.text,fontWeight:600}}>{s.l}</div>
+              <div style={{fontSize:10,color:T.textMuted,marginTop:1}}>{s.sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>}
 
       {loading&&<div style={{padding:40,textAlign:"center",color:T.textMuted}}>Loading...</div>}
 
@@ -5986,21 +6008,21 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal}) {
         const usedSeats = clinicUsers.filter(u=>u.active).length;
         const hotLeads = 0; // could add later
         return (
-          <div key={clinic.id} style={{marginBottom:20,opacity:clinic.active===false?0.6:1,transition:"opacity .2s"}}>
+          <div key={clinic.id} style={{marginBottom:16,opacity:clinic.active===false?0.75:1,transition:"opacity .2s"}}>
 
             {/* ── CLINIC CARD (top of hierarchy) ── */}
             <div style={{
-              background:`linear-gradient(135deg,${dark?"#0f1e14":"#f0fdf4"},${dark?"#0a1628":"#eff6ff"})`,
-              border:`2px solid ${WA_GREEN}30`,borderRadius:20,overflow:"hidden",
-              boxShadow:"0 4px 20px rgba(0,0,0,.08)"}}>
+              background:T.card,
+              border:`1px solid ${T.border}`,borderRadius:20,overflow:"hidden",
+              boxShadow:"0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)",transition:"box-shadow .2s"}}>
 
               {/* Header */}
-              <div style={{padding:"18px 20px",background:dark?"rgba(0,0,0,.2)":"rgba(255,255,255,.6)",backdropFilter:"blur(8px)",borderBottom:`1px solid ${WA_GREEN}20`,display:"flex",alignItems:"center",gap:14}}>
+              <div style={{padding:"18px 20px 14px",background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:14}}>
                 {/* Logo */}
-                <div style={{width:56,height:56,borderRadius:14,overflow:"hidden",
-                  background:`linear-gradient(135deg,${WA_GREEN}20,#3b82f620)`,
+                <div style={{width:54,height:54,borderRadius:13,overflow:"hidden",
+                  background:T.card2,
                   display:"flex",alignItems:"center",justifyContent:"center",
-                  flexShrink:0,border:`2px solid ${WA_GREEN}30`,boxShadow:"0 2px 8px rgba(0,0,0,.1)"}}>
+                  flexShrink:0,border:`1px solid ${T.border}`}}>
                   {clinic.logo_url
                     ?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
                     :<span style={{fontSize:26}}>🏢</span>}
@@ -6102,12 +6124,28 @@ This cannot be undone.`,
                 </div>
               </div>
 
+              {/* ── PER-CLIENT STATS STRIP ── */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderTop:`1px solid ${T.border}`,borderBottom:`1px solid ${T.border}`,background:T.card2}}>
+                {[
+                  {v:clinic.total_contacts||0,l:"Contacts",c:"#2563eb"},
+                  {v:clinic.hot_leads||0,l:"🔥 Hot Leads",c:"#e11d48"},
+                  {v:clinic.resolved_convos||0,l:"✅ Bookings",c:"#16a34a"},
+                  {v:Math.round((clinic.bot_messages||0)/Math.max((clinic.total_messages||1),1)*100)+"%",l:"🤖 Bot Rate",c:"#16a34a"},
+                  {v:clinic.active_convos||0,l:"💬 Active",c:"#6c63ff"},
+                ].map((s,i)=>(
+                  <div key={s.l} style={{textAlign:"center",padding:"12px 8px",borderRight:i<4?`1px solid ${T.border}`:"none"}}>
+                    <div style={{fontSize:18,fontWeight:900,color:s.c,lineHeight:1,marginBottom:3}}>{s.v}</div>
+                    <div style={{fontSize:9,color:T.textFaint,fontWeight:600}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+
               {/* ── STAFF HIERARCHY ── */}
               <div style={{padding:"14px 20px"}}>
                 {/* Connector line */}
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-                  <div style={{width:2,height:16,background:`${WA_GREEN}30`,borderRadius:1,marginLeft:26}}/>
-                  <div style={{fontSize:11,color:T.textMuted,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase"}}>
+                  <div style={{width:2,height:16,background:`${T.border}`,borderRadius:1,marginLeft:26}}/>
+                  <div style={{fontSize:10,color:T.textMuted,fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>
                     Staff Members ({clinicUsers.length})
                   </div>
                 </div>
@@ -6133,16 +6171,15 @@ This cannot be undone.`,
                         </div>
 
                         {/* User card */}
-                        <div style={{flex:1,background:T.card,borderRadius:12,padding:"10px 14px",
-                          border:`1px solid ${isOnline?"#86efac":T.border}`,
-                          boxShadow:isOnline?"0 0 0 2px rgba(34,197,94,.1)":"none",
-                          transition:"box-shadow .2s"}}>
+                        <div style={{flex:1,background:T.card2,borderRadius:12,padding:"10px 14px",
+                          border:`1px solid ${isOnline?"#bbf7d0":T.border}`,
+                          transition:"all .15s"}}>
                           <div style={{display:"flex",alignItems:"center",gap:10}}>
                             {/* Avatar */}
-                            <div style={{width:34,height:34,borderRadius:10,
-                              background:isOnline?`linear-gradient(135deg,${WA_GREEN},#1da851)`:"linear-gradient(135deg,#94a3b8,#64748b)",
+                            <div style={{width:36,height:36,borderRadius:"50%",
+                              background:(()=>{const colors=["linear-gradient(135deg,#6c63ff,#8b5cf6)","linear-gradient(135deg,#3b82f6,#2563eb)","linear-gradient(135deg,#10b981,#059669)","linear-gradient(135deg,#f59e0b,#d97706)","linear-gradient(135deg,#e11d48,#be123c)","linear-gradient(135deg,#8b5cf6,#7c3aed)"];const idx=(u.username?.charCodeAt(0)||0)%colors.length;return isOnline?colors[idx]:"linear-gradient(135deg,#94a3b8,#64748b)"})(),
                               display:"flex",alignItems:"center",justifyContent:"center",
-                              fontSize:14,fontWeight:700,color:"#fff",flexShrink:0,position:"relative"}}>
+                              fontSize:13,fontWeight:700,color:"#fff",flexShrink:0,position:"relative",boxShadow:"0 2px 6px rgba(0,0,0,.1)"}}>
                               {u.username?.charAt(0)?.toUpperCase()||"?"}
                               {/* Online dot */}
                               <div style={{position:"absolute",bottom:-2,right:-2,width:10,height:10,borderRadius:"50%",
@@ -6161,7 +6198,7 @@ This cannot be undone.`,
                                 {perms.length===0
                                   ?<span style={{fontSize:9,color:T.textFaint,fontStyle:"italic"}}>No permissions set</span>
                                   :perms.map(p=>(
-                                    <span key={p.key} style={{fontSize:9,padding:"1px 6px",borderRadius:5,background:`${WA_GREEN}12`,color:WA_GREEN,fontWeight:600,border:`1px solid ${WA_GREEN}20`}}>{p.label}</span>
+                                    <span key={p.key} style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:"#f0effe",color:"#6c63ff",fontWeight:600,border:"1px solid rgba(108,99,255,.2)"}}>{p.label}</span>
                                   ))}
                               </div>
                               {/* Session info */}
