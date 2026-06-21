@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.107";
+const CRM_VERSION = "2.9.108";
 
 // Responsive hook
 function useWindowSize() {
@@ -6475,10 +6475,10 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
               {(!drillData||drillData.length===0)&&<div style={{textAlign:"center",padding:40,color:T.textFaint}}>
                 <div style={{fontSize:32,marginBottom:8}}>📢</div>
                 <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>No ad data yet</div>
-                <div style={{fontSize:11}}>Ad clicks appear when customers come from Facebook/Instagram ads</div>
+                <div style={{fontSize:11}}>Ad clicks appear when customers message from Facebook/Instagram ads</div>
               </div>}
               {drillData&&drillData.length>0&&<>
-                {/* Summary stats */}
+                {/* Summary row */}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:14}}>
                   {[
                     {v:drillData.length,l:"Campaigns",c:"#7c3aed"},
@@ -6486,86 +6486,113 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                     {v:drillData.reduce((s,a)=>s+(a.hot_leads||0),0),l:"Hot Leads",c:"#e11d48"},
                     {v:drillData.reduce((s,a)=>s+(a.bookings||0),0),l:"Bookings",c:"#16a34a"},
                   ].map(s=>(
-                    <div key={s.l} style={{background:T.card2,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${T.border}`}}>
+                    <div key={s.l} style={{background:T.card2,borderRadius:10,padding:"10px 6px",textAlign:"center",border:`1px solid ${T.border}`}}>
                       <div style={{fontSize:18,fontWeight:900,color:s.c,lineHeight:1}}>{s.v}</div>
                       <div style={{fontSize:9,color:T.textFaint,marginTop:3}}>{s.l}</div>
                     </div>
                   ))}
                 </div>
-                {/* Best performer banner */}
+                {/* Best performer */}
                 {(()=>{
-                  const best = [...drillData].sort((a,b)=>(b.bookings||0)-(a.bookings||0))[0];
-                  const bestConv = [...drillData].sort((a,b)=>(b.conversion_rate||0)-(a.conversion_rate||0))[0];
-                  return best&&<div style={{padding:"10px 14px",background:"#f0effe",borderRadius:10,fontSize:11,color:"#6d28d9",marginBottom:14,border:"1px solid #ddd6fe"}}>
-                    🏆 <strong>{best.ad_headline}</strong> — most bookings ({best.bookings}) · 
-                    Best conversion: <strong>{bestConv.ad_headline}</strong> ({bestConv.conversion_rate}%)
+                  const byBook=[...drillData].filter(a=>a.bookings>0).sort((a,b)=>b.bookings-a.bookings)[0];
+                  const byConv=[...drillData].filter(a=>a.total_clicks>0).sort((a,b)=>b.conversion_rate-a.conversion_rate)[0];
+                  const byHot=[...drillData].filter(a=>a.total_clicks>0).sort((a,b)=>b.hot_rate-a.hot_rate)[0];
+                  return <div style={{background:"#f0effe",borderRadius:10,padding:"10px 12px",marginBottom:14,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9",lineHeight:1.7}}>
+                    {byBook&&<div>🏆 <strong>{byBook.ad_headline}</strong> — most bookings ({byBook.bookings})</div>}
+                    {byConv&&<div>📈 Best conversion: <strong>{byConv.ad_headline}</strong> ({byConv.conversion_rate}%)</div>}
+                    {byHot&&<div>🔥 Best hot rate: <strong>{byHot.ad_headline}</strong> ({byHot.hot_rate}%)</div>}
                   </div>;
                 })()}
-                {/* All campaigns */}
                 <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>All Campaigns</div>
                 {drillData.map((ad,i)=>{
-                  const maxClicks = drillData[0]?.total_clicks||1;
+                  const total = ad.total_clicks||0;
+                  const daysActive = ad.first_click&&ad.last_click ? Math.max(1,Math.round((new Date(ad.last_click)-new Date(ad.first_click))/(1000*60*60*24))+1) : 1;
+                  const dailyAvg = total>0 ? (total/daysActive).toFixed(1) : "0";
+                  const hotRate = total>0 ? Math.round((ad.hot_leads||0)/total*100) : 0;
+                  const qualityScore = total>0 ? Math.round(((ad.hot_leads||0)*3+(ad.warm_leads||0)*1)/total*10) : 0;
+                  const maxClicks = drillData.reduce((m,a)=>Math.max(m,a.total_clicks||0),1);
                   const convColor = ad.conversion_rate>=8?"#16a34a":ad.conversion_rate>=4?"#d97706":"#e11d48";
                   const convBg = ad.conversion_rate>=8?"#f0fdf4":ad.conversion_rate>=4?"#fffbeb":"#fef2f2";
                   return (
-                    <div key={i} style={{background:T.card2,borderRadius:14,marginBottom:12,border:`1px solid ${T.border}`,overflow:"hidden",transition:"all .15s",animation:`_slideInL .3s ${i*0.05}s both`}}
+                    <div key={i} style={{background:T.card2,borderRadius:14,marginBottom:12,border:`1px solid ${T.border}`,overflow:"hidden",animation:`_slideInL .3s ${i*0.04}s both`,transition:"all .15s"}}
                       onMouseEnter={e=>{e.currentTarget.style.borderColor="#6c63ff";e.currentTarget.style.transform="translateX(3px)";}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.transform="none";}}>
-                      {/* Ad header */}
-                      <div style={{padding:"12px 14px 8px",borderBottom:`1px solid ${T.border}`}}>
-                        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:6}}>
+                      {/* Header */}
+                      <div style={{padding:"12px 14px 10px",borderBottom:`1px solid ${T.border}`}}>
+                        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:8}}>
                           <div style={{flex:1}}>
-                            <div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:3,lineHeight:1.4}}>{ad.ad_headline||"Organic / Direct"}</div>
-                            <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                              <span style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",fontWeight:600}}>📱 {ad.ad_source_type||"organic"}</span>
-                              {ad.first_click&&<span style={{fontSize:9,color:T.textFaint}}>📅 {ad.first_click} → {ad.last_click}</span>}
+                            <div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:4,lineHeight:1.4}}>{ad.ad_headline||"Organic / Direct"}</div>
+                            <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
+                              <span style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",fontWeight:600}}>
+                                {ad.ad_source_type==="ad"?"📘 Facebook":ad.ad_source_type==="instagram"?"📸 Instagram":ad.ad_source_type||"📢 Ad"}
+                              </span>
                               {ad.ad_url&&<a href={ad.ad_url} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
-                                style={{fontSize:9,color:"#6c63ff",fontWeight:600,textDecoration:"none",display:"flex",alignItems:"center",gap:2}}>🔗 View Ad ↗</a>}
+                                style={{fontSize:9,color:"#6c63ff",fontWeight:600,textDecoration:"none"}}>🔗 View Ad ↗</a>}
                             </div>
                           </div>
-                          <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:700,flexShrink:0,background:convBg,color:convColor,border:`1px solid ${convColor}30`}}>
+                          <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:700,flexShrink:0,background:convBg,color:convColor,border:`1px solid ${convColor}25`}}>
                             {ad.conversion_rate||0}% booked
                           </span>
                         </div>
-                        {/* Click bar */}
-                        <div style={{height:6,borderRadius:3,background:T.border,overflow:"hidden"}}>
-                          <div style={{height:6,borderRadius:3,background:"linear-gradient(90deg,#6c63ff,#8b5cf6)",width:`${Math.round((ad.total_clicks/maxClicks)*100)}%`,transition:"width .8s"}}/>
+                        {/* Click volume bar */}
+                        <div style={{height:5,borderRadius:3,background:T.border,overflow:"hidden",marginBottom:4}}>
+                          <div style={{height:5,borderRadius:3,background:"linear-gradient(90deg,#6c63ff,#8b5cf6)",width:`${Math.round((total/maxClicks)*100)}%`,transition:"width .8s"}}/>
                         </div>
                       </div>
-                      {/* Stats grid */}
+                      {/* Stats */}
                       <div style={{padding:"10px 14px"}}>
-                        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:6,marginBottom:10}}>
+                        {/* 6 stat boxes */}
+                        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:5,marginBottom:10}}>
                           {[
-                            {v:ad.total_clicks||0,l:"Clicks",c:"#6c63ff"},
+                            {v:total,l:"Clicks",c:"#6c63ff"},
                             {v:ad.hot_leads||0,l:"🔥 Hot",c:"#e11d48"},
                             {v:ad.warm_leads||0,l:"🟡 Warm",c:"#d97706"},
                             {v:ad.cold_leads||0,l:"🔵 Cold",c:"#3b82f6"},
                             {v:ad.bookings||0,l:"✅ Booked",c:"#16a34a"},
                             {v:ad.needed_agent||0,l:"👤 Agent",c:"#7c3aed"},
                           ].map(s=>(
-                            <div key={s.l} style={{textAlign:"center",background:T.card,borderRadius:8,padding:"6px 4px",border:`1px solid ${T.border}`}}>
-                              <div style={{fontSize:14,fontWeight:800,color:s.c,lineHeight:1}}>{s.v}</div>
+                            <div key={s.l} style={{textAlign:"center",background:T.card,borderRadius:8,padding:"6px 2px",border:`1px solid ${T.border}`}}>
+                              <div style={{fontSize:13,fontWeight:800,color:s.c,lineHeight:1}}>{s.v}</div>
                               <div style={{fontSize:8,color:T.textFaint,marginTop:2,lineHeight:1.2}}>{s.l}</div>
                             </div>
                           ))}
                         </div>
-                        {/* Lead quality bar */}
-                        <div style={{marginBottom:6}}>
-                          <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:T.textFaint,marginBottom:3}}>
-                            <span>Lead quality</span>
-                            <span>{ad.hot_leads||0} hot · {ad.warm_leads||0} warm · {ad.cold_leads||0} cold</span>
-                          </div>
-                          <div style={{height:6,borderRadius:3,overflow:"hidden",background:T.border,display:"flex"}}>
-                            {ad.total_clicks>0&&<>
-                              <div style={{height:6,background:"#e11d48",width:`${Math.round((ad.hot_leads||0)/ad.total_clicks*100)}%`,transition:"width .8s"}}/>
-                              <div style={{height:6,background:"#d97706",width:`${Math.round((ad.warm_leads||0)/ad.total_clicks*100)}%`,transition:"width .8s"}}/>
-                              <div style={{height:6,background:"#3b82f6",width:`${Math.round((ad.cold_leads||0)/ad.total_clicks*100)}%`,transition:"width .8s"}}/>
-                            </>}
-                          </div>
+                        {/* Key metrics row */}
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:10}}>
+                          {[
+                            {icon:"🔥",label:"Hot Rate",val:hotRate+"%",color:hotRate>=15?"#e11d48":hotRate>=8?"#d97706":"#6b7280"},
+                            {icon:"📊",label:"Quality Score",val:qualityScore+"/10",color:qualityScore>=6?"#16a34a":qualityScore>=3?"#d97706":"#e11d48"},
+                            {icon:"📈",label:"Daily Avg",val:dailyAvg+" leads",color:"#6c63ff"},
+                            {icon:"📅",label:"Active Days",val:daysActive+" days",color:"#6b7280"},
+                          ].map(m=>(
+                            <div key={m.label} style={{background:T.card,borderRadius:8,padding:"7px 6px",border:`1px solid ${T.border}`,textAlign:"center"}}>
+                              <div style={{fontSize:9,color:T.textFaint,marginBottom:2}}>{m.icon} {m.label}</div>
+                              <div style={{fontSize:12,fontWeight:700,color:m.color}}>{m.val}</div>
+                            </div>
+                          ))}
                         </div>
-                        {/* Agent rate note */}
-                        {ad.agent_rate>30&&<div style={{fontSize:10,color:"#d97706",background:"#fffbeb",borderRadius:6,padding:"4px 8px",border:"1px solid #fde68a"}}>
-                          ⚠️ {ad.agent_rate}% of leads needed human agent — bot may need improvement for this ad audience
+                        {/* Dates */}
+                        {ad.first_click&&<div style={{fontSize:10,color:T.textFaint,marginBottom:8}}>
+                          📅 Active: {ad.first_click} → {ad.last_click}
+                        </div>}
+                        {/* Lead quality bar */}
+                        {total>0&&<>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:T.textFaint,marginBottom:3}}>
+                            <span>Lead quality breakdown</span>
+                            <span>{hotRate}% hot · {total>0?Math.round((ad.warm_leads||0)/total*100):0}% warm · {total>0?Math.round((ad.cold_leads||0)/total*100):0}% cold</span>
+                          </div>
+                          <div style={{height:7,borderRadius:4,overflow:"hidden",background:T.border,display:"flex",marginBottom:8}}>
+                            <div style={{height:7,background:"#e11d48",width:`${Math.round((ad.hot_leads||0)/total*100)}%`,transition:"width .8s"}}/>
+                            <div style={{height:7,background:"#d97706",width:`${Math.round((ad.warm_leads||0)/total*100)}%`,transition:"width .8s"}}/>
+                            <div style={{height:7,background:"#3b82f6",width:`${Math.round((ad.cold_leads||0)/total*100)}%`,transition:"width .8s"}}/>
+                          </div>
+                        </>}
+                        {/* Warnings */}
+                        {ad.agent_rate>30&&<div style={{fontSize:10,color:"#d97706",background:"#fffbeb",borderRadius:6,padding:"4px 8px",border:"1px solid #fde68a",marginBottom:4}}>
+                          ⚠️ {ad.agent_rate}% of leads needed human agent — consider improving bot KB for this ad audience
+                        </div>}
+                        {hotRate<3&&total>10&&<div style={{fontSize:10,color:"#e11d48",background:"#fff1f3",borderRadius:6,padding:"4px 8px",border:"1px solid #fecdd3"}}>
+                          📉 Low hot rate — ad may be attracting wrong audience or bot needs better follow-up
                         </div>}
                       </div>
                     </div>
@@ -6708,7 +6735,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           <div className="an3" style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
             <KpiCard icon="👥" val={total} label="Total Contacts" sub="All conversations" color="#2563eb" bg="#eff6ff" trend={`▲ ${growth.pct||0}%`} type="contacts"/>
             <KpiCard icon="🔥" val={hot} label="Hot Leads" sub={`${growth.conversionRate||0}% conversion`} color="#ef4444" bg="#fef2f2" trend="High intent" type="hot"/>
-            <KpiCard icon="✅" val={done} label="Bookings Closed" sub="Pipeline done" color="#22c55e" bg="#f0fdf4" trend="Confirmed" type="bookings"/>
+            <KpiCard icon="✅" val={done} label="Bookings Closed" sub={`In selected period`} color="#22c55e" bg="#f0fdf4" trend="Confirmed" type="bookings"/>
             <KpiCard icon="🤖" val={`${botRate}%`} label="Bot Automation" sub={`${totals.botMessages||0} msgs handled`} color="#00c853" bg="#f0fdf4" trend={`${Math.round((totals.botMessages||0)*2/60)}hrs saved`} type="bot"/>
             <KpiCard icon="📢" val={adSummary.count||0} label="Ad Sources" sub={`${adSummary.totalClicks||0} total clicks`} color="#7c3aed" bg="#f5f3ff" trend={`${adSummary.totalBookings||0} booked`} type="ads"/>
           </div>
