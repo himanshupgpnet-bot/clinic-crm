@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.115";
+const CRM_VERSION = "2.9.116";
 
 // Responsive hook
 function useWindowSize() {
@@ -6051,6 +6051,8 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                     {clinic.website_url&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#faf5ff",color:"#7c3aed",fontWeight:700,border:"1px solid #e9d5ff"}}>🌐 Website Set</span>}
                   </div>
                 </div>
+
+              </div>{/* end header */}
 
               {/* ── PER-CLIENT STATS STRIP ── */}
               {(()=>{
