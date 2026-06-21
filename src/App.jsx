@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.108";
+const CRM_VERSION = "2.9.109";
 
 // Responsive hook
 function useWindowSize() {
@@ -6495,18 +6495,23 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 {(()=>{
                   const byBook=[...drillData].filter(a=>a.bookings>0).sort((a,b)=>b.bookings-a.bookings)[0];
                   const byConv=[...drillData].filter(a=>(a.total_clicks||a.total_leads||0)>0).sort((a,b)=>b.conversion_rate-a.conversion_rate)[0];
-                  const byHot=[...drillData].filter(a=>(a.total_clicks||a.total_leads||0)>0).sort((a,b)=>b.hot_rate-a.hot_rate)[0];
+                  const byHot=[...drillData].filter(a=>(a.total_clicks||a.total_leads||0)>0).sort((a,b)=>{
+                    const ta=a.total_clicks||a.total_leads||0; const tb=b.total_clicks||b.total_leads||0;
+                    return (tb>0?(b.hot_leads||0)/tb:0)-(ta>0?(a.hot_leads||0)/ta:0);
+                  })[0];
                   return <div style={{background:"#f0effe",borderRadius:10,padding:"10px 12px",marginBottom:14,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9",lineHeight:1.7}}>
                     {byBook&&<div>🏆 <strong>{byBook.ad_headline}</strong> — most bookings ({byBook.bookings})</div>}
                     {byConv&&<div>📈 Best conversion: <strong>{byConv.ad_headline}</strong> ({byConv.conversion_rate}%)</div>}
-                    {byHot&&<div>🔥 Best hot rate: <strong>{byHot.ad_headline}</strong> ({byHot.hot_rate}%)</div>}
+                    {byHot&&<div>🔥 Best hot rate: <strong>{byHot.ad_headline}</strong> ({(byHot.total_clicks||byHot.total_leads||0)>0?Math.round((byHot.hot_leads||0)/(byHot.total_clicks||byHot.total_leads||1)*100):0}%)</div>}
                   </div>;
                 })()}
                 <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>All Campaigns</div>
                 {drillData.map((ad,i)=>{
                   const total = ad.total_clicks||ad.total_leads||0;
-                  const daysActive = ad.first_click&&ad.last_click ? Math.max(1,Math.round((new Date(ad.last_click)-new Date(ad.first_click))/(1000*60*60*24))+1) : 1;
-                  const dailyAvg = total>0 ? (total/daysActive).toFixed(1) : "0";
+                  const firstDate = ad.first_seen||ad.first_click;
+                  const lastDate = ad.last_seen||ad.last_click;
+                  const daysActive = firstDate&&lastDate ? Math.max(1,Math.round((new Date(lastDate)-new Date(firstDate))/(1000*60*60*24))+1) : 30;
+                  const dailyAvg = total>0&&daysActive>0 ? (total/daysActive).toFixed(1) : "0";
                   const hotRate = total>0 ? Math.round((ad.hot_leads||0)/total*100) : 0;
                   const qualityScore = total>0 ? Math.round(((ad.hot_leads||0)*3+(ad.warm_leads||0)*1)/total*10) : 0;
                   const maxClicks = drillData.reduce((m,a)=>Math.max(m,a.total_clicks||a.total_leads||0),1);
@@ -6543,14 +6548,17 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                         {/* 6 stat boxes */}
                         <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:5,marginBottom:10}}>
                           {[
-                            {v:total,l:"Clicks",c:"#6c63ff"},
-                            {v:ad.hot_leads||0,l:"🔥 Hot",c:"#e11d48"},
-                            {v:ad.warm_leads||0,l:"🟡 Warm",c:"#d97706"},
-                            {v:ad.cold_leads||0,l:"🔵 Cold",c:"#3b82f6"},
-                            {v:ad.bookings||0,l:"✅ Booked",c:"#16a34a"},
-                            {v:ad.needed_agent||0,l:"👤 Agent",c:"#7c3aed"},
+                            {v:total,l:"Clicks",c:"#6c63ff",tip:"People who clicked this ad AND sent a WhatsApp message. This is real engagement — not just impressions."},
+                            {v:ad.hot_leads||0,l:"🔥 Hot",c:"#e11d48",tip:"Leads marked Hot — showed strong booking intent (asked for dates, prices, ready to come in)."},
+                            {v:ad.warm_leads||0,l:"🟡 Warm",c:"#d97706",tip:"Leads marked Warm — showed genuine interest but not ready to book yet."},
+                            {v:ad.cold_leads||0,l:"🔵 Cold",c:"#3b82f6",tip:"Leads marked Cold — just browsing, no specific health concern mentioned."},
+                            {v:ad.bookings||0,l:"✅ Booked",c:"#16a34a",tip:"Confirmed bookings from this ad — patient gave their name and phone number to book."},
+                            {v:ad.needed_agent||0,l:"👤 Agent",c:"#7c3aed",tip:"Leads where a human agent had to step in. High number means bot needs improvement for this ad audience."},
                           ].map(s=>(
-                            <div key={s.l} style={{textAlign:"center",background:T.card,borderRadius:8,padding:"6px 2px",border:`1px solid ${T.border}`}}>
+                            <div key={s.l} title={s.tip}
+                              style={{textAlign:"center",background:T.card,borderRadius:8,padding:"6px 2px",border:`1px solid ${T.border}`,cursor:"help",transition:"all .15s"}}
+                              onMouseEnter={e=>{e.currentTarget.style.borderColor=s.c;e.currentTarget.style.boxShadow=`0 2px 8px ${s.c}20`;}}
+                              onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.boxShadow="none";}}>
                               <div style={{fontSize:13,fontWeight:800,color:s.c,lineHeight:1}}>{s.v}</div>
                               <div style={{fontSize:8,color:T.textFaint,marginTop:2,lineHeight:1.2}}>{s.l}</div>
                             </div>
@@ -6559,12 +6567,19 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                         {/* Key metrics row */}
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:10}}>
                           {[
-                            {icon:"🔥",label:"Hot Rate",val:hotRate+"%",color:hotRate>=15?"#e11d48":hotRate>=8?"#d97706":"#6b7280"},
-                            {icon:"📊",label:"Quality Score",val:qualityScore+"/10",color:qualityScore>=6?"#16a34a":qualityScore>=3?"#d97706":"#e11d48"},
-                            {icon:"📈",label:"Daily Avg",val:dailyAvg+" leads",color:"#6c63ff"},
-                            {icon:"📅",label:"Active Days",val:daysActive+" days",color:"#6b7280"},
+                            {icon:"🔥",label:"Hot Rate",val:hotRate+"%",color:hotRate>=15?"#e11d48":hotRate>=8?"#d97706":"#6b7280",
+                              tip:`${hotRate}% of people who messaged from this ad became hot leads. Target: 15%+. Low = ad attracting wrong audience or bot not qualifying leads well.`},
+                            {icon:"📊",label:"Quality Score",val:qualityScore+"/10",color:qualityScore>=6?"#16a34a":qualityScore>=3?"#d97706":"#e11d48",
+                              tip:`Quality score based on hot+warm leads ratio. Score = (hot×3 + warm×1) ÷ total × 10. 6+/10 is good, below 3 means mostly cold leads.`},
+                            {icon:"📈",label:"Daily Avg",val:dailyAvg+" leads",color:"#6c63ff",
+                              tip:`Average leads per day this ad was active. Total ${total} clicks ÷ ${daysActive} active days = ${dailyAvg} leads/day.`},
+                            {icon:"📅",label:"Active Days",val:daysActive+" days",color:"#6b7280",
+                              tip:`How many days this ad has been running based on first and last lead received.`},
                           ].map(m=>(
-                            <div key={m.label} style={{background:T.card,borderRadius:8,padding:"7px 6px",border:`1px solid ${T.border}`,textAlign:"center"}}>
+                            <div key={m.label} title={m.tip}
+                              style={{background:T.card,borderRadius:8,padding:"7px 6px",border:`1px solid ${T.border}`,textAlign:"center",cursor:"help",transition:"all .15s"}}
+                              onMouseEnter={e=>{e.currentTarget.style.background=T.card2;e.currentTarget.style.borderColor=T.border2;}}
+                              onMouseLeave={e=>{e.currentTarget.style.background=T.card;e.currentTarget.style.borderColor=T.border;}}>
                               <div style={{fontSize:9,color:T.textFaint,marginBottom:2}}>{m.icon} {m.label}</div>
                               <div style={{fontSize:12,fontWeight:700,color:m.color}}>{m.val}</div>
                             </div>
