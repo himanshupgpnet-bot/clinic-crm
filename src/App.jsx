@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.109";
+const CRM_VERSION = "2.9.110";
 
 // Responsive hook
 function useWindowSize() {
@@ -6500,9 +6500,18 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                     return (tb>0?(b.hot_leads||0)/tb:0)-(ta>0?(a.hot_leads||0)/ta:0);
                   })[0];
                   return <div style={{background:"#f0effe",borderRadius:10,padding:"10px 12px",marginBottom:14,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9",lineHeight:1.7}}>
-                    {byBook&&<div>🏆 <strong>{byBook.ad_headline}</strong> — most bookings ({byBook.bookings})</div>}
-                    {byConv&&<div>📈 Best conversion: <strong>{byConv.ad_headline}</strong> ({byConv.conversion_rate}%)</div>}
-                    {byHot&&<div>🔥 Best hot rate: <strong>{byHot.ad_headline}</strong> ({(byHot.total_clicks||byHot.total_leads||0)>0?Math.round((byHot.hot_leads||0)/(byHot.total_clicks||byHot.total_leads||1)*100):0}%)</div>}
+                    {byBook&&<div style={{display:"flex",alignItems:"flex-start",gap:6,cursor:"help"}} title={`Most bookings winner: ${byBook.bookings} patients confirmed their booking after coming from this ad. This is your best ad for closing deals — the most patients actually committed to a consultation.`}>
+                      <span>🏆</span>
+                      <span><strong>{byBook.ad_headline}</strong> — most bookings ({byBook.bookings}) <span style={{fontSize:10,color:"#9ca3af"}}>ⓘ</span></span>
+                    </div>}
+                    {byConv&&<div style={{display:"flex",alignItems:"flex-start",gap:6,cursor:"help"}} title={`Best conversion winner: ${byConv.conversion_rate}% of people who messaged from this ad ended up booking. Meaning if 10 people messaged, ${Math.round(byConv.conversion_rate/10)} booked. High conversion = ad attracts serious patients who are ready to commit.`}>
+                      <span>📈</span>
+                      <span>Best conversion: <strong>{byConv.ad_headline}</strong> ({byConv.conversion_rate}%) <span style={{fontSize:10,color:"#9ca3af"}}>ⓘ</span></span>
+                    </div>}
+                    {byHot&&<div style={{display:"flex",alignItems:"flex-start",gap:6,cursor:"help"}} title={`Best hot rate winner: ${(byHot.total_clicks||byHot.total_leads||0)>0?Math.round((byHot.hot_leads||0)/(byHot.total_clicks||byHot.total_leads||1)*100):0}% of people from this ad became hot leads — meaning they showed strong intent to book (asked for dates, prices, ready to come in). High hot rate = ad is attracting the right audience with real health needs.`}>
+                      <span>🔥</span>
+                      <span>Best hot rate: <strong>{byHot.ad_headline}</strong> ({(byHot.total_clicks||byHot.total_leads||0)>0?Math.round((byHot.hot_leads||0)/(byHot.total_clicks||byHot.total_leads||1)*100):0}%) <span style={{fontSize:10,color:"#9ca3af"}}>ⓘ</span></span>
+                    </div>}
                   </div>;
                 })()}
                 <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>All Campaigns</div>
