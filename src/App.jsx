@@ -888,7 +888,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           const ads = await ar.json();
           setAdSummary({
             count: ads.length,
-            totalClicks: ads.reduce((s,a)=>s+(a.total_clicks||0),0),
+            totalClicks: ads.reduce((s,a)=>s+(a.total_clicks||a.total_leads||0),0),
             totalBookings: ads.reduce((s,a)=>s+(a.bookings||0),0),
           });
         }
@@ -6482,7 +6482,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:14}}>
                   {[
                     {v:drillData.length,l:"Campaigns",c:"#7c3aed"},
-                    {v:drillData.reduce((s,a)=>s+(a.total_clicks||0),0),l:"Total Clicks",c:"#2563eb"},
+                    {v:drillData.reduce((s,a)=>s+(a.total_clicks||a.total_leads||0),0),l:"Total Clicks",c:"#2563eb"},
                     {v:drillData.reduce((s,a)=>s+(a.hot_leads||0),0),l:"Hot Leads",c:"#e11d48"},
                     {v:drillData.reduce((s,a)=>s+(a.bookings||0),0),l:"Bookings",c:"#16a34a"},
                   ].map(s=>(
@@ -6495,8 +6495,8 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 {/* Best performer */}
                 {(()=>{
                   const byBook=[...drillData].filter(a=>a.bookings>0).sort((a,b)=>b.bookings-a.bookings)[0];
-                  const byConv=[...drillData].filter(a=>a.total_clicks>0).sort((a,b)=>b.conversion_rate-a.conversion_rate)[0];
-                  const byHot=[...drillData].filter(a=>a.total_clicks>0).sort((a,b)=>b.hot_rate-a.hot_rate)[0];
+                  const byConv=[...drillData].filter(a=>(a.total_clicks||a.total_leads||0)>0).sort((a,b)=>b.conversion_rate-a.conversion_rate)[0];
+                  const byHot=[...drillData].filter(a=>(a.total_clicks||a.total_leads||0)>0).sort((a,b)=>b.hot_rate-a.hot_rate)[0];
                   return <div style={{background:"#f0effe",borderRadius:10,padding:"10px 12px",marginBottom:14,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9",lineHeight:1.7}}>
                     {byBook&&<div>🏆 <strong>{byBook.ad_headline}</strong> — most bookings ({byBook.bookings})</div>}
                     {byConv&&<div>📈 Best conversion: <strong>{byConv.ad_headline}</strong> ({byConv.conversion_rate}%)</div>}
@@ -6505,12 +6505,12 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 })()}
                 <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>All Campaigns</div>
                 {drillData.map((ad,i)=>{
-                  const total = ad.total_clicks||0;
+                  const total = ad.total_clicks||ad.total_leads||0;
                   const daysActive = ad.first_click&&ad.last_click ? Math.max(1,Math.round((new Date(ad.last_click)-new Date(ad.first_click))/(1000*60*60*24))+1) : 1;
                   const dailyAvg = total>0 ? (total/daysActive).toFixed(1) : "0";
                   const hotRate = total>0 ? Math.round((ad.hot_leads||0)/total*100) : 0;
                   const qualityScore = total>0 ? Math.round(((ad.hot_leads||0)*3+(ad.warm_leads||0)*1)/total*10) : 0;
-                  const maxClicks = drillData.reduce((m,a)=>Math.max(m,a.total_clicks||0),1);
+                  const maxClicks = drillData.reduce((m,a)=>Math.max(m,a.total_clicks||a.total_leads||0),1);
                   const convColor = ad.conversion_rate>=8?"#16a34a":ad.conversion_rate>=4?"#d97706":"#e11d48";
                   const convBg = ad.conversion_rate>=8?"#f0fdf4":ad.conversion_rate>=4?"#fffbeb":"#fef2f2";
                   return (
@@ -6536,7 +6536,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                         </div>
                         {/* Click volume bar */}
                         <div style={{height:5,borderRadius:3,background:T.border,overflow:"hidden",marginBottom:4}}>
-                          <div style={{height:5,borderRadius:3,background:"linear-gradient(90deg,#6c63ff,#8b5cf6)",width:`${Math.round((total/maxClicks)*100)}%`,transition:"width .8s"}}/>
+                          <div style={{height:5,borderRadius:3,background:"linear-gradient(90deg,#6c63ff,#8b5cf6)",width:`${maxClicks>0?Math.round((total/maxClicks)*100):0}%`,transition:"width .8s"}}/>
                         </div>
                       </div>
                       {/* Stats */}
