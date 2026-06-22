@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.129";
+const CRM_VERSION = "2.9.131";
 
 // Responsive hook
 function useWindowSize() {
@@ -7231,6 +7231,21 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
     finally{setLoading(false);}
   };
 
+  const [suggestWelcome, setSuggestWelcome] = React.useState("");
+
+  const extractWelcome = (prompt) => {
+    // Try to extract welcome message from prompt
+    const lines = prompt.split("\n");
+    for(const line of lines) {
+      if(line.toLowerCase().includes("hi!") || line.toLowerCase().includes("hello!") || 
+         line.toLowerCase().includes("hi,") || line.toLowerCase().includes("assalamualaikum")) {
+        const clean = line.replace(/^[-*•"\s]+|["]+$/g,"").trim();
+        if(clean.length > 10 && clean.length < 300) return clean;
+      }
+    }
+    return "";
+  };
+
   const applyPrompt = (newPrompt) => {
     setConfirmModal({
       title:"Apply New Prompt?",
@@ -7241,6 +7256,9 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
         if(clinicId) body.clinic_id = clinicId;
         await fetch(API+"/api/knowledge/prompt", {method:"PATCH", headers:authHeaders(), body:JSON.stringify(body)});
         setSystemPrompt(newPrompt);
+        // Try to extract welcome message suggestion
+        const welcome = extractWelcome(newPrompt);
+        if(welcome) setSuggestWelcome(welcome);
         setMode(null); setStep(1); setGeneratedPrompt(""); setEnhanceResult(null);
         setNewLogic(""); setAnswers({}); setExtra(""); setBusinessDesc("");
         const t=document.createElement("div");
@@ -7261,6 +7279,28 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
     <div style={{animation:"_slideInL .3s both"}}>
       <div style={{fontWeight:900,fontSize:16,marginBottom:4,color:T.text}}>✨ Prompt Wizard</div>
       <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>Build or improve your bot personality with AI</div>
+      {suggestWelcome&&<div style={{marginBottom:16,padding:"12px 14px",background:"#eff6ff",borderRadius:12,border:"1px solid #bfdbfe"}}>
+        <div style={{fontWeight:700,fontSize:12,color:"#1d4ed8",marginBottom:6}}>💡 Update your Welcome Message too?</div>
+        <div style={{fontSize:11,color:"#1e40af",marginBottom:8}}>Your new prompt includes this greeting — set it as your Welcome Message so it auto-sends to new customers:</div>
+        <div style={{background:"#fff",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#0d0f1a",marginBottom:10,border:"1px solid #bfdbfe",fontStyle:"italic"}}>"{suggestWelcome}"</div>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={async()=>{
+            const body={welcome:suggestWelcome};
+            if(clinicId) body.clinic_id=clinicId;
+            await fetch(API+"/api/knowledge/welcome",{method:"PATCH",headers:authHeaders(),body:JSON.stringify(body)});
+            setSuggestWelcome("");
+            const t=document.createElement("div");
+            t.style.cssText="position:fixed;bottom:24px;right:24px;z-index:99999;background:#166534;color:#fff;border-radius:12px;padding:12px 20px;font-size:13px;font-weight:700";
+            t.innerHTML="✅ Welcome message updated!";
+            document.body.appendChild(t); setTimeout(()=>t.remove(),2500);
+          }} style={{padding:"6px 14px",borderRadius:8,border:"none",background:"#2563eb",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            ✅ Yes, Update Welcome Message
+          </button>
+          <button onClick={()=>setSuggestWelcome("")} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #bfdbfe",background:"#fff",color:"#6b7280",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+            Skip
+          </button>
+        </div>
+      </div>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
         {[
           {id:"generate",icon:"🆕",title:"Generate Fresh Prompt",desc:"Answer questions and AI builds a complete bot from scratch",note:"Good for new setup or full rebuild"},
@@ -7390,10 +7430,10 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
         </div>
         <textarea value={generatedPrompt} onChange={e=>setGeneratedPrompt(e.target.value)} rows={12}
           style={{...IS,minHeight:240,marginBottom:12,fontFamily:"monospace",fontSize:11}}/>
-        <div style={{marginBottom:12,padding:"10px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",fontSize:11,color:"#9a3412"}}>
-          ⚠️ <strong>Before applying:</strong> Copy your current prompt as backup!
+        {systemPrompt&&<div style={{marginBottom:12,padding:"10px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",fontSize:11,color:"#9a3412"}}>
+          ⚠️ <strong>Existing prompt will be replaced!</strong> Copy it first as backup.
           <button onClick={()=>navigator.clipboard.writeText(systemPrompt||"")} style={{marginLeft:8,padding:"2px 8px",borderRadius:6,border:"1px solid #fed7aa",background:"#fff",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Current</button>
-        </div>
+        </div>}
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <button onClick={()=>applyPrompt(generatedPrompt)} style={BP}>✅ Apply New Prompt</button>
           <button onClick={()=>setStep(2)} style={BS}>← Edit Answers</button>
