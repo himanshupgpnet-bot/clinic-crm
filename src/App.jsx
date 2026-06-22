@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.122";
+const CRM_VERSION = "2.9.123";
 
 // Responsive hook
 function useWindowSize() {
@@ -1942,12 +1942,28 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {showInboxStats&&<>
                 {/* Admin client selector */}
                 {isAdmin&&adminOverview.length>0&&<div style={{marginBottom:8}}>
-                  <select value={inboxClinic||""} onChange={e=>setInboxClinic(e.target.value||null)}
-                    style={{width:"100%",padding:"7px 10px",borderRadius:10,border:"1px solid #e8eaef",background:"#f8f9fc",color:"#0d0f1a",fontSize:12,fontFamily:"inherit",outline:"none"}}>
-                    {[...new Map(adminOverview.filter(c=>c.company_name).map(c=>[c.clinic_id,c])).values()].map(c=>(
-                      <option key={c.clinic_id} value={c.clinic_id}>{c.company_name}{c.active===false?" (Disabled)":""}</option>
-                    ))}
-                  </select>
+                  <div style={{background:"#f8f9fc",border:"1px solid #e8eaef",borderRadius:10,overflow:"hidden"}}>
+                    {[...new Map(adminOverview.filter(c=>c.company_name).map(c=>[c.clinic_id,c])).values()].map(c=>{
+                      const isDisabled = c.active===false||c.active===0||c.active==="false";
+                      const isSelected = String(inboxClinic)===String(c.clinic_id);
+                      return <div key={c.clinic_id} onClick={()=>setInboxClinic(isSelected?null:String(c.clinic_id))}
+                        style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer",
+                          background:isSelected?"#6c63ff15":"transparent",
+                          borderLeft:isSelected?"3px solid #6c63ff":"3px solid transparent",
+                          opacity:isDisabled?0.5:1,transition:"all .15s"}}
+                        onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background="#f0f1f8"}}
+                        onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background="transparent"}}>
+                        <div style={{width:22,height:22,borderRadius:6,overflow:"hidden",background:"#6c63ff15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:11}}>🏢</span>}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:isSelected?700:600,color:isSelected?"#6c63ff":"#0d0f1a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name}</div>
+                          {isDisabled&&<div style={{fontSize:9,color:"#e11d48",fontWeight:600}}>Disabled</div>}
+                        </div>
+                        {isSelected&&<span style={{fontSize:10,color:"#6c63ff",fontWeight:700}}>✓</span>}
+                      </div>;
+                    })}
+                  </div>
                 </div>}
 
                 {/* Stats */}
@@ -2439,7 +2455,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
             {adminOverview.map(c=>(
               <div key={c.id} onClick={()=>setLeadsClinic(c)}
-                style={{padding:"10px 14px",cursor:"pointer",opacity:c.active===false?0.45:1,background:leadsClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:leadsClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+                style={{padding:"10px 14px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,background:leadsClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:leadsClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
                 </div>
@@ -2731,7 +2747,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             {overviewLoading&&<div style={{padding:16,textAlign:"center",fontSize:12,color:T.textMuted}}>Loading...</div>}
             {adminOverview.map(c=>(
               <div key={c.id} onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}
-                style={{padding:"10px 14px",cursor:"pointer",opacity:c.active===false?0.45:1,background:selectedClinic?.clinic_id===c.clinic_id?`${WA_GREEN}15`:"transparent",borderLeft:selectedClinic?.clinic_id===c.clinic_id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+                style={{padding:"10px 14px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,background:selectedClinic?.clinic_id===c.clinic_id?`${WA_GREEN}15`:"transparent",borderLeft:selectedClinic?.clinic_id===c.clinic_id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
                 </div>
@@ -2779,7 +2795,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Knowledge For</div>
             {adminOverview.map(c=>(
               <div key={c.id} onClick={()=>loadKbForClient(c)}
-                style={{padding:"11px 14px",cursor:"pointer",opacity:c.active===false?0.45:1,background:kbClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:kbClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+                style={{padding:"11px 14px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,background:kbClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:kbClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:32,height:32,borderRadius:9,overflow:"hidden",background:`${WA_GREEN}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:15}}>🏢</span>}
                 </div>
@@ -3731,7 +3747,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Settings For</div>
             {adminOverview.map(c=>(
               <div key={c.id} onClick={()=>loadClientSettings(c)}
-                style={{padding:"11px 14px",cursor:"pointer",opacity:c.active===false?0.45:1,background:settingsClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:settingsClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+                style={{padding:"11px 14px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,background:settingsClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:settingsClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:32,height:32,borderRadius:9,overflow:"hidden",background:`${WA_GREEN}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:15}}>🏢</span>}
                 </div>
@@ -4274,7 +4290,7 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
           <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1}}>Select Client to Test</div>
           {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>(
             <div key={c.clinic_id} onClick={()=>{setBotClinicId(c.clinic_id);setBotClinicName(c.company_name||c.username||"Client");}}
-              style={{padding:"12px 16px",cursor:"pointer",opacity:c.active===false?0.45:1,display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${T.border}40`}}>
+              style={{padding:"12px 16px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${T.border}40`}}>
               <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
               </div>
@@ -4685,7 +4701,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
         <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1}}>Select Client</div>
         {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>(
           <div key={c.clinic_id} onClick={()=>setNotesClinic(c)}
-            style={{padding:"12px 16px",cursor:"pointer",opacity:c.active===false?0.45:1,display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${T.border}40`}}>
+            style={{padding:"12px 16px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${T.border}40`}}>
             <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
             </div>
