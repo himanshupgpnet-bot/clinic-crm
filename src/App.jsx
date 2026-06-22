@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.117";
+const CRM_VERSION = "2.9.118";
 
 // Responsive hook
 function useWindowSize() {
@@ -5975,13 +5975,13 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
       </div>
 
       {/* Global summary — all clients combined */}
-      {!loading&&clinics.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:20}}>
+      {clinics.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:20}}>
         {[
           {icon:"🏢",v:clinics.length,l:"Total Clients",sub:clinics.filter(c=>c.active!==false).length+" Active · "+clinics.filter(c=>c.active===false).length+" Disabled",c:"#6c63ff",bg:"#f0effe"},
-          {icon:"👥",v:adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0),l:"Total Contacts",sub:"Across all clients",c:"#2563eb",bg:"#eff6ff"},
+          {icon:"👥",v:adminOverview.length>0?adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0):"…",l:"Total Contacts",sub:"Across all clients",c:"#2563eb",bg:"#eff6ff"},
           {icon:"👤",v:users.length,l:"Total Staff",sub:users.filter(u=>u.active).length+" Active · "+users.filter(u=>!u.active).length+" Deactivated",c:"#d97706",bg:"#fffbeb"},
-          {icon:"🔥",v:adminOverview.reduce((s,c)=>s+(c.hot_leads||0),0),l:"Hot Leads",sub:"All clients combined",c:"#e11d48",bg:"#fff1f3"},
-          {icon:"🤖",v:(()=>{const active=adminOverview.filter(c=>c.active!==false);return active.length>0?Math.round(active.reduce((s,c)=>s+(c.bot_performance||0),0)/active.length):0})()+"% avg",l:"Bot Automation",sub:"Active clients only",c:"#16a34a",bg:"#f0fdf4"},
+          {icon:"🔥",v:adminOverview.length>0?adminOverview.reduce((s,c)=>s+(c.hot_leads||0),0):"…",l:"Hot Leads",sub:"All clients combined",c:"#e11d48",bg:"#fff1f3"},
+          {icon:"🤖",v:adminOverview.length>0?(()=>{const active=adminOverview.filter(c=>c.active!==false);return active.length>0?Math.round(active.reduce((s,c)=>s+(c.bot_performance||0),0)/active.length):0})()+"% avg":"…",l:"Bot Automation",sub:"Active clients only",c:"#16a34a",bg:"#f0fdf4"},
         ].map(s=>(
           <div key={s.l} style={{background:T.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${T.border}`,boxShadow:"0 1px 3px rgba(0,0,0,.06)",display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:40,height:40,borderRadius:11,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
@@ -5994,7 +5994,10 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
         ))}
       </div>}
 
-      {loading&&<div style={{padding:40,textAlign:"center",color:T.textMuted}}>Loading...</div>}
+      {loading&&clinics.length===0&&<div style={{padding:40,textAlign:"center",color:T.textMuted}}>
+        <div style={{width:32,height:32,borderRadius:"50%",border:"3px solid #e8eaef",borderTop:"3px solid #6c63ff",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/>
+        Loading clients...
+      </div>}
 
       {!loading&&clinics.filter(c=>c.active!==false).length===0&&
         <div className="cc" style={{padding:40,textAlign:"center",color:T.textMuted}}>
@@ -6057,18 +6060,18 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
 
               {/* ── PER-CLIENT STATS STRIP ── */}
               {(()=>{
-                const ov = adminOverview.find(o=>o.clinic_id===clinic.id||o.id===clinic.id)||{};
-                const botRate = ov.total_messages>0?Math.round((ov.bot_messages||0)/ov.total_messages*100):0;
+                const ov = adminOverview.find(o=>o.clinic_id===clinic.id||o.id===clinic.id)||null;
+                const botRate = ov&&ov.total_messages>0?Math.round((ov.bot_messages||0)/ov.total_messages*100):0;
                 return <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderTop:`1px solid ${T.border}`,borderBottom:`1px solid ${T.border}`,background:T.card2}}>
                   {[
-                    {v:ov.total_contacts||0,l:"Contacts",c:"#2563eb"},
-                    {v:ov.hot_leads||0,l:"🔥 Hot Leads",c:"#e11d48"},
-                    {v:(ov.hot_leads||0)+(ov.warm_leads||0),l:"🟡 Warm+Hot",c:"#d97706"},
-                    {v:botRate+"%",l:"🤖 Bot Rate",c:"#16a34a"},
-                    {v:ov.active_convos||0,l:"💬 Active",c:"#6c63ff"},
+                    {v:ov?ov.total_contacts||0:"—",l:"Contacts",c:"#2563eb"},
+                    {v:ov?ov.hot_leads||0:"—",l:"🔥 Hot Leads",c:"#e11d48"},
+                    {v:ov?(ov.hot_leads||0)+(ov.warm_leads||0):"—",l:"🟡 Warm+Hot",c:"#d97706"},
+                    {v:ov?botRate+"%":"—",l:"🤖 Bot Rate",c:"#16a34a"},
+                    {v:ov?ov.active_convos||0:"—",l:"💬 Active",c:"#6c63ff"},
                   ].map((s,i)=>(
                     <div key={s.l} style={{textAlign:"center",padding:"12px 8px",borderRight:i<4?`1px solid ${T.border}`:"none"}}>
-                      <div style={{fontSize:18,fontWeight:900,color:s.c,lineHeight:1,marginBottom:3}}>{s.v}</div>
+                      <div style={{fontSize:s.v==="—"?22:18,fontWeight:900,color:s.v==="—"?T.textFaint:s.c,lineHeight:1,marginBottom:3}}>{s.v}</div>
                       <div style={{fontSize:9,color:T.textFaint,fontWeight:600}}>{s.l}</div>
                     </div>
                   ))}
