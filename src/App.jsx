@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.133";
+const CRM_VERSION = "2.9.134";
 
 // Responsive hook
 function useWindowSize() {
@@ -7191,7 +7191,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
     const body = {...payload};
     if(clinicId) body.clinic_id = clinicId;
     const ctrl = new AbortController();
-    const tmo = setTimeout(()=>ctrl.abort(), 60000); // 60s timeout for AI generation
+    const tmo = setTimeout(()=>ctrl.abort(), 120000); // 120s timeout for AI generation
     try {
       const r = await fetch(API+"/api/knowledge/generate-prompt", {
         method:"POST", headers:authHeaders(), body:JSON.stringify(body), signal:ctrl.signal
@@ -7207,7 +7207,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
 
   const loadingMessages = {
     questions: ["🔍 Analysing your business...", "🧠 Thinking about the right questions...", "✍️ Crafting specific questions for you..."],
-    generate: ["📝 Reading your answers...", "🧠 Building your bot personality...", "✨ Crafting your system prompt...", "🔧 Adding rules and behaviours...", "⚡ Almost done..."],
+    generate: ["📝 Reading your answers...", "🧠 Building your bot personality...", "✨ Crafting your system prompt...", "🔧 Adding conversation rules...", "📋 Writing objection handling...", "🌟 Adding language preferences...", "⚡ Finalising your prompt...", "🔍 Almost ready..."],
     enhance: ["📖 Reading your existing prompt...", "🧠 Understanding the new rule...", "📍 Finding the best place to add it...", "✍️ Writing the updated prompt..."],
   };
 
@@ -7315,7 +7315,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
         <div style={{position:"absolute",inset:6,borderRadius:"50%",background:"linear-gradient(135deg,#6c63ff20,#8b5cf620)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🤖</div>
       </div>
       <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:6}}>{loadingMsg}</div>
-      <div style={{fontSize:11,color:T.textMuted}}>This may take 15-30 seconds...</div>
+      <div style={{fontSize:11,color:T.textMuted}}>AI is working — this takes 30-60 seconds ☕</div>
       <div style={{marginTop:16,height:3,borderRadius:2,background:T.border,overflow:"hidden",maxWidth:200,margin:"16px auto 0"}}>
         <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,#6c63ff,#8b5cf6)",animation:"shimmer 1.5s ease-in-out infinite",backgroundSize:"200% 100%"}}/>
       </div>
