@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.116";
+const CRM_VERSION = "2.9.117";
 
 // Responsive hook
 function useWindowSize() {
@@ -5975,12 +5975,13 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
       </div>
 
       {/* Global summary — all clients combined */}
-      {!loading&&clinics.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+      {!loading&&clinics.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:20}}>
         {[
-          {icon:"🏢",v:clinics.length,l:"Total Clients",sub:`${clinics.filter(c=>c.active!==false).length} Active · ${clinics.filter(c=>c.active===false).length} Disabled`,c:"#6c63ff",bg:"#f0effe"},
+          {icon:"🏢",v:clinics.length,l:"Total Clients",sub:clinics.filter(c=>c.active!==false).length+" Active · "+clinics.filter(c=>c.active===false).length+" Disabled",c:"#6c63ff",bg:"#f0effe"},
           {icon:"👥",v:adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0),l:"Total Contacts",sub:"Across all clients",c:"#2563eb",bg:"#eff6ff"},
+          {icon:"👤",v:users.length,l:"Total Staff",sub:users.filter(u=>u.active).length+" Active · "+users.filter(u=>!u.active).length+" Deactivated",c:"#d97706",bg:"#fffbeb"},
           {icon:"🔥",v:adminOverview.reduce((s,c)=>s+(c.hot_leads||0),0),l:"Hot Leads",sub:"All clients combined",c:"#e11d48",bg:"#fff1f3"},
-          {icon:"🤖",v:(adminOverview.length>0?Math.round(adminOverview.reduce((s,c)=>s+(c.bot_performance||0),0)/adminOverview.length):0)+"%",l:"Avg Bot Rate",sub:"Active clients avg",c:"#16a34a",bg:"#f0fdf4"},
+          {icon:"🤖",v:(()=>{const active=adminOverview.filter(c=>c.active!==false);return active.length>0?Math.round(active.reduce((s,c)=>s+(c.bot_performance||0),0)/active.length):0})()+"% avg",l:"Bot Automation",sub:"Active clients only",c:"#16a34a",bg:"#f0fdf4"},
         ].map(s=>(
           <div key={s.l} style={{background:T.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${T.border}`,boxShadow:"0 1px 3px rgba(0,0,0,.06)",display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:40,height:40,borderRadius:11,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
