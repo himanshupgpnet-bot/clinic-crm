@@ -748,7 +748,10 @@ export default function App() {
   const fetchConversations = useCallback(async () => {
     try {
       const clinicParam = inboxClinic ? `?clinic_id=${inboxClinic}` : "";
-      const res = await fetch(`${API}/api/conversations${clinicParam}`, {headers:authHeaders()});
+      const ctrl = new AbortController();
+      const tmo = setTimeout(()=>ctrl.abort(), 8000);
+      const res = await fetch(`${API}/api/conversations${clinicParam}`, {headers:authHeaders(), signal:ctrl.signal});
+      clearTimeout(tmo);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setContacts(prev => {
@@ -776,12 +779,17 @@ export default function App() {
         });
       });
       setBackendStatus("online");
+      fetchConversations._failCount = 0; // reset on success
       try {
         const vr = await fetch(`${API}/version`);
         if (vr.ok) { const vd = await vr.json(); setBackendVersion(vd.version||""); }
       } catch {}
       if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(prev => ({...prev, botActive: u.botActive, status: u.status, lead: u.lead})); }
-    } catch { setBackendStatus("offline"); }
+    } catch { 
+      // Only show offline after 2 consecutive failures — avoids flicker on slow response
+      fetchConversations._failCount = (fetchConversations._failCount||0) + 1;
+      if(fetchConversations._failCount >= 2) setBackendStatus("offline");
+    }
     finally { setLoading(false); }
   }, [selected]);
 
