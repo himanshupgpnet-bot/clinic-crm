@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.124";
+const CRM_VERSION = "2.9.125";
 
 // Responsive hook
 function useWindowSize() {
@@ -180,6 +180,7 @@ export default function App() {
   const [kbClinic, setKbClinic] = useState(null);
   const [improverResult, setImproverResult] = useState(null);
   const [improverDays, setImproverDays] = useState(7);
+  const [kbSubTab, setKbSubTab] = useState("kb"); // "kb" | "wizard"
   const [adSummary, setAdSummary] = useState({count:0,totalClicks:0,totalBookings:0});
   const [dateFrom, setDateFrom] = useState(daysAgo(29));
   const [dateTo, setDateTo] = useState(today());
@@ -2962,6 +2963,32 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </button>
               </div>
 
+              {/* ── KB SUB-TAB SWITCHER ── */}
+              {(isAdmin||permissions?.can_prompt_wizard)&&<div style={{display:"flex",gap:6,marginBottom:16,background:T.card2,padding:4,borderRadius:12,border:`1px solid ${T.border}`}}>
+                {[
+                  {id:"kb",label:"📋 Knowledge Base"},
+                  {id:"wizard",label:"✨ Prompt Wizard"},
+                ].map(t=>(
+                  <button key={t.id} onClick={()=>setKbSubTab(t.id)}
+                    style={{flex:1,padding:"8px 12px",borderRadius:9,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",transition:"all .15s",
+                      background:kbSubTab===t.id?"linear-gradient(135deg,#6c63ff,#8b5cf6)":T.card,
+                      color:kbSubTab===t.id?"#fff":T.textMuted,
+                      boxShadow:kbSubTab===t.id?"0 2px 8px rgba(108,99,255,.3)":"none"}}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>}
+
+              {/* ── PROMPT WIZARD TAB ── */}
+              {kbSubTab==="wizard"&&(isAdmin||permissions?.can_prompt_wizard)&&<PromptWizard
+                T={T} WA_GREEN={WA_GREEN} dark={dark}
+                API={API} authHeaders={authHeaders}
+                kbClinic={kbClinic}
+                systemPrompt={systemPrompt} setSystemPrompt={setSystemPrompt}
+                setConfirmModal={setConfirmModal}
+              />}
+
+              {kbSubTab==="kb"&&<>
               {/* ── SECTION 1: BOT PERSONALITY ── */}
               <div className="cc" style={{marginBottom:16}}>
                 <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}}>
@@ -3029,6 +3056,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   💾 Save Bot Personality
                 </button>
               </div>
+
+              </>}{/* end kbSubTab===kb */}
 
               {/* ── AI PROMPT IMPROVER ── */}
               {(isAdmin||permissions?.can_prompt_improver)&&<AIPromptImprover
@@ -5593,12 +5622,13 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
     {key:"can_inbox",label:"💬 Inbox"},{key:"can_leads",label:"🎯 Leads"},
     {key:"can_analytics",label:"📊 Analytics"},{key:"can_testbot",label:"🤖 Test Bot"},
     {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"},
-    {key:"can_integrations",label:"🔌 Integrations"},{key:"can_broadcast",label:"📢 Broadcast"},{key:"can_notes",label:"📝 Notes"},{key:"can_prompt_improver",label:"🤖 AI Improver"}
+    {key:"can_integrations",label:"🔌 Integrations"},{key:"can_broadcast",label:"📢 Broadcast"},{key:"can_notes",label:"📝 Notes"},{key:"can_prompt_improver",label:"🤖 AI Improver"},{key:"can_prompt_wizard",label:"✨ Prompt Wizard"}
   ];
   const emptyClinic = {name:"",industry:"",website:"",client_domain:"",contact_phone:"",logo_url:"",
     whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",max_seats:1};
   const emptyUser = (clinic_id="") => ({username:"",password:"",clinic_id,
-    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,can_broadcast:false,can_notes:false,can_prompt_improver:false,
+    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,can_broadcast:false,can_notes:false,can_prompt_improver:false,can_prompt_wizard:false,
+      can_prompt_wizard:false,
     integration_whatsapp:false,integration_telegram:false,integration_instagram:false,
     integration_tiktok:false,integration_messenger:false,integration_calendar:false,integration_calendly:false});
 
@@ -5702,6 +5732,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
             can_integrations:editUser.can_integrations,
             can_notes:editUser.can_notes||false,
             can_prompt_improver:editUser.can_prompt_improver||false,
+            can_prompt_wizard:editUser.can_prompt_wizard||false,
             integration_whatsapp:editUser.integration_whatsapp,integration_telegram:editUser.integration_telegram,
             integration_instagram:editUser.integration_instagram,integration_tiktok:editUser.integration_tiktok,
             integration_messenger:editUser.integration_messenger,integration_calendar:editUser.integration_calendar,
@@ -5719,6 +5750,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
             can_integrations:editUser.can_integrations,
             can_notes:editUser.can_notes||false,
             can_prompt_improver:editUser.can_prompt_improver||false,
+            can_prompt_wizard:editUser.can_prompt_wizard||false,
             integration_whatsapp:editUser.integration_whatsapp,
             integration_telegram:editUser.integration_telegram,
             integration_instagram:editUser.integration_instagram,
@@ -7057,6 +7089,245 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
       </>}
     </div>
   );
+}
+
+// ── PROMPT WIZARD COMPONENT ──────────────────────────────────────────────────
+function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemPrompt, setSystemPrompt, setConfirmModal}) {
+  const [mode, setMode] = React.useState(null);
+  const [step, setStep] = React.useState(1);
+  const [businessDesc, setBusinessDesc] = React.useState("");
+  const [questions, setQuestions] = React.useState([]);
+  const [answers, setAnswers] = React.useState({});
+  const [extra, setExtra] = React.useState("");
+  const [newLogic, setNewLogic] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [generatedPrompt, setGeneratedPrompt] = React.useState("");
+  const [enhanceResult, setEnhanceResult] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const clinicId = kbClinic?.clinic_id||kbClinic?.id||null;
+
+  const callAPI = async (payload) => {
+    const body = {...payload};
+    if(clinicId) body.clinic_id = clinicId;
+    const r = await fetch(API+"/api/knowledge/generate-prompt", {method:"POST", headers:authHeaders(), body:JSON.stringify(body)});
+    return r.json();
+  };
+
+  const generateQuestions = async () => {
+    if(!businessDesc.trim()) return;
+    setLoading(true); setError("");
+    try {
+      const d = await callAPI({mode:"questions", business_desc:businessDesc});
+      if(d.error){setError(d.error);return;}
+      setQuestions(d.result?.questions||[]);
+      setStep(2);
+    } catch(e){setError("Failed to generate questions");}
+    finally{setLoading(false);}
+  };
+
+  const generatePrompt = async () => {
+    setLoading(true); setError("");
+    try {
+      const d = await callAPI({mode:"generate", business_desc:businessDesc, answers, extra});
+      if(d.error){setError(d.error);return;}
+      setGeneratedPrompt(d.prompt||"");
+      setStep(3);
+    } catch(e){setError("Failed to generate prompt");}
+    finally{setLoading(false);}
+  };
+
+  const enhancePrompt = async () => {
+    if(!newLogic.trim()) return;
+    setLoading(true); setError("");
+    try {
+      const d = await callAPI({mode:"enhance", new_logic:newLogic});
+      if(d.error){setError(d.error);return;}
+      setEnhanceResult(d.result);
+      setStep(3);
+    } catch(e){setError("Failed to enhance prompt");}
+    finally{setLoading(false);}
+  };
+
+  const applyPrompt = (newPrompt) => {
+    setConfirmModal({
+      title:"Apply New Prompt?",
+      message:"This updates the bot personality immediately. Make sure you copied your current prompt first!",
+      icon:"🤖", danger:false, confirmText:"Yes, Apply Now",
+      onConfirm: async () => {
+        const body = {prompt:newPrompt};
+        if(clinicId) body.clinic_id = clinicId;
+        await fetch(API+"/api/knowledge/prompt", {method:"PATCH", headers:authHeaders(), body:JSON.stringify(body)});
+        setSystemPrompt(newPrompt);
+        setMode(null); setStep(1); setGeneratedPrompt(""); setEnhanceResult(null);
+        setNewLogic(""); setAnswers({}); setExtra(""); setBusinessDesc("");
+        const t=document.createElement("div");
+        t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#fff;border-radius:20px;padding:28px 36px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border:2px solid #86efac";
+        t.innerHTML="<div style='font-size:32px;margin-bottom:8px'>✅</div><div style='font-weight:800;font-size:16px;color:#166534'>Prompt Applied!</div>";
+        document.body.appendChild(t); setTimeout(()=>t.remove(),2500);
+      }
+    });
+  };
+
+  const IS = {width:"100%",padding:"10px 14px",borderRadius:10,border:"1.5px solid "+T.border,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",resize:"vertical",lineHeight:1.6};
+  const BP = {padding:"10px 20px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#6c63ff,#8b5cf6)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"};
+  const BS = {padding:"10px 16px",borderRadius:10,border:"1px solid "+T.border,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"};
+
+  const reset = () => {setMode(null);setStep(1);setGeneratedPrompt("");setQuestions([]);setAnswers({});setEnhanceResult(null);setNewLogic("");};
+
+  if(!mode) return (
+    <div style={{animation:"_slideInL .3s both"}}>
+      <div style={{fontWeight:900,fontSize:16,marginBottom:4,color:T.text}}>✨ Prompt Wizard</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>Build or improve your bot personality with AI</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+        {[
+          {id:"generate",icon:"🆕",title:"Generate Fresh Prompt",desc:"Answer questions and AI builds a complete bot from scratch",note:"Good for new setup or full rebuild"},
+          {id:"enhance",icon:"✏️",title:"Enhance Existing Prompt",desc:"Tell AI what to add — it finds the right place automatically",note:"Good for adding new rules"},
+        ].map(m=>(
+          <div key={m.id} onClick={()=>setMode(m.id)} style={{background:T.card2,border:"1px solid "+T.border,borderRadius:14,padding:20,cursor:"pointer",transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor="#6c63ff";e.currentTarget.style.transform="translateY(-2px)";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.transform="none";}}>
+            <div style={{fontSize:28,marginBottom:8}}>{m.icon}</div>
+            <div style={{fontWeight:800,fontSize:13,marginBottom:4,color:T.text}}>{m.title}</div>
+            <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5,marginBottom:8}}>{m.desc}</div>
+            <div style={{fontSize:10,color:"#6c63ff",fontWeight:600}}>{m.note} →</div>
+          </div>
+        ))}
+      </div>
+      {systemPrompt
+        ? <div style={{padding:"10px 14px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0",fontSize:11,color:"#166534"}}>✅ Existing prompt found ({systemPrompt.length} chars) — Enhance mode will read and improve it</div>
+        : <div style={{padding:"10px 14px",background:"#fffbeb",borderRadius:10,border:"1px solid #fde68a",fontSize:11,color:"#92400e"}}>⚠️ No existing prompt — use Generate Fresh to create one</div>
+      }
+    </div>
+  );
+
+  if(mode==="enhance") return (
+    <div style={{animation:"_slideInL .3s both"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+        <button onClick={reset} style={{...BS,padding:"6px 12px",fontSize:11}}>← Back</button>
+        <div style={{fontWeight:800,fontSize:15,color:T.text}}>✏️ Enhance Existing Prompt</div>
+      </div>
+      {step===1&&<>
+        <div style={{padding:"12px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",marginBottom:14,fontSize:11,color:"#9a3412"}}>
+          ⚠️ <strong>Important:</strong> Copy your current prompt as backup before applying!
+          <button onClick={()=>navigator.clipboard.writeText(systemPrompt||"")} style={{marginLeft:8,padding:"2px 8px",borderRadius:6,border:"1px solid #fed7aa",background:"#fff",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Now</button>
+        </div>
+        <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:6}}>What new rule or behaviour do you want to add?</div>
+        <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Write in plain English, Malay, or any language — AI converts it to proper prompt language and finds the right place</div>
+        <textarea value={newLogic} onChange={e=>setNewLogic(e.target.value)} rows={5}
+          placeholder={"Examples:
+• If customer asks about price, don't tell them — ask them to come in first
+• Kalau customer cakap Melayu, balas dalam Melayu
+• Never mention competitor clinics by name
+• If customer seems angry, apologise sincerely before helping"}
+          style={{...IS,minHeight:120,marginBottom:12}}/>
+        {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:8}}>❌ {error}</div>}
+        <button onClick={enhancePrompt} disabled={loading||!newLogic.trim()} style={{...BP,opacity:loading||!newLogic.trim()?0.6:1}}>
+          {loading?"🤔 AI is thinking...":"✨ Find Best Place & Add →"}
+        </button>
+      </>}
+      {step===3&&enhanceResult&&<>
+        <div style={{marginBottom:12,padding:"10px 14px",background:"#f0effe",borderRadius:10,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9"}}>
+          <div style={{fontWeight:700,marginBottom:4}}>📍 Added to section: <strong>{enhanceResult.added_to_section}</strong></div>
+          <div>Rule written as: <em>{enhanceResult.converted_rule}</em></div>
+        </div>
+        <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:6}}>Updated prompt — edit if needed:</div>
+        <textarea value={enhanceResult.updated_prompt||""} onChange={e=>setEnhanceResult({...enhanceResult,updated_prompt:e.target.value})}
+          rows={10} style={{...IS,minHeight:200,marginBottom:12,fontFamily:"monospace",fontSize:11}}/>
+        {enhanceResult.test_messages?.length>0&&<div style={{marginBottom:12,padding:"10px 14px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0"}}>
+          <div style={{fontWeight:700,fontSize:11,color:"#166534",marginBottom:6}}>🧪 Test your new rule — send these to WhatsApp:</div>
+          {enhanceResult.test_messages.map((m,i)=><div key={i} style={{fontSize:11,color:"#166534",padding:"2px 0"}}>{i+1}. "{m}"</div>)}
+        </div>}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button onClick={()=>applyPrompt(enhanceResult.updated_prompt)} style={BP}>✅ Apply Changes</button>
+          <button onClick={()=>{setStep(1);setEnhanceResult(null);}} style={BS}>✏️ Try Again</button>
+          <button onClick={()=>navigator.clipboard.writeText(enhanceResult.updated_prompt||"")} style={{...BS,fontSize:11}}>📋 Copy</button>
+        </div>
+      </>}
+    </div>
+  );
+
+  if(mode==="generate") return (
+    <div style={{animation:"_slideInL .3s both"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+        <button onClick={reset} style={{...BS,padding:"6px 12px",fontSize:11}}>← Back</button>
+        <div style={{fontWeight:800,fontSize:15,color:T.text}}>🆕 Generate Fresh Prompt</div>
+        <div style={{marginLeft:"auto",fontSize:11,color:T.textMuted}}>Step {step} of 3</div>
+      </div>
+      <div style={{height:4,borderRadius:2,background:T.border,marginBottom:18,overflow:"hidden"}}>
+        <div style={{height:4,borderRadius:2,background:"linear-gradient(90deg,#6c63ff,#8b5cf6)",width:(step/3*100)+"%",transition:"width .4s"}}/>
+      </div>
+      {step===1&&<>
+        {systemPrompt&&<div style={{padding:"10px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",marginBottom:12,fontSize:11,color:"#9a3412"}}>
+          ⚠️ This will replace your existing prompt.
+          <button onClick={()=>navigator.clipboard.writeText(systemPrompt)} style={{marginLeft:8,padding:"2px 8px",borderRadius:6,border:"1px solid #fed7aa",background:"#fff",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Current First</button>
+        </div>}
+        <div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:6}}>Describe your business:</div>
+        <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Include: what you do, who your customers are, where you are, anything special. Any language is fine.</div>
+        <textarea value={businessDesc} onChange={e=>setBusinessDesc(e.target.value)} rows={4}
+          placeholder={"Examples:
+• Dental clinic in PJ, specialise in braces and whitening, customers are working adults 25-35
+• Luxury condo agent in Mont Kiara KL, expats and high income locals, RM1M-3M range
+• Beauty salon in Subang, facial lashes brows, walk-in and appointment, mostly ladies 20-40"}
+          style={{...IS,minHeight:100,marginBottom:12}}/>
+        {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:8}}>❌ {error}</div>}
+        <button onClick={generateQuestions} disabled={loading||!businessDesc.trim()} style={{...BP,opacity:loading||!businessDesc.trim()?0.6:1}}>
+          {loading?"🤔 Generating your questions...":"🚀 Generate My Questions →"}
+        </button>
+      </>}
+      {step===2&&questions.length>0&&<>
+        <div style={{fontSize:12,color:T.textMuted,marginBottom:14}}>AI generated {questions.length} questions specific to your business. Answer as many as you can — skip any that don't apply:</div>
+        <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:14}}>
+          {questions.map((q,i)=>(
+            <div key={q.id||i} style={{background:T.card2,borderRadius:12,padding:"12px 14px",border:"1px solid "+T.border}}>
+              <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:8}}>{i+1}. {q.question}</div>
+              {q.type==="options"&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
+                {(q.options||[]).map(opt=>(
+                  <button key={opt} onClick={()=>setAnswers(p=>({...p,[q.id]:p[q.id]===opt?"":opt}))}
+                    style={{padding:"4px 10px",borderRadius:20,border:"1px solid "+(answers[q.id]===opt?"#6c63ff":T.border),
+                      background:answers[q.id]===opt?"#f0effe":T.card,color:answers[q.id]===opt?"#6c63ff":T.text,
+                      fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                    {opt}
+                  </button>
+                ))}
+              </div>}
+              <input value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))}
+                placeholder={q.placeholder||"Your answer (optional)..."}
+                style={{...IS,resize:"none",padding:"7px 10px",fontSize:12,minHeight:"auto"}}/>
+            </div>
+          ))}
+        </div>
+        <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:6}}>💬 Anything else to add? (optional)</div>
+        <textarea value={extra} onChange={e=>setExtra(e.target.value)} rows={3}
+          placeholder="Special rules, promotions, things bot must know or never say..."
+          style={{...IS,minHeight:70,marginBottom:12}}/>
+        {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:8}}>❌ {error}</div>}
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={generatePrompt} disabled={loading} style={{...BP,opacity:loading?0.6:1}}>
+            {loading?"🤔 Building your prompt...":"✨ Generate My Bot Prompt →"}
+          </button>
+          <button onClick={()=>setStep(1)} style={BS}>← Back</button>
+        </div>
+      </>}
+      {step===3&&generatedPrompt&&<>
+        <div style={{marginBottom:10,padding:"10px 14px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0",fontSize:11,color:"#166534"}}>
+          ✅ Your prompt is ready! Review and edit below before applying.
+        </div>
+        <textarea value={generatedPrompt} onChange={e=>setGeneratedPrompt(e.target.value)} rows={12}
+          style={{...IS,minHeight:240,marginBottom:12,fontFamily:"monospace",fontSize:11}}/>
+        <div style={{marginBottom:12,padding:"10px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",fontSize:11,color:"#9a3412"}}>
+          ⚠️ <strong>Before applying:</strong> Copy your current prompt as backup!
+          <button onClick={()=>navigator.clipboard.writeText(systemPrompt||"")} style={{marginLeft:8,padding:"2px 8px",borderRadius:6,border:"1px solid #fed7aa",background:"#fff",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Current</button>
+        </div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button onClick={()=>applyPrompt(generatedPrompt)} style={BP}>✅ Apply New Prompt</button>
+          <button onClick={()=>setStep(2)} style={BS}>← Edit Answers</button>
+          <button onClick={()=>navigator.clipboard.writeText(generatedPrompt)} style={{...BS,fontSize:11}}>📋 Copy</button>
+          <button onClick={generatePrompt} disabled={loading} style={{...BS,fontSize:11,opacity:loading?0.6:1}}>🔄 Regenerate</button>
+        </div>
+      </>}
+    </div>
+  );
+  return null;
 }
 
 // ── AI PROMPT IMPROVER COMPONENT ─────────────────────────────────────────────
