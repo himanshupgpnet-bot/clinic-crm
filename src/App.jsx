@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.120";
+const CRM_VERSION = "2.9.121";
 
 // Responsive hook
 function useWindowSize() {
@@ -3363,17 +3363,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               const isSelected = broadcastClinic?.clinic_id === c.clinic_id;
               return (
                 <div key={c.clinic_id} onClick={()=>{
-                  if(!isActive) return;
                   setBroadcastClinic(c);
                   setTemplates([]);setSelectedTemplate(null);
                   setBroadcastContacts([]);setBroadcastProgress(null);
                   fetchTemplates(c.clinic_id);
                 }} style={{
                   display:"flex",alignItems:"center",gap:10,padding:"10px 8px",
-                  borderRadius:10,cursor:isActive?"pointer":"not-allowed",
+                  borderRadius:10,cursor:"pointer",
                   background:isSelected?`${WA_GREEN}15`:"transparent",
                   borderLeft:isSelected?`3px solid ${WA_GREEN}`:"3px solid transparent",
-                  opacity:isActive?1:0.4,marginBottom:4,transition:"all .15s"
+                  opacity:isActive?1:0.65,marginBottom:4,transition:"all .15s"
                 }}>
                   <div style={{width:36,height:36,borderRadius:8,overflow:"hidden",flexShrink:0,
                     background:c.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},#128C7E)`,
