@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.119";
+const CRM_VERSION = "2.9.120";
 
 // Responsive hook
 function useWindowSize() {
@@ -6057,6 +6057,36 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                 </div>
 
               </div>{/* end header */}
+
+              {/* ── ACTION BUTTONS ── */}
+              <div style={{padding:"10px 20px",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",borderBottom:`1px solid ${T.border}`,background:T.card2}}>
+                <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
+                  style={{padding:"6px 14px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  👤 Add User
+                </button>
+                <button onClick={()=>{setEditClinic({...clinic,website:clinic.website_url||clinic.contact_email||""});setView("clinic_form");}}
+                  style={{padding:"6px 12px",borderRadius:9,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  ✏️ Edit
+                </button>
+                <button onClick={()=>setConfirmModal({title:"Reset "+clinic.name+"?",message:"This will permanently delete all contacts, chats and analytics for this client.",icon:"🗑️",danger:true,confirmText:"Yes, Reset Everything",
+                  onConfirm:async()=>{const r=await fetch(API+"/api/admin/clients/"+clinic.id+"/reset",{method:"DELETE",headers:authHeaders()});if(r.ok){const d=await r.json();flash("✅ Reset — "+d.deleted_contacts+" contacts deleted");load();}else flash("❌ Reset failed");}})}
+                  style={{padding:"6px 10px",borderRadius:9,border:"1px solid #ef444430",background:"#ef444408",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                  🗑️ Reset
+                </button>
+                <button onClick={()=>{
+                  const isActive = clinic.active!==false;
+                  const action = isActive?"Disable":"Enable";
+                  setConfirmModal({title:action+" "+clinic.name+"?",
+                    message:isActive?"Disabling will prevent all users of this client from logging in.":"Enabling will allow users of this client to log in again.",
+                    icon:isActive?"🔴":"🟢",danger:isActive,confirmText:"Yes, "+action+" Client",
+                    onConfirm:async()=>{const r=await fetch(API+"/api/admin/clients/"+clinic.id,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!isActive})});if(r.ok){flash("✅ "+clinic.name+" "+action+"d");load();}else flash("❌ "+action+" failed");}});
+                }} style={{padding:"6px 10px",borderRadius:9,fontSize:11,cursor:"pointer",fontFamily:"inherit",
+                  border:clinic.active!==false?"1px solid #ef444430":"1px solid #22c55e30",
+                  background:clinic.active!==false?"#ef444408":"#22c55e08",
+                  color:clinic.active!==false?"#ef4444":"#22c55e"}}>
+                  {clinic.active!==false?"🔴 Disable":"🟢 Enable"}
+                </button>
+              </div>
 
               {/* ── PER-CLIENT STATS STRIP ── */}
               {(()=>{
