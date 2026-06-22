@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.126";
+const CRM_VERSION = "2.9.127";
 
 // Responsive hook
 function useWindowSize() {
@@ -3068,6 +3068,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 qaData={qaData} setQaData={setQaData}
                 fetchKnowledge={fetchKnowledge}
                 authToken={authToken}
+                isAdmin={isAdmin}
                 improverResult={improverResult} setImproverResult={setImproverResult}
                 improverDays={improverDays} setImproverDays={setImproverDays}
                 onViewChat={(name)=>{
@@ -7118,7 +7119,11 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
     setLoading(true); setError("");
     try {
       const d = await callAPI({mode:"questions", business_desc:businessDesc});
-      if(d.error){setError(d.error);return;}
+      if(d.error){
+        if(d.error.includes("No API key")) setError("⚠️ No API key configured for this client. Please add an API key in the Settings tab first before using Prompt Wizard.");
+        else setError(d.error);
+        return;
+      }
       setQuestions(d.result?.questions||[]);
       setStep(2);
     } catch(e){setError("Failed to generate questions");}
@@ -7324,7 +7329,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
 }
 
 // ── AI PROMPT IMPROVER COMPONENT ─────────────────────────────────────────────
-function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemPrompt, setSystemPrompt, qaData, setQaData, fetchKnowledge, authToken, onViewChat, improverResult, setImproverResult, improverDays, setImproverDays}) {
+function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemPrompt, setSystemPrompt, qaData, setQaData, fetchKnowledge, authToken, onViewChat, improverResult, setImproverResult, improverDays, setImproverDays, isAdmin=false}) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const [appliedQA, setAppliedQA] = React.useState(new Set());
@@ -7358,7 +7363,7 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
     try {
       const r = await fetch(`${API}/api/knowledge/analyse-and-improve`, {
         method:"POST", headers:authHeaders(),
-        body: JSON.stringify({clinic_id: kbClinic?.clinic_id, days})
+        body: JSON.stringify({clinic_id: kbClinic?.clinic_id||undefined, days})
       });
       const d = await r.json();
       if(!r.ok) { setError(d.error||"Failed"); return; }
@@ -7409,8 +7414,8 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
             <option value={14}>Last 14 days</option>
             <option value={30}>Last 30 days</option>
           </select>
-          <button onClick={analyse} disabled={loading||!kbClinic}
-            style={{padding:"8px 18px",borderRadius:10,border:"none",background:loading?"#94a3b8":"linear-gradient(135deg,#6c63ff,#5a52e0)",color:"#fff",fontSize:12,fontWeight:700,cursor:loading||!kbClinic?"not-allowed":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,boxShadow:loading?"none":"0 2px 10px rgba(108,99,255,.25)"}}>
+          <button onClick={analyse} disabled={loading}
+            style={{padding:"8px 18px",borderRadius:10,border:"none",background:loading?"#94a3b8":"linear-gradient(135deg,#6c63ff,#5a52e0)",color:"#fff",fontSize:12,fontWeight:700,cursor:loading?"not-allowed":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,boxShadow:loading?"none":"0 2px 10px rgba(108,99,255,.25)"}}>
             {loading?"⏳ Analysing...":"🔍 Analyse & Suggest"}
           </button>
           {result&&!loading&&<button onClick={()=>{setResult(null);setAppliedQA(new Set());setAppliedPrompt(new Set());setError("");}}
@@ -7420,7 +7425,7 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
         </div>
       </div>
 
-      {!kbClinic&&<div style={{padding:"10px 14px",background:"#fffbeb",borderRadius:8,fontSize:12,color:"#92400e",border:"1px solid #fde68a"}}>⚠️ Select a client from the sidebar first</div>}
+      {!kbClinic&&isAdmin&&<div style={{padding:"10px 14px",background:"#fffbeb",borderRadius:8,fontSize:12,color:"#92400e",border:"1px solid #fde68a"}}>⚠️ Select a client from the sidebar first</div>}
       {error&&<div style={{padding:"10px 14px",background:"#fef2f2",borderRadius:8,fontSize:12,color:"#dc2626",border:"1px solid #fca5a5"}}>❌ {error}</div>}
 
       {loading&&<div style={{textAlign:"center",padding:32}}>
