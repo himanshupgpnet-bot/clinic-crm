@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.134";
+const CRM_VERSION = "2.9.135";
 
 // Responsive hook
 function useWindowSize() {
@@ -7223,8 +7223,10 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
     return interval;
   };
 
-  const generateQuestions = async () => {
+  const generateQuestions = async (force=false) => {
     if(!businessDesc.trim()) return;
+    // Use cached questions if already generated
+    if(!force && questions.length>0) { setStep(2); return; }
     const timer = startLoading("questions");
     try {
       const d = await callAPI({mode:"questions", business_desc:businessDesc});
@@ -7236,7 +7238,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
       }
       setQuestions(d.result?.questions||[]);
       setStep(2);
-    } catch(e){ clearInterval(timer); setError(e.message||"Failed — please try again"); }
+    } catch(e){ clearInterval(timer); setError("Connection error: "+e.message+". Please check your internet and try again."); }
     finally{ setLoading(false); setLoadingMsg(""); }
   };
 
@@ -7248,7 +7250,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
       if(d.error){setError(d.error);return;}
       setGeneratedPrompt(d.prompt||"");
       setStep(3);
-    } catch(e){ clearInterval(timer); setError(e.message||"Failed — please try again"); }
+    } catch(e){ clearInterval(timer); setError("Connection error: "+e.message+". Please check your internet and try again."); }
     finally{ setLoading(false); setLoadingMsg(""); }
   };
 
@@ -7498,9 +7500,12 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
           placeholder={"Describe your business in a few sentences. Include:\n• What you do and your main services\n• Who your typical customers are\n• Where you are located\n• Anything special about your business"}
           style={{...IS,minHeight:110,marginBottom:14}}/>
         {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:10,padding:"8px 12px",background:"#fff1f3",borderRadius:8,border:"1px solid #fecdd3"}}>❌ {error}</div>}
-        <button onClick={generateQuestions} disabled={!businessDesc.trim()} style={{...BP,opacity:!businessDesc.trim()?0.5:1}}>
-          🚀 Generate My Questions →
+        <button onClick={()=>generateQuestions(false)} disabled={!businessDesc.trim()} style={{...BP,opacity:!businessDesc.trim()?0.5:1}}>
+          {questions.length>0?"📋 Continue with My Questions →":"🚀 Generate My Questions →"}
         </button>
+        {questions.length>0&&<button onClick={()=>generateQuestions(true)} style={{...BS,fontSize:11,marginTop:6}}>
+          🔄 Generate New Questions Instead
+        </button>}
       </>}
 
       {/* STEP 2 */}
@@ -7557,7 +7562,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
         {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:10,padding:"8px 12px",background:"#fff1f3",borderRadius:8,border:"1px solid #fecdd3"}}>❌ {error}</div>}
         <div style={{display:"flex",gap:8}}>
           <button onClick={generatePrompt} style={BP}>✨ Generate My Bot Prompt →</button>
-          <button onClick={()=>setStep(1)} style={BS}>← Back</button>
+          <button onClick={()=>{setStep(1);setError("");}} style={BS}>← Back</button>
         </div>
       </>}
 
