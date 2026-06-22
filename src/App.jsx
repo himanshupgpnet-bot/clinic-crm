@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.137";
+const CRM_VERSION = "2.9.138";
 
 // Responsive hook
 function useWindowSize() {
@@ -1989,7 +1989,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>
       </>}
 
-      <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+      <div style={{flex:1,display:"flex",overflow:"hidden",position:"relative"}}>
 
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
 
@@ -2273,7 +2273,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           {/* ══ CHAT WINDOW ══ */}
           {selected?(
             <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,
-              ...(isMobile?{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:20,background:"#fff"}:{})}}>
+              ...(isMobile?{position:"absolute",top:0,left:0,right:0,bottom:0,zIndex:5,background:"#fff"}:{})}}>
 
               {/* CHAT HEADER */}
               <div style={{padding:"10px 16px",background:"#ffffff",borderBottom:"1px solid #e8eaef",display:"flex",alignItems:"center",gap:10,flexShrink:0,boxShadow:"0 1px 0 #e8eaef"}}>
@@ -2373,7 +2373,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {/* MESSAGES */}
               <div ref={chatContainerRef} onScroll={()=>{const el=chatContainerRef.current;if(!el)return;userScrolled.current=(el.scrollHeight-el.scrollTop-el.clientHeight)>120;}}
                 style={{flex:1,overflowY:"auto",padding:"20px 20px",
-                  paddingBottom:isMobile?"calc(140px + env(safe-area-inset-bottom,0px))":80,
+                  paddingBottom:isMobile?20:80,
                   background:"#f5f6fa",display:"flex",flexDirection:"column",gap:8,
                   backgroundImage:"radial-gradient(circle at 100% 0,rgba(108,99,255,.03) 0,transparent 60%)",
                   WebkitOverflowScrolling:"touch"}}>
@@ -2422,14 +2422,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div ref={messagesEndRef}/>
               </div>
 
-              {/* INPUT BAR — fixed on mobile, sticky on desktop */}
+              {/* INPUT BAR */}
               <div className="mobile-chat-input" style={{padding:"10px 14px",background:"#ffffff",borderTop:"1px solid #e8eaef",display:"flex",gap:8,alignItems:"flex-end",
-                ...(isMobile?{
-                  position:"fixed",bottom:0,left:0,right:0,zIndex:50,
-                  paddingBottom:"calc(64px + env(safe-area-inset-bottom, 8px))"
-                }:{
-                  position:"sticky",bottom:0,zIndex:10,paddingBottom:"10px"
-                })}}>
+                flexShrink:0,
+                paddingBottom:isMobile?"calc(68px + env(safe-area-inset-bottom, 8px))":"10px"}}>
                 <div style={{flex:1,background:"#f8f9fc",border:"1.5px solid #e8eaef",borderRadius:14,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
                   onFocus={()=>{}} onBlur={()=>{}}>
                   <textarea value={reply} onChange={e=>setReply(e.target.value)}
