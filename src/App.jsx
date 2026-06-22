@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.132";
+const CRM_VERSION = "2.9.133";
 
 // Responsive hook
 function useWindowSize() {
@@ -7495,11 +7495,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
         </div>
 
         <textarea value={businessDesc} onChange={e=>setBusinessDesc(e.target.value)} rows={4}
-          placeholder={"Describe your business in a few sentences. Include:
-• What you do and your main services
-• Who your typical customers are
-• Where you are located
-• Anything special about your business"}
+          placeholder={"Describe your business in a few sentences. Include:\n• What you do and your main services\n• Who your typical customers are\n• Where you are located\n• Anything special about your business"}
           style={{...IS,minHeight:110,marginBottom:14}}/>
         {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:10,padding:"8px 12px",background:"#fff1f3",borderRadius:8,border:"1px solid #fecdd3"}}>❌ {error}</div>}
         <button onClick={generateQuestions} disabled={!businessDesc.trim()} style={{...BP,opacity:!businessDesc.trim()?0.5:1}}>
