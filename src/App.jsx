@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.135";
+const CRM_VERSION = "2.9.136";
 
 // Responsive hook
 function useWindowSize() {
@@ -118,6 +118,7 @@ export default function App() {
 
   // ── MAIN APP HOOKS (must all be declared before any return) ──
   const [tab, setTab] = useState("crm");
+  const [showMoreSheet, setShowMoreSheet] = React.useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -230,6 +231,7 @@ export default function App() {
   const isAdmin = currentUser?.role === "admin";
 
   function safeSetTab(newTab) {
+    setShowMoreSheet(false);
     if(settingsDirty && tab==="settings" && newTab!=="settings") {
       setPendingTab(newTab);
       setShowUnsavedModal(true);
@@ -1569,32 +1571,65 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       `}</style>
 
       {/* MOBILE BOTTOM NAV */}
-      {isMobile&&<div style={{position:"fixed",bottom:0,left:0,right:0,
-        background:T.nav,borderTop:`1px solid ${T.border}`,
-        display:"flex",zIndex:100,
-        paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
-        {[
-          {id:"crm",icon:"💬",label:"Inbox",badge:totalUnread},
-          {id:"leads",icon:"🎯",label:"Leads",badge:(hotCount+warmCount)||0},
-          {id:"analytics",icon:"📊",label:"Stats"},
-          {id:"settings",icon:"⚙️",label:"Settings"},
-          ...(isAdmin?[{id:"admin",icon:"👑",label:"Admin"}]:[]),
-        ].filter(t=>canSee(t.id)).map(t=>(
-          <button key={t.id} onClick={()=>safeSetTab(t.id)}
-            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
-              justifyContent:"center",padding:"8px 0",border:"none",
-              background:"transparent",cursor:"pointer",position:"relative",
-              color:tab===t.id?WA_GREEN:T.textMuted,fontFamily:"inherit"}}>
-            <span style={{fontSize:20}}>{t.icon}</span>
-            <span style={{fontSize:9,fontWeight:tab===t.id?700:400,marginTop:2}}>{t.label}</span>
-            {t.badge>0&&<span style={{position:"absolute",top:4,right:"50%",transform:"translateX(160%)",
-              background:"#ef4444",color:"#fff",borderRadius:10,
-              padding:"1px 4px",fontSize:9,fontWeight:700,minWidth:14,textAlign:"center"}}>
-              {t.badge>99?"99+":t.badge}
-            </span>}
-          </button>
-        ))}
-      </div>}
+      {isMobile&&<>
+        {/* More sheet backdrop */}
+        {showMoreSheet&&<div onClick={()=>setShowMoreSheet(false)}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,.4)",zIndex:200,backdropFilter:"blur(2px)"}}/>}
+        {/* More sheet */}
+        {showMoreSheet&&<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:201,
+          background:T.card,borderRadius:"20px 20px 0 0",padding:"16px 16px calc(80px + env(safe-area-inset-bottom,0px))",
+          boxShadow:"0 -8px 32px rgba(0,0,0,.15)"}}>
+          <div style={{width:40,height:4,borderRadius:2,background:T.border,margin:"0 auto 16px"}}/>
+          <div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:12}}>More</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+            {[
+              {id:"kb",icon:"📋",label:"Knowledge"},
+              {id:"broadcast",icon:"📢",label:"Broadcast"},
+              {id:"notes",icon:"📝",label:"Notes"},
+              {id:"integrations",icon:"🔌",label:"Integrations"},
+              {id:"testbot",icon:"🤖",label:"Test Bot"},
+              ...(isAdmin?[{id:"admin",icon:"👑",label:"Admin"}]:[]),
+            ].filter(t=>canSee(t.id)).map(t=>(
+              <button key={t.id} onClick={()=>{safeSetTab(t.id);setShowMoreSheet(false);}}
+                style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,
+                  padding:"12px 8px",borderRadius:14,border:"1px solid "+T.border,
+                  background:tab===t.id?WA_GREEN+"15":T.card2,cursor:"pointer",fontFamily:"inherit",
+                  transition:"all .15s"}}>
+                <span style={{fontSize:24}}>{t.icon}</span>
+                <span style={{fontSize:11,fontWeight:600,color:tab===t.id?WA_GREEN:T.text}}>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>}
+        {/* Bottom tab bar */}
+        <div style={{position:"fixed",bottom:0,left:0,right:0,
+          background:T.nav,borderTop:`1px solid ${T.border}`,
+          display:"flex",zIndex:100,
+          paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
+          {[
+            {id:"crm",icon:"💬",label:"Inbox",badge:totalUnread},
+            {id:"leads",icon:"🎯",label:"Leads",badge:(hotCount+warmCount)||0},
+            {id:"analytics",icon:"📊",label:"Stats"},
+            {id:"settings",icon:"⚙️",label:"Settings"},
+            {id:"more",icon:"⋯",label:"More"},
+          ].map(t=>(
+            <button key={t.id} onClick={()=>t.id==="more"?setShowMoreSheet(p=>!p):safeSetTab(t.id)}
+              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
+                justifyContent:"center",minHeight:56,padding:"6px 0 4px",border:"none",
+                background:"transparent",cursor:"pointer",position:"relative",
+                color:t.id==="more"?showMoreSheet?WA_GREEN:T.textMuted:tab===t.id?WA_GREEN:T.textMuted,
+                fontFamily:"inherit",transition:"color .15s"}}>
+              <span style={{fontSize:22,lineHeight:1}}>{t.icon}</span>
+              <span style={{fontSize:10,fontWeight:tab===t.id||t.id==="more"&&showMoreSheet?700:400,marginTop:3}}>{t.label}</span>
+              {t.badge>0&&<span style={{position:"absolute",top:6,right:"50%",transform:"translateX(160%)",
+                background:"#ef4444",color:"#fff",borderRadius:10,
+                padding:"1px 5px",fontSize:9,fontWeight:700,minWidth:16,textAlign:"center"}}>
+                {t.badge>99?"99+":t.badge}
+              </span>}
+            </button>
+          ))}
+        </div>
+      </>}
 
       {/* EXPORT CSV MODAL */}
       {/* TEMPLATE FORM — Simple inline */}
@@ -2120,14 +2155,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div style={{display:"flex",gap:3,marginBottom:5}}>
                   {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=>(
                     <button key={f.id} onClick={()=>{setInboxFilter(f.id);setShowArchived(false);}}
-                      style={{flex:1,padding:"4px 0",borderRadius:20,border:`1px solid ${inboxFilter===f.id&&!showArchived?"#e8eaef":"#e8eaef"}`,cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:inboxFilter===f.id&&!showArchived?700:600,
-                        background:inboxFilter===f.id&&!showArchived?"#f0f1f8":"#f8f9fc",color:inboxFilter===f.id&&!showArchived?"#0d0f1a":"#6b7280"}}>
+                      style={{flex:1,padding:isMobile?"10px 4px":"4px 0",minHeight:isMobile?44:28,borderRadius:22,border:`1px solid ${inboxFilter===f.id&&!showArchived?"#e8eaef":"#e8eaef"}`,cursor:"pointer",fontFamily:"inherit",fontSize:isMobile?12:10,fontWeight:inboxFilter===f.id&&!showArchived?700:600,
+                        background:inboxFilter===f.id&&!showArchived?"#f0f1f8":"#f8f9fc",color:inboxFilter===f.id&&!showArchived?"#0d0f1a":"#6b7280",display:"flex",alignItems:"center",justifyContent:"center"}}>
                       {f.label}
                     </button>
                   ))}
                   <button onClick={()=>{setShowArchived(p=>!p);if(!archivedContacts.length)fetchArchived();}}
-                    style={{flex:1,padding:"4px 0",borderRadius:20,border:"1px solid #e8eaef",cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:600,
-                      background:showArchived?"#f0f1f8":"#f8f9fc",color:showArchived?"#0d0f1a":"#6b7280"}}>📦</button>
+                    style={{flex:1,padding:isMobile?"10px 4px":"4px 0",minHeight:isMobile?44:28,borderRadius:22,border:"1px solid #e8eaef",cursor:"pointer",fontFamily:"inherit",fontSize:isMobile?12:10,fontWeight:600,
+                      background:showArchived?"#f0f1f8":"#f8f9fc",color:showArchived?"#0d0f1a":"#6b7280",display:"flex",alignItems:"center",justifyContent:"center"}}>📦</button>
                 </div>
 
                 {inboxFilter==="manual"&&!showArchived&&<div style={{marginBottom:6}}>
@@ -2200,15 +2235,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {/* Info */}
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:2}}>
-                      <span style={{fontWeight:c.unread>0?700:600,fontSize:13,color:"#0d0f1a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:135}}>
+                      <span style={{fontWeight:c.unread>0?700:600,fontSize:isMobile?15:13,color:"#0d0f1a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?160:135}}>
                         {c.name}
                       </span>
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",flexShrink:0,marginLeft:4}}>
-                        <span style={{fontSize:10,color:c.unread>0?"#e11d48":"#9ca3af",fontWeight:c.unread>0?700:400}}>{c.lastTime}</span>
+                        <span style={{fontSize:isMobile?12:10,color:c.unread>0?"#e11d48":"#9ca3af",fontWeight:c.unread>0?700:400}}>{c.lastTime}</span>
                         {c.lastDate&&<span style={{fontSize:9,color:"#9ca3af"}}>{c.lastDate.includes("/")?c.lastDate:c.lastDate.split("-").reverse().join("/")}</span>}
                       </div>
                     </div>
-                    <div style={{fontSize:11,color:c.unread>0?"#0d0f1a":"#6b7280",fontWeight:c.unread>0?500:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:190,marginBottom:5}}>
+                    <div style={{fontSize:isMobile?13:11,color:c.unread>0?"#0d0f1a":"#6b7280",fontWeight:c.unread>0?500:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?220:190,marginBottom:5}}>
                       {c.lastMessage||"No messages"}
                     </div>
                     {/* Tags + score bar */}
@@ -2383,16 +2418,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div ref={messagesEndRef}/>
               </div>
 
-              {/* INPUT BAR */}
+              {/* INPUT BAR — sticky bottom, keyboard-safe */}
               <div className="mobile-chat-input" style={{padding:"10px 14px",background:"#ffffff",borderTop:"1px solid #e8eaef",display:"flex",gap:8,alignItems:"flex-end",
-                paddingBottom:isMobile?"calc(70px + env(safe-area-inset-bottom, 8px))":"10px"}}>
+                position:"sticky",bottom:0,zIndex:10,
+                paddingBottom:isMobile?"calc(72px + env(safe-area-inset-bottom, 8px))":"10px"}}>
                 <div style={{flex:1,background:"#f8f9fc",border:"1.5px solid #e8eaef",borderRadius:14,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
                   onFocus={()=>{}} onBlur={()=>{}}>
                   <textarea value={reply} onChange={e=>setReply(e.target.value)}
                     onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAgentReply();}}}
                     placeholder={selected.botActive?"Bot is active — toggle off to reply":"Type a message..."}
                     disabled={selected.botActive} rows={1}
-                    style={{flex:1,background:"transparent",border:"none",color:selected.botActive?"#9ca3af":"#0d0f1a",fontSize:isMobile?15:13,maxHeight:100,fontFamily:"inherit",outline:"none",resize:"none",lineHeight:1.4}}/>
+                    style={{flex:1,background:"transparent",border:"none",color:selected.botActive?"#9ca3af":"#0d0f1a",fontSize:isMobile?16:13,maxHeight:100,fontFamily:"inherit",outline:"none",resize:"none",lineHeight:1.4}}/>
                   <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>😊</span>
                   <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>📎</span>
                 </div>
