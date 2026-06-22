@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.128";
+const CRM_VERSION = "2.9.129";
 
 // Responsive hook
 function useWindowSize() {
@@ -5614,7 +5614,18 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
       const newSettings = {...globalSettings,...updates};
       await fetch(API+"/api/admin/global-settings", {method:"PATCH", headers:authHeaders(), body:JSON.stringify(newSettings)});
       setGlobalSettings(newSettings);
-    } catch {}
+      const t=document.createElement("div");
+      t.style.cssText="position:fixed;bottom:24px;right:24px;z-index:99999;background:#166534;color:#fff;border-radius:12px;padding:12px 20px;font-size:13px;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,.2);display:flex;align-items:center;gap:8px";
+      t.innerHTML="✅ Global settings saved!";
+      document.body.appendChild(t);
+      setTimeout(()=>t.remove(),2500);
+    } catch {
+      const t=document.createElement("div");
+      t.style.cssText="position:fixed;bottom:24px;right:24px;z-index:99999;background:#dc2626;color:#fff;border-radius:12px;padding:12px 20px;font-size:13px;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,.2)";
+      t.innerHTML="❌ Save failed — try again";
+      document.body.appendChild(t);
+      setTimeout(()=>t.remove(),2500);
+    }
     setSavingGlobal(false);
   };
   const [editUser, setEditUser] = useState(null);
