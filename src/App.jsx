@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.127";
+const CRM_VERSION = "2.9.128";
 
 // Responsive hook
 function useWindowSize() {
@@ -5598,6 +5598,25 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editClinic, setEditClinic] = useState(null);
+  const [globalSettings, setGlobalSettings] = React.useState({fallback_enabled:"false",fallback_api_key:"",fallback_provider:"anthropic"});
+  const [savingGlobal, setSavingGlobal] = React.useState(false);
+
+  const loadGlobalSettings = React.useCallback(async () => {
+    try {
+      const r = await fetch(API+"/api/admin/global-settings", {headers:authHeaders()});
+      if(r.ok) setGlobalSettings(await r.json());
+    } catch {}
+  }, []);
+
+  const saveGlobalSettings = async (updates) => {
+    setSavingGlobal(true);
+    try {
+      const newSettings = {...globalSettings,...updates};
+      await fetch(API+"/api/admin/global-settings", {method:"PATCH", headers:authHeaders(), body:JSON.stringify(newSettings)});
+      setGlobalSettings(newSettings);
+    } catch {}
+    setSavingGlobal(false);
+  };
   const [editUser, setEditUser] = useState(null);
   const [newUser, setNewUser] = useState(null);
   const [showPw, setShowPw] = useState(false);
@@ -5663,6 +5682,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
 
   useEffect(()=>{
     load();
+    loadGlobalSettings();
     // Auto-refresh every 30 seconds
     const interval = setInterval(load, 30000);
     return ()=>clearInterval(interval);
@@ -6126,6 +6146,53 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
           </div>
         ))}
       </div>}
+
+      {/* ── GLOBAL SETTINGS CARD ── */}
+      <div style={{background:T.card,borderRadius:16,border:"1px solid "+T.border,padding:"16px 20px",marginBottom:16,boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <div>
+            <div style={{fontWeight:800,fontSize:14,color:T.text}}>⚙️ Global Settings</div>
+            <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Settings that apply across all clients</div>
+          </div>
+        </div>
+        {/* Fallback API Key Toggle */}
+        <div style={{background:T.card2,borderRadius:12,padding:"12px 14px",border:"1px solid "+T.border}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:T.text}}>🔑 Fallback API Key</div>
+              <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Use this key for clients without their own API key (Prompt Wizard, AI Improver)</div>
+            </div>
+            {/* Toggle */}
+            <div onClick={()=>saveGlobalSettings({fallback_enabled:globalSettings.fallback_enabled==="true"?"false":"true"})}
+              style={{width:44,height:24,borderRadius:12,background:globalSettings.fallback_enabled==="true"?"#22c55e":"#d1d5db",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+              <div style={{position:"absolute",top:2,left:globalSettings.fallback_enabled==="true"?20:2,width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 3px rgba(0,0,0,.2)",transition:"left .2s"}}/>
+            </div>
+          </div>
+          {globalSettings.fallback_enabled==="true"&&<>
+            <div style={{display:"flex",gap:8,marginBottom:8}}>
+              <select value={globalSettings.fallback_provider||"anthropic"}
+                onChange={e=>setGlobalSettings(p=>({...p,fallback_provider:e.target.value}))}
+                style={{padding:"6px 10px",borderRadius:8,border:"1px solid "+T.border,background:T.card,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+                <option value="anthropic">Claude (Anthropic)</option>
+                <option value="openai">OpenAI (GPT-4o)</option>
+              </select>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <input type="password" value={globalSettings.fallback_api_key||""}
+                onChange={e=>setGlobalSettings(p=>({...p,fallback_api_key:e.target.value}))}
+                placeholder="sk-ant-... or sk-..."
+                style={{flex:1,padding:"7px 10px",borderRadius:8,border:"1px solid "+T.border,background:T.card,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+              <button onClick={()=>saveGlobalSettings(globalSettings)} disabled={savingGlobal}
+                style={{padding:"7px 14px",borderRadius:8,border:"none",background:"#6c63ff",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:savingGlobal?0.6:1}}>
+                {savingGlobal?"Saving...":"💾 Save"}
+              </button>
+            </div>
+            <div style={{marginTop:8,fontSize:10,color:"#d97706",background:"#fffbeb",borderRadius:6,padding:"4px 8px",border:"1px solid #fde68a"}}>
+              ⚠️ API calls from clients without their own key will be billed to this key
+            </div>
+          </>}
+        </div>
+      </div>
 
       {loading&&clinics.length===0&&<div style={{padding:40,textAlign:"center",color:T.textMuted}}>
         <div style={{width:32,height:32,borderRadius:"50%",border:"3px solid #e8eaef",borderTop:"3px solid #6c63ff",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/>
