@@ -1601,8 +1601,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             ))}
           </div>
         </div>}
-        {/* Bottom tab bar */}
-        <div style={{position:"fixed",bottom:0,left:0,right:0,
+        {/* Bottom tab bar — hide when chat open on mobile */}
+        {!(isMobile&&selected)&&<div style={{position:"fixed",bottom:0,left:0,right:0,
           background:T.nav,borderTop:`1px solid ${T.border}`,
           display:"flex",zIndex:100,
           paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
@@ -1628,7 +1628,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </span>}
             </button>
           ))}
-        </div>
+        </div>}
       </>}
 
       {/* EXPORT CSV MODAL */}
@@ -2272,8 +2272,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
           {/* ══ CHAT WINDOW ══ */}
           {selected?(
-            <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,
-              ...(isMobile?{position:"absolute",top:0,left:0,right:0,bottom:0,zIndex:5,background:"#fff"}:{})}}>
+            <div style={{
+              ...(isMobile?{
+                position:"fixed",top:0,left:0,right:0,bottom:0,
+                zIndex:30,background:"#fff",
+                display:"flex",flexDirection:"column",
+                height:"100dvh"
+              }:{
+                flex:1,display:"flex",flexDirection:"column",minWidth:0
+              })}}>
 
               {/* CHAT HEADER */}
               <div style={{padding:"10px 16px",background:"#ffffff",borderBottom:"1px solid #e8eaef",display:"flex",alignItems:"center",gap:10,flexShrink:0,boxShadow:"0 1px 0 #e8eaef"}}>
@@ -2372,11 +2379,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
               {/* MESSAGES */}
               <div ref={chatContainerRef} onScroll={()=>{const el=chatContainerRef.current;if(!el)return;userScrolled.current=(el.scrollHeight-el.scrollTop-el.clientHeight)>120;}}
-                style={{flex:1,overflowY:"auto",padding:"20px 20px",
-                  paddingBottom:isMobile?20:80,
+                style={{flex:1,overflowY:"auto",padding:"12px",
+                  paddingBottom:16,
                   background:"#f5f6fa",display:"flex",flexDirection:"column",gap:8,
                   backgroundImage:"radial-gradient(circle at 100% 0,rgba(108,99,255,.03) 0,transparent 60%)",
-                  WebkitOverflowScrolling:"touch"}}>
+                  WebkitOverflowScrolling:"touch",
+                  minHeight:0}}>
                 {selected.messages?.map((msg,i)=>{
                   const isOut=msg.from!=="user";
                   const isBot=msg.from==="bot";
@@ -2425,7 +2433,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {/* INPUT BAR */}
               <div className="mobile-chat-input" style={{padding:"10px 14px",background:"#ffffff",borderTop:"1px solid #e8eaef",display:"flex",gap:8,alignItems:"flex-end",
                 flexShrink:0,
-                paddingBottom:isMobile?"calc(68px + env(safe-area-inset-bottom, 8px))":"10px"}}>
+                paddingBottom:isMobile?"calc(8px + env(safe-area-inset-bottom,0px))":"10px"}}>
                 <div style={{flex:1,background:"#f8f9fc",border:"1.5px solid #e8eaef",borderRadius:14,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
                   onFocus={()=>{}} onBlur={()=>{}}>
                   <textarea value={reply} onChange={e=>setReply(e.target.value)}
