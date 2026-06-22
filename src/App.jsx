@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.118";
+const CRM_VERSION = "2.9.119";
 
 // Responsive hook
 function useWindowSize() {
@@ -5979,7 +5979,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
         {[
           {icon:"🏢",v:clinics.length,l:"Total Clients",sub:clinics.filter(c=>c.active!==false).length+" Active · "+clinics.filter(c=>c.active===false).length+" Disabled",c:"#6c63ff",bg:"#f0effe"},
           {icon:"👥",v:adminOverview.length>0?adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0):"…",l:"Total Contacts",sub:"Across all clients",c:"#2563eb",bg:"#eff6ff"},
-          {icon:"👤",v:users.length,l:"Total Staff",sub:users.filter(u=>u.active).length+" Active · "+users.filter(u=>!u.active).length+" Deactivated",c:"#d97706",bg:"#fffbeb"},
+          {icon:"👤",v:users.filter(u=>u.role!=="admin").length,l:"Total Staff",sub:users.filter(u=>u.role!=="admin"&&u.active).length+" Active · "+users.filter(u=>u.role!=="admin"&&!u.active).length+" Deactivated",c:"#d97706",bg:"#fffbeb"},
           {icon:"🔥",v:adminOverview.length>0?adminOverview.reduce((s,c)=>s+(c.hot_leads||0),0):"…",l:"Hot Leads",sub:"All clients combined",c:"#e11d48",bg:"#fff1f3"},
           {icon:"🤖",v:adminOverview.length>0?(()=>{const active=adminOverview.filter(c=>c.active!==false);return active.length>0?Math.round(active.reduce((s,c)=>s+(c.bot_performance||0),0)/active.length):0})()+"% avg":"…",l:"Bot Automation",sub:"Active clients only",c:"#16a34a",bg:"#f0fdf4"},
         ].map(s=>(
@@ -6129,6 +6129,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                                 <span style={{fontWeight:700,fontSize:13}}>@{u.username}</span>
                                 {!u.active&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#fef2f2",color:"#dc2626",fontWeight:700}}>Deactivated</span>}
+                                {u.active&&clinic.active===false&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#fff7ed",color:"#c2410c",fontWeight:700}}>Client Disabled</span>}
                                 {isOnline&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Active Now</span>}
                               </div>
                               {/* Permissions */}
