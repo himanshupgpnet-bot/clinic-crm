@@ -1,8 +1,27 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 
+// ── SOCKET.IO ─────────────────────────────────────────────────────────────────
+let _socket = null;
+function getSocket(apiUrl, clinicId) {
+  if(_socket && _socket.connected) return _socket;
+  try {
+    if(typeof io === "undefined") return null;
+    _socket = io(apiUrl, {
+      transports: ["websocket","polling"],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      timeout: 10000,
+    });
+    _socket.on("connect", () => {
+      if(clinicId) _socket.emit("join", {clinic_id: clinicId});
+    });
+    return _socket;
+  } catch(e) { return null; }
+}
+
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.123";
+const CRM_VERSION = "2.9.124";
 
 // Responsive hook
 function useWindowSize() {
@@ -67,6 +86,16 @@ export default function App() {
   // ── AUTH ──
   const {w:winW} = useWindowSize();
   const isMobile = winW < 640;
+
+  // Load socket.io-client dynamically
+  React.useEffect(() => {
+    if(typeof io === "undefined") {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js";
+      s.async = true;
+      document.head.appendChild(s);
+    }
+  }, []);
   const isTablet = winW >= 640 && winW < 1024;
   const isSmall  = winW < 1024; // mobile + tablet
 
@@ -1000,6 +1029,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   }
 
   const pollRef = useRef(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     fetchConversations(); fetchKnowledge(); fetchSettings(); fetchClinicUsers(); refreshPermissions();
@@ -1008,9 +1038,56 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   useEffect(() => {
     fetchConversations();
     fetch(`${API}/api/ai-status`).then(r=>r.json()).then(setAiStatus).catch(()=>{});
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(fetchConversations, 10000); // 10s — easier on backend
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+
+    // ── WebSocket real-time connection ──
+    const clinicId = authToken ? JSON.parse(atob(authToken.split(".")[1]||"e30="))?.clinic_id : null;
+    if(typeof io !== "undefined") {
+      try {
+        const sock = io(API, {
+          transports:["websocket","polling"],
+          reconnectionAttempts:10,
+          reconnectionDelay:2000,
+          timeout:8000,
+        });
+        socketRef.current = sock;
+        sock.on("connect", () => {
+          if(clinicId) sock.emit("join", {clinic_id: clinicId});
+          setBackendStatus("online");
+          // Slow fallback poll when WS connected — just in case
+          if(pollRef.current) clearInterval(pollRef.current);
+          pollRef.current = setInterval(fetchConversations, 30000);
+        });
+        sock.on("new_message", () => {
+          fetchConversations(); // instant refresh on new message
+        });
+        sock.on("contact_update", () => {
+          fetchConversations();
+        });
+        sock.on("disconnect", () => {
+          // Fall back to fast polling if WS drops
+          if(pollRef.current) clearInterval(pollRef.current);
+          pollRef.current = setInterval(fetchConversations, 10000);
+        });
+        sock.on("connect_error", () => {
+          // WS failed — use polling
+          if(pollRef.current) clearInterval(pollRef.current);
+          pollRef.current = setInterval(fetchConversations, 10000);
+        });
+      } catch(e) {
+        // Fallback to polling
+        if(pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = setInterval(fetchConversations, 10000);
+      }
+    } else {
+      // No socket.io — use polling
+      if(pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(fetchConversations, 10000);
+    }
+
+    return () => {
+      if(pollRef.current) clearInterval(pollRef.current);
+      if(socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; }
+    };
   }, []);
 
   useEffect(() => {
