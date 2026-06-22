@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.131";
+const CRM_VERSION = "2.9.132";
 
 // Responsive hook
 function useWindowSize() {
@@ -7180,66 +7180,97 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
   const [extra, setExtra] = React.useState("");
   const [newLogic, setNewLogic] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [loadingMsg, setLoadingMsg] = React.useState("");
   const [generatedPrompt, setGeneratedPrompt] = React.useState("");
   const [enhanceResult, setEnhanceResult] = React.useState(null);
   const [error, setError] = React.useState("");
+  const [suggestWelcome, setSuggestWelcome] = React.useState("");
   const clinicId = kbClinic?.clinic_id||kbClinic?.id||null;
 
   const callAPI = async (payload) => {
     const body = {...payload};
     if(clinicId) body.clinic_id = clinicId;
-    const r = await fetch(API+"/api/knowledge/generate-prompt", {method:"POST", headers:authHeaders(), body:JSON.stringify(body)});
-    return r.json();
+    const ctrl = new AbortController();
+    const tmo = setTimeout(()=>ctrl.abort(), 60000); // 60s timeout for AI generation
+    try {
+      const r = await fetch(API+"/api/knowledge/generate-prompt", {
+        method:"POST", headers:authHeaders(), body:JSON.stringify(body), signal:ctrl.signal
+      });
+      clearTimeout(tmo);
+      return r.json();
+    } catch(e) {
+      clearTimeout(tmo);
+      if(e.name==="AbortError") throw new Error("Request timed out — please try again");
+      throw e;
+    }
+  };
+
+  const loadingMessages = {
+    questions: ["🔍 Analysing your business...", "🧠 Thinking about the right questions...", "✍️ Crafting specific questions for you..."],
+    generate: ["📝 Reading your answers...", "🧠 Building your bot personality...", "✨ Crafting your system prompt...", "🔧 Adding rules and behaviours...", "⚡ Almost done..."],
+    enhance: ["📖 Reading your existing prompt...", "🧠 Understanding the new rule...", "📍 Finding the best place to add it...", "✍️ Writing the updated prompt..."],
+  };
+
+  const startLoading = (type) => {
+    setLoading(true); setError("");
+    const msgs = loadingMessages[type]||[];
+    let i = 0;
+    setLoadingMsg(msgs[0]||"Processing...");
+    const interval = setInterval(()=>{
+      i = (i+1)%msgs.length;
+      setLoadingMsg(msgs[i]);
+    }, 2000);
+    return interval;
   };
 
   const generateQuestions = async () => {
     if(!businessDesc.trim()) return;
-    setLoading(true); setError("");
+    const timer = startLoading("questions");
     try {
       const d = await callAPI({mode:"questions", business_desc:businessDesc});
+      clearInterval(timer);
       if(d.error){
-        if(d.error.includes("No API key")) setError("⚠️ No API key configured for this client. Please add an API key in the Settings tab first before using Prompt Wizard.");
+        if(d.error.includes("No API key")) setError("⚠️ No API key found. Ask your admin to configure one in Settings or enable the Fallback API Key in Admin Panel.");
         else setError(d.error);
         return;
       }
       setQuestions(d.result?.questions||[]);
       setStep(2);
-    } catch(e){setError("Failed to generate questions");}
-    finally{setLoading(false);}
+    } catch(e){ clearInterval(timer); setError(e.message||"Failed — please try again"); }
+    finally{ setLoading(false); setLoadingMsg(""); }
   };
 
   const generatePrompt = async () => {
-    setLoading(true); setError("");
+    const timer = startLoading("generate");
     try {
       const d = await callAPI({mode:"generate", business_desc:businessDesc, answers, extra});
+      clearInterval(timer);
       if(d.error){setError(d.error);return;}
       setGeneratedPrompt(d.prompt||"");
       setStep(3);
-    } catch(e){setError("Failed to generate prompt");}
-    finally{setLoading(false);}
+    } catch(e){ clearInterval(timer); setError(e.message||"Failed — please try again"); }
+    finally{ setLoading(false); setLoadingMsg(""); }
   };
 
   const enhancePrompt = async () => {
     if(!newLogic.trim()) return;
-    setLoading(true); setError("");
+    const timer = startLoading("enhance");
     try {
       const d = await callAPI({mode:"enhance", new_logic:newLogic});
+      clearInterval(timer);
       if(d.error){setError(d.error);return;}
       setEnhanceResult(d.result);
       setStep(3);
-    } catch(e){setError("Failed to enhance prompt");}
-    finally{setLoading(false);}
+    } catch(e){ clearInterval(timer); setError(e.message||"Failed — please try again"); }
+    finally{ setLoading(false); setLoadingMsg(""); }
   };
 
-  const [suggestWelcome, setSuggestWelcome] = React.useState("");
-
   const extractWelcome = (prompt) => {
-    // Try to extract welcome message from prompt
     const lines = prompt.split("\n");
     for(const line of lines) {
-      if(line.toLowerCase().includes("hi!") || line.toLowerCase().includes("hello!") || 
-         line.toLowerCase().includes("hi,") || line.toLowerCase().includes("assalamualaikum")) {
-        const clean = line.replace(/^[-*•"\s]+|["]+$/g,"").trim();
+      const l = line.toLowerCase();
+      if(l.includes("hi!") || l.includes("hello!") || l.includes("hi,") || l.includes("assalamualaikum")) {
+        const clean = line.replace(/^[-*"\s]+|["]+$/g,"").trim();
         if(clean.length > 10 && clean.length < 300) return clean;
       }
     }
@@ -7256,7 +7287,6 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
         if(clinicId) body.clinic_id = clinicId;
         await fetch(API+"/api/knowledge/prompt", {method:"PATCH", headers:authHeaders(), body:JSON.stringify(body)});
         setSystemPrompt(newPrompt);
-        // Try to extract welcome message suggestion
         const welcome = extractWelcome(newPrompt);
         if(welcome) setSuggestWelcome(welcome);
         setMode(null); setStep(1); setGeneratedPrompt(""); setEnhanceResult(null);
@@ -7269,20 +7299,41 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
     });
   };
 
+  const reset = () => {setMode(null);setStep(1);setGeneratedPrompt("");setQuestions([]);setAnswers({});setEnhanceResult(null);setNewLogic("");setError("");};
+
+  // Shared styles
   const IS = {width:"100%",padding:"10px 14px",borderRadius:10,border:"1.5px solid "+T.border,background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",resize:"vertical",lineHeight:1.6};
-  const BP = {padding:"10px 20px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#6c63ff,#8b5cf6)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"};
+  const BP = {padding:"11px 22px",borderRadius:11,border:"none",background:"linear-gradient(135deg,#6c63ff,#8b5cf6)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 2px 12px rgba(108,99,255,.3)",display:"flex",alignItems:"center",gap:8};
   const BS = {padding:"10px 16px",borderRadius:10,border:"1px solid "+T.border,background:T.card2,color:T.text,fontSize:13,cursor:"pointer",fontFamily:"inherit"};
 
-  const reset = () => {setMode(null);setStep(1);setGeneratedPrompt("");setQuestions([]);setAnswers({});setEnhanceResult(null);setNewLogic("");};
+  // Loading overlay
+  const LoadingOverlay = () => (
+    <div style={{textAlign:"center",padding:"40px 20px"}}>
+      <div style={{width:56,height:56,margin:"0 auto 20px",position:"relative"}}>
+        <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"3px solid #f0effe"}}/>
+        <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"3px solid transparent",borderTopColor:"#6c63ff",animation:"spin .8s linear infinite"}}/>
+        <div style={{position:"absolute",inset:6,borderRadius:"50%",background:"linear-gradient(135deg,#6c63ff20,#8b5cf620)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🤖</div>
+      </div>
+      <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:6}}>{loadingMsg}</div>
+      <div style={{fontSize:11,color:T.textMuted}}>This may take 15-30 seconds...</div>
+      <div style={{marginTop:16,height:3,borderRadius:2,background:T.border,overflow:"hidden",maxWidth:200,margin:"16px auto 0"}}>
+        <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,#6c63ff,#8b5cf6)",animation:"shimmer 1.5s ease-in-out infinite",backgroundSize:"200% 100%"}}/>
+      </div>
+      <style>{`@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}`}</style>
+    </div>
+  );
 
+  // MODE SELECTION
   if(!mode) return (
     <div style={{animation:"_slideInL .3s both"}}>
-      <div style={{fontWeight:900,fontSize:16,marginBottom:4,color:T.text}}>✨ Prompt Wizard</div>
-      <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>Build or improve your bot personality with AI</div>
-      {suggestWelcome&&<div style={{marginBottom:16,padding:"12px 14px",background:"#eff6ff",borderRadius:12,border:"1px solid #bfdbfe"}}>
-        <div style={{fontWeight:700,fontSize:12,color:"#1d4ed8",marginBottom:6}}>💡 Update your Welcome Message too?</div>
-        <div style={{fontSize:11,color:"#1e40af",marginBottom:8}}>Your new prompt includes this greeting — set it as your Welcome Message so it auto-sends to new customers:</div>
-        <div style={{background:"#fff",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#0d0f1a",marginBottom:10,border:"1px solid #bfdbfe",fontStyle:"italic"}}>"{suggestWelcome}"</div>
+      <div style={{fontWeight:900,fontSize:17,letterSpacing:"-.3px",marginBottom:4,color:T.text}}>✨ Prompt Wizard</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>Build or improve your bot personality with AI — in any language</div>
+
+      {/* Welcome suggestion banner */}
+      {suggestWelcome&&<div style={{marginBottom:16,padding:"14px 16px",background:"#eff6ff",borderRadius:12,border:"1px solid #bfdbfe"}}>
+        <div style={{fontWeight:700,fontSize:12,color:"#1d4ed8",marginBottom:4}}>💡 Update Welcome Message too?</div>
+        <div style={{fontSize:11,color:"#1e40af",marginBottom:8}}>Your new prompt includes this greeting. Set it as the auto-send Welcome Message for new customers:</div>
+        <div style={{background:"#fff",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#0d0f1a",marginBottom:10,border:"1px solid #bfdbfe",fontStyle:"italic"}}>"{suggestWelcome}"</div>
         <div style={{display:"flex",gap:6}}>
           <button onClick={async()=>{
             const body={welcome:suggestWelcome};
@@ -7294,67 +7345,87 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
             t.innerHTML="✅ Welcome message updated!";
             document.body.appendChild(t); setTimeout(()=>t.remove(),2500);
           }} style={{padding:"6px 14px",borderRadius:8,border:"none",background:"#2563eb",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-            ✅ Yes, Update Welcome Message
+            ✅ Yes, Update It
           </button>
-          <button onClick={()=>setSuggestWelcome("")} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #bfdbfe",background:"#fff",color:"#6b7280",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-            Skip
-          </button>
+          <button onClick={()=>setSuggestWelcome("")} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #bfdbfe",background:"#fff",color:"#6b7280",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
         </div>
       </div>}
+
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
         {[
-          {id:"generate",icon:"🆕",title:"Generate Fresh Prompt",desc:"Answer questions and AI builds a complete bot from scratch",note:"Good for new setup or full rebuild"},
-          {id:"enhance",icon:"✏️",title:"Enhance Existing Prompt",desc:"Tell AI what to add — it finds the right place automatically",note:"Good for adding new rules"},
+          {id:"generate",icon:"🆕",title:"Generate Fresh Prompt",desc:"Describe your business, answer AI-generated questions, get a complete bot personality",badge:"Best for new setup",color:"#6c63ff"},
+          {id:"enhance",icon:"✏️",title:"Add New Rule",desc:"Type what you want to change in plain English — AI finds the right place and adds it perfectly",badge:"Best for updates",color:"#0891b2"},
         ].map(m=>(
-          <div key={m.id} onClick={()=>setMode(m.id)} style={{background:T.card2,border:"1px solid "+T.border,borderRadius:14,padding:20,cursor:"pointer",transition:"all .15s"}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor="#6c63ff";e.currentTarget.style.transform="translateY(-2px)";}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.transform="none";}}>
-            <div style={{fontSize:28,marginBottom:8}}>{m.icon}</div>
-            <div style={{fontWeight:800,fontSize:13,marginBottom:4,color:T.text}}>{m.title}</div>
-            <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5,marginBottom:8}}>{m.desc}</div>
-            <div style={{fontSize:10,color:"#6c63ff",fontWeight:600}}>{m.note} →</div>
+          <div key={m.id} onClick={()=>setMode(m.id)}
+            style={{background:T.card2,border:"2px solid "+T.border,borderRadius:16,padding:20,cursor:"pointer",transition:"all .2s",position:"relative",overflow:"hidden"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=m.color;e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.08)";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+            <div style={{fontSize:32,marginBottom:10}}>{m.icon}</div>
+            <div style={{fontWeight:800,fontSize:13,marginBottom:6,color:T.text}}>{m.title}</div>
+            <div style={{fontSize:11,color:T.textMuted,lineHeight:1.6,marginBottom:10}}>{m.desc}</div>
+            <div style={{display:"inline-block",padding:"3px 10px",borderRadius:20,background:m.color+"15",color:m.color,fontSize:10,fontWeight:700,border:"1px solid "+m.color+"30"}}>{m.badge}</div>
           </div>
         ))}
       </div>
       {systemPrompt
-        ? <div style={{padding:"10px 14px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0",fontSize:11,color:"#166534"}}>✅ Existing prompt found ({systemPrompt.length} chars) — Enhance mode will read and improve it</div>
-        : <div style={{padding:"10px 14px",background:"#fffbeb",borderRadius:10,border:"1px solid #fde68a",fontSize:11,color:"#92400e"}}>⚠️ No existing prompt — use Generate Fresh to create one</div>
+        ? <div style={{padding:"10px 14px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0",fontSize:11,color:"#166534"}}>✅ You have an existing prompt ({systemPrompt.length} chars) — both modes will read it</div>
+        : <div style={{padding:"10px 14px",background:"#fffbeb",borderRadius:10,border:"1px solid #fde68a",fontSize:11,color:"#92400e"}}>⚠️ No existing prompt yet — start with Generate Fresh</div>
       }
     </div>
   );
 
+  // ENHANCE MODE
   if(mode==="enhance") return (
     <div style={{animation:"_slideInL .3s both"}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}>
         <button onClick={reset} style={{...BS,padding:"6px 12px",fontSize:11}}>← Back</button>
-        <div style={{fontWeight:800,fontSize:15,color:T.text}}>✏️ Enhance Existing Prompt</div>
+        <div style={{fontWeight:800,fontSize:15,color:T.text}}>✏️ Add New Rule</div>
       </div>
-      {step===1&&<>
-        <div style={{padding:"12px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",marginBottom:14,fontSize:11,color:"#9a3412"}}>
-          ⚠️ <strong>Important:</strong> Copy your current prompt as backup before applying!
-          <button onClick={()=>navigator.clipboard.writeText(systemPrompt||"")} style={{marginLeft:8,padding:"2px 8px",borderRadius:6,border:"1px solid #fed7aa",background:"#fff",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Now</button>
+
+      {loading&&<LoadingOverlay/>}
+
+      {!loading&&step===1&&<>
+        <div style={{padding:"12px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",marginBottom:16,fontSize:11,color:"#9a3412"}}>
+          ⚠️ <strong>Save a copy of your current prompt first!</strong>
+          {systemPrompt&&<button onClick={()=>navigator.clipboard.writeText(systemPrompt)} style={{marginLeft:8,padding:"2px 8px",borderRadius:6,border:"1px solid #fed7aa",background:"#fff",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Now</button>}
         </div>
-        <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:6}}>What new rule or behaviour do you want to add?</div>
-        <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Write in plain English, Malay, or any language — AI converts it to proper prompt language and finds the right place</div>
-        <textarea value={newLogic} onChange={e=>setNewLogic(e.target.value)} rows={5}
-          placeholder={"Examples:\n• If customer asks about price, don't tell them — ask them to come in first\n• Kalau customer cakap Melayu, balas dalam Melayu\n• Never mention competitor clinics by name\n• If customer seems angry, apologise sincerely before helping"}
-          style={{...IS,minHeight:120,marginBottom:12}}/>
-        {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:8}}>❌ {error}</div>}
-        <button onClick={enhancePrompt} disabled={loading||!newLogic.trim()} style={{...BP,opacity:loading||!newLogic.trim()?0.6:1}}>
-          {loading?"🤔 AI is thinking...":"✨ Find Best Place & Add →"}
+        <div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:4}}>What do you want to add or change?</div>
+        <div style={{fontSize:11,color:T.textMuted,marginBottom:12,lineHeight:1.6}}>
+          Write in <strong>any language</strong> — plain English, Malay, Chinese. AI will convert it to proper prompt language and insert it in the right place.
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+          {["If customer asks about price, don't tell them — ask them to come in first","Kalau customer cakap Melayu, balas dalam Melayu","Never mention competitor clinics by name","If customer seems angry, apologise sincerely before helping"].map(ex=>(
+            <button key={ex} onClick={()=>setNewLogic(ex)}
+              style={{padding:"8px 12px",borderRadius:9,border:"1px solid "+T.border,background:newLogic===ex?"#f0effe":T.card2,color:newLogic===ex?"#6c63ff":T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all .15s"}}>
+              💡 {ex}
+            </button>
+          ))}
+        </div>
+        <textarea value={newLogic} onChange={e=>setNewLogic(e.target.value)} rows={4}
+          placeholder="Or write your own rule here..."
+          style={{...IS,minHeight:100,marginBottom:12}}/>
+        {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:10,padding:"8px 12px",background:"#fff1f3",borderRadius:8,border:"1px solid #fecdd3"}}>❌ {error}</div>}
+        <button onClick={enhancePrompt} disabled={!newLogic.trim()} style={{...BP,opacity:!newLogic.trim()?0.5:1}}>
+          ✨ Find Best Place & Add →
         </button>
       </>}
-      {step===3&&enhanceResult&&<>
-        <div style={{marginBottom:12,padding:"10px 14px",background:"#f0effe",borderRadius:10,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9"}}>
-          <div style={{fontWeight:700,marginBottom:4}}>📍 Added to section: <strong>{enhanceResult.added_to_section}</strong></div>
-          <div>Rule written as: <em>{enhanceResult.converted_rule}</em></div>
+
+      {!loading&&step===3&&enhanceResult&&<>
+        <div style={{marginBottom:12,padding:"12px 14px",background:"#f0effe",borderRadius:12,border:"1px solid #ddd6fe"}}>
+          <div style={{fontWeight:700,fontSize:12,color:"#6d28d9",marginBottom:4}}>📍 Added to: <strong>{enhanceResult.added_to_section}</strong></div>
+          <div style={{fontSize:11,color:"#7c3aed"}}>Rule written as: <em>{enhanceResult.converted_rule}</em></div>
         </div>
-        <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:6}}>Updated prompt — edit if needed:</div>
+        <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:6}}>Review updated prompt:</div>
         <textarea value={enhanceResult.updated_prompt||""} onChange={e=>setEnhanceResult({...enhanceResult,updated_prompt:e.target.value})}
           rows={10} style={{...IS,minHeight:200,marginBottom:12,fontFamily:"monospace",fontSize:11}}/>
-        {enhanceResult.test_messages?.length>0&&<div style={{marginBottom:12,padding:"10px 14px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0"}}>
-          <div style={{fontWeight:700,fontSize:11,color:"#166534",marginBottom:6}}>🧪 Test your new rule — send these to WhatsApp:</div>
-          {enhanceResult.test_messages.map((m,i)=><div key={i} style={{fontSize:11,color:"#166534",padding:"2px 0"}}>{i+1}. "{m}"</div>)}
+        {enhanceResult.test_messages?.length>0&&<div style={{marginBottom:12,padding:"12px 14px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0"}}>
+          <div style={{fontWeight:700,fontSize:11,color:"#166534",marginBottom:8}}>🧪 Test your new rule — send these to WhatsApp:</div>
+          {enhanceResult.test_messages.map((m,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",fontSize:11,color:"#166534"}}>
+              <span style={{background:"#dcfce7",borderRadius:4,padding:"1px 6px",fontWeight:700,fontSize:10}}>{i+1}</span>
+              "{m}"
+            </div>
+          ))}
         </div>}
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <button onClick={()=>applyPrompt(enhanceResult.updated_prompt)} style={BP}>✅ Apply Changes</button>
@@ -7365,71 +7436,142 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
     </div>
   );
 
+  // GENERATE MODE
   if(mode==="generate") return (
     <div style={{animation:"_slideInL .3s both"}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+      {/* Header with progress */}
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
         <button onClick={reset} style={{...BS,padding:"6px 12px",fontSize:11}}>← Back</button>
         <div style={{fontWeight:800,fontSize:15,color:T.text}}>🆕 Generate Fresh Prompt</div>
-        <div style={{marginLeft:"auto",fontSize:11,color:T.textMuted}}>Step {step} of 3</div>
-      </div>
-      <div style={{height:4,borderRadius:2,background:T.border,marginBottom:18,overflow:"hidden"}}>
-        <div style={{height:4,borderRadius:2,background:"linear-gradient(90deg,#6c63ff,#8b5cf6)",width:(step/3*100)+"%",transition:"width .4s"}}/>
-      </div>
-      {step===1&&<>
-        {systemPrompt&&<div style={{padding:"10px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",marginBottom:12,fontSize:11,color:"#9a3412"}}>
-          ⚠️ This will replace your existing prompt.
-          <button onClick={()=>navigator.clipboard.writeText(systemPrompt)} style={{marginLeft:8,padding:"2px 8px",borderRadius:6,border:"1px solid #fed7aa",background:"#fff",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Current First</button>
-        </div>}
-        <div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:6}}>Describe your business:</div>
-        <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Include: what you do, who your customers are, where you are, anything special. Any language is fine.</div>
-        <textarea value={businessDesc} onChange={e=>setBusinessDesc(e.target.value)} rows={4}
-          placeholder={"Examples:\n• Dental clinic in PJ, specialise in braces and whitening, customers are working adults 25-35\n• Luxury condo agent in Mont Kiara KL, expats and high income locals, RM1M-3M range\n• Beauty salon in Subang, facial lashes brows, walk-in and appointment, mostly ladies 20-40"}
-          style={{...IS,minHeight:100,marginBottom:12}}/>
-        {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:8}}>❌ {error}</div>}
-        <button onClick={generateQuestions} disabled={loading||!businessDesc.trim()} style={{...BP,opacity:loading||!businessDesc.trim()?0.6:1}}>
-          {loading?"🤔 Generating your questions...":"🚀 Generate My Questions →"}
-        </button>
-      </>}
-      {step===2&&questions.length>0&&<>
-        <div style={{fontSize:12,color:T.textMuted,marginBottom:14}}>AI generated {questions.length} questions specific to your business. Answer as many as you can — skip any that don't apply:</div>
-        <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:14}}>
-          {questions.map((q,i)=>(
-            <div key={q.id||i} style={{background:T.card2,borderRadius:12,padding:"12px 14px",border:"1px solid "+T.border}}>
-              <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:8}}>{i+1}. {q.question}</div>
-              {q.type==="options"&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
-                {(q.options||[]).map(opt=>(
-                  <button key={opt} onClick={()=>setAnswers(p=>({...p,[q.id]:p[q.id]===opt?"":opt}))}
-                    style={{padding:"4px 10px",borderRadius:20,border:"1px solid "+(answers[q.id]===opt?"#6c63ff":T.border),
-                      background:answers[q.id]===opt?"#f0effe":T.card,color:answers[q.id]===opt?"#6c63ff":T.text,
-                      fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                    {opt}
-                  </button>
-                ))}
-              </div>}
-              <input value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))}
-                placeholder={q.placeholder||"Your answer (optional)..."}
-                style={{...IS,resize:"none",padding:"7px 10px",fontSize:12,minHeight:"auto"}}/>
+        <div style={{marginLeft:"auto",display:"flex",gap:6,alignItems:"center"}}>
+          {[1,2,3].map(s=>(
+            <div key={s} style={{display:"flex",alignItems:"center",gap:4}}>
+              <div style={{width:24,height:24,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,
+                background:step>=s?"linear-gradient(135deg,#6c63ff,#8b5cf6)":T.card2,
+                color:step>=s?"#fff":T.textMuted,
+                border:"2px solid "+(step>=s?"#6c63ff":T.border),
+                transition:"all .3s"}}>
+                {step>s?"✓":s}
+              </div>
+              {s<3&&<div style={{width:16,height:2,borderRadius:1,background:step>s?"#6c63ff":T.border,transition:"background .3s"}}/>}
             </div>
           ))}
         </div>
-        <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:6}}>💬 Anything else to add? (optional)</div>
+      </div>
+
+      {/* Step labels */}
+      <div style={{display:"flex",gap:4,marginBottom:20,fontSize:10,color:T.textMuted}}>
+        {["Describe Business","Answer Questions","Review & Apply"].map((l,i)=>(
+          <span key={l} style={{flex:1,textAlign:i===0?"left":i===2?"right":"center",fontWeight:step===i+1?700:400,color:step===i+1?"#6c63ff":T.textMuted}}>{l}</span>
+        ))}
+      </div>
+
+      {loading&&<LoadingOverlay/>}
+
+      {/* STEP 1 */}
+      {!loading&&step===1&&<>
+        {systemPrompt&&<div style={{padding:"10px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",marginBottom:14,fontSize:11,color:"#9a3412"}}>
+          ⚠️ This replaces your existing prompt.
+          <button onClick={()=>navigator.clipboard.writeText(systemPrompt)} style={{marginLeft:8,padding:"2px 8px",borderRadius:6,border:"1px solid #fed7aa",background:"#fff",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Current First</button>
+        </div>}
+        <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:4}}>Describe your business</div>
+        <div style={{fontSize:12,color:T.textMuted,marginBottom:12,lineHeight:1.6}}>Write in any language — AI will generate specific questions for your exact business type</div>
+
+        {/* Quick examples */}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+          {[
+            "Dental clinic in KL",
+            "Real estate agent Mont Kiara",
+            "Beauty salon Subang",
+            "F&B restaurant Bangsar",
+          ].map(ex=>(
+            <button key={ex} onClick={()=>setBusinessDesc(ex)}
+              style={{padding:"5px 12px",borderRadius:20,border:"1px solid "+T.border,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor="#6c63ff";e.currentTarget.style.color="#6c63ff";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.textMuted;}}>
+              {ex}
+            </button>
+          ))}
+        </div>
+
+        <textarea value={businessDesc} onChange={e=>setBusinessDesc(e.target.value)} rows={4}
+          placeholder={"Describe your business in a few sentences. Include:
+• What you do and your main services
+• Who your typical customers are
+• Where you are located
+• Anything special about your business"}
+          style={{...IS,minHeight:110,marginBottom:14}}/>
+        {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:10,padding:"8px 12px",background:"#fff1f3",borderRadius:8,border:"1px solid #fecdd3"}}>❌ {error}</div>}
+        <button onClick={generateQuestions} disabled={!businessDesc.trim()} style={{...BP,opacity:!businessDesc.trim()?0.5:1}}>
+          🚀 Generate My Questions →
+        </button>
+      </>}
+
+      {/* STEP 2 */}
+      {!loading&&step===2&&questions.length>0&&<>
+        <div style={{marginBottom:16,padding:"10px 14px",background:"#f0effe",borderRadius:10,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9"}}>
+          🧠 AI generated <strong>{questions.length} questions</strong> specific to your business. Answer what you can — skip anything that doesn't apply.
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+          {questions.map((q,i)=>(
+            <div key={q.id||i} style={{background:T.card2,borderRadius:14,padding:"14px 16px",border:"1px solid "+T.border,transition:"border-color .15s"}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor="#6c63ff30"}
+              onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
+              <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:10,display:"flex",gap:8,alignItems:"flex-start"}}>
+                <span style={{background:"linear-gradient(135deg,#6c63ff,#8b5cf6)",color:"#fff",borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:700,flexShrink:0,marginTop:1}}>{i+1}</span>
+                {q.question}
+              </div>
+              {q.type==="options"&&(q.options||[]).length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
+                {(q.options||[]).map(opt=>(
+                  <button key={opt} onClick={()=>setAnswers(p=>({...p,[q.id]:p[q.id]===opt?"":opt}))}
+                    style={{padding:"5px 12px",borderRadius:20,fontFamily:"inherit",fontSize:11,cursor:"pointer",transition:"all .15s",
+                      border:"1.5px solid "+(answers[q.id]===opt?"#6c63ff":T.border),
+                      background:answers[q.id]===opt?"#f0effe":T.card,
+                      color:answers[q.id]===opt?"#6c63ff":T.text,
+                      fontWeight:answers[q.id]===opt?700:400}}>
+                    {answers[q.id]===opt?"✓ ":""}{opt}
+                  </button>
+                ))}
+              </div>}
+              {q.type==="multiselect"&&(q.options||[]).length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
+                {(q.options||[]).map(opt=>{
+                  const sel = (answers[q.id]||[]);
+                  const isOn = Array.isArray(sel)?sel.includes(opt):false;
+                  return <button key={opt} onClick={()=>setAnswers(p=>{
+                    const cur = Array.isArray(p[q.id])?p[q.id]:[];
+                    return {...p,[q.id]:isOn?cur.filter(x=>x!==opt):[...cur,opt]};
+                  })} style={{padding:"5px 12px",borderRadius:20,fontFamily:"inherit",fontSize:11,cursor:"pointer",transition:"all .15s",
+                    border:"1.5px solid "+(isOn?"#6c63ff":T.border),
+                    background:isOn?"#f0effe":T.card,color:isOn?"#6c63ff":T.text,fontWeight:isOn?700:400}}>
+                    {isOn?"✓ ":""}{opt}
+                  </button>;
+                })}
+              </div>}
+              <input value={typeof answers[q.id]==="string"?answers[q.id]:(Array.isArray(answers[q.id])?answers[q.id].join(", "):"null"===typeof answers[q.id]?"":"")}
+                onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))}
+                placeholder={q.placeholder||(q.type==="options"||q.type==="multiselect"?"Add details (optional)...":"Your answer (optional)...")}
+                style={{...IS,resize:"none",padding:"7px 10px",fontSize:11,minHeight:"auto"}}/>
+            </div>
+          ))}
+        </div>
+        <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:6}}>💬 Anything else to add?</div>
         <textarea value={extra} onChange={e=>setExtra(e.target.value)} rows={3}
           placeholder="Special rules, promotions, things bot must know or never say..."
-          style={{...IS,minHeight:70,marginBottom:12}}/>
-        {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:8}}>❌ {error}</div>}
+          style={{...IS,minHeight:70,marginBottom:14}}/>
+        {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:10,padding:"8px 12px",background:"#fff1f3",borderRadius:8,border:"1px solid #fecdd3"}}>❌ {error}</div>}
         <div style={{display:"flex",gap:8}}>
-          <button onClick={generatePrompt} disabled={loading} style={{...BP,opacity:loading?0.6:1}}>
-            {loading?"🤔 Building your prompt...":"✨ Generate My Bot Prompt →"}
-          </button>
+          <button onClick={generatePrompt} style={BP}>✨ Generate My Bot Prompt →</button>
           <button onClick={()=>setStep(1)} style={BS}>← Back</button>
         </div>
       </>}
-      {step===3&&generatedPrompt&&<>
-        <div style={{marginBottom:10,padding:"10px 14px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0",fontSize:11,color:"#166534"}}>
-          ✅ Your prompt is ready! Review and edit below before applying.
+
+      {/* STEP 3 */}
+      {!loading&&step===3&&generatedPrompt&&<>
+        <div style={{marginBottom:12,padding:"12px 14px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0",fontSize:11,color:"#166534"}}>
+          ✅ Your bot prompt is ready! Review and edit below before applying.
         </div>
         <textarea value={generatedPrompt} onChange={e=>setGeneratedPrompt(e.target.value)} rows={12}
-          style={{...IS,minHeight:240,marginBottom:12,fontFamily:"monospace",fontSize:11}}/>
+          style={{...IS,minHeight:240,marginBottom:14,fontFamily:"monospace",fontSize:11}}/>
         {systemPrompt&&<div style={{marginBottom:12,padding:"10px 14px",background:"#fff7ed",borderRadius:10,border:"1px solid #fed7aa",fontSize:11,color:"#9a3412"}}>
           ⚠️ <strong>Existing prompt will be replaced!</strong> Copy it first as backup.
           <button onClick={()=>navigator.clipboard.writeText(systemPrompt||"")} style={{marginLeft:8,padding:"2px 8px",borderRadius:6,border:"1px solid #fed7aa",background:"#fff",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Current</button>
@@ -7443,6 +7585,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
       </>}
     </div>
   );
+
   return null;
 }
 
