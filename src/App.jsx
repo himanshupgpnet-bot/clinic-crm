@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.125";
+const CRM_VERSION = "2.9.126";
 
 // Responsive hook
 function useWindowSize() {
@@ -7214,11 +7214,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
         <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:6}}>What new rule or behaviour do you want to add?</div>
         <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Write in plain English, Malay, or any language — AI converts it to proper prompt language and finds the right place</div>
         <textarea value={newLogic} onChange={e=>setNewLogic(e.target.value)} rows={5}
-          placeholder={"Examples:
-• If customer asks about price, don't tell them — ask them to come in first
-• Kalau customer cakap Melayu, balas dalam Melayu
-• Never mention competitor clinics by name
-• If customer seems angry, apologise sincerely before helping"}
+          placeholder={"Examples:\n• If customer asks about price, don't tell them — ask them to come in first\n• Kalau customer cakap Melayu, balas dalam Melayu\n• Never mention competitor clinics by name\n• If customer seems angry, apologise sincerely before helping"}
           style={{...IS,minHeight:120,marginBottom:12}}/>
         {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:8}}>❌ {error}</div>}
         <button onClick={enhancePrompt} disabled={loading||!newLogic.trim()} style={{...BP,opacity:loading||!newLogic.trim()?0.6:1}}>
@@ -7264,10 +7260,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
         <div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:6}}>Describe your business:</div>
         <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Include: what you do, who your customers are, where you are, anything special. Any language is fine.</div>
         <textarea value={businessDesc} onChange={e=>setBusinessDesc(e.target.value)} rows={4}
-          placeholder={"Examples:
-• Dental clinic in PJ, specialise in braces and whitening, customers are working adults 25-35
-• Luxury condo agent in Mont Kiara KL, expats and high income locals, RM1M-3M range
-• Beauty salon in Subang, facial lashes brows, walk-in and appointment, mostly ladies 20-40"}
+          placeholder={"Examples:\n• Dental clinic in PJ, specialise in braces and whitening, customers are working adults 25-35\n• Luxury condo agent in Mont Kiara KL, expats and high income locals, RM1M-3M range\n• Beauty salon in Subang, facial lashes brows, walk-in and appointment, mostly ladies 20-40"}
           style={{...IS,minHeight:100,marginBottom:12}}/>
         {error&&<div style={{color:"#e11d48",fontSize:11,marginBottom:8}}>❌ {error}</div>}
         <button onClick={generateQuestions} disabled={loading||!businessDesc.trim()} style={{...BP,opacity:loading||!businessDesc.trim()?0.6:1}}>
