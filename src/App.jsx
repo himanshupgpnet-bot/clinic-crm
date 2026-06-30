@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.142";
+const CRM_VERSION = "2.9.143";
 
 // Responsive hook
 function useWindowSize() {
@@ -5632,11 +5632,10 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
     {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"},
     {key:"can_integrations",label:"🔌 Integrations"},{key:"can_broadcast",label:"📢 Broadcast"},{key:"can_notes",label:"📝 Notes"},{key:"can_prompt_improver",label:"🤖 AI Improver"},{key:"can_prompt_wizard",label:"✨ Prompt Wizard"}
   ];
-  const emptyClinic = {name:"",industry:"",website:"",client_domain:"",contact_phone:"",logo_url:"",
+  const emptyClinic = {name:"",industry:"",website:"",client_domain:"",contact_phone:"",contact_email:"",report_frequency:"weekly",logo_url:"",
     whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",max_seats:1};
   const emptyUser = (clinic_id="") => ({username:"",password:"",clinic_id,
     can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,can_broadcast:false,can_notes:false,can_prompt_improver:false,can_prompt_wizard:false,
-      can_prompt_wizard:false,
     integration_whatsapp:false,integration_telegram:false,integration_instagram:false,
     integration_tiktok:false,integration_messenger:false,integration_calendar:false,integration_calendly:false});
 
@@ -5904,11 +5903,29 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
               </div>
             </div>
 
-            {/* Contact Phone + Session Timeout */}
+            {/* Owner Email + Contact Phone */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div>
+                <label style={labelStyle}>📧 Owner Email <span style={{color:"#e11d48",fontSize:10}}>(for reports)</span></label>
+                <input type="email" value={editClinic?.contact_email||""} onChange={e=>setEditClinic(p=>({...p,contact_email:e.target.value}))} placeholder="owner@company.com" style={inputStyle}/>
+              </div>
               <div>
                 <label style={labelStyle}>Contact Phone</label>
                 <input value={editClinic?.contact_phone||""} onChange={e=>setEditClinic(p=>({...p,contact_phone:e.target.value}))} placeholder="+60123456789" style={inputStyle}/>
+              </div>
+            </div>
+
+            {/* Report Frequency + Session Timeout */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div>
+                <label style={labelStyle}>📊 Report Frequency</label>
+                <select value={editClinic?.report_frequency||"weekly"} onChange={e=>setEditClinic(p=>({...p,report_frequency:e.target.value}))} style={inputStyle}>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="off">Off — Don't send</option>
+                </select>
+                <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>How often this client gets performance reports</div>
               </div>
               <div>
                 <label style={labelStyle}>Session Timeout (mins)</label>
@@ -5923,6 +5940,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
               <input value={editClinic?.website_url||editClinic?.website||""} onChange={e=>setEditClinic(p=>({...p,website_url:e.target.value,website:e.target.value}))} placeholder="https://company.com" style={inputStyle}/>
               <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>We'll use this for your client's knowledge base</div>
             </div>
+
 
           </div>}
 
