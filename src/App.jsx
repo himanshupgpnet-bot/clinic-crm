@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.150";
+const CRM_VERSION = "2.9.151";
 
 // Responsive hook
 function useWindowSize() {
@@ -925,7 +925,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       // Also fetch ad summary for KPI card
       try {
         const cParam2 = clinicId ? `?clinic_id=${clinicId}` : "";
-        const ar = await fetch(`${API}/api/analytics/ads?from=${from}&to=${to}${clinicId?`&clinic_id=${clinicId}`:""}`, {headers:authHeaders()});
+        const _arUrl = API+"/api/analytics/ads?from="+from+"&to="+to+(clinicId?"&clinic_id="+clinicId:"");
+        const ar = await fetch(_arUrl, {headers:authHeaders()});
         if(ar.ok) {
           const ads = await ar.json();
           setAdSummary({
@@ -6441,7 +6442,8 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
     if(type==="ads") {
       setDrillLoading(true);
       try {
-        const r = await fetch(`${API}/api/analytics/ads?from=${a?.dateFrom||""}&to=${a?.dateTo||""}${selectedClinic?`&clinic_id=${selectedClinic.clinic_id}`:""}`, {headers:authHeaders()});
+        const _adsUrl = API+"/api/analytics/ads?from="+(a?.dateFrom||"")+"&to="+(a?.dateTo||"")+(selectedClinic?"&clinic_id="+selectedClinic.clinic_id:"");
+        const r = await fetch(_adsUrl, {headers:authHeaders()});
         if(r.ok) setDrillData(await r.json());
       } catch {}
       setDrillLoading(false);
@@ -7216,7 +7218,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           </div>}
 
           {/* LEADS BY COUNTRY MAP */}
-          {countryData.length>0&&<LeadsMap T={T} WA_GREEN={WA_GREEN} countryData={countryData} dark={dark}/>}
+          {countryData.length>0&&(()=>{try{return <LeadsMap T={T} WA_GREEN={WA_GREEN} countryData={countryData} dark={dark}/>;}catch(e){return null;}})()}
 
         </>}
 
