@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.147";
+const CRM_VERSION = "2.9.148";
 
 // Responsive hook
 function useWindowSize() {
@@ -6995,66 +6995,84 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                   ))}
                 </div>
               </div>
-              <div style={{position:"relative",paddingLeft:32,paddingBottom:20}}>
+              <div style={{position:"relative",paddingLeft:36,paddingBottom:4}}>
                 {/* Y axis labels */}
                 {(()=>{
                   const days=(a.messagesPerDay||[]).slice(-21);
                   const maxV=Math.max(...days.map(x=>(x.bot||0)+(x.user||0)+(x.agent||0)),1);
-                  const ticks=[0,Math.round(maxV*0.25),Math.round(maxV*0.5),Math.round(maxV*0.75),maxV];
-                  return <div style={{position:"absolute",left:0,top:0,bottom:20,display:"flex",flexDirection:"column-reverse",justifyContent:"space-between",width:28}}>
+                  const ticks=[0,Math.round(maxV*0.5),maxV];
+                  return <div style={{position:"absolute",left:0,top:0,bottom:20,display:"flex",flexDirection:"column-reverse",justifyContent:"space-between",width:32}}>
                     {ticks.map((t,i)=><div key={i} style={{fontSize:9,color:T.textFaint,textAlign:"right",lineHeight:1}}>{t}</div>)}
                   </div>;
                 })()}
                 {/* Y axis grid lines */}
                 {(()=>{
-                  const days=(a.messagesPerDay||[]).slice(-21);
-                  const maxV=Math.max(...days.map(x=>(x.bot||0)+(x.user||0)+(x.agent||0)),1);
-                  return <div style={{position:"absolute",left:32,right:0,top:0,bottom:20,pointerEvents:"none"}}>
-                    {[0,25,50,75,100].map(pct=>(
-                      <div key={pct} style={{position:"absolute",bottom:`${pct}%`,left:0,right:0,borderTop:`1px dashed ${T.border}`,opacity:.5}}/>
+                  return <div style={{position:"absolute",left:36,right:0,top:0,bottom:20,pointerEvents:"none"}}>
+                    {[0,50,100].map(pct=>(
+                      <div key={pct} style={{position:"absolute",bottom:`${pct}%`,left:0,right:0,borderTop:`1px dashed ${T.border}`,opacity:.4}}/>
                     ))}
                   </div>;
                 })()}
-                {/* Bars */}
-                <div style={{display:"flex",alignItems:"flex-end",gap:3,height:120,borderBottom:`1px solid ${T.border}`}}>
+                {/* Bars — slimmer with gaps */}
+                <div style={{display:"flex",alignItems:"flex-end",gap:2,height:110,borderBottom:`1px solid ${T.border}`,paddingBottom:2}}>
                   {(a.messagesPerDay||[]).slice(-21).map((d,i)=>{
                     const tot=(d.bot||0)+(d.user||0)+(d.agent||0);
                     const maxV=Math.max(...(a.messagesPerDay||[]).slice(-21).map(x=>(x.bot||0)+(x.user||0)+(x.agent||0)),1);
                     const pct=tot/maxV;
-                    const botH=Math.round(((d.bot||0)/Math.max(tot,1))*pct*116);
-                    const userH=Math.round(((d.user||0)/Math.max(tot,1))*pct*116);
-                    const agentH=Math.round(((d.agent||0)/Math.max(tot,1))*pct*116);
+                    const botH=Math.round(((d.bot||0)/Math.max(tot,1))*pct*106);
+                    const userH=Math.round(((d.user||0)/Math.max(tot,1))*pct*106);
+                    const agentH=Math.round(((d.agent||0)/Math.max(tot,1))*pct*106);
                     const isSelected=selectedBar===i;
-                    const days=(a.messagesPerDay||[]).slice(-21);
-                    const showLabel=days.length<=14||(i%3===0);
-                    const dateLabel=d.date?.slice(5)||"";
                     return (
-                      <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",cursor:"pointer",position:"relative"}}
+                      <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",cursor:"pointer",position:"relative",maxWidth:18}}
                         onClick={()=>{setSelectedBar(i);setDrillType("day");setDrillData(d);setDrillOpen(true);}}
-                        title={`${d.date}: ${tot} total (Bot:${d.bot||0} Customer:${d.user||0} Agent:${d.agent||0})`}>
-                        {/* Value label on top */}
-                        {tot>0&&<div style={{position:"absolute",top:-16,fontSize:8,color:T.textMuted,fontWeight:600,whiteSpace:"nowrap"}}>{tot}</div>}
-                        <div style={{flex:1,width:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:1,opacity:isSelected?1:.85,transition:"all .15s",
-                          filter:isSelected?"drop-shadow(0 2px 4px rgba(0,0,0,.15))":"none"}}>
-                          {agentH>0&&<div style={{width:"100%",height:`${agentH}px`,background:"#f59e0b",borderRadius:"2px 2px 0 0",minHeight:2}}/>}
-                          {userH>0&&<div style={{width:"100%",height:`${userH}px`,background:"#6366f180",minHeight:2}}/>}
-                          {botH>0&&<div style={{width:"100%",height:`${botH}px`,background:isSelected?WA_GREEN:`${WA_GREEN}90`,borderRadius:agentH===0&&userH===0?"2px 2px 0 0":"0",minHeight:2}}/>}
+                        title={`${d.date}: ${tot} msgs`}>
+                        {isSelected&&tot>0&&<div style={{position:"absolute",top:-14,fontSize:8,color:WA_GREEN,fontWeight:700,whiteSpace:"nowrap"}}>{tot}</div>}
+                        <div style={{flex:1,width:"70%",display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:"1px",
+                          opacity:isSelected?1:.75,transition:"all .15s",
+                          filter:isSelected?"drop-shadow(0 1px 3px rgba(0,0,0,.2))":"none"}}>
+                          {agentH>0&&<div style={{width:"100%",height:`${agentH}px`,background:"#f59e0b",borderRadius:"2px 2px 0 0",minHeight:1}}/>}
+                          {userH>0&&<div style={{width:"100%",height:`${userH}px`,background:"#818cf8",minHeight:1}}/>}
+                          {botH>0&&<div style={{width:"100%",height:`${botH}px`,background:isSelected?WA_GREEN:`${WA_GREEN}cc`,borderRadius:agentH===0&&userH===0?"2px 2px 0 0":"0",minHeight:1}}/>}
                         </div>
                       </div>
                     );
                   })}
                 </div>
                 {/* X axis date labels */}
-                <div style={{display:"flex",gap:3,marginTop:4}}>
+                <div style={{display:"flex",gap:2,marginTop:3}}>
                   {(a.messagesPerDay||[]).slice(-21).map((d,i)=>{
                     const days=(a.messagesPerDay||[]).slice(-21);
-                    const showLabel=days.length<=10||(i%(days.length<=14?2:3)===0);
-                    return <div key={i} style={{flex:1,textAlign:"center",fontSize:8,color:T.textFaint,overflow:"hidden",whiteSpace:"nowrap"}}>
-                      {showLabel?(d.date?.slice(5)||""):""}
+                    const show=days.length<=7||(i%(days.length<=14?2:3)===0);
+                    return <div key={i} style={{flex:1,maxWidth:18,textAlign:"center",fontSize:7,color:selectedBar===i?WA_GREEN:T.textFaint,fontWeight:selectedBar===i?700:400,overflow:"hidden",whiteSpace:"nowrap"}}>
+                      {show?(d.date?.slice(5)||""):""}
                     </div>;
                   })}
                 </div>
               </div>
+
+              {/* INTERACTIVE DETAILS BELOW CHART */}
+              {selectedBar!==null&&(a.messagesPerDay||[]).slice(-21)[selectedBar]&&(()=>{
+                const d=(a.messagesPerDay||[]).slice(-21)[selectedBar];
+                const tot=(d.bot||0)+(d.user||0)+(d.agent||0);
+                return <div style={{marginTop:10,padding:"10px 14px",background:T.card2,borderRadius:10,border:`1px solid ${T.border}`,display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:T.text,minWidth:60}}>{d.date}</div>
+                  <div style={{display:"flex",gap:10,flex:1,flexWrap:"wrap"}}>
+                    {[{l:"Total",v:tot,c:T.text},{l:"Bot",v:d.bot||0,c:WA_GREEN},{l:"Customer",v:d.user||0,c:"#818cf8"},{l:"Agent",v:d.agent||0,c:"#f59e0b"}].map(s=>(
+                      <div key={s.l} style={{display:"flex",alignItems:"center",gap:4,fontSize:11}}>
+                        <div style={{width:7,height:7,borderRadius:"50%",background:s.c,flexShrink:0}}/>
+                        <span style={{color:T.textMuted}}>{s.l}:</span>
+                        <strong style={{color:s.c}}>{s.v}</strong>
+                      </div>
+                    ))}
+                    {tot>0&&<div style={{fontSize:10,color:T.textMuted,marginLeft:"auto"}}>Bot rate: <strong style={{color:WA_GREEN}}>{Math.round((d.bot||0)/tot*100)}%</strong></div>}
+                  </div>
+                  <button onClick={()=>setSelectedBar(null)} style={{fontSize:9,color:T.textFaint,background:"none",border:"none",cursor:"pointer",padding:"2px 4px"}}>✕</button>
+                </div>;
+              })()}
+              {selectedBar===null&&<div style={{marginTop:8,fontSize:10,color:T.textFaint,textAlign:"center"}}>
+                👆 Click any bar to see that day's breakdown
+              </div>}
             </div>
             {/* Bot donut */}
             <div style={{background:T.card,borderRadius:14,padding:20,border:`1px solid ${T.border}`,display:"flex",flexDirection:"column"}}>
