@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.151";
+const CRM_VERSION = "2.9.152";
 
 // Responsive hook
 function useWindowSize() {
@@ -1101,15 +1101,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(tab==="analytics") {
       fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
-      // Fetch country data
-      (async()=>{
-        try {
-          const cid = selectedClinicRef.current?.clinic_id||null;
-          const url = API+"/api/analytics/leads-by-country"+(cid?"?clinic_id="+cid:"")+"&from="+dateFrom+"&to="+dateTo;
-          const r = await fetch(url, {headers:authHeaders()});
-          if(r.ok){const d=await r.json(); setCountryData(d.countries||[]);}
-        } catch {}
-      })();
     }
     if((tab==="crm"||tab==="leads"||tab==="settings"||tab==="kb"||tab==="integrations") && isAdmin && adminOverview.length===0) {
       fetchAdminOverview();
@@ -2850,6 +2841,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               API={API} authHeaders={authHeaders}
               contacts={contacts}
               adSummary={adSummary}
+              countryData={countryData} setCountryData={setCountryData}
             />
           </div>
         </div>}
@@ -6425,7 +6417,16 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
 function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedClinicWithRef,
   fetchAnalytics, fetchAdminOverview, adminOverview, overviewLoading,
   analyticsLoading, analytics, dateFrom, dateTo, datePreset, setDatePreset,
-  setDateFrom, setDateTo, daysAgo, today, API, authHeaders, contacts, adSummary}) {
+  setDateFrom, setDateTo, daysAgo, today, API, authHeaders, contacts, adSummary,
+  countryData=[], setCountryData}) {
+
+  // Fetch country data when analytics loads
+  React.useEffect(()=>{
+    if(!analytics) return;
+    const cid = selectedClinic?.clinic_id||null;
+    const url = API+"/api/analytics/leads-by-country?"+(cid?"clinic_id="+cid+"&":"")+"from="+dateFrom+"&to="+dateTo;
+    fetch(url,{headers:authHeaders()}).then(r=>r.ok?r.json():null).then(d=>{if(d&&setCountryData)setCountryData(d.countries||[]);}).catch(()=>{});
+  },[analytics]);
 
   const [drillOpen, setDrillOpen] = React.useState(false);
   const [drillType, setDrillType] = React.useState(null);
