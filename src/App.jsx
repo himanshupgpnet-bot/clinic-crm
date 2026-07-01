@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.146";
+const CRM_VERSION = "2.9.147";
 
 // Responsive hook
 function useWindowSize() {
@@ -6995,33 +6995,65 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                   ))}
                 </div>
               </div>
-              <div style={{display:"flex",alignItems:"flex-end",gap:3,height:100}}>
-                {(a.messagesPerDay||[]).slice(-21).map((d,i)=>{
-                  const tot=(d.bot||0)+(d.user||0)+(d.agent||0);
-                  const maxV=Math.max(...(a.messagesPerDay||[]).slice(-21).map(x=>(x.bot||0)+(x.user||0)+(x.agent||0)),1);
-                  const pct=tot/maxV;
-                  const botH=Math.round(((d.bot||0)/Math.max(tot,1))*pct*96);
-                  const userH=Math.round(((d.user||0)/Math.max(tot,1))*pct*96);
-                  const agentH=Math.round(((d.agent||0)/Math.max(tot,1))*pct*96);
-                  const isSelected=selectedBar===i;
-                  return (
-                    <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",cursor:"pointer"}}
-                      onClick={()=>{
-                        setSelectedBar(i);
-                        setDrillType("day");
-                        setDrillData(d);
-                        setDrillOpen(true);
-                      }}
-                      title={`${d.date}: ${tot} total`}>
-                      <div style={{flex:1,width:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:1,opacity:isSelected?1:.85,transition:"opacity .15s"}}>
-                        {agentH>0&&<div style={{width:"100%",height:`${agentH}px`,background:"#f59e0b",borderRadius:"2px 2px 0 0",minHeight:2}}/>}
-                        {userH>0&&<div style={{width:"100%",height:`${userH}px`,background:"#6366f180",minHeight:2}}/>}
-                        {botH>0&&<div style={{width:"100%",height:`${botH}px`,background:isSelected?WA_GREEN:`${WA_GREEN}90`,borderRadius:agentH===0&&userH===0?"2px 2px 0 0":"0",minHeight:2}}/>}
+              <div style={{position:"relative",paddingLeft:32,paddingBottom:20}}>
+                {/* Y axis labels */}
+                {(()=>{
+                  const days=(a.messagesPerDay||[]).slice(-21);
+                  const maxV=Math.max(...days.map(x=>(x.bot||0)+(x.user||0)+(x.agent||0)),1);
+                  const ticks=[0,Math.round(maxV*0.25),Math.round(maxV*0.5),Math.round(maxV*0.75),maxV];
+                  return <div style={{position:"absolute",left:0,top:0,bottom:20,display:"flex",flexDirection:"column-reverse",justifyContent:"space-between",width:28}}>
+                    {ticks.map((t,i)=><div key={i} style={{fontSize:9,color:T.textFaint,textAlign:"right",lineHeight:1}}>{t}</div>)}
+                  </div>;
+                })()}
+                {/* Y axis grid lines */}
+                {(()=>{
+                  const days=(a.messagesPerDay||[]).slice(-21);
+                  const maxV=Math.max(...days.map(x=>(x.bot||0)+(x.user||0)+(x.agent||0)),1);
+                  return <div style={{position:"absolute",left:32,right:0,top:0,bottom:20,pointerEvents:"none"}}>
+                    {[0,25,50,75,100].map(pct=>(
+                      <div key={pct} style={{position:"absolute",bottom:`${pct}%`,left:0,right:0,borderTop:`1px dashed ${T.border}`,opacity:.5}}/>
+                    ))}
+                  </div>;
+                })()}
+                {/* Bars */}
+                <div style={{display:"flex",alignItems:"flex-end",gap:3,height:120,borderBottom:`1px solid ${T.border}`}}>
+                  {(a.messagesPerDay||[]).slice(-21).map((d,i)=>{
+                    const tot=(d.bot||0)+(d.user||0)+(d.agent||0);
+                    const maxV=Math.max(...(a.messagesPerDay||[]).slice(-21).map(x=>(x.bot||0)+(x.user||0)+(x.agent||0)),1);
+                    const pct=tot/maxV;
+                    const botH=Math.round(((d.bot||0)/Math.max(tot,1))*pct*116);
+                    const userH=Math.round(((d.user||0)/Math.max(tot,1))*pct*116);
+                    const agentH=Math.round(((d.agent||0)/Math.max(tot,1))*pct*116);
+                    const isSelected=selectedBar===i;
+                    const days=(a.messagesPerDay||[]).slice(-21);
+                    const showLabel=days.length<=14||(i%3===0);
+                    const dateLabel=d.date?.slice(5)||"";
+                    return (
+                      <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",cursor:"pointer",position:"relative"}}
+                        onClick={()=>{setSelectedBar(i);setDrillType("day");setDrillData(d);setDrillOpen(true);}}
+                        title={`${d.date}: ${tot} total (Bot:${d.bot||0} Customer:${d.user||0} Agent:${d.agent||0})`}>
+                        {/* Value label on top */}
+                        {tot>0&&<div style={{position:"absolute",top:-16,fontSize:8,color:T.textMuted,fontWeight:600,whiteSpace:"nowrap"}}>{tot}</div>}
+                        <div style={{flex:1,width:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:1,opacity:isSelected?1:.85,transition:"all .15s",
+                          filter:isSelected?"drop-shadow(0 2px 4px rgba(0,0,0,.15))":"none"}}>
+                          {agentH>0&&<div style={{width:"100%",height:`${agentH}px`,background:"#f59e0b",borderRadius:"2px 2px 0 0",minHeight:2}}/>}
+                          {userH>0&&<div style={{width:"100%",height:`${userH}px`,background:"#6366f180",minHeight:2}}/>}
+                          {botH>0&&<div style={{width:"100%",height:`${botH}px`,background:isSelected?WA_GREEN:`${WA_GREEN}90`,borderRadius:agentH===0&&userH===0?"2px 2px 0 0":"0",minHeight:2}}/>}
+                        </div>
                       </div>
-                      {(a.messagesPerDay||[]).slice(-21).length<=14&&<div style={{fontSize:7,color:T.textFaint,marginTop:2}}>{d.date?.slice(5)}</div>}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                {/* X axis date labels */}
+                <div style={{display:"flex",gap:3,marginTop:4}}>
+                  {(a.messagesPerDay||[]).slice(-21).map((d,i)=>{
+                    const days=(a.messagesPerDay||[]).slice(-21);
+                    const showLabel=days.length<=10||(i%(days.length<=14?2:3)===0);
+                    return <div key={i} style={{flex:1,textAlign:"center",fontSize:8,color:T.textFaint,overflow:"hidden",whiteSpace:"nowrap"}}>
+                      {showLabel?(d.date?.slice(5)||""):""}
+                    </div>;
+                  })}
+                </div>
               </div>
             </div>
             {/* Bot donut */}
