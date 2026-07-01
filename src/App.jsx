@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.149";
+const CRM_VERSION = "2.9.150";
 
 // Responsive hook
 function useWindowSize() {
@@ -1104,7 +1104,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       (async()=>{
         try {
           const cid = selectedClinicRef.current?.clinic_id||null;
-          const url = `${API}/api/analytics/leads-by-country${cid?`?clinic_id=${cid}`:""}&from=${dateFrom}&to=${dateTo}`;
+          const url = API+"/api/analytics/leads-by-country"+(cid?"?clinic_id="+cid:"")+"&from="+dateFrom+"&to="+dateTo;
           const r = await fetch(url, {headers:authHeaders()});
           if(r.ok){const d=await r.json(); setCountryData(d.countries||[]);}
         } catch {}
