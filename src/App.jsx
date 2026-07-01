@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.145";
+const CRM_VERSION = "2.9.146";
 
 // Responsive hook
 function useWindowSize() {
@@ -7594,6 +7594,7 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
   // Use parent-level state so applied items persist across tab switches
   const appliedQA = appliedQAIds || new Set();
   const setAppliedQA = setAppliedQAIds || (() => {});
+  const [duplicateQA, setDuplicateQA] = React.useState(new Set()); // tracks duplicate attempts
   const [appliedPrompt, setAppliedPrompt] = React.useState(new Set());
   const [savingPrompt, setSavingPrompt] = React.useState(false);
 
@@ -7639,8 +7640,8 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
       existing.question?.toLowerCase().trim() === qa.question?.toLowerCase().trim()
     );
     if(isDuplicate) {
-      alert("⚠️ This question already exists in your Knowledge Base!");
-      setAppliedQA(p=>new Set([...p, idx])); // mark as applied anyway to hide button
+      setDuplicateQA(p=>new Set([...p, idx]));
+      setTimeout(()=>setDuplicateQA(p=>{const n=new Set(p);n.delete(idx);return n;}), 3000);
       return;
     }
     try {
@@ -7650,8 +7651,7 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
         body: JSON.stringify({question:qa.question, answer:qa.answer, ...(clinicId?{clinic_id:clinicId}:{})})
       });
       if(r.ok) { setAppliedQA(p=>new Set([...p, idx])); fetchKnowledge(clinicId); }
-      else { alert("Failed to add to KB — please try again"); }
-    } catch(e) { alert("Error: " + e.message); }
+    } catch {}
   };
 
   const applyPromptChange = async (suggestion, idx) => {
@@ -7827,10 +7827,12 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
                   <div style={{fontSize:10,color:T.textMuted,flex:1,lineHeight:1.5}}>💡 {q.reason}</div>
                   {appliedQA.has(i)
                     ?<span style={{fontSize:11,color:"#16a34a",fontWeight:700,flexShrink:0}}>✅ Added</span>
-                    :<button onClick={()=>applyQA(q,i)}
-                      style={{padding:"5px 14px",borderRadius:8,border:"none",background:"#16a34a",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
-                      ➕ Add to KB
-                    </button>}
+                    :duplicateQA.has(i)
+                      ?<span style={{fontSize:11,color:"#d97706",fontWeight:700,flexShrink:0,background:"#fffbeb",padding:"4px 10px",borderRadius:8,border:"1px solid #fde68a"}}>⚠️ Already in KB</span>
+                      :<button onClick={()=>applyQA(q,i)}
+                        style={{padding:"5px 14px",borderRadius:8,border:"none",background:"#16a34a",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
+                        ➕ Add to KB
+                      </button>}
                 </div>
               </div>
             );})}
