@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.148";
+const CRM_VERSION = "2.9.149";
 
 // Responsive hook
 function useWindowSize() {
@@ -180,6 +180,7 @@ export default function App() {
   const [inboxClinic, setInboxClinic] = useState(null);
   const [kbClinic, setKbClinic] = useState(null);
   const [improverResult, setImproverResult] = useState(null);
+  const [countryData, setCountryData] = useState([]);
   const [appliedQAIds, setAppliedQAIds] = useState(new Set()); // persists across tab switches
   const [improverDays, setImproverDays] = useState(7);
   const [kbSubTab, setKbSubTab] = useState("kb"); // "kb" | "wizard"
@@ -1099,6 +1100,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(tab==="analytics") {
       fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
+      // Fetch country data
+      (async()=>{
+        try {
+          const cid = selectedClinicRef.current?.clinic_id||null;
+          const url = `${API}/api/analytics/leads-by-country${cid?`?clinic_id=${cid}`:""}&from=${dateFrom}&to=${dateTo}`;
+          const r = await fetch(url, {headers:authHeaders()});
+          if(r.ok){const d=await r.json(); setCountryData(d.countries||[]);}
+        } catch {}
+      })();
     }
     if((tab==="crm"||tab==="leads"||tab==="settings"||tab==="kb"||tab==="integrations") && isAdmin && adminOverview.length===0) {
       fetchAdminOverview();
@@ -7205,6 +7215,9 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
             </div>
           </div>}
 
+          {/* LEADS BY COUNTRY MAP */}
+          {countryData.length>0&&<LeadsMap T={T} WA_GREEN={WA_GREEN} countryData={countryData} dark={dark}/>}
+
         </>}
 
         {!analyticsLoading&&!a&&<div style={{textAlign:"center",padding:80,color:T.textFaint}}>
@@ -7635,6 +7648,171 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
   );
 
   return null;
+}
+
+
+// ── LEADS BY COUNTRY MAP COMPONENT ──────────────────────────────────────────
+function LeadsMap({T, WA_GREEN, countryData, dark}) {
+  const [view, setView] = React.useState("bars"); // "bars" | "map"
+  const total = countryData.reduce((s,c)=>s+c.total,0);
+  const top10 = countryData.slice(0,10);
+  const maxVal = top10[0]?.total||1;
+
+  // ISO2 → approximate SVG position (x%, y%) on a simple world map
+  const countryPositions = {
+    MY:[76,58],SG:[76,60],ID:[76,62],PH:[79,52],TH:[74,52],VN:[76,50],
+    IN:[70,48],PK:[68,44],BD:[73,48],LK:[71,55],NP:[72,44],
+    CN:[78,40],JP:[83,40],KR:[82,38],TW:[80,45],HK:[79,47],
+    AU:[80,72],NZ:[85,76],
+    GB:[47,32],FR:[48,36],DE:[50,33],NL:[49,32],BE:[49,34],
+    ES:[46,38],PT:[45,38],IT:[51,38],CH:[50,35],AT:[51,35],
+    PL:[52,33],CZ:[51,34],SE:[51,28],NO:[50,27],DK:[50,30],
+    FI:[53,27],IE:[45,31],GR:[53,40],RO:[53,36],HU:[52,35],
+    UA:[55,34],RS:[52,37],HR:[51,37],TR:[57,40],
+    RU:[62,30],
+    US:[20,40],CA:[20,32],MX:[18,48],BR:[28,65],AR:[25,72],
+    CO:[23,58],CL:[22,70],PE:[22,62],VE:[25,55],
+    EG:[55,45],MA:[45,43],NG:[48,55],KE:[57,58],ZA:[52,70],
+    SA:[60,48],AE:[63,48],QA:[62,48],KW:[61,46],BH:[62,47],
+    OM:[64,50],YE:[62,52],IQ:[60,44],IR:[63,43],IL:[56,43],
+    LB:[56,42],JO:[57,43],
+  };
+
+  return (
+    <div style={{background:T.card,borderRadius:16,border:"1px solid "+T.border,padding:20,marginBottom:20,animation:"_fadeUp .4s both"}}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
+        <div>
+          <div style={{fontWeight:800,fontSize:15,color:T.text}}>🌍 Leads by Country</div>
+          <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{total} contacts from {countryData.length} countries</div>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          {[{id:"bars",label:"📊 Rankings"},{id:"map",label:"🗺️ Map"}].map(v=>(
+            <button key={v.id} onClick={()=>setView(v.id)}
+              style={{padding:"5px 12px",borderRadius:8,border:"1px solid "+T.border,fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer",
+                background:view===v.id?"linear-gradient(135deg,"+WA_GREEN+",#00a86b)":T.card2,
+                color:view===v.id?"#fff":T.text}}>
+              {v.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view==="bars"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {top10.map((c,i)=>{
+          const pct=Math.round(c.total/total*100);
+          const hotPct=c.total>0?Math.round(c.hot/c.total*100):0;
+          return (
+            <div key={c.code} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:10,background:T.card2,border:"1px solid "+T.border}}>
+              <div style={{fontSize:10,color:T.textMuted,width:14,textAlign:"right",fontWeight:700}}>{i+1}</div>
+              <div style={{fontSize:20,flexShrink:0}}>{c.flag}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                  <span style={{fontSize:11,fontWeight:700,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
+                  <span style={{fontSize:11,fontWeight:800,color:WA_GREEN,flexShrink:0,marginLeft:4}}>{c.total}</span>
+                </div>
+                <div style={{height:5,borderRadius:3,background:T.border,position:"relative"}}>
+                  <div style={{height:5,borderRadius:3,width:(c.total/maxVal*100)+"%",
+                    background:i===0?"linear-gradient(90deg,"+WA_GREEN+",#00c853)":
+                               i<=2?"linear-gradient(90deg,#6366f1,#818cf8)":
+                               "linear-gradient(90deg,#94a3b8,#cbd5e1)",
+                    transition:"width .6s ease"}}/>
+                </div>
+                <div style={{display:"flex",gap:6,marginTop:3,fontSize:9,color:T.textMuted}}>
+                  <span style={{color:"#ef4444"}}>🔥{c.hot}</span>
+                  <span style={{color:"#f59e0b"}}>🟡{c.warm}</span>
+                  <span>{pct}% of total</span>
+                  {hotPct>0&&<span style={{color:WA_GREEN,marginLeft:"auto"}}>{hotPct}% hot</span>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>}
+
+      {view==="map"&&<div style={{position:"relative",width:"100%",paddingTop:"50%",borderRadius:12,overflow:"hidden",background:dark?"#1a2332":"#e8f4f8"}}>
+        <div style={{position:"absolute",inset:0}}>
+          {/* Simple dot map */}
+          <svg viewBox="0 0 200 100" style={{width:"100%",height:"100%"}}>
+            {/* Ocean background */}
+            <rect width="200" height="100" fill={dark?"#1a2332":"#dbeafe"} rx="8"/>
+            {/* Simple continent outlines as paths */}
+            {/* North America */}
+            <path d="M15 25 L35 22 L38 30 L35 40 L28 50 L20 55 L15 50 L12 40 Z" fill={dark?"#2d3748":"#94a3b8"} opacity=".6"/>
+            {/* South America */}
+            <path d="M25 52 L32 50 L35 58 L33 72 L28 76 L23 68 L22 58 Z" fill={dark?"#2d3748":"#94a3b8"} opacity=".6"/>
+            {/* Europe */}
+            <path d="M44 25 L56 24 L58 32 L54 36 L46 36 L43 30 Z" fill={dark?"#2d3748":"#94a3b8"} opacity=".6"/>
+            {/* Africa */}
+            <path d="M46 38 L56 36 L58 45 L56 58 L52 68 L47 65 L44 55 L44 45 Z" fill={dark?"#2d3748":"#94a3b8"} opacity=".6"/>
+            {/* Asia */}
+            <path d="M58 20 L88 18 L90 30 L85 40 L78 44 L68 42 L60 36 L57 28 Z" fill={dark?"#2d3748":"#94a3b8"} opacity=".6"/>
+            {/* Southeast Asia */}
+            <path d="M72 44 L82 42 L84 52 L78 56 L72 52 Z" fill={dark?"#2d3748":"#94a3b8"} opacity=".6"/>
+            {/* Australia */}
+            <path d="M76 62 L88 60 L90 68 L86 74 L78 74 L74 68 Z" fill={dark?"#2d3748":"#94a3b8"} opacity=".6"/>
+
+            {/* Country dots */}
+            {countryData.map((c,i)=>{
+              const pos = countryPositions[c.code];
+              if(!pos) return null;
+              const [x,y] = pos;
+              const size = Math.max(1.5, Math.min(5, 1.5 + (c.total/maxVal)*4));
+              const color = i===0?WA_GREEN:i<=2?"#6366f1":i<=5?"#f59e0b":"#94a3b8";
+              return (
+                <g key={c.code}>
+                  <circle cx={x*2} cy={y} r={size+1} fill={color} opacity=".2"/>
+                  <circle cx={x*2} cy={y} r={size} fill={color} opacity=".9"/>
+                  <title>{c.flag} {c.name}: {c.total} leads</title>
+                </g>
+              );
+            })}
+
+            {/* Labels for top 3 */}
+            {top10.slice(0,3).map((c,i)=>{
+              const pos = countryPositions[c.code];
+              if(!pos) return null;
+              const [x,y] = pos;
+              return (
+                <g key={c.code+"label"}>
+                  <rect x={x*2-8} y={y-10} width={16} height={8} rx={2} fill={dark?"#1e293b":"#fff"} opacity=".85"/>
+                  <text x={x*2} y={y-4} textAnchor="middle" fontSize="4" fontWeight="bold"
+                    fill={i===0?WA_GREEN:"#6366f1"} fontFamily="system-ui">
+                    {c.flag}{c.code}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* Legend */}
+        <div style={{position:"absolute",bottom:8,left:8,display:"flex",gap:8,flexWrap:"wrap"}}>
+          {[{c:WA_GREEN,l:"#1"},{c:"#6366f1",l:"#2-3"},{c:"#f59e0b",l:"#4-6"},{c:"#94a3b8",l:"Others"}].map(l=>(
+            <div key={l.l} style={{display:"flex",alignItems:"center",gap:3,background:dark?"rgba(0,0,0,.5)":"rgba(255,255,255,.8)",padding:"2px 6px",borderRadius:4}}>
+              <div style={{width:7,height:7,borderRadius:"50%",background:l.c}}/>
+              <span style={{fontSize:8,color:T.text,fontWeight:600}}>{l.l}</span>
+            </div>
+          ))}
+        </div>
+      </div>}
+
+      {/* Summary row */}
+      <div style={{display:"flex",gap:12,marginTop:12,flexWrap:"wrap"}}>
+        {[
+          {l:"🔥 Total Hot",v:countryData.reduce((s,c)=>s+c.hot,0),c:"#ef4444"},
+          {l:"🟡 Warm",v:countryData.reduce((s,c)=>s+c.warm,0),c:"#f59e0b"},
+          {l:"🌍 Countries",v:countryData.length,c:"#6366f1"},
+          {l:"🏆 Top Country",v:(top10[0]?.flag||"")+" "+(top10[0]?.name||"-"),c:WA_GREEN},
+        ].map(s=>(
+          <div key={s.l} style={{flex:1,minWidth:100,padding:"8px 12px",background:T.card2,borderRadius:10,border:"1px solid "+T.border}}>
+            <div style={{fontSize:10,color:T.textMuted,marginBottom:2}}>{s.l}</div>
+            <div style={{fontSize:13,fontWeight:800,color:s.c}}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ── AI PROMPT IMPROVER COMPONENT ─────────────────────────────────────────────
