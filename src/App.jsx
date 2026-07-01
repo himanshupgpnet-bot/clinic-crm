@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.143";
+const CRM_VERSION = "2.9.145";
 
 // Responsive hook
 function useWindowSize() {
@@ -180,6 +180,7 @@ export default function App() {
   const [inboxClinic, setInboxClinic] = useState(null);
   const [kbClinic, setKbClinic] = useState(null);
   const [improverResult, setImproverResult] = useState(null);
+  const [appliedQAIds, setAppliedQAIds] = useState(new Set()); // persists across tab switches
   const [improverDays, setImproverDays] = useState(7);
   const [kbSubTab, setKbSubTab] = useState("kb"); // "kb" | "wizard"
   const [adSummary, setAdSummary] = useState({count:0,totalClicks:0,totalBookings:0});
@@ -3047,6 +3048,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 authToken={authToken}
                 isAdmin={isAdmin}
                 improverResult={improverResult} setImproverResult={setImproverResult}
+                appliedQAIds={appliedQAIds} setAppliedQAIds={setAppliedQAIds}
                 improverDays={improverDays} setImproverDays={setImproverDays}
                 onViewChat={(name)=>{
                   setTab("crm");
@@ -7586,10 +7588,12 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
 }
 
 // ── AI PROMPT IMPROVER COMPONENT ─────────────────────────────────────────────
-function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemPrompt, setSystemPrompt, qaData, setQaData, fetchKnowledge, authToken, onViewChat, improverResult, setImproverResult, improverDays, setImproverDays, isAdmin=false}) {
+function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemPrompt, setSystemPrompt, qaData, setQaData, fetchKnowledge, authToken, onViewChat, improverResult, setImproverResult, improverDays, setImproverDays, isAdmin=false, appliedQAIds, setAppliedQAIds}) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
-  const [appliedQA, setAppliedQA] = React.useState(new Set());
+  // Use parent-level state so applied items persist across tab switches
+  const appliedQA = appliedQAIds || new Set();
+  const setAppliedQA = setAppliedQAIds || (() => {});
   const [appliedPrompt, setAppliedPrompt] = React.useState(new Set());
   const [savingPrompt, setSavingPrompt] = React.useState(false);
 
@@ -7616,7 +7620,7 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
   };
 
   const analyse = async () => {
-    setLoading(true); setResult(null); setError(""); setAppliedQA(new Set()); setAppliedPrompt(new Set());
+    setLoading(true); setResult(null); setError(""); setAppliedQA(new Set()); setAppliedPrompt(new Set()); // fresh analysis clears applied state
     try {
       const r = await fetch(`${API}/api/knowledge/analyse-and-improve`, {
         method:"POST", headers:authHeaders(),
@@ -7630,13 +7634,24 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
   };
 
   const applyQA = async (qa, idx) => {
+    // Check for duplicate in existing KB
+    const isDuplicate = qaData && qaData.some(existing =>
+      existing.question?.toLowerCase().trim() === qa.question?.toLowerCase().trim()
+    );
+    if(isDuplicate) {
+      alert("⚠️ This question already exists in your Knowledge Base!");
+      setAppliedQA(p=>new Set([...p, idx])); // mark as applied anyway to hide button
+      return;
+    }
     try {
+      const clinicId = kbClinic?.clinic_id || kbClinic?.id || null;
       const r = await fetch(`${API}/api/knowledge/qa`, {
         method:"POST", headers:authHeaders(),
-        body: JSON.stringify({question:qa.question, answer:qa.answer, clinic_id:kbClinic?.clinic_id})
+        body: JSON.stringify({question:qa.question, answer:qa.answer, ...(clinicId?{clinic_id:clinicId}:{})})
       });
-      if(r.ok) { setAppliedQA(p=>new Set([...p, idx])); fetchKnowledge(kbClinic?.clinic_id); }
-    } catch {}
+      if(r.ok) { setAppliedQA(p=>new Set([...p, idx])); fetchKnowledge(clinicId); }
+      else { alert("Failed to add to KB — please try again"); }
+    } catch(e) { alert("Error: " + e.message); }
   };
 
   const applyPromptChange = async (suggestion, idx) => {
@@ -7645,8 +7660,9 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
     setAppliedPrompt(p=>new Set([...p, idx]));
     setSavingPrompt(true);
     try {
+      const clinicId = kbClinic?.clinic_id || kbClinic?.id || null;
       const body = {prompt: newPrompt};
-      if(kbClinic?.clinic_id) body.clinic_id = kbClinic.clinic_id;
+      if(clinicId) body.clinic_id = clinicId;
       await fetch(`${API}/api/knowledge/prompt`, {method:"PATCH", headers:authHeaders(), body:JSON.stringify(body)});
     } catch {}
     setSavingPrompt(false);
