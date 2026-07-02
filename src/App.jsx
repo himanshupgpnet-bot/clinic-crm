@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.154";
+const CRM_VERSION = "2.9.155";
 
 // Responsive hook
 function useWindowSize() {
@@ -7151,31 +7151,47 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
             <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>⏰ Peak Activity Hours</div>
               <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>When customers message most</div>
-              <div style={{display:"flex",alignItems:"flex-end",gap:2,height:70,position:"relative"}}>
-                {Array.from({length:24},(_,h)=>{
-                  const cnt=(a.peakHours||[]).find(p=>p.hour===h)?.count||0;
-                  const maxH=Math.max(...(a.peakHours||[]).map(p=>p.count),1);
-                  const isPeak=cnt===maxH&&cnt>0;
-                  const timeLabel=`${String(h).padStart(2,"0")}:00 – ${String(h+1).padStart(2,"0")}:00`;
-                  return <div key={h} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",position:"relative",cursor:cnt>0?"pointer":"default"}}
-                    onMouseEnter={e=>{
-                      if(!cnt) return;
-                      const tip=document.createElement("div");
-                      tip.id="peak-tip";
-                      tip.style.cssText="position:fixed;z-index:9999;background:#0d0f1a;color:#fff;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.3)";
-                      tip.innerHTML=timeLabel+"<br><span style='color:#4ade80'>"+cnt+" message"+(cnt>1?"s":"")+"</span>"+(isPeak?" 🔥 Peak":"");
-                      document.body.appendChild(tip);
-                      const rect=e.currentTarget.getBoundingClientRect();
-                      tip.style.left=(rect.left+rect.width/2-tip.offsetWidth/2)+"px";
-                      tip.style.top=(rect.top-tip.offsetHeight-8)+"px";
-                    }}
-                    onMouseLeave={()=>{const t=document.getElementById("peak-tip");if(t)t.remove();}}>
-                    <div style={{width:"100%",background:isPeak?WA_GREEN:cnt>0?WA_GREEN+"50":T.border,borderRadius:"2px 2px 0 0",height:`${Math.max(2,(cnt/maxH)*66)}px`,transition:"height .5s",
-                      boxShadow:isPeak?"0 0 6px "+WA_GREEN+"80":"none"}}/>
-                    {h%6===0&&<div style={{fontSize:7,color:T.textFaint,marginTop:2}}>{h}h</div>}
-                  </div>;
-                })}
-              </div>
+              {(()=>{
+                const [hoveredHour, setHoveredHour] = React.useState(null);
+                const maxH=Math.max(...(a.peakHours||[]).map(p=>p.count),1);
+                const hoveredData = hoveredHour!==null ? {
+                  cnt:(a.peakHours||[]).find(p=>p.hour===hoveredHour)?.count||0,
+                  time:String(hoveredHour).padStart(2,"0")+":00 – "+String(hoveredHour+1).padStart(2,"0")+":00"
+                } : null;
+                const peakHour=(a.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});
+                return <>
+                  {/* Hover card */}
+                  {hoveredData&&hoveredData.cnt>0&&<div style={{marginBottom:10,padding:"10px 14px",background:"linear-gradient(135deg,#0d4a2e,#1a7a4a)",borderRadius:12,display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}>
+                    <div style={{fontSize:22}}>⏰</div>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>{hoveredData.time}</div>
+                      <div style={{fontSize:12,color:"#86efac",marginTop:2}}><strong style={{fontSize:18}}>{hoveredData.cnt}</strong> message{hoveredData.cnt>1?"s":""}{hoveredData.cnt===maxH?" 🔥 Peak hour":""}</div>
+                    </div>
+                  </div>}
+                  {!hoveredData&&<div style={{marginBottom:10,padding:"10px 14px",background:T.card2,borderRadius:12,border:"1px solid "+T.border,fontSize:11,color:T.textMuted,textAlign:"center"}}>
+                    👆 Hover any bar to see details
+                  </div>}
+                  <div style={{display:"flex",alignItems:"flex-end",gap:2,height:70,position:"relative"}}>
+                    {Array.from({length:24},(_,h)=>{
+                      const cnt=(a.peakHours||[]).find(p=>p.hour===h)?.count||0;
+                      const isPeak=cnt===maxH&&cnt>0;
+                      const isHovered=hoveredHour===h;
+                      return <div key={h} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:cnt>0?"pointer":"default"}}
+                        onMouseEnter={()=>setHoveredHour(h)}
+                        onMouseLeave={()=>setHoveredHour(null)}>
+                        <div style={{width:"100%",borderRadius:"3px 3px 0 0",
+                          height:`${Math.max(2,(cnt/maxH)*66)}px`,
+                          transition:"all .2s",
+                          background:isHovered?"#fff":isPeak?WA_GREEN:cnt>0?WA_GREEN+"60":T.border,
+                          transform:isHovered?"scaleY(1.08)":"scaleY(1)",
+                          transformOrigin:"bottom",
+                          boxShadow:isHovered?"0 0 10px rgba(255,255,255,.5)":isPeak?"0 0 6px "+WA_GREEN+"80":"none"}}/>
+                        {h%6===0&&<div style={{fontSize:7,color:isHovered?"#fff":T.textFaint,marginTop:2,fontWeight:isHovered?700:400}}>{h}h</div>}
+                      </div>;
+                    })}
+                  </div>
+                </>;
+              })()}
               {(()=>{const p=(a.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});return p.count>0&&<div style={{marginTop:10,fontSize:11,color:T.textMuted}}>Peak: <strong style={{color:WA_GREEN}}>{p.hour}:00–{p.hour+1}:00</strong> · {p.count} messages</div>;})()}
             </div>
             {/* Lead quality */}
