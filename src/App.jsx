@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.155";
+const CRM_VERSION = "2.9.156";
 
 // Responsive hook
 function useWindowSize() {
@@ -6429,6 +6429,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
   },[analytics]);
 
   const [drillOpen, setDrillOpen] = React.useState(false);
+  const [hoveredHour, setHoveredHour] = React.useState(null);
   const [drillType, setDrillType] = React.useState(null);
   const [drillData, setDrillData] = React.useState(null);
   const [drillLoading, setDrillLoading] = React.useState(false);
@@ -7152,7 +7153,6 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
               <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>⏰ Peak Activity Hours</div>
               <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>When customers message most</div>
               {(()=>{
-                const [hoveredHour, setHoveredHour] = React.useState(null);
                 const maxH=Math.max(...(a.peakHours||[]).map(p=>p.count),1);
                 const hoveredData = hoveredHour!==null ? {
                   cnt:(a.peakHours||[]).find(p=>p.hour===hoveredHour)?.count||0,
