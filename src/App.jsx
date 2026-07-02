@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.156";
+const CRM_VERSION = "2.9.157";
 
 // Responsive hook
 function useWindowSize() {
@@ -7160,17 +7160,18 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 } : null;
                 const peakHour=(a.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});
                 return <>
-                  {/* Hover card */}
-                  {hoveredData&&hoveredData.cnt>0&&<div style={{marginBottom:10,padding:"10px 14px",background:"linear-gradient(135deg,#0d4a2e,#1a7a4a)",borderRadius:12,display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}>
-                    <div style={{fontSize:22}}>⏰</div>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>{hoveredData.time}</div>
-                      <div style={{fontSize:12,color:"#86efac",marginTop:2}}><strong style={{fontSize:18}}>{hoveredData.cnt}</strong> message{hoveredData.cnt>1?"s":""}{hoveredData.cnt===maxH?" 🔥 Peak hour":""}</div>
-                    </div>
-                  </div>}
-                  {!hoveredData&&<div style={{marginBottom:10,padding:"10px 14px",background:T.card2,borderRadius:12,border:"1px solid "+T.border,fontSize:11,color:T.textMuted,textAlign:"center"}}>
-                    👆 Hover any bar to see details
-                  </div>}
+                  {/* Hover info — compact inline strip */}
+                  <div style={{marginBottom:8,height:24,display:"flex",alignItems:"center"}}>
+                    {hoveredData&&hoveredData.cnt>0
+                      ?<div style={{display:"flex",alignItems:"center",gap:8,padding:"3px 10px",background:WA_GREEN,borderRadius:20,fontSize:11,fontWeight:700,color:"#fff"}}>
+                        <span>{hoveredData.time}</span>
+                        <span style={{opacity:.7}}>·</span>
+                        <span>{hoveredData.cnt} msg{hoveredData.cnt>1?"s":""}</span>
+                        {hoveredData.cnt===maxH&&<span>🔥</span>}
+                      </div>
+                      :<span style={{fontSize:10,color:T.textMuted}}>Hover a bar to see details</span>
+                    }
+                  </div>
                   <div style={{display:"flex",alignItems:"flex-end",gap:2,height:70,position:"relative"}}>
                     {Array.from({length:24},(_,h)=>{
                       const cnt=(a.peakHours||[]).find(p=>p.hour===h)?.count||0;
