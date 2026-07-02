@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.153";
+const CRM_VERSION = "2.9.154";
 
 // Responsive hook
 function useWindowSize() {
@@ -7151,13 +7151,27 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
             <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>⏰ Peak Activity Hours</div>
               <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>When customers message most</div>
-              <div style={{display:"flex",alignItems:"flex-end",gap:2,height:70}}>
+              <div style={{display:"flex",alignItems:"flex-end",gap:2,height:70,position:"relative"}}>
                 {Array.from({length:24},(_,h)=>{
                   const cnt=(a.peakHours||[]).find(p=>p.hour===h)?.count||0;
                   const maxH=Math.max(...(a.peakHours||[]).map(p=>p.count),1);
                   const isPeak=cnt===maxH&&cnt>0;
-                  return <div key={h} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}} title={`${h}:00 — ${cnt} msgs`}>
-                    <div style={{width:"100%",background:isPeak?WA_GREEN:cnt>0?`${WA_GREEN}50`:T.border,borderRadius:"2px 2px 0 0",height:`${Math.max(2,(cnt/maxH)*66)}px`,transition:"height .5s"}}/>
+                  const timeLabel=`${String(h).padStart(2,"0")}:00 – ${String(h+1).padStart(2,"0")}:00`;
+                  return <div key={h} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",position:"relative",cursor:cnt>0?"pointer":"default"}}
+                    onMouseEnter={e=>{
+                      if(!cnt) return;
+                      const tip=document.createElement("div");
+                      tip.id="peak-tip";
+                      tip.style.cssText="position:fixed;z-index:9999;background:#0d0f1a;color:#fff;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.3)";
+                      tip.innerHTML=timeLabel+"<br><span style='color:#4ade80'>"+cnt+" message"+(cnt>1?"s":"")+"</span>"+(isPeak?" 🔥 Peak":"");
+                      document.body.appendChild(tip);
+                      const rect=e.currentTarget.getBoundingClientRect();
+                      tip.style.left=(rect.left+rect.width/2-tip.offsetWidth/2)+"px";
+                      tip.style.top=(rect.top-tip.offsetHeight-8)+"px";
+                    }}
+                    onMouseLeave={()=>{const t=document.getElementById("peak-tip");if(t)t.remove();}}>
+                    <div style={{width:"100%",background:isPeak?WA_GREEN:cnt>0?WA_GREEN+"50":T.border,borderRadius:"2px 2px 0 0",height:`${Math.max(2,(cnt/maxH)*66)}px`,transition:"height .5s",
+                      boxShadow:isPeak?"0 0 6px "+WA_GREEN+"80":"none"}}/>
                     {h%6===0&&<div style={{fontSize:7,color:T.textFaint,marginTop:2}}>{h}h</div>}
                   </div>;
                 })}
