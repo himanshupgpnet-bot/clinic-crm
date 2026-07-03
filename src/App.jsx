@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.157";
+const CRM_VERSION = "2.9.158";
 
 // Responsive hook
 function useWindowSize() {
@@ -5796,6 +5796,8 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
   const [clinicStep, setClinicStep] = useState(0);
   const CLINIC_STEPS = [
     {label:"Company Info", icon:"🏢", desc:"Basic details about the client"},
+    {label:"WhatsApp", icon:"📱", desc:"Connect their WhatsApp Business account"},
+    {label:"AI & Settings", icon:"🤖", desc:"Configure AI provider and API keys"},
   ];
   const inputStyle = {width:"100%",padding:"12px 14px",borderRadius:10,
     border:`1.5px solid ${T.border}`,background:T.card,color:T.text,
@@ -6007,9 +6009,9 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
           style={{flex:1,padding:"13px",borderRadius:12,border:`1px solid #ef444440`,background:"#ef444408",color:"#ef4444",fontSize:14,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
           ✕ Cancel
         </button>
-        <button onClick={saveClinic}
+        <button onClick={clinicStep<CLINIC_STEPS.length-1?()=>setClinicStep(s=>s+1):saveClinic}
             style={{flex:2,padding:"13px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 14px rgba(37,211,102,.35)"}}>
-            {editClinic?.id?"💾 Save Changes":"🚀 Onboard Client"}
+            {clinicStep<CLINIC_STEPS.length-1?"Next →":editClinic?.id?"💾 Save Changes":"🚀 Onboard Client"}
           </button>
       </div>
     </div>
