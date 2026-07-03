@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.161";
+const CRM_VERSION = "2.9.163";
 
 // Responsive hook
 function useWindowSize() {
@@ -1104,7 +1104,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   useEffect(() => {
     if(tab==="broadcast") { if(!isAdmin) fetchTemplates(); }
     if(tab==="analytics") {
-      fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
+      fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.id||selectedClinicRef.current?.clinic_id||null);
       if(isAdmin) fetchAdminOverview();
     }
     if((tab==="crm"||tab==="leads"||tab==="settings"||tab==="kb"||tab==="integrations") && isAdmin && adminOverview.length===0) {
@@ -1127,7 +1127,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       if(tab==="broadcast") { if(!isAdmin) fetchTemplates(); }
     if(tab==="analytics") {
         // Use ref to get current selectedClinic value
-        fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.clinic_id||null);
+        fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.id||selectedClinicRef.current?.clinic_id||null);
         if(isAdmin) fetchAdminOverview();
       }
       if(isAdmin) fetchAdminOverview();
@@ -1937,7 +1937,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>
       </>}
 
-      <div style={{flex:1,display:"flex",overflow:"hidden",position:"relative"}}>
+      <div style={{flex:1,display:"flex",overflow:"hidden",position:"relative",background:T.bg}}>
 
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
 
@@ -2817,8 +2817,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
             {overviewLoading&&<div style={{padding:16,textAlign:"center",fontSize:12,color:T.textMuted}}>Loading...</div>}
             {adminOverview.map(c=>(
-              <div key={c.id} onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}
-                style={{padding:"10px 14px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,background:selectedClinic?.clinic_id===c.clinic_id?`${WA_GREEN}15`:"transparent",borderLeft:selectedClinic?.clinic_id===c.clinic_id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
+              <div key={c.id} onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.id||c.clinic_id);}}
+                style={{padding:"10px 14px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,background:selectedClinic?.clinic_id===c.clinic_id||selectedClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:selectedClinic?.clinic_id===c.clinic_id||selectedClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
                 </div>
@@ -6919,7 +6919,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12,marginBottom:20}}>
           {adminOverview.map((c,i)=>(
             <div key={c.id} className="cc" style={{padding:16,cursor:"pointer",animation:`_fadeUp .4s ${i*0.05}s both`}}
-              onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.clinic_id);}}>
+              onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.id||c.clinic_id);}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                 <div style={{width:36,height:36,borderRadius:10,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:18}}>🏢</span>}
