@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.158";
+const CRM_VERSION = "2.9.159";
 
 // Responsive hook
 function useWindowSize() {
@@ -7252,7 +7252,14 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           </div>}
 
           {/* LEADS BY COUNTRY MAP */}
-          {countryData.length>0&&(()=>{try{return <LeadsMap T={T} WA_GREEN={WA_GREEN} countryData={countryData} dark={dark}/>;}catch(e){return null;}})()}
+          {countryData.length>0
+            ?(()=>{try{return <LeadsMap T={T} WA_GREEN={WA_GREEN} countryData={countryData} dark={dark}/>;}catch(e){return null;}})()
+            :<div style={{background:T.card,borderRadius:16,border:"1px solid "+T.border,padding:"24px 20px",marginBottom:20,textAlign:"center"}}>
+              <div style={{fontSize:28,marginBottom:8}}>🌍</div>
+              <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:4}}>Leads by Country</div>
+              <div style={{fontSize:12,color:T.textMuted}}>No contacts yet — data will appear once customers start messaging</div>
+            </div>
+          }
 
         </>}
 
