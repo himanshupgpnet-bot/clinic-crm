@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.159";
+const CRM_VERSION = "2.9.160";
 
 // Responsive hook
 function useWindowSize() {
@@ -1058,6 +1058,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         socketRef.current = sock;
         sock.on("connect", () => {
           if(clinicId) sock.emit("join", {clinic_id: clinicId});
+          // Admin joins all clinic rooms for real-time updates
+          const payload = authToken ? JSON.parse(atob(authToken.split(".")[1]||"e30=")) : {};
+          if(payload.role==="admin") {
+            [1,3,4,5,6,7,8,9,10].forEach(cid => sock.emit("join", {clinic_id: cid}));
+          }
           setBackendStatus("online");
           // Slow fallback poll when WS connected — just in case
           if(pollRef.current) clearInterval(pollRef.current);
