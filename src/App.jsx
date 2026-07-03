@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.160";
+const CRM_VERSION = "2.9.161";
 
 // Responsive hook
 function useWindowSize() {
@@ -4566,7 +4566,7 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
         </div>}
 
         {/* ── PANEL: TEST CHAT ── */}
-        {panel==="chat"&&<div style={{flex:1,display:"flex",flexDirection:"column",maxWidth:680,margin:"0 auto",width:"100%"}}>
+        {panel==="chat"&&<div style={{flex:1,display:"flex",flexDirection:"column",width:"100%"}}>
           {/* Sandbox info bar */}
           <div style={{background:"#fef9c3",borderBottom:"1px solid #fde68a",padding:"5px 14px",fontSize:11,color:"#854d0e",fontWeight:600,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
             <span>🧪 Using sandbox KB — {(sandbox?.qa||[]).length} entries · save sandbox before testing to see changes</span>
