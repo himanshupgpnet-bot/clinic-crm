@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.163";
+const CRM_VERSION = "2.9.164";
 
 // Responsive hook
 function useWindowSize() {
@@ -968,6 +968,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         setAppSettings(prev=>({
           ...prev,
           ai_provider:          d.ai_provider||"anthropic",
+          ai_model:             d.ai_model||"claude-haiku-4-5-20251001",
           ai_enabled:           d.bot_enabled===false?"false":"true",
           hot_keywords:         d.lead_keywords||d.hot_keywords||"",
           warm_keywords:        d.warm_keywords||"",
@@ -1301,6 +1302,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           method:"PATCH", headers:authHeaders(),
           body:JSON.stringify({
             ai_provider:          appSettings.ai_provider,
+            ai_model:             appSettings.ai_model||"",
             anthropic_key:        appSettings.anthropic_key||"",
             openai_key:           appSettings.openai_key||"",
             groq_key:             appSettings.groq_key||"",
@@ -5508,9 +5510,12 @@ function SectionCard({title, children, T}) {
 function AIProviderCards({appSettings, setAppSettings, setSettingsDirtyWithRef, T}) {
   const [showKey, setShowKey] = useState({});
   const AI_PROVIDERS = [
-    {id:"anthropic", label:"Claude",  company:"Anthropic", color:"#7c3aed", keyField:"anthropic_key", placeholder:"sk-ant-api03-..."},
-    {id:"openai",    label:"GPT-4o",  company:"OpenAI",    color:"#10b981", keyField:"openai_key",    placeholder:"sk-..."},
-    {id:"groq",      label:"Llama 3", company:"Groq",      color:"#f59e0b", keyField:"groq_key",      placeholder:"gsk_...", free:true},
+    {id:"anthropic", label:"Claude",  company:"Anthropic", color:"#7c3aed", keyField:"anthropic_key", placeholder:"sk-ant-api03-...",
+      models:["claude-haiku-4-5-20251001","claude-sonnet-4-5-20251001","claude-opus-4-5-20251001"]},
+    {id:"openai",    label:"GPT-4o",  company:"OpenAI",    color:"#10b981", keyField:"openai_key",    placeholder:"sk-...",
+      models:["gpt-4o-mini","gpt-4o","gpt-4-turbo"]},
+    {id:"groq",      label:"Llama 3", company:"Groq",      color:"#f59e0b", keyField:"groq_key",      placeholder:"gsk_...", free:true,
+      models:["llama-3.3-70b-versatile","mixtral-8x7b-32768","llama-3.1-8b-instant"]},
   ];
   return (
     <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:12}}>
@@ -5553,6 +5558,14 @@ function AIProviderCards({appSettings, setAppSettings, setSettingsDirtyWithRef, 
                 {showKey[p.id]?"🙈":"👁️"}
               </button>
             </div>
+            {isActive&&<div style={{marginTop:8}}>
+              <div style={{fontSize:10,color:T.textMuted,marginBottom:4}}>🧠 Model</div>
+              <select value={appSettings.ai_model||p.models[0]}
+                onChange={e=>{setAppSettings(prev=>({...prev,ai_model:e.target.value}));setSettingsDirtyWithRef(true);}}
+                style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:11,fontFamily:"inherit"}}>
+                {p.models.map(m=><option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>}
           </div>
         );
       })}
