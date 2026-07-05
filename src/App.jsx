@@ -3535,7 +3535,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
 
             {/* ── SEND BROADCAST (existing, untouched) ── */}
-            {broadcastSubTab==="send"&&<>
+            {broadcastSubTab==="send"&&<div>
             <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📢 Broadcast</div>
             <div style={{fontSize:13,color:T.textMuted,marginBottom:16}}>Send WhatsApp template messages to multiple contacts at once.</div>
 
@@ -3838,7 +3838,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>}
             </div>
           </div>}
-            </> /* end send tab */}
+            </div> /* end send tab */}
 
             {/* ── CREATE TEMPLATE ── */}
             {broadcastSubTab==="create"&&<CreateTemplatePanel
