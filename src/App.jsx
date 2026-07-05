@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.164";
+const CRM_VERSION = "2.9.165";
 
 // Responsive hook
 function useWindowSize() {
@@ -969,6 +969,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           ...prev,
           ai_provider:          d.ai_provider||"anthropic",
           ai_model:             d.ai_model||"claude-haiku-4-5-20251001",
+          timezone:             d.timezone||"Asia/Kuala_Lumpur",
           ai_enabled:           d.bot_enabled===false?"false":"true",
           hot_keywords:         d.lead_keywords||d.hot_keywords||"",
           warm_keywords:        d.warm_keywords||"",
@@ -1303,6 +1304,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           body:JSON.stringify({
             ai_provider:          appSettings.ai_provider,
             ai_model:             appSettings.ai_model||"",
+            timezone:             appSettings.timezone||"Asia/Kuala_Lumpur",
             anthropic_key:        appSettings.anthropic_key||"",
             openai_key:           appSettings.openai_key||"",
             groq_key:             appSettings.groq_key||"",
@@ -4093,6 +4095,27 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     <div>
                       <div style={{fontWeight:700,fontSize:15}}>⏰ Smart Auto Follow-up</div>
                       <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{appSettings.followup_enabled==="true"?"Active — sends automatically when customer goes silent":"Disabled — only manual follow-ups"}</div>
+                    </div>
+                    {/* Timezone selector */}
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{fontSize:11,color:T.textMuted}}>🌍 Timezone:</div>
+                      <select value={appSettings.timezone||"Asia/Kuala_Lumpur"}
+                        onChange={e=>{setAppSettings(p=>({...p,timezone:e.target.value}));setSettingsDirtyWithRef(true);}}
+                        style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"4px 8px",color:T.text,fontSize:11,fontFamily:"inherit"}}>
+                        <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia (KL)</option>
+                        <option value="Asia/Kolkata">🇮🇳 India (IST)</option>
+                        <option value="Asia/Singapore">🇸🇬 Singapore</option>
+                        <option value="Asia/Jakarta">🇮🇩 Indonesia (WIB)</option>
+                        <option value="Asia/Bangkok">🇹🇭 Thailand</option>
+                        <option value="Asia/Dubai">🇦🇪 UAE (Dubai)</option>
+                        <option value="Asia/Riyadh">🇸🇦 Saudi Arabia</option>
+                        <option value="Europe/London">🇬🇧 UK (London)</option>
+                        <option value="Europe/Paris">🇫🇷 Europe (Paris)</option>
+                        <option value="America/New_York">🇺🇸 US East</option>
+                        <option value="America/Los_Angeles">🇺🇸 US West</option>
+                        <option value="Australia/Sydney">🇦🇺 Australia (Sydney)</option>
+                        <option value="Pacific/Auckland">🇳🇿 New Zealand</option>
+                      </select>
                     </div>
                     
                   </div>
