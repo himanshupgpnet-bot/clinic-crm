@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.165";
+const CRM_VERSION = "2.9.166";
 
 // Responsive hook
 function useWindowSize() {
@@ -195,6 +195,10 @@ export default function App() {
   const [exportModal, setExportModal] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [broadcastSubTab, setBroadcastSubTab] = useState("send"); // "send" | "create"
+  const [createTemplateStep, setCreateTemplateStep] = useState(1); // 1=setup, 2=edit, 3=submit
+  const [createTemplateSubmitting, setCreateTemplateSubmitting] = useState(false);
+  const [createTemplateResult, setCreateTemplateResult] = useState(null);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [templateSubmitting, setTemplateSubmitting] = useState(false);
   const [templateSubmitResult, setTemplateSubmitResult] = useState(null);
@@ -3516,6 +3520,22 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           {/* Main content */}
           <div style={{flex:1,overflowY:"auto",padding:24}}>
           {(!isAdmin||(isAdmin&&broadcastClinic))&&<div style={{maxWidth:700,margin:"0 auto"}}>
+
+            {/* Sub-tab switcher */}
+            <div style={{display:"flex",gap:8,marginBottom:20,borderBottom:`2px solid ${T.border}`,paddingBottom:0}}>
+              {[{id:"send",label:"📢 Send Broadcast"},{id:"create",label:"📝 Create Template"}].map(st=>(
+                <button key={st.id} onClick={()=>{setBroadcastSubTab(st.id);setCreateTemplateStep(1);setCreateTemplateResult(null);}}
+                  style={{padding:"8px 16px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",
+                    fontSize:13,fontWeight:700,color:broadcastSubTab===st.id?WA_GREEN:T.textMuted,
+                    borderBottom:broadcastSubTab===st.id?`2px solid ${WA_GREEN}`:"2px solid transparent",
+                    marginBottom:-2,transition:"all .15s"}}>
+                  {st.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ── SEND BROADCAST (existing, untouched) ── */}
+            {broadcastSubTab==="send"&&<>
             <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📢 Broadcast</div>
             <div style={{fontSize:13,color:T.textMuted,marginBottom:16}}>Send WhatsApp template messages to multiple contacts at once.</div>
 
@@ -3818,6 +3838,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>}
             </div>
           </div>}
+            </> /* end send tab */}
+
+            {/* ── CREATE TEMPLATE ── */}
+            {broadcastSubTab==="create"&&<CreateTemplatePanel
+              T={T} WA_GREEN={WA_GREEN} dark={dark}
+              API={API} authHeaders={authHeaders}
+              isAdmin={isAdmin} broadcastClinic={broadcastClinic}
+              step={createTemplateStep} setStep={setCreateTemplateStep}
+              submitting={createTemplateSubmitting} setSubmitting={setCreateTemplateSubmitting}
+              result={createTemplateResult} setResult={setCreateTemplateResult}
+              onSuccess={()=>{ fetchTemplates(isAdmin&&broadcastClinic?broadcastClinic.clinic_id:null); setBroadcastSubTab("send"); }}
+            />}
+
           {isAdmin&&!broadcastClinic&&<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",color:T.textMuted}}>
             <div style={{fontSize:48,marginBottom:12}}>👈</div>
             <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client</div>
@@ -7791,6 +7824,325 @@ function LeadsMap({T, WA_GREEN, countryData, dark}) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+
+// ── CREATE TEMPLATE PANEL ─────────────────────────────────────────────────────
+function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, isAdmin, broadcastClinic, step, setStep, submitting, setSubmitting, result, setResult, onSuccess}) {
+  const inputStyle = {width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"};
+  const labelStyle = {fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,display:"block"};
+
+  const [category, setCategory] = React.useState("MARKETING");
+  const [subType, setSubType] = React.useState("DEFAULT");
+  const [name, setName] = React.useState("");
+  const [language, setLanguage] = React.useState("en");
+  const [headerType, setHeaderType] = React.useState("none");
+  const [headerText, setHeaderText] = React.useState("");
+  const [bodyText, setBodyText] = React.useState("");
+  const [footerText, setFooterText] = React.useState("");
+  const [buttons, setButtons] = React.useState([]);
+
+  const addButton = (type) => {
+    if(buttons.length>=10) return;
+    const defaults = {
+      QUICK_REPLY:{type:"QUICK_REPLY",text:""},
+      URL:{type:"URL",text:"",url:""},
+      PHONE_NUMBER:{type:"PHONE_NUMBER",text:"",phone_number:""},
+      COPY_CODE:{type:"COPY_CODE",example:""},
+    };
+    setButtons(prev=>[...prev, defaults[type]||{type,text:""}]);
+  };
+
+  const updateButton = (i, field, val) => setButtons(prev=>prev.map((b,idx)=>idx===i?{...b,[field]:val}:b));
+  const removeButton = (i) => setButtons(prev=>prev.filter((_,idx)=>idx!==i));
+
+  // Live preview text
+  const previewBody = bodyText.replace(/{{(\d+)}}/g, (_, n) => `[Variable ${n}]`);
+  const previewHeader = headerText.replace(/{{(\d+)}}/g, (_, n) => `[Variable ${n}]`);
+
+  const handleSubmit = async () => {
+    if(!name.trim()||!bodyText.trim()) return alert("Template name and body are required");
+    if(!/^[a-z0-9_]+$/.test(name)) return alert("Template name must be lowercase letters, numbers and underscores only");
+    setSubmitting(true);
+    try {
+      const clinicId = isAdmin&&broadcastClinic ? (broadcastClinic.clinic_id||broadcastClinic.id) : null;
+      const url = clinicId ? API+"/api/admin/clients/"+clinicId+"/templates/submit" : API+"/api/templates/submit";
+      const payload = {
+        template_name: name,
+        language,
+        category,
+        header_type: headerType,
+        header_value: headerText,
+        body_text: bodyText,
+        footer_text: footerText,
+        buttons: buttons.length>0 ? buttons : [],
+      };
+      const r = await fetch(url, {method:"POST", headers:authHeaders(), body:JSON.stringify(payload)});
+      const d = await r.json();
+      if(r.ok) {
+        setResult({success:true, status:d.status||"PENDING", name});
+        setStep(3);
+      } else {
+        setResult({success:false, error:d.error||d.message||"Submission failed"});
+        setStep(3);
+      }
+    } catch(e) {
+      setResult({success:false, error:e.message});
+      setStep(3);
+    }
+    setSubmitting(false);
+  };
+
+  const categories = [
+    {id:"MARKETING", icon:"📣", label:"Marketing", desc:"Promotions, offers, announcements"},
+    {id:"UTILITY", icon:"🔔", label:"Utility", desc:"Order updates, appointment reminders"},
+    {id:"AUTHENTICATION", icon:"🔐", label:"Authentication", desc:"OTP and verification codes"},
+  ];
+
+  const stepLabels = ["1. Set up", "2. Edit template", "3. Submit"];
+
+  return (
+    <div>
+      <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📝 Create Template</div>
+      <div style={{fontSize:13,color:T.textMuted,marginBottom:20}}>Create a WhatsApp message template and submit to Meta for approval.</div>
+
+      {/* Step indicator */}
+      <div style={{display:"flex",gap:0,marginBottom:24,background:T.card2,borderRadius:12,padding:4,border:`1px solid ${T.border}`}}>
+        {stepLabels.map((l,i)=>(
+          <div key={i} style={{flex:1,textAlign:"center",padding:"8px 4px",borderRadius:8,fontSize:11,fontWeight:700,
+            background:step===i+1?WA_GREEN:"transparent",color:step===i+1?"#fff":step>i+1?WA_GREEN:T.textMuted,
+            transition:"all .2s"}}>
+            {step>i+1?"✅ ":""}{l}
+          </div>
+        ))}
+      </div>
+
+      {/* STEP 1 — Category */}
+      {step===1&&<div>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:4,color:T.text}}>Choose a category</div>
+        <div style={{fontSize:12,color:T.textMuted,marginBottom:16}}>Select the type that best describes your message template.</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+          {categories.map(c=>(
+            <div key={c.id} onClick={()=>setCategory(c.id)}
+              style={{padding:"14px 16px",borderRadius:12,border:`2px solid ${category===c.id?WA_GREEN:T.border}`,
+                background:category===c.id?WA_GREEN+"10":T.card,cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}>
+              <div style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${category===c.id?WA_GREEN:T.border}`,
+                background:category===c.id?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {category===c.id&&<div style={{width:8,height:8,borderRadius:"50%",background:"#fff"}}/>}
+              </div>
+              <div style={{fontSize:20}}>{c.icon}</div>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:T.text}}>{c.label}</div>
+                <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{c.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button onClick={()=>setStep(2)}
+          style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+          Next →
+        </button>
+      </div>}
+
+      {/* STEP 2 — Edit template */}
+      {step===2&&<div style={{display:"grid",gridTemplateColumns:"1fr 320px",gap:20,alignItems:"start"}}>
+        {/* Left — Form */}
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          {/* Name + Language */}
+          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:T.text}}>Template name and language</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div>
+                <label style={labelStyle}>Name your template</label>
+                <input value={name} onChange={e=>setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))}
+                  placeholder="e.g. welcome_offer_v1" style={inputStyle}/>
+                <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Lowercase, underscores only</div>
+              </div>
+              <div>
+                <label style={labelStyle}>Language</label>
+                <select value={language} onChange={e=>setLanguage(e.target.value)} style={inputStyle}>
+                  <option value="en">English</option>
+                  <option value="ms">Malay</option>
+                  <option value="zh">Chinese</option>
+                  <option value="hi">Hindi</option>
+                  <option value="ta">Tamil</option>
+                  <option value="ar">Arabic</option>
+                  <option value="es">Spanish</option>
+                  <option value="pt_BR">Portuguese (BR)</option>
+                  <option value="fr">French</option>
+                  <option value="de">German</option>
+                  <option value="id">Indonesian</option>
+                  <option value="th">Thai</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Header */}
+          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Header <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional</span></div>
+            <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+              {["none","TEXT","IMAGE","VIDEO","DOCUMENT"].map(ht=>(
+                <button key={ht} onClick={()=>{setHeaderType(ht);setHeaderText("");}}
+                  style={{padding:"5px 12px",borderRadius:20,border:`1px solid ${headerType===ht?WA_GREEN:T.border}`,
+                    background:headerType===ht?WA_GREEN+"15":"transparent",color:headerType===ht?WA_GREEN:T.text,
+                    fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  {ht==="none"?"None":ht.charAt(0)+ht.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+            {headerType==="TEXT"&&<>
+              <input value={headerText} onChange={e=>setHeaderText(e.target.value)} maxLength={60}
+                placeholder="Add a short header line..." style={inputStyle}/>
+              <div style={{fontSize:10,color:T.textFaint,marginTop:4,textAlign:"right"}}>{headerText.length}/60</div>
+            </>}
+            {["IMAGE","VIDEO","DOCUMENT"].includes(headerType)&&<div style={{padding:"12px",background:T.card2,borderRadius:8,fontSize:12,color:T.textMuted,textAlign:"center"}}>
+              📎 {headerType.charAt(0)+headerType.slice(1).toLowerCase()} URL will be provided when sending the broadcast
+            </div>}
+          </div>
+
+          {/* Body */}
+          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Body <span style={{fontSize:10,color:"#ef4444",fontWeight:400}}>Required</span></div>
+            <div style={{fontSize:11,color:T.textMuted,marginBottom:8}}>Use {"{{1}}"}, {"{{2}}"} etc. for variables (e.g. customer name)</div>
+            <textarea value={bodyText} onChange={e=>setBodyText(e.target.value)} maxLength={1024} rows={5}
+              placeholder="Hi {{1}}, thanks for reaching out to us! We'd love to help you..."
+              style={{...inputStyle,resize:"vertical",minHeight:100}}/>
+            <div style={{fontSize:10,color:T.textFaint,marginTop:4,textAlign:"right"}}>{bodyText.length}/1024</div>
+          </div>
+
+          {/* Footer */}
+          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Footer <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional</span></div>
+            <input value={footerText} onChange={e=>setFooterText(e.target.value)} maxLength={60}
+              placeholder="Add a short footer..." style={inputStyle}/>
+            <div style={{fontSize:10,color:T.textFaint,marginTop:4,textAlign:"right"}}>{footerText.length}/60</div>
+          </div>
+
+          {/* Buttons */}
+          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Buttons <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional — up to 10</span></div>
+            {buttons.map((btn,i)=>(
+              <div key={i} style={{background:T.card2,borderRadius:10,padding:12,marginBottom:8,border:`1px solid ${T.border}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                  <span style={{fontSize:11,fontWeight:700,color:T.text}}>
+                    {btn.type==="QUICK_REPLY"?"💬 Quick Reply":btn.type==="URL"?"🔗 Visit Website":btn.type==="PHONE_NUMBER"?"📞 Call Phone":btn.type==="COPY_CODE"?"📋 Copy Code":"Button"}
+                  </span>
+                  <button onClick={()=>removeButton(i)} style={{border:"none",background:"none",cursor:"pointer",color:"#ef4444",fontSize:14}}>✕</button>
+                </div>
+                {btn.type!=="COPY_CODE"&&<input value={btn.text||""} onChange={e=>updateButton(i,"text",e.target.value)}
+                  placeholder="Button label" style={{...inputStyle,marginBottom:6}}/>}
+                {btn.type==="URL"&&<input value={btn.url||""} onChange={e=>updateButton(i,"url",e.target.value)}
+                  placeholder="https://example.com" style={inputStyle}/>}
+                {btn.type==="PHONE_NUMBER"&&<input value={btn.phone_number||""} onChange={e=>updateButton(i,"phone_number",e.target.value)}
+                  placeholder="+601234567890" style={inputStyle}/>}
+                {btn.type==="COPY_CODE"&&<input value={btn.example||""} onChange={e=>updateButton(i,"example",e.target.value)}
+                  placeholder="Offer code e.g. SAVE20" style={inputStyle}/>}
+              </div>
+            ))}
+            {buttons.length<10&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
+              <span style={{fontSize:11,color:T.textMuted,alignSelf:"center"}}>Add button:</span>
+              {[
+                {type:"QUICK_REPLY",label:"💬 Quick Reply"},
+                {type:"URL",label:"🔗 Visit Website"},
+                {type:"PHONE_NUMBER",label:"📞 Call Phone"},
+                {type:"COPY_CODE",label:"📋 Copy Code"},
+              ].map(bt=>(
+                <button key={bt.type} onClick={()=>addButton(bt.type)}
+                  style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,
+                    color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                  {bt.label}
+                </button>
+              ))}
+            </div>}
+          </div>
+
+          {/* Actions */}
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={()=>setStep(1)}
+              style={{flex:1,padding:"11px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+              ← Back
+            </button>
+            <button onClick={handleSubmit} disabled={submitting||!name||!bodyText}
+              style={{flex:2,padding:"11px",borderRadius:10,border:"none",
+                background:submitting||!name||!bodyText?"#ccc":WA_GREEN,
+                color:"#fff",fontSize:13,fontWeight:700,cursor:submitting||!name||!bodyText?"not-allowed":"pointer",fontFamily:"inherit"}}>
+              {submitting?"⏳ Submitting to Meta...":"🚀 Submit for Review →"}
+            </button>
+          </div>
+        </div>
+
+        {/* Right — Live Preview */}
+        <div style={{position:"sticky",top:0}}>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:T.text}}>Template Preview</div>
+          <div style={{background:dark?"#1a2332":"#e5ddd5",borderRadius:16,padding:16,minHeight:200}}>
+            <div style={{background:dark?"#202c33":"#fff",borderRadius:12,padding:14,maxWidth:280,boxShadow:"0 1px 3px rgba(0,0,0,.1)"}}>
+              {headerType==="TEXT"&&previewHeader&&<div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:8}}>{previewHeader}</div>}
+              {["IMAGE","VIDEO","DOCUMENT"].includes(headerType)&&<div style={{height:120,background:T.card2,borderRadius:8,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",color:T.textMuted,fontSize:12}}>
+                {headerType==="IMAGE"?"🖼️ Image":headerType==="VIDEO"?"🎥 Video":"📄 Document"}
+              </div>}
+              <div style={{fontSize:13,color:T.text,lineHeight:1.5,whiteSpace:"pre-wrap",marginBottom:footerText?8:0}}>{previewBody||<span style={{color:T.textFaint,fontStyle:"italic"}}>Your message body will appear here...</span>}</div>
+              {footerText&&<div style={{fontSize:11,color:T.textMuted,borderTop:`1px solid ${T.border}`,paddingTop:6,marginTop:6}}>{footerText}</div>}
+              <div style={{fontSize:10,color:T.textMuted,textAlign:"right",marginTop:6}}>11:59 ✓✓</div>
+            </div>
+            {buttons.length>0&&<div style={{marginTop:6,display:"flex",flexDirection:"column",gap:4}}>
+              {buttons.slice(0,3).map((btn,i)=>(
+                <div key={i} style={{background:dark?"#202c33":"#fff",borderRadius:8,padding:"10px",textAlign:"center",fontSize:12,fontWeight:600,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                  {btn.type==="URL"?"🔗 ":btn.type==="PHONE_NUMBER"?"📞 ":btn.type==="COPY_CODE"?"📋 ":""}
+                  {btn.text||btn.example||"Button"}
+                </div>
+              ))}
+              {buttons.length>3&&<div style={{background:dark?"#202c33":"#fff",borderRadius:8,padding:"10px",textAlign:"center",fontSize:12,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                ☰ See all {buttons.length} options
+              </div>}
+            </div>}
+          </div>
+          <div style={{marginTop:12,fontSize:11,color:T.textMuted,lineHeight:1.6}}>
+            <div style={{fontWeight:700,color:T.text,marginBottom:4}}>This template is good for</div>
+            {category==="MARKETING"?"Welcome messages, promotions, offers, newsletters":
+             category==="UTILITY"?"Order updates, appointment reminders, shipping notifications":
+             "OTP codes, verification messages, login confirmations"}
+          </div>
+        </div>
+      </div>}
+
+      {/* STEP 3 — Result */}
+      {step===3&&result&&<div style={{textAlign:"center",padding:"40px 20px"}}>
+        {result.success
+          ?<>
+            <div style={{fontSize:64,marginBottom:16}}>🎉</div>
+            <div style={{fontWeight:800,fontSize:20,color:WA_GREEN,marginBottom:8}}>Template Submitted!</div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:6}}>
+              <strong>"{result.name}"</strong> has been submitted to Meta for review.
+            </div>
+            <div style={{display:"inline-block",padding:"4px 14px",borderRadius:20,background:"#fef3c7",color:"#d97706",fontSize:12,fontWeight:700,marginBottom:20}}>
+              ⏳ Status: PENDING REVIEW
+            </div>
+            <div style={{fontSize:12,color:T.textMuted,marginBottom:24}}>Meta usually reviews templates within a few minutes to 24 hours. Once approved, it will automatically appear in your template list for sending.</div>
+            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={()=>{setStep(1);setName("");setBodyText("");setHeaderText("");setFooterText("");setButtons([]);setResult(null);}}
+                style={{padding:"10px 20px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                Create Another
+              </button>
+              <button onClick={onSuccess}
+                style={{padding:"10px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                Go to Broadcast →
+              </button>
+            </div>
+          </>
+          :<>
+            <div style={{fontSize:64,marginBottom:16}}>❌</div>
+            <div style={{fontWeight:800,fontSize:20,color:"#ef4444",marginBottom:8}}>Submission Failed</div>
+            <div style={{fontSize:12,color:T.textMuted,background:T.card2,padding:"10px 14px",borderRadius:8,marginBottom:20,textAlign:"left"}}>{result.error}</div>
+            <button onClick={()=>setStep(2)}
+              style={{padding:"10px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+              ← Try Again
+            </button>
+          </>
+        }
+      </div>}
     </div>
   );
 }
