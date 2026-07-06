@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.170";
+const CRM_VERSION = "2.9.171";
 
 // Responsive hook
 function useWindowSize() {
@@ -180,11 +180,6 @@ export default function App() {
   const [inboxClinic, setInboxClinic] = useState(null);
   const [kbClinic, setKbClinic] = useState(null);
   const [improverResult, setImproverResult] = useState(null);
-  const [toast, setToast] = useState(null); // {msg, type:"success"|"error"|"info"}
-  const showToast = React.useCallback((msg, type="info", duration=4000) => {
-    setToast({msg, type});
-    setTimeout(()=>setToast(null), duration);
-  }, []);
   const [countryData, setCountryData] = useState([]);
   const [appliedQAIds, setAppliedQAIds] = useState(new Set()); // persists across tab switches
   const [improverDays, setImproverDays] = useState(7);
@@ -915,7 +910,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(r.status === 401) {
       const d = await r.json().catch(()=>({}));
       if(d.code === "session_invalid") {
-        showToast("You have been logged out — account logged in on another device","error",8000);
+        showToast("You have been logged out — account logged in on another device","#ef4444");
         sessionStorage.clear();
         window.location.reload();
         return null;
@@ -1221,12 +1216,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         fetchConversations(); // refresh to get real message ID from DB
       } else {
         const err = await r.json().catch(()=>({}));
-        showToast(`Failed to send: ${err.error||r.status} — check WhatsApp token`,"error");
+        showToast(`Failed to send: ${err.error||r.status} — check WhatsApp token`,"#ef4444");
         // Remove temp message on failure
         setSelected(prev => ({ ...prev, messages: prev.messages.filter(m=>m.id!==tempMsg.id) }));
       }
     } catch(e) {
-      showToast("Network error — backend may be offline","error");
+      showToast("Network error — backend may be offline","#ef4444");
       setSelected(prev => ({ ...prev, messages: prev.messages.filter(m=>m.id!==tempMsg.id) }));
     }
   }
@@ -1342,7 +1337,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         });
       } else if(isAdmin && !settingsClinic) {
         // Admin with no clinic selected — show warning
-        showToast("Please select a client from the sidebar first","error");
+        showToast("Please select a client from the sidebar first","#ef4444");
         return;
       } else {
         // Client saving their own settings
@@ -1538,15 +1533,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",background:T.bg,fontFamily:"'Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden"}}>
-
-      {/* ── GLOBAL TOAST ── */}
-      {toast&&<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",zIndex:99999,
-        background:toast.type==="error"?"#ef4444":toast.type==="success"?"#16a34a":"#0d0f1a",
-        color:"#fff",padding:"10px 18px",borderRadius:12,fontSize:13,fontWeight:600,
-        boxShadow:"0 4px 20px rgba(0,0,0,.3)",maxWidth:400,textAlign:"center",
-        animation:"_fadeUp .2s ease"}}>
-        {toast.type==="error"?"❌ ":toast.type==="success"?"✅ ":"ℹ️ "}{toast.msg}
-      </div>}
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
@@ -3117,7 +3103,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <button onClick={async()=>{
                     const urlEl = document.getElementById("kb-url-input");
                     const urlVal = urlEl.value.trim();
-                    if(!urlVal||!urlVal.startsWith("http")) return alert("Please enter a valid URL starting with https://");
+                    if(!urlVal||!urlVal.startsWith("http")) return showToast("Please enter a valid URL starting with https://","#ef4444");
                     const clearEx = document.getElementById("kb-url-clear").checked;
                     const res = document.getElementById("url-import-result");
                     res.innerHTML = `<div style='background:#1e293b;border-radius:12px;padding:16px;color:#fff;text-align:center;margin-top:10px'>
@@ -3295,7 +3281,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   const textEl = document.getElementById("bulk-import-text");
                   const instrEl = document.getElementById("bulk-import-instruction");
                   const text = textEl.value.trim();
-                  if(!text) return showToast("Please paste some text or upload a document first","error");
+                  if(!text) return showToast("Please paste some text or upload a document first","#ef4444");
                   const instruction = instrEl.value.trim();
                   const res = document.getElementById("bulk-result");
                   res.innerHTML = "<div style='color:#6366f1;font-size:12px;padding:8px'>🤖 AI is reading your content and creating Q&A pairs...</div>";
@@ -3335,7 +3321,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   rows={2}
                   style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"9px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:10,boxSizing:"border-box"}}/>
                 <button onClick={async()=>{
-                  if(!newQ.trim()||!newA.trim()) return showToast("Please fill in both question and answer","error");
+                  if(!newQ.trim()||!newA.trim()) return showToast("Please fill in both question and answer","#ef4444");
                   await fetch(`${API}/api/knowledge/qa`,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
                   setNewQ(""); setNewA(""); fetchKnowledge();
                 }} style={{padding:"9px 20px",borderRadius:10,border:"none",background:"#f59e0b",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
@@ -3714,7 +3700,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>
 
                 <button onClick={async()=>{
-                  if(!newTemplate.template_name?.trim()) return showToast("Template name required","error");
+                  if(!newTemplate.template_name?.trim()) return showToast("Template name required","#ef4444");
                   const isEdit=!!newTemplate.id;
                   const payload={template_name:newTemplate.template_name.trim(),language:newTemplate.language||"en",
                     category:"MARKETING",header_type:newTemplate.header_value?"image":"none",
@@ -3804,8 +3790,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               )}
 
               <button onClick={async()=>{
-                if(!selectedTemplate) return showToast("Please select a template first","error");
-                if(broadcastContacts.length===0) return showToast("Please select contacts first","error");
+                if(!selectedTemplate) return showToast("Please select a template first","#ef4444");
+                if(broadcastContacts.length===0) return showToast("Please select contacts first","#ef4444");
                 setBroadcastProgress({total:broadcastContacts.length, done:0, failed:0, active:true});
                 
                 const cs = await fetch(`${API}/api/client-settings`,{headers:authHeaders()}).then(r=>r.json()).catch(()=>({}));
@@ -4027,7 +4013,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     const chatEl = document.getElementById("tg-chat-input");
                     const token = tokenEl?.value || appSettings.telegram_token;
                     const chatId = chatEl?.value || appSettings.telegram_chat_id;
-                    if(!token||!chatId) return showToast("Please enter Bot Token and Chat ID first","error");
+                    if(!token||!chatId) return showToast("Please enter Bot Token and Chat ID first","#ef4444");
                     // Save first
                     await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),
                       body:JSON.stringify({...appSettings,telegram_token:token,telegram_chat_id:chatId})});
@@ -5309,7 +5295,7 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
         setConnData(p=>({...p,...connForm}));
         setEditConn(null); setConnForm({});
       }
-    } catch(e){ showToast("Save failed: "+e.message,"error"); }
+    } catch(e){ showToast("Save failed: "+e.message,"#ef4444"); }
     setSaving(false);
   };
 
@@ -5391,7 +5377,7 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
                 ):canConnect?(
                   <button onClick={()=>{
                     if(!conn.fields.length){
-                      showToast(conn.label+" — coming soon!","info");
+                      showToast(conn.label+" — coming soon!","#0d0f1a");
                       return;
                     }
                     const init={};conn.fields.forEach(f=>{init[f.key]=connData[f.key]||"";});
@@ -5785,7 +5771,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
   const [kbBuildMsg, setKbBuildMsg] = useState("");
 
   const saveClinic = async () => {
-    if(!editClinic.name?.trim()) return showToast("Company name required","error");
+    if(!editClinic.name?.trim()) return showToast("Company name required","#ef4444");
     const isNew = !editClinic.id;
     const url = isNew ? `${API}/api/admin/clients` : `${API}/api/admin/clients/${editClinic.id}`;
     const method = isNew ? "POST" : "PATCH";
@@ -5806,7 +5792,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
     })});
     const d = await r.json();
     setKbBuilding(false);
-    if(!r.ok) return showToast(d.error||"Failed","error");
+    if(!r.ok) return showToast(d.error||"Failed","#ef4444");
 
     // Show KB result
     if(isNew && d.kb_status && d.kb_status.startsWith("built_")) {
@@ -5822,8 +5808,8 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
 
   const saveUser = async () => {
     const isNew = !editUser.id;
-    if(isNew && (!editUser.username?.trim()||!editUser.password?.trim())) return showToast("Username and password required","error");
-    if(isNew && !editUser.clinic_id) return showToast("Select a company","error");
+    if(isNew && (!editUser.username?.trim()||!editUser.password?.trim())) return showToast("Username and password required","#ef4444");
+    if(isNew && !editUser.clinic_id) return showToast("Select a company","#ef4444");
     const payload = isNew
       ? {...editUser, existing_clinic_id:editUser.clinic_id, role:"client",
           permissions:{can_inbox:editUser.can_inbox,can_leads:editUser.can_leads,
@@ -5864,11 +5850,11 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
     try {
       const r = await fetch(url,{method:isNew?"POST":"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
       const d = await r.json();
-      if(!r.ok) { showToast(d.error||"Save failed","error"); return; }
+      if(!r.ok) { showToast(d.error||"Save failed","#ef4444"); return; }
       flash(isNew?`✅ User "@${editUser.username}" created!`:"✅ User updated!");
       setView("clients"); setEditUser(null); load();
     } catch(e) {
-      showToast("Error: "+e.message,"error");
+      showToast("Error: "+e.message,"#ef4444");
     }
   };
 
@@ -5961,7 +5947,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                   📎 Upload Logo
                   <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
                     const f=e.target.files[0]; if(!f) return;
-                    if(f.size>500000){showToast("Max file size is 500KB","error");return;}
+                    if(f.size>500000){showToast("Max file size is 500KB","#ef4444");return;}
                     const r=new FileReader(); r.onload=ev=>setEditClinic(p=>({...p,logo_url:ev.target.result})); r.readAsDataURL(f);
                   }}/>
                 </label>
@@ -7860,7 +7846,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const [varSamples, setVarSamples] = React.useState({}); // {1:"John", 2:"50%"}
   const [headerVarSample, setHeaderVarSample] = React.useState("");
   const [localError, setLocalError] = React.useState("");
-  const showError = (msg) => { setLocalError(msg); setTimeout(()=>setLocalError(""),4000); };
+  const showError = (msg) => { setLocalError(msg); setTimeout(()=>setLocalError(""),4000); showToast(msg, "#ef4444"); };
 
   // Detect variables in text
   const getVars = (text) => {
