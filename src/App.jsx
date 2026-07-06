@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.172";
+const CRM_VERSION = "2.9.173";
 
 // Responsive hook
 function useWindowSize() {
@@ -7845,7 +7845,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const [buttons, setButtons] = React.useState([]);
   const [varSamples, setVarSamples] = React.useState({}); // {1:"John", 2:"50%"}
   const [headerVarSample, setHeaderVarSample] = React.useState("");
-  const [localError, setLocalError] = React.useState("");
+  const [uploadingMedia, setUploadingMedia] = React.useState(false);
   const showError = (msg) => { setLocalError(msg); setTimeout(()=>setLocalError(""),4000); showToast(msg, "#ef4444"); };
 
   // Detect variables in text
@@ -8036,6 +8036,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                   onChange={async e=>{
                     const file = e.target.files[0];
                     if(!file) return;
+                    setUploadingMedia(true);
                     const fd = new FormData();
                     fd.append("file", file);
                     try {
@@ -8043,15 +8044,17 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                       delete headers["Content-Type"];
                       const r = await fetch(API+"/api/upload/media", {method:"POST", headers, body:fd});
                       const d = await r.json();
-                      if(d.url) setHeaderSampleUrl(d.url);
-                      else if(d.filename) setHeaderSampleUrl("https://api.codt.my/media/"+d.filename);
+                      if(d.url) { setHeaderSampleUrl(d.url); showToast("✅ File uploaded successfully","#16a34a"); }
+                      else if(d.filename) { setHeaderSampleUrl("https://api.codt.my/media/"+d.filename); showToast("✅ File uploaded","#16a34a"); }
                       else showError("Upload failed: "+(d.error||"unknown error"));
                     } catch(err) { showError("Upload failed: "+err.message); }
+                    setUploadingMedia(false);
                     e.target.value="";
                   }}/>
                 <button type="button" onClick={()=>document.getElementById("tmpl-media-upload").click()}
-                  style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}}>
-                  📎 Upload
+                  disabled={uploadingMedia}
+                  style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:uploadingMedia?T.border:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:uploadingMedia?"not-allowed":"pointer",whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}}>
+                  {uploadingMedia?"⏳ Uploading...":"📎 Upload"}
                 </button>
               </div>
               {headerSampleUrl&&headerType==="IMAGE"&&<img src={headerSampleUrl} alt="preview" style={{marginTop:8,maxHeight:80,borderRadius:8,objectFit:"cover"}}/>}
