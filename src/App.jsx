@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.167";
+const CRM_VERSION = "2.9.168";
 
 // Responsive hook
 function useWindowSize() {
@@ -3843,7 +3843,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             {/* ── CREATE TEMPLATE ── */}
             {broadcastSubTab==="create"&&<CreateTemplatePanel
               T={T} WA_GREEN={WA_GREEN} dark={dark}
-              API={API} authHeaders={authHeaders}
+              API={API} authHeaders={authHeaders} authToken={authToken}
               isAdmin={isAdmin} broadcastClinic={broadcastClinic}
               step={createTemplateStep} setStep={setCreateTemplateStep}
               submitting={createTemplateSubmitting} setSubmitting={setCreateTemplateSubmitting}
@@ -7830,7 +7830,7 @@ function LeadsMap({T, WA_GREEN, countryData, dark}) {
 
 
 // ── CREATE TEMPLATE PANEL ─────────────────────────────────────────────────────
-function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, isAdmin, broadcastClinic, step, setStep, submitting, setSubmitting, result, setResult, onSuccess}) {
+function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, isAdmin, broadcastClinic, step, setStep, submitting, setSubmitting, result, setResult, onSuccess}) {
   const inputStyle = {width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"};
   const labelStyle = {fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,display:"block"};
 
@@ -8023,14 +8023,31 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, isAdmin, broa
               </div>}
             </>}
             {hasMedia&&<div style={{marginTop:8}}>
-              <div style={{fontSize:11,color:T.textMuted,marginBottom:6}}>
-                Meta requires a sample {headerType.toLowerCase()} URL for review. Host your file and paste the URL below.
+              <label style={labelStyle}>Sample {headerType.charAt(0)+headerType.slice(1).toLowerCase()} <span style={{color:"#ef4444"}}>*</span> <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>(used only for Meta review)</span></label>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <input value={headerSampleUrl} onChange={e=>setHeaderSampleUrl(e.target.value)}
+                  placeholder={headerType==="IMAGE"?"https://api.codt.my/media/...":headerType==="VIDEO"?"https://api.codt.my/media/...":"https://api.codt.my/media/..."}
+                  style={{...inputStyle,flex:1}}/>
+                <label style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                  📎 Upload
+                  <input type="file" accept={headerType==="IMAGE"?"image/*":headerType==="VIDEO"?"video/*":"application/pdf,.doc,.docx"}
+                    style={{display:"none"}}
+                    onChange={async e=>{
+                      const file = e.target.files[0];
+                      if(!file) return;
+                      const fd = new FormData();
+                      fd.append("file", file);
+                      try {
+                        const r = await fetch(API+"/api/upload/media", {method:"POST", headers:{"Authorization":"Bearer "+authToken}, body:fd});
+                        const d = await r.json();
+                        if(d.url) setHeaderSampleUrl(d.url);
+                        else if(d.filename) setHeaderSampleUrl("https://api.codt.my/media/"+d.filename);
+                      } catch(e) { alert("Upload failed: "+e.message); }
+                    }}/>
+                </label>
               </div>
-              <label style={labelStyle}>Sample {headerType.charAt(0)+headerType.slice(1).toLowerCase()} URL <span style={{color:"#ef4444"}}>*</span></label>
-              <input value={headerSampleUrl} onChange={e=>setHeaderSampleUrl(e.target.value)}
-                placeholder={headerType==="IMAGE"?"https://example.com/sample.jpg":headerType==="VIDEO"?"https://example.com/sample.mp4":"https://example.com/sample.pdf"}
-                style={inputStyle}/>
-              <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Must be a publicly accessible URL. This is used only for Meta review.</div>
+              {headerSampleUrl&&headerType==="IMAGE"&&<img src={headerSampleUrl} alt="preview" style={{marginTop:8,maxHeight:80,borderRadius:8,objectFit:"cover"}}/>}
+              <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Upload a file or paste a public URL. Used only for Meta review.</div>
             </div>}
           </div>
 
