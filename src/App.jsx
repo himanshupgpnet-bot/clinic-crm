@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.171";
+const CRM_VERSION = "2.9.172";
 
 // Responsive hook
 function useWindowSize() {
@@ -8028,28 +8028,31 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
               <label style={labelStyle}>Sample {headerType.charAt(0)+headerType.slice(1).toLowerCase()} <span style={{color:"#ef4444"}}>*</span> <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>(used only for Meta review)</span></label>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
                 <input value={headerSampleUrl} onChange={e=>setHeaderSampleUrl(e.target.value)}
-                  placeholder={headerType==="IMAGE"?"https://api.codt.my/media/...":headerType==="VIDEO"?"https://api.codt.my/media/...":"https://api.codt.my/media/..."}
+                  placeholder="https://api.codt.my/media/..."
                   style={{...inputStyle,flex:1}}/>
-                <label style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                <input type="file" id="tmpl-media-upload"
+                  accept={headerType==="IMAGE"?"image/*":headerType==="VIDEO"?"video/*":"application/pdf,.doc,.docx"}
+                  style={{display:"none"}}
+                  onChange={async e=>{
+                    const file = e.target.files[0];
+                    if(!file) return;
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    try {
+                      const headers = authHeaders();
+                      delete headers["Content-Type"];
+                      const r = await fetch(API+"/api/upload/media", {method:"POST", headers, body:fd});
+                      const d = await r.json();
+                      if(d.url) setHeaderSampleUrl(d.url);
+                      else if(d.filename) setHeaderSampleUrl("https://api.codt.my/media/"+d.filename);
+                      else showError("Upload failed: "+(d.error||"unknown error"));
+                    } catch(err) { showError("Upload failed: "+err.message); }
+                    e.target.value="";
+                  }}/>
+                <button type="button" onClick={()=>document.getElementById("tmpl-media-upload").click()}
+                  style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}}>
                   📎 Upload
-                  <input type="file" accept={headerType==="IMAGE"?"image/*":headerType==="VIDEO"?"video/*":"application/pdf,.doc,.docx"}
-                    style={{display:"none"}}
-                    onChange={async e=>{
-                      const file = e.target.files[0];
-                      if(!file) return;
-                      const fd = new FormData();
-                      fd.append("file", file);
-                      try {
-                        const headers = authHeaders();
-                        delete headers["Content-Type"]; // let browser set multipart boundary
-                        const r = await fetch(API+"/api/upload/media", {method:"POST", headers, body:fd});
-                        const d = await r.json();
-                        if(d.url) setHeaderSampleUrl(d.url);
-                        else if(d.filename) setHeaderSampleUrl("https://api.codt.my/media/"+d.filename);
-                        else showError("Upload failed: "+(d.error||"unknown error"));
-                      } catch(e) { showError("Upload failed: "+e.message); }
-                    }}/>
-                </label>
+                </button>
               </div>
               {headerSampleUrl&&headerType==="IMAGE"&&<img src={headerSampleUrl} alt="preview" style={{marginTop:8,maxHeight:80,borderRadius:8,objectFit:"cover"}}/>}
               <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Upload a file or paste a public URL. Used only for Meta review.</div>
