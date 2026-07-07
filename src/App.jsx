@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.175";
+const CRM_VERSION = "2.9.176";
 
 // Responsive hook
 function useWindowSize() {
@@ -8200,40 +8200,82 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
           </div>
         </div>
 
-        {/* Right — Live Preview */}
+        {/* Right — Live Preview (Phone) */}
         <div style={{position:"sticky",top:0}}>
-          <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:T.text}}>Template Preview</div>
-          <div style={{background:dark?"#1a2332":"#e5ddd5",borderRadius:16,padding:12,minHeight:200}}>
-            <div style={{background:dark?"#202c33":"#fff",borderRadius:10,padding:12,boxShadow:"0 1px 3px rgba(0,0,0,.1)"}}>
-              {headerType==="TEXT"&&previewText(headerText)&&<div style={{fontWeight:700,fontSize:13,color:T.text,marginBottom:8}}>{previewText(headerText)}</div>}
-              {headerType==="IMAGE"&&<div style={{height:100,background:T.card2,borderRadius:8,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",color:T.textMuted,fontSize:12,overflow:"hidden"}}>
-                {headerSampleUrl?<img src={headerSampleUrl} alt="header" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}}/>:"🖼️ Image header"}
-              </div>}
-              {headerType==="VIDEO"&&<div style={{height:100,background:T.card2,borderRadius:8,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",color:T.textMuted,fontSize:12}}>🎥 Video header</div>}
-              {headerType==="DOCUMENT"&&<div style={{height:60,background:T.card2,borderRadius:8,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",color:T.textMuted,fontSize:12,gap:6}}>📄 {headerSampleUrl?.split("/").pop()||"Document"}</div>}
-              <div style={{fontSize:13,color:T.text,lineHeight:1.5,whiteSpace:"pre-wrap",marginBottom:footerText?8:0}}>
-                {previewText(bodyText)||<span style={{color:T.textFaint,fontStyle:"italic"}}>Your message body will appear here...</span>}
-              </div>
-              {footerText&&<div style={{fontSize:11,color:T.textMuted,borderTop:`1px solid ${T.border}`,paddingTop:6,marginTop:6}}>{footerText}</div>}
-              <div style={{fontSize:10,color:T.textMuted,textAlign:"right",marginTop:6}}>11:59 ✓✓</div>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:T.text}}>📱 Preview</div>
+          {/* Phone frame */}
+          <div style={{width:260,margin:"0 auto",background:"#1a1a1a",borderRadius:36,padding:"12px 8px",boxShadow:"0 8px 32px rgba(0,0,0,.4)"}}>
+            {/* Phone top bar */}
+            <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>
+              <div style={{width:60,height:5,borderRadius:3,background:"#333"}}/>
             </div>
-            {buttons.length>0&&<div style={{marginTop:6,display:"flex",flexDirection:"column",gap:4}}>
-              {buttons.slice(0,3).map((btn,i)=>(
-                <div key={i} style={{background:dark?"#202c33":"#fff",borderRadius:8,padding:"10px",textAlign:"center",fontSize:12,fontWeight:600,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                  {btn.type==="URL"?"🔗 ":btn.type==="PHONE_NUMBER"?"📞 ":btn.type==="COPY_CODE"?"📋 ":"↩️ "}{btn.text||btn.example||"Button"}
+            {/* Screen */}
+            <div style={{background:"#e5ddd5",borderRadius:24,overflow:"hidden",minHeight:300}}>
+              {/* WhatsApp header bar */}
+              <div style={{background:"#075e54",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:28,height:28,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700}}>
+                  {name?name[0].toUpperCase():"B"}
                 </div>
-              ))}
-              {buttons.length>3&&<div style={{background:dark?"#202c33":"#fff",borderRadius:8,padding:"10px",textAlign:"center",fontSize:12,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                ☰ See all {buttons.length} options
-              </div>}
-            </div>}
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#fff"}}>{name||"Business"}</div>
+                  <div style={{fontSize:9,color:"#b2dfdb"}}>template preview</div>
+                </div>
+              </div>
+              {/* Chat area */}
+              <div style={{padding:"10px 8px",minHeight:200}}>
+                {/* Message bubble */}
+                <div style={{maxWidth:"85%",background:"#fff",borderRadius:"0 10px 10px 10px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                  {/* Header */}
+                  {headerType==="TEXT"&&previewText(headerText)&&
+                    <div style={{padding:"8px 10px 4px",fontWeight:700,fontSize:11,color:"#1a1a1a"}}>{previewText(headerText)}</div>}
+                  {headerType==="IMAGE"&&
+                    <div style={{height:120,background:"#f0f0f0",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                      {(mediaPreview||headerSampleUrl)
+                        ?<img src={mediaPreview||headerSampleUrl} alt="header" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                        :<div style={{color:"#999",fontSize:11,textAlign:"center"}}>🖼️<br/>Image</div>}
+                    </div>}
+                  {headerType==="VIDEO"&&
+                    <div style={{height:100,background:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <div style={{color:"#fff",fontSize:20}}>▶️</div>
+                    </div>}
+                  {headerType==="DOCUMENT"&&
+                    <div style={{padding:"8px 10px",background:"#f5f5f5",display:"flex",alignItems:"center",gap:6,borderBottom:"1px solid #eee"}}>
+                      <span style={{fontSize:18}}>📄</span>
+                      <span style={{fontSize:10,color:"#555"}}>{mediaFile?.name||"document.pdf"}</span>
+                    </div>}
+                  {/* Body */}
+                  <div style={{padding:"6px 10px",fontSize:11,color:"#1a1a1a",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
+                    {previewText(bodyText)||<span style={{color:"#999",fontStyle:"italic"}}>Message body...</span>}
+                  </div>
+                  {/* Footer */}
+                  {footerText&&<div style={{padding:"2px 10px 6px",fontSize:9,color:"#888"}}>{footerText}</div>}
+                  {/* Timestamp */}
+                  <div style={{padding:"0 10px 6px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+                </div>
+                {/* Buttons */}
+                {buttons.length>0&&<div style={{marginTop:4,display:"flex",flexDirection:"column",gap:3}}>
+                  {buttons.slice(0,3).map((btn,i)=>(
+                    <div key={i} style={{background:"#fff",borderRadius:8,padding:"8px",textAlign:"center",fontSize:10,fontWeight:600,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                      {btn.type==="URL"?"🔗 ":btn.type==="PHONE_NUMBER"?"📞 ":btn.type==="COPY_CODE"?"📋 ":"↩️ "}{btn.text||btn.example||"Button"}
+                    </div>
+                  ))}
+                  {buttons.length>3&&<div style={{background:"#fff",borderRadius:8,padding:"8px",textAlign:"center",fontSize:10,color:"#0088cc"}}>
+                    ☰ See all options
+                  </div>}
+                </div>}
+              </div>
+            </div>
+            {/* Phone bottom */}
+            <div style={{display:"flex",justifyContent:"center",marginTop:8}}>
+              <div style={{width:40,height:5,borderRadius:3,background:"#333"}}/>
+            </div>
           </div>
           <div style={{marginTop:10,padding:"10px 12px",background:T.card2,borderRadius:10,border:`1px solid ${T.border}`}}>
-            <div style={{fontSize:11,fontWeight:700,color:T.text,marginBottom:4}}>This template is good for</div>
+            <div style={{fontSize:11,fontWeight:700,color:T.text,marginBottom:4}}>Good for</div>
             <div style={{fontSize:11,color:T.textMuted}}>
-              {category==="MARKETING"?"Welcome messages, promotions, offers, coupons, newsletters":
-               category==="UTILITY"?"Order updates, appointment reminders, shipping notifications":
-               "OTP codes, verification messages, login confirmations"}
+              {category==="MARKETING"?"Promotions, offers, newsletters":
+               category==="UTILITY"?"Order updates, reminders":
+               "OTP codes, verification"}
             </div>
           </div>
         </div>
