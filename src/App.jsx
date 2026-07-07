@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.177";
+const CRM_VERSION = "2.9.178";
 
 // Responsive hook
 function useWindowSize() {
@@ -1757,7 +1757,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           <div style={{flex:1,overflowY:"auto",padding:"8px 0"}}>
             {contacts.filter(c=>{
               // Filter by selected clinic for admin
-              if(isAdmin && broadcastClinic && c.clinicId && c.clinicId !== broadcastClinic.clinic_id) return false;
+              const cClinicId = c.clinicId||c.clinic_id; const bClinicId = broadcastClinic?.clinic_id||broadcastClinic?.id;
+              if(isAdmin && broadcastClinic && cClinicId && bClinicId && cClinicId !== bClinicId) return false;
               if(!contactPickerSearch) return true;
               const s = contactPickerSearch.toLowerCase();
               return c.name?.toLowerCase().includes(s)||c.phone?.includes(s);
