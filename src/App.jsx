@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.178";
+const CRM_VERSION = "2.9.179";
 
 // Responsive hook
 function useWindowSize() {
@@ -3808,6 +3808,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       language: selectedTemplate.language||"en",
                       header_type: selectedTemplate.header_type||"none",
                       header_value: selectedTemplate.header_value||"",
+                      clinic_id: isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null,
                     })});
                     setBroadcastProgress(p=>({...p, done:p.done+1}));
                   } catch {
