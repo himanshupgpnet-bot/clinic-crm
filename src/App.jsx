@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.176";
+const CRM_VERSION = "2.9.177";
 
 // Responsive hook
 function useWindowSize() {
@@ -8210,7 +8210,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
               <div style={{width:60,height:5,borderRadius:3,background:"#333"}}/>
             </div>
             {/* Screen */}
-            <div style={{background:"#e5ddd5",borderRadius:24,overflow:"hidden",minHeight:300}}>
+            <div style={{background:"#e5ddd5",borderRadius:24,overflow:"hidden",minHeight:480}}>
               {/* WhatsApp header bar */}
               <div style={{background:"#075e54",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:28,height:28,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700}}>
@@ -8222,7 +8222,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                 </div>
               </div>
               {/* Chat area */}
-              <div style={{padding:"10px 8px",minHeight:200}}>
+              <div style={{padding:"10px 8px",minHeight:320}}>
                 {/* Message bubble */}
                 <div style={{maxWidth:"85%",background:"#fff",borderRadius:"0 10px 10px 10px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
                   {/* Header */}
