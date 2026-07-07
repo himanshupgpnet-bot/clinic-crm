@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.180";
+const CRM_VERSION = "2.9.181";
 
 // Responsive hook
 function useWindowSize() {
@@ -7884,7 +7884,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const handleSubmit = async () => {
     if(!name.trim()||!bodyText.trim()) return showError("Template name and body are required");
     if(!/^[a-z0-9_]+$/.test(name)) return showError("Template name: lowercase letters, numbers and underscores only");
-    if(hasMedia&&!mediaFile&&!headerSampleUrl.trim()) { /* skip media validation — show warning in UI */ }
+    if(hasMedia&&!mediaFile&&!headerSampleUrl.trim()) return showError("Please upload a file or paste a URL for the header");
     setSubmitting(true);
 
     // Upload file if selected
@@ -8049,17 +8049,38 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                 ))}
               </div>}
             </>}
-            {hasMedia&&<div style={{marginTop:8,padding:"12px",background:"#fffbeb",borderRadius:10,border:"1px solid #fde68a"}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#d97706",marginBottom:6}}>⚠️ Image/Video/Document headers</div>
-              <div style={{fontSize:11,color:"#92400e",lineHeight:1.5}}>
-                Meta requires a special media handle (not a URL) for template headers. 
-                For media headers, please create the template directly in 
-                <a href="https://business.facebook.com/wa/manage/message-templates/" target="_blank" style={{color:"#d97706",marginLeft:4}}>
-                  Meta WhatsApp Manager
-                </a>.
-                <br/><br/>
-                <strong>Tip:</strong> You can create text-only or no-header templates here — they work great for most use cases.
+            {hasMedia&&<div style={{marginTop:8}}>
+              <label style={labelStyle}>Sample {headerType.charAt(0)+headerType.slice(1).toLowerCase()} <span style={{color:"#ef4444"}}>*</span> <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>(used for Meta review only)</span></label>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
+                <input value={headerSampleUrl} onChange={e=>setHeaderSampleUrl(e.target.value)}
+                  placeholder={headerType==="IMAGE"?"https://example.com/image.jpg":headerType==="VIDEO"?"https://example.com/video.mp4":"https://example.com/doc.pdf"}
+                  style={{...inputStyle,flex:1}}/>
+                <input type="file" id="tmpl-media-upload"
+                  accept={headerType==="IMAGE"?"image/*":headerType==="VIDEO"?"video/*":"application/pdf,.doc,.docx"}
+                  style={{display:"none"}}
+                  onChange={async e=>{
+                    const file = e.target.files[0];
+                    if(!file) return;
+                    setMediaFile(file);
+                    if(headerType==="IMAGE"){const r=new FileReader();r.onload=ev=>setMediaPreview(ev.target.result);r.readAsDataURL(file);}
+                    else setMediaPreview(file.name);
+                    setHeaderSampleUrl("");
+                    e.target.value="";
+                  }}/>
+                <button type="button" onClick={()=>document.getElementById("tmpl-media-upload").click()}
+                  style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}}>
+                  📎 {mediaFile?"Change":"Upload"}
+                </button>
               </div>
+              {mediaFile&&<div style={{padding:"8px 12px",background:T.card2,borderRadius:8,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                {headerType==="IMAGE"&&mediaPreview?<img src={mediaPreview} alt="preview" style={{height:40,borderRadius:6,objectFit:"cover"}}/>:<span>📄</span>}
+                <div style={{flex:1}}>
+                  <div style={{fontSize:11,fontWeight:700,color:T.text}}>{mediaFile.name}</div>
+                  <div style={{fontSize:10,color:T.textMuted}}>{(mediaFile.size/1024).toFixed(1)} KB</div>
+                </div>
+                <button onClick={()=>{setMediaFile(null);setMediaPreview("");}} style={{border:"none",background:"none",cursor:"pointer",color:"#ef4444"}}>✕</button>
+              </div>}
+              <div style={{fontSize:10,color:T.textFaint}}>Upload a file from your device or paste a public URL. Will be uploaded to Meta during submission.</div>
             </div>}
           </div>
 
