@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.184";
+const CRM_VERSION = "2.9.186";
 
 // Responsive hook
 function useWindowSize() {
@@ -3572,18 +3572,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <span style={{fontSize:11,color:T.textMuted}}>{templates.length} template{templates.length>1?"s":""}</span>
                   <button onClick={async()=>{
                     const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                    // Sync all pending templates from Meta
-                    const pending = templates.filter(t=>t.status==="pending"||t.status==="in_appeal");
+                    const pending = templates.filter(t=>t.status==="pending");
                     for(const t of pending){
                       try {
-                        const url = clinicId ? `${API}/api/admin/clients/${clinicId}/templates/status?name=${t.template_name}` : `${API}/api/templates/status?name=${t.template_name}`;
-                        await fetch(url, {headers:authHeaders()});
+                        const url = clinicId
+                          ?`${API}/api/admin/clients/${clinicId}/templates/status?name=${t.template_name}`
+                          :`${API}/api/templates/status?name=${t.template_name}`;
+                        await fetch(url,{headers:authHeaders()});
                       } catch(e){}
                     }
                     fetchTemplates(clinicId);
                   }}
                     style={{fontSize:10,padding:"3px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                    🔄 Refresh Status
+                    🔄 Refresh
                   </button>
                 </div>
                 {templates.map(t=>{
@@ -3602,12 +3603,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700,background:statusBg,color:statusColor,whiteSpace:"nowrap"}}>
                         {statusLabel}
                       </span>
-                      {t.meta_template_id&&<button onClick={async e=>{e.stopPropagation();
-                        const r=await fetch(`${API}/api/templates/${t.id}/status`,{headers:authHeaders()});
-                        if(r.ok){const d=await r.json();fetchTemplates(broadcastClinic?.clinic_id||null);}
-                      }} style={{fontSize:9,padding:"1px 6px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                        🔄 Refresh
-                      </button>}
                     </div>
                   </div>;
                 })}
