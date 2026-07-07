@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.183";
+const CRM_VERSION = "2.9.184";
 
 // Responsive hook
 function useWindowSize() {
@@ -3570,7 +3570,18 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {templates.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                   <span style={{fontSize:11,color:T.textMuted}}>{templates.length} template{templates.length>1?"s":""}</span>
-                  <button onClick={()=>fetchTemplates(broadcastClinic?.clinic_id||null)}
+                  <button onClick={async()=>{
+                    const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                    // Sync all pending templates from Meta
+                    const pending = templates.filter(t=>t.status==="pending"||t.status==="in_appeal");
+                    for(const t of pending){
+                      try {
+                        const url = clinicId ? `${API}/api/admin/clients/${clinicId}/templates/status?name=${t.template_name}` : `${API}/api/templates/status?name=${t.template_name}`;
+                        await fetch(url, {headers:authHeaders()});
+                      } catch(e){}
+                    }
+                    fetchTemplates(clinicId);
+                  }}
                     style={{fontSize:10,padding:"3px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
                     🔄 Refresh Status
                   </button>
