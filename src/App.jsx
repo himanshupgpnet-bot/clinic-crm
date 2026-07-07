@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.181";
+const CRM_VERSION = "2.9.182";
 
 // Responsive hook
 function useWindowSize() {
@@ -7924,7 +7924,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
       };
       const r = await fetch(url, {method:"POST", headers:authHeaders(), body:JSON.stringify(payload)});
       const d = await r.json();
-      if(r.ok) { setResult({success:true, status:d.status||"PENDING", name}); setStep(3); }
+      if(r.ok) { setResult({success:true, status:d.status||"PENDING", currentStatus:d.status||"PENDING", name}); setStep(3); }
       else { setResult({success:false, error:d.error||d.message||"Submission failed"}); setStep(3); }
     } catch(e) { setResult({success:false, error:e.message}); setStep(3); }
     setSubmitting(false);
@@ -8280,8 +8280,25 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
             <div style={{fontSize:64,marginBottom:16}}>🎉</div>
             <div style={{fontWeight:800,fontSize:20,color:WA_GREEN,marginBottom:8}}>Template Submitted!</div>
             <div style={{fontSize:13,color:T.textMuted,marginBottom:6}}><strong>"{result.name}"</strong> has been submitted to Meta for review.</div>
-            <div style={{display:"inline-block",padding:"4px 14px",borderRadius:20,background:"#fef3c7",color:"#d97706",fontSize:12,fontWeight:700,marginBottom:20}}>⏳ PENDING REVIEW</div>
-            <div style={{fontSize:12,color:T.textMuted,marginBottom:24}}>Meta usually reviews templates within a few minutes to 24 hours. Once approved it will appear in your template list automatically.</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 14px",borderRadius:20,
+              background:result.currentStatus==="APPROVED"?"#dcfce7":result.currentStatus==="REJECTED"?"#fef2f2":"#fef3c7",
+              color:result.currentStatus==="APPROVED"?"#16a34a":result.currentStatus==="REJECTED"?"#dc2626":"#d97706",
+              fontSize:12,fontWeight:700,marginBottom:8}}>
+              {result.currentStatus==="APPROVED"?"✅ APPROVED":result.currentStatus==="REJECTED"?"❌ REJECTED":"⏳ "+(result.currentStatus||"PENDING REVIEW")}
+              <button onClick={async()=>{
+                try {
+                  const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                  const url = clinicId ? `${API}/api/admin/clients/${clinicId}/templates/status?name=${result.name}` : `${API}/api/templates/status?name=${result.name}`;
+                  const r = await fetch(url, {headers:authHeaders()});
+                  const d = await r.json();
+                  if(d.status) setResult(prev=>({...prev,currentStatus:d.status}));
+                } catch(e) {}
+              }} style={{border:"none",background:"none",cursor:"pointer",fontSize:12,padding:"0 4px"}}>
+                🔄
+              </button>
+            </div>
+            {result.currentStatus==="APPROVED"&&<div style={{fontSize:12,color:"#16a34a",fontWeight:600,marginBottom:12}}>Template is now available in Send Broadcast!</div>}
+            <div style={{fontSize:12,color:T.textMuted,marginBottom:24}}>Meta usually reviews templates within a few minutes to 24 hours.</div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
               <button onClick={()=>{setStep(1);setName("");setBodyText("");setHeaderText("");setFooterText("");setButtons([]);setVarSamples({});setResult(null);setHeaderSampleUrl("");}}
                 style={{padding:"10px 20px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
