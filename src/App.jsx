@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.186";
+const CRM_VERSION = "2.9.187";
 
 // Responsive hook
 function useWindowSize() {
@@ -8100,25 +8100,40 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
           {/* Body */}
           <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Body <span style={{fontSize:10,color:"#ef4444",fontWeight:400}}>Required</span></div>
-            <div style={{fontSize:11,color:T.textMuted,marginBottom:8}}>Use {"{{1}}"}, {"{{2}}"} etc. for personalisation variables (e.g. customer name)</div>
             <textarea value={bodyText} onChange={e=>setBodyText(e.target.value)} maxLength={1024} rows={5}
-              placeholder={"Hi {{1}}, thanks for contacting us! Your order {{2}} is on the way."}
+              placeholder={"Hello {{1}}, your appointment is confirmed for {{2}}."}
               style={{...inputStyle,resize:"vertical",minHeight:100}}/>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6}}>
+              <div style={{display:"flex",gap:6}}>
+                {[["B","*"],["I","_"],["S","~"]].map(([lbl])=>(
+                  <div key={lbl} style={{width:26,height:26,borderRadius:6,border:`1px solid ${T.border}`,background:T.card2,
+                    color:T.text,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",
+                    fontStyle:lbl==="I"?"italic":"normal",textDecoration:lbl==="S"?"line-through":"none"}}>{lbl}</div>
+                ))}
+              </div>
+              <button type="button" onClick={()=>{
+                const _vars=getVars(bodyText);
+                const _next=_vars.length>0?String(Math.max(..._vars.map(Number))+1):"1";
+                setBodyText(prev=>prev+" {{"+_next+"}}");
+              }}
+                style={{fontSize:11,fontWeight:700,color:WA_GREEN,background:"none",border:`1px solid ${WA_GREEN}40`,
+                  borderRadius:8,padding:"4px 10px",cursor:"pointer",fontFamily:"inherit"}}>
+                + Add variable
+              </button>
+            </div>
             <div style={{fontSize:10,color:T.textFaint,marginTop:4,textAlign:"right"}}>{bodyText.length}/1024</div>
           </div>
 
-          {/* Variable Samples — appears when variables detected */}
-          {bodyVars.length>0&&<div style={{background:T.card,borderRadius:14,padding:16,border:`2px solid ${WA_GREEN}40`}}>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>📋 Variable Samples</div>
-            <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>
-              Include samples of all variables to help Meta review your template. Do not use real customer information.
-            </div>
+          {/* Variable Samples */}
+          {bodyVars.length>0&&<div style={{background:T.card2,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Variable Samples</div>
+            <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>Include samples of all variables to help Meta review your template. Do not include real customer information.</div>
+            <div style={{fontWeight:600,fontSize:11,color:T.text,marginBottom:8}}>Body</div>
             {bodyVars.map(v=>(
-              <div key={v} style={{marginBottom:10}}>
-                <label style={labelStyle}>Enter content for {"{{"}{v}{"}}"}</label>
+              <div key={v} style={{display:"grid",gridTemplateColumns:"120px 1fr",gap:8,marginBottom:8,alignItems:"center"}}>
+                <div style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",fontSize:12,color:T.textMuted,fontFamily:"monospace"}}>{"{{"+v+"}}"}</div>
                 <input value={varSamples[v]||""} onChange={e=>setVarSamples(p=>({...p,[v]:e.target.value}))}
-                  placeholder={v==="1"?"e.g. John":v==="2"?"e.g. #ORD-12345":"e.g. sample value"}
-                  style={inputStyle}/>
+                  placeholder={"Enter content for {{"+v+"}}"} style={inputStyle}/>
               </div>
             ))}
           </div>}
