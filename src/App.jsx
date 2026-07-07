@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.173";
+const CRM_VERSION = "2.9.174";
 
 // Responsive hook
 function useWindowSize() {
@@ -7846,6 +7846,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const [varSamples, setVarSamples] = React.useState({}); // {1:"John", 2:"50%"}
   const [headerVarSample, setHeaderVarSample] = React.useState("");
   const [uploadingMedia, setUploadingMedia] = React.useState(false);
+  const [localError, setLocalError] = React.useState("");
   const showError = (msg) => { setLocalError(msg); setTimeout(()=>setLocalError(""),4000); showToast(msg, "#ef4444"); };
 
   // Detect variables in text
