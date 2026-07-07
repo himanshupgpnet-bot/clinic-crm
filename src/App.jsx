@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.182";
+const CRM_VERSION = "2.9.183";
 
 // Responsive hook
 function useWindowSize() {
@@ -3568,6 +3568,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
               {/* Template cards list */}
               {templates.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontSize:11,color:T.textMuted}}>{templates.length} template{templates.length>1?"s":""}</span>
+                  <button onClick={()=>fetchTemplates(broadcastClinic?.clinic_id||null)}
+                    style={{fontSize:10,padding:"3px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                    🔄 Refresh Status
+                  </button>
+                </div>
                 {templates.map(t=>{
                   const statusColor = t.status==="approved"?"#16a34a":t.status==="rejected"?"#ef4444":t.status==="pending"?"#d97706":"#6b7280";
                   const statusBg = t.status==="approved"?"#dcfce7":t.status==="rejected"?"#fef2f2":t.status==="pending"?"#fef9c3":"#f1f5f9";
@@ -8300,13 +8307,13 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
             {result.currentStatus==="APPROVED"&&<div style={{fontSize:12,color:"#16a34a",fontWeight:600,marginBottom:12}}>Template is now available in Send Broadcast!</div>}
             <div style={{fontSize:12,color:T.textMuted,marginBottom:24}}>Meta usually reviews templates within a few minutes to 24 hours.</div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-              <button onClick={()=>{setStep(1);setName("");setBodyText("");setHeaderText("");setFooterText("");setButtons([]);setVarSamples({});setResult(null);setHeaderSampleUrl("");}}
+              <button onClick={()=>{setStep(1);setName("");setBodyText("");setHeaderText("");setFooterText("");setButtons([]);setVarSamples({});setResult(null);setHeaderSampleUrl("");setMediaFile(null);setMediaPreview("");}}
                 style={{padding:"10px 20px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                 Create Another
               </button>
               <button onClick={onSuccess}
                 style={{padding:"10px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                Go to Broadcast →
+                View All Templates →
               </button>
             </div>
           </>
