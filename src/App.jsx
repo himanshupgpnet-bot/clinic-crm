@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.174";
+const CRM_VERSION = "2.9.175";
 
 // Responsive hook
 function useWindowSize() {
@@ -7847,7 +7847,9 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const [headerVarSample, setHeaderVarSample] = React.useState("");
   const [uploadingMedia, setUploadingMedia] = React.useState(false);
   const [localError, setLocalError] = React.useState("");
-  const showError = (msg) => { setLocalError(msg); setTimeout(()=>setLocalError(""),4000); showToast(msg, "#ef4444"); };
+  const [mediaFile, setMediaFile] = React.useState(null); // stored locally until submit
+  const [mediaPreview, setMediaPreview] = React.useState("");
+  const showError = (msg) => { setLocalError(msg); setTimeout(()=>setLocalError(""),4000); };
 
   // Detect variables in text
   const getVars = (text) => {
@@ -7880,8 +7882,28 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const handleSubmit = async () => {
     if(!name.trim()||!bodyText.trim()) return showError("Template name and body are required");
     if(!/^[a-z0-9_]+$/.test(name)) return showError("Template name: lowercase letters, numbers and underscores only");
-    if(hasMedia&&!headerSampleUrl.trim()) return showError("Please provide a sample media URL for the header");
+    if(hasMedia&&!mediaFile&&!headerSampleUrl.trim()) return showError("Please upload a file or paste a URL for the header");
     setSubmitting(true);
+
+    // Upload file if selected
+    let finalMediaUrl = headerSampleUrl;
+    if(mediaFile) {
+      try {
+        setUploadingMedia(true);
+        const fd = new FormData();
+        fd.append("file", mediaFile);
+        const headers = authHeaders();
+        delete headers["Content-Type"];
+        const ur = await fetch(API+"/api/upload/media", {method:"POST", headers, body:fd});
+        const ud = await ur.json();
+        finalMediaUrl = ud.url || ("https://api.codt.my/media/"+ud.filename);
+        setUploadingMedia(false);
+      } catch(e) {
+        setSubmitting(false);
+        setUploadingMedia(false);
+        return showError("File upload failed: "+e.message);
+      }
+    }
     try {
       const clinicId = isAdmin&&broadcastClinic ? (broadcastClinic.clinic_id||broadcastClinic.id) : null;
       const url = clinicId ? API+"/api/admin/clients/"+clinicId+"/templates/submit" : API+"/api/templates/submit";
@@ -7891,7 +7913,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
         category,
         header_type: headerType,
         header_value: headerText,
-        header_sample_url: headerSampleUrl,
+        header_sample_url: finalMediaUrl,
         header_var_sample: headerVarSample,
         body_text: bodyText,
         footer_text: footerText,
@@ -8037,29 +8059,36 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                   onChange={async e=>{
                     const file = e.target.files[0];
                     if(!file) return;
-                    setUploadingMedia(true);
-                    const fd = new FormData();
-                    fd.append("file", file);
-                    try {
-                      const headers = authHeaders();
-                      delete headers["Content-Type"];
-                      const r = await fetch(API+"/api/upload/media", {method:"POST", headers, body:fd});
-                      const d = await r.json();
-                      if(d.url) { setHeaderSampleUrl(d.url); showToast("✅ File uploaded successfully","#16a34a"); }
-                      else if(d.filename) { setHeaderSampleUrl("https://api.codt.my/media/"+d.filename); showToast("✅ File uploaded","#16a34a"); }
-                      else showError("Upload failed: "+(d.error||"unknown error"));
-                    } catch(err) { showError("Upload failed: "+err.message); }
-                    setUploadingMedia(false);
+                    setMediaFile(file);
+                    // Show local preview
+                    if(headerType==="IMAGE") {
+                      const reader = new FileReader();
+                      reader.onload = ev => setMediaPreview(ev.target.result);
+                      reader.readAsDataURL(file);
+                    } else {
+                      setMediaPreview(file.name);
+                    }
+                    setHeaderSampleUrl(""); // clear manual URL
                     e.target.value="";
                   }}/>
                 <button type="button" onClick={()=>document.getElementById("tmpl-media-upload").click()}
-                  disabled={uploadingMedia}
-                  style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:uploadingMedia?T.border:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:uploadingMedia?"not-allowed":"pointer",whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}}>
-                  {uploadingMedia?"⏳ Uploading...":"📎 Upload"}
+                  style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}}>
+                  📎 {mediaFile?"Change File":"Upload"}
                 </button>
               </div>
-              {headerSampleUrl&&headerType==="IMAGE"&&<img src={headerSampleUrl} alt="preview" style={{marginTop:8,maxHeight:80,borderRadius:8,objectFit:"cover"}}/>}
-              <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Upload a file or paste a public URL. Used only for Meta review.</div>
+              {mediaFile&&<div style={{marginTop:8,padding:"8px 12px",background:T.card2,borderRadius:8,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
+                {headerType==="IMAGE"&&mediaPreview?<img src={mediaPreview} alt="preview" style={{height:50,borderRadius:6,objectFit:"cover"}}/>:<span style={{fontSize:16}}>📄</span>}
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:T.text}}>{mediaFile.name}</div>
+                  <div style={{fontSize:10,color:T.textMuted}}>{(mediaFile.size/1024).toFixed(1)} KB · will upload on submit</div>
+                </div>
+                <button onClick={()=>{setMediaFile(null);setMediaPreview("");}} style={{marginLeft:"auto",border:"none",background:"none",cursor:"pointer",color:"#ef4444",fontSize:14}}>✕</button>
+              </div>}
+              {!mediaFile&&<>
+              <div style={{fontSize:11,color:T.textMuted,marginTop:6,marginBottom:4}}>Or paste a public URL:</div>
+              <input value={headerSampleUrl} onChange={e=>setHeaderSampleUrl(e.target.value)}
+                placeholder="https://api.codt.my/media/..."
+                style={inputStyle}/></>}
             </div>}
           </div>
 
@@ -8166,7 +8195,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
               style={{flex:2,padding:"11px",borderRadius:10,border:"none",
                 background:submitting||!name||!bodyText?"#ccc":WA_GREEN,
                 color:"#fff",fontSize:13,fontWeight:700,cursor:submitting||!name||!bodyText?"not-allowed":"pointer",fontFamily:"inherit"}}>
-              {submitting?"⏳ Submitting to Meta...":"🚀 Submit for Review →"}
+              {submitting?"⏳ "+(uploadingMedia?"Uploading file...":"Submitting to Meta..."):"🚀 Submit for Review →"}
             </button>
           </div>
         </div>
