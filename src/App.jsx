@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.179";
+const CRM_VERSION = "2.9.180";
 
 // Responsive hook
 function useWindowSize() {
@@ -7884,7 +7884,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const handleSubmit = async () => {
     if(!name.trim()||!bodyText.trim()) return showError("Template name and body are required");
     if(!/^[a-z0-9_]+$/.test(name)) return showError("Template name: lowercase letters, numbers and underscores only");
-    if(hasMedia&&!mediaFile&&!headerSampleUrl.trim()) return showError("Please upload a file or paste a URL for the header");
+    if(hasMedia&&!mediaFile&&!headerSampleUrl.trim()) { /* skip media validation — show warning in UI */ }
     setSubmitting(true);
 
     // Upload file if selected
@@ -8049,48 +8049,17 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                 ))}
               </div>}
             </>}
-            {hasMedia&&<div style={{marginTop:8}}>
-              <label style={labelStyle}>Sample {headerType.charAt(0)+headerType.slice(1).toLowerCase()} <span style={{color:"#ef4444"}}>*</span> <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>(used only for Meta review)</span></label>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <input value={headerSampleUrl} onChange={e=>setHeaderSampleUrl(e.target.value)}
-                  placeholder="https://api.codt.my/media/..."
-                  style={{...inputStyle,flex:1}}/>
-                <input type="file" id="tmpl-media-upload"
-                  accept={headerType==="IMAGE"?"image/*":headerType==="VIDEO"?"video/*":"application/pdf,.doc,.docx"}
-                  style={{display:"none"}}
-                  onChange={async e=>{
-                    const file = e.target.files[0];
-                    if(!file) return;
-                    setMediaFile(file);
-                    // Show local preview
-                    if(headerType==="IMAGE") {
-                      const reader = new FileReader();
-                      reader.onload = ev => setMediaPreview(ev.target.result);
-                      reader.readAsDataURL(file);
-                    } else {
-                      setMediaPreview(file.name);
-                    }
-                    setHeaderSampleUrl(""); // clear manual URL
-                    e.target.value="";
-                  }}/>
-                <button type="button" onClick={()=>document.getElementById("tmpl-media-upload").click()}
-                  style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}}>
-                  📎 {mediaFile?"Change File":"Upload"}
-                </button>
+            {hasMedia&&<div style={{marginTop:8,padding:"12px",background:"#fffbeb",borderRadius:10,border:"1px solid #fde68a"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#d97706",marginBottom:6}}>⚠️ Image/Video/Document headers</div>
+              <div style={{fontSize:11,color:"#92400e",lineHeight:1.5}}>
+                Meta requires a special media handle (not a URL) for template headers. 
+                For media headers, please create the template directly in 
+                <a href="https://business.facebook.com/wa/manage/message-templates/" target="_blank" style={{color:"#d97706",marginLeft:4}}>
+                  Meta WhatsApp Manager
+                </a>.
+                <br/><br/>
+                <strong>Tip:</strong> You can create text-only or no-header templates here — they work great for most use cases.
               </div>
-              {mediaFile&&<div style={{marginTop:8,padding:"8px 12px",background:T.card2,borderRadius:8,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
-                {headerType==="IMAGE"&&mediaPreview?<img src={mediaPreview} alt="preview" style={{height:50,borderRadius:6,objectFit:"cover"}}/>:<span style={{fontSize:16}}>📄</span>}
-                <div>
-                  <div style={{fontSize:11,fontWeight:700,color:T.text}}>{mediaFile.name}</div>
-                  <div style={{fontSize:10,color:T.textMuted}}>{(mediaFile.size/1024).toFixed(1)} KB · will upload on submit</div>
-                </div>
-                <button onClick={()=>{setMediaFile(null);setMediaPreview("");}} style={{marginLeft:"auto",border:"none",background:"none",cursor:"pointer",color:"#ef4444",fontSize:14}}>✕</button>
-              </div>}
-              {!mediaFile&&<>
-              <div style={{fontSize:11,color:T.textMuted,marginTop:6,marginBottom:4}}>Or paste a public URL:</div>
-              <input value={headerSampleUrl} onChange={e=>setHeaderSampleUrl(e.target.value)}
-                placeholder="https://api.codt.my/media/..."
-                style={inputStyle}/></>}
             </div>}
           </div>
 
