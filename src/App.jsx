@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.197";
+const CRM_VERSION = "2.9.198";
 
 // Responsive hook
 function useWindowSize() {
@@ -7965,7 +7965,9 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
         buttons,
         var_samples: varSamples,
       };
-      const r = await fetch(url, {method:"POST", headers:authHeaders(), body:JSON.stringify(payload)});
+      const token = sessionStorage.getItem("crm_token");
+      const submitHeaders = {"Content-Type":"application/json","Authorization":"Bearer "+token};
+      const r = await fetch(url, {method:"POST", headers:submitHeaders, body:JSON.stringify(payload)});
       const d = await r.json();
       if(r.ok) { setResult({success:true, status:d.status||"PENDING", currentStatus:d.status||"PENDING", name}); setStep(3); }
       else { setResult({success:false, error:d.error||d.message||"Submission failed"}); setStep(3); }
