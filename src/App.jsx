@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.195";
+const CRM_VERSION = "2.9.196";
 
 // Responsive hook
 function useWindowSize() {
@@ -8123,9 +8123,13 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                       const token = (authHeaders()["Authorization"]) || ("Bearer "+sessionStorage.getItem("crm_token"));
                       const ur = await fetch(API+"/api/upload/media", {method:"POST", headers:{"Authorization":token}, body:fd});
                       const ud = await ur.json();
-                      const url = ud.url || ("https://api.codt.my/media/"+ud.filename);
-                      setHeaderSampleUrl(url);
-                    } catch(err) { showError("Upload failed: "+err.message); }
+                      if(ud.url || ud.filename) {
+                        const url = ud.url || ("https://api.codt.my/media/"+ud.filename);
+                        setHeaderSampleUrl(url);
+                      } else {
+                        showError("Upload error: "+(ud.error||"unknown"));
+                      }
+                    } catch(err) { showError("Upload failed: "+err.message+". Try pasting a public URL instead."); }
                     setUploadingMedia(false);
                     e.target.value="";
                   }}/>
