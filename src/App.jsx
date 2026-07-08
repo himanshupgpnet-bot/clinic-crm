@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.200";
+const CRM_VERSION = "2.9.201";
 
 // Responsive hook
 function useWindowSize() {
@@ -7918,7 +7918,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   };
 
   const bodyVars = getVars(bodyText);
-  const headerVars = headerType==="TEXT" ? getVars(headerText) : [];
+  const headerVars = headerType==="none" ? getVars(headerText) : [];
   const hasVars = bodyVars.length>0 || headerVars.length>0;
   const hasMedia = ["IMAGE","VIDEO","DOCUMENT"].includes(headerType);
 
@@ -8075,10 +8075,10 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
           {/* Header */}
           <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Header <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional</span></div>
-            <div style={{fontSize:10,color:T.textMuted,marginBottom:8}}>Add an image, video, document or text above your message body.</div>
+            {/* Media type selector — None means text header, Image/Video/Document means media */}
             <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
-              {[{id:"none",label:"None"},{id:"TEXT",label:"Text"},{id:"IMAGE",label:"🖼️ Image"},{id:"VIDEO",label:"🎥 Video"},{id:"DOCUMENT",label:"📄 Document"}].map(ht=>(
-                <button key={ht.id} onClick={()=>{setHeaderType(ht.id);setHeaderText("");setHeaderSampleUrl("");setHeaderVarSample("");}}
+              {[{id:"none",label:"None"},{id:"IMAGE",label:"🖼️ Image"},{id:"VIDEO",label:"🎥 Video"},{id:"DOCUMENT",label:"📄 Document"}].map(ht=>(
+                <button key={ht.id} onClick={()=>{setHeaderType(ht.id);setHeaderText("");setHeaderSampleUrl("");setHeaderVarSample("");setMediaFile(null);setMediaPreview("");}}
                   style={{padding:"5px 12px",borderRadius:20,border:`1px solid ${headerType===ht.id?WA_GREEN:T.border}`,
                     background:headerType===ht.id?WA_GREEN+"15":"transparent",color:headerType===ht.id?WA_GREEN:T.text,
                     fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
@@ -8086,10 +8086,22 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                 </button>
               ))}
             </div>
-            {headerType==="TEXT"&&<>
+            {/* None selected — show optional text input like Meta */}
+            {headerType==="none"&&<>
               <input value={headerText} onChange={e=>setHeaderText(e.target.value)} maxLength={60}
-                placeholder="Add a short header line... Use {{1}} for variable" style={inputStyle}/>
-              <div style={{fontSize:10,color:T.textFaint,marginTop:4,textAlign:"right"}}>{headerText.length}/60</div>
+                placeholder="Add a short line of text to the header of your message in English" style={inputStyle}/>
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                <button type="button" onClick={()=>{
+                  const _hv=getVars(headerText);
+                  const _hn=_hv.length>0?String(Math.max(..._hv.map(Number))+1):"1";
+                  setHeaderText(prev=>prev+" {{"+_hn+"}}");
+                }}
+                  style={{fontSize:11,fontWeight:700,color:WA_GREEN,background:"none",border:`1px solid ${WA_GREEN}40`,
+                    borderRadius:8,padding:"2px 8px",cursor:"pointer",fontFamily:"inherit"}}>
+                  + Add variable
+                </button>
+                <span style={{fontSize:10,color:headerText.length>50?"#ef4444":T.textFaint}}>{headerText.length}/60</span>
+              </div>
               {headerVars.length>0&&<div style={{marginTop:10,padding:"10px 12px",background:T.card2,borderRadius:8,border:`1px solid ${T.border}`}}>
                 <div style={{fontSize:11,fontWeight:700,color:T.text,marginBottom:6}}>📋 Header variable sample</div>
                 <div style={{fontSize:11,color:T.textMuted,marginBottom:8}}>Provide a sample value for Meta to review</div>
@@ -8352,7 +8364,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                 {/* Message bubble */}
                 <div style={{maxWidth:"85%",background:"#fff",borderRadius:"0 10px 10px 10px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
                   {/* Header */}
-                  {headerType==="TEXT"&&previewText(headerText)&&
+                  {(headerType==="none"||headerType==="TEXT")&&previewText(headerText)&&
                     <div style={{padding:"8px 10px 4px",fontWeight:700,fontSize:11,color:"#1a1a1a"}}>{previewText(headerText)}</div>}
                   {headerType==="IMAGE"&&
                     <div style={{height:120,background:"#f0f0f0",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
