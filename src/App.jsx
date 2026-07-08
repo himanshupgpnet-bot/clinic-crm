@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.190";
+const CRM_VERSION = "2.9.191";
 
 // Responsive hook
 function useWindowSize() {
@@ -7940,7 +7940,10 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
 
   const handleSubmit = async () => {
     if(!name.trim()||!bodyText.trim()) return showError("Template name and body are required");
-    if(!/^[a-z0-9_]+$/.test(name)) return showError("Template name: lowercase letters, numbers and underscores only");
+    if(name.length<3) return showError("Template name must be at least 3 characters");
+    if(!/^[a-z0-9_]+$/.test(name)) return showError("Template name: lowercase letters, numbers and underscores only. No spaces.");
+    if(/^\s*{{/.test(bodyText)) return showError("Variable cannot be at the start of the message. Add text before {{1}}.");
+    if(/}}\s*$/.test(bodyText)) return showError("Variable cannot be at the end of the message. Add text after the variable.");
     if(hasMedia&&!mediaFile&&!headerSampleUrl.trim()) return showError("Please upload a file or paste a URL for the header");
     setSubmitting(true);
 
@@ -8048,9 +8051,15 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div>
                 <label style={labelStyle}>Name your template</label>
-                <input value={name} onChange={e=>setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))}
-                  placeholder="e.g. welcome_offer_v1" style={inputStyle}/>
-                <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Lowercase letters, numbers, underscores only</div>
+                <div style={{position:"relative"}}>
+                  <input value={name} onChange={e=>setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))}
+                    placeholder="e.g. welcome_offer_v1" maxLength={512}
+                    style={{...inputStyle,borderColor:name&&name.length>0?(name.length>=3?"#16a34a":T.inputBorder):T.inputBorder}}/>
+                  {name.length>=3&&<span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:14}}>✅</span>}
+                </div>
+                <div style={{fontSize:10,marginTop:4,color:name.length>0&&name.length<3?"#ef4444":T.textFaint}}>
+                  {name.length>0&&name.length<3?"⚠️ Minimum 3 characters":"Lowercase letters, numbers, underscores only. No spaces."}
+                </div>
               </div>
               <div>
                 <label style={labelStyle}>Language</label>
@@ -8080,6 +8089,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
           {/* Header */}
           <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Header <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional</span></div>
+            <div style={{fontSize:10,color:T.textMuted,marginBottom:8}}>Add an image, video, document or text above your message body.</div>
             <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
               {[{id:"none",label:"None"},{id:"TEXT",label:"Text"},{id:"IMAGE",label:"🖼️ Image"},{id:"VIDEO",label:"🎥 Video"},{id:"DOCUMENT",label:"📄 Document"}].map(ht=>(
                 <button key={ht.id} onClick={()=>{setHeaderType(ht.id);setHeaderText("");setHeaderSampleUrl("");setHeaderVarSample("");}}
@@ -8146,7 +8156,10 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Body <span style={{fontSize:10,color:"#ef4444",fontWeight:400}}>Required</span></div>
             <textarea value={bodyText} onChange={e=>setBodyText(e.target.value)} maxLength={1024} rows={5}
               placeholder={"Hello {{1}}, your appointment is confirmed for {{2}}."}
-              style={{...inputStyle,resize:"vertical",minHeight:100}}/>
+              style={{...inputStyle,resize:"vertical",minHeight:100,
+                borderColor:bodyText&&(/^\s*{{/.test(bodyText)||/}}\s*$/.test(bodyText))?"#ef4444":T.inputBorder}}/>
+            {bodyText&&/^\s*{{/.test(bodyText)&&<div style={{fontSize:10,color:"#ef4444",marginTop:4}}>⚠️ Variable cannot be at the start of the message. Add text before {"{{1}}"}.</div>}
+            {bodyText&&/}}\s*$/.test(bodyText)&&<div style={{fontSize:10,color:"#ef4444",marginTop:4}}>⚠️ Variable cannot be at the end of the message. Add text after the variable.</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6}}>
               <div style={{display:"flex",gap:6}}>
                 {[["B","*"],["I","_"],["S","~"]].map(([lbl])=>(
@@ -8165,7 +8178,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                 + Add variable
               </button>
             </div>
-            <div style={{fontSize:10,color:T.textFaint,marginTop:4,textAlign:"right"}}>{bodyText.length}/1024</div>
+            <div style={{fontSize:10,color:bodyText.length>900?"#ef4444":bodyText.length>700?"#d97706":T.textFaint,marginTop:4,textAlign:"right"}}>{bodyText.length}/1024</div>
           </div>
 
           {/* Variable Samples */}
@@ -8187,7 +8200,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Footer <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional / 60 chars</span></div>
             <input value={footerText} onChange={e=>setFooterText(e.target.value)} maxLength={60}
               placeholder="e.g. Reply STOP to unsubscribe" style={inputStyle}/>
-            <div style={{fontSize:10,color:T.textFaint,marginTop:4,textAlign:"right"}}>{footerText.length}/60</div>
+            <div style={{fontSize:10,color:footerText.length>50?"#ef4444":T.textFaint,marginTop:4,textAlign:"right"}}>{footerText.length}/60</div>
           </div>
 
           {/* Buttons */}
