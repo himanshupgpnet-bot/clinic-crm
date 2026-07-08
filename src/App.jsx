@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.198";
+const CRM_VERSION = "2.9.199";
 
 // Responsive hook
 function useWindowSize() {
@@ -8120,7 +8120,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                     if(!file) return;
                     // Validate format
                     const allowedImage = ["image/jpeg","image/jpg","image/png","image/webp"];
-                    const allowedVideo = ["video/mp4","video/3gpp"];
+                    const allowedVideo = ["video/mp4","video/3gpp","video/3gp","video/quicktime","video/x-mp4"];
                     const allowedDoc = ["application/pdf"];
                     if(headerType==="IMAGE"&&!allowedImage.includes(file.type)){
                       showError("Invalid format. Image must be JPG, PNG or WEBP.");
@@ -8190,11 +8190,19 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
             {bodyText&&/^\s*{{/.test(bodyText)&&<div style={{fontSize:10,color:"#ef4444",marginTop:4}}>⚠️ Variable cannot be at the start of the message. Add text before {"{{1}}"}.</div>}
             {bodyText&&/}}\s*$/.test(bodyText)&&<div style={{fontSize:10,color:"#ef4444",marginTop:4}}>⚠️ Variable cannot be at the end of the message. Add text after the variable.</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6}}>
-              <div style={{display:"flex",gap:6}}>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
                 {[["B","*"],["I","_"],["S","~"]].map(([lbl])=>(
                   <div key={lbl} style={{width:26,height:26,borderRadius:6,border:`1px solid ${T.border}`,background:T.card2,
                     color:T.text,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",
                     fontStyle:lbl==="I"?"italic":"normal",textDecoration:lbl==="S"?"line-through":"none"}}>{lbl}</div>
+                ))}
+                {/* Emoji picker */}
+                {["😊","👋","🎉","✅","🔥","💪","🌟","❤️","👍","📞","📅","💰","🏥","🎁","⚡"].map(em=>(
+                  <button key={em} type="button" onClick={()=>setBodyText(prev=>prev+em)}
+                    style={{width:26,height:26,borderRadius:6,border:`1px solid ${T.border}`,background:T.card2,
+                      fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {em}
+                  </button>
                 ))}
               </div>
               <button type="button" onClick={()=>{
