@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.201";
+const CRM_VERSION = "2.9.202";
 
 // Responsive hook
 function useWindowSize() {
@@ -7945,7 +7945,10 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
     if(!/^[a-z0-9_]+$/.test(name)) return showError("Template name: lowercase letters, numbers and underscores only. No spaces.");
     if(/^\s*{{/.test(bodyText)) return showError("Variable cannot be at the start of the message. Add text before {{1}}.");
     if(/}}\s*$/.test(bodyText)) return showError("Variable cannot be at the end of the message. Add text after the variable.");
-    if(hasMedia&&!headerSampleUrl.trim()) return showError("Please upload an image first or paste a public URL in the Sample field.");
+    if(hasMedia&&!headerSampleUrl.trim()) {
+      if(mediaFile) return showError("File selected but upload failed. Please try again or paste a URL manually in the Sample field.");
+      return showError("Please upload a file or paste a public URL in the Sample field.");
+    }
     setSubmitting(true);
 
     // File already uploaded when selected — use the URL
@@ -8177,8 +8180,9 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                     e.target.value="";
                   }}/>
                 <button type="button" onClick={()=>document.getElementById("tmpl-media-upload").click()}
-                  style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}}>
-                  📎 {mediaFile?"Change":"Upload"}
+                  disabled={uploadingMedia}
+                  style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:uploadingMedia?"#f0fdf4":T.card2,color:T.text,fontSize:11,fontWeight:700,cursor:uploadingMedia?"wait":"pointer",whiteSpace:"nowrap",flexShrink:0,fontFamily:"inherit"}}>
+                  {uploadingMedia?"⏳ Uploading...":mediaFile?"Change":"📎 Upload"}
                 </button>
               </div>
               {mediaFile&&<div style={{padding:"8px 12px",background:T.card2,borderRadius:8,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
