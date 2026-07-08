@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.193";
+const CRM_VERSION = "2.9.194";
 
 // Responsive hook
 function useWindowSize() {
@@ -7944,7 +7944,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
     if(!/^[a-z0-9_]+$/.test(name)) return showError("Template name: lowercase letters, numbers and underscores only. No spaces.");
     if(/^\s*{{/.test(bodyText)) return showError("Variable cannot be at the start of the message. Add text before {{1}}.");
     if(/}}\s*$/.test(bodyText)) return showError("Variable cannot be at the end of the message. Add text after the variable.");
-    if(hasMedia&&!mediaFile&&!headerSampleUrl.trim()) return showError("Please upload a file or paste a URL for the header");
+    if(hasMedia&&!headerSampleUrl.trim()) return showError("Please upload an image first or paste a public URL in the Sample field.");
     setSubmitting(true);
 
     // File already uploaded when selected — use the URL
@@ -8218,8 +8218,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                 {btn.type==="URL"&&<>
                   <label style={labelStyle}>Website URL</label>
                   <input value={btn.url||""} onChange={e=>updateButton(i,"url",e.target.value)}
-                    placeholder="https://example.com/page/{{1}}" style={inputStyle}/>
-                  <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Use {"{{1}}"} at the end for a dynamic URL variable</div>
+                    placeholder="https://example.com" style={inputStyle}/>
                 </>}
                 {btn.type==="PHONE_NUMBER"&&<>
                   <label style={labelStyle}>Phone number</label>
