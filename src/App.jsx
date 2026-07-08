@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.206";
+const CRM_VERSION = "2.9.207";
 
 // Responsive hook
 function useWindowSize() {
@@ -670,7 +670,9 @@ export default function App() {
   useEffect(() => {
     if("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(reg => reg.unregister());
+        regs.forEach(reg => {
+          reg.unregister().then(()=>console.log("SW unregistered"));
+        });
       });
     }
   }, []);
@@ -7918,7 +7920,16 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const [mediaFile, setMediaFile] = React.useState(null); // stored locally until submit
   const [mediaPreview, setMediaPreview] = React.useState("");
   const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
-  const showError = (msg) => { setLocalError(msg); setTimeout(()=>setLocalError(""),4000); };
+  const showError = (msg) => {
+    setLocalError(msg);
+    setTimeout(()=>setLocalError(""),4000);
+    // Also show as center toast
+    const t=document.createElement("div");
+    t.style.cssText=`position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#ef4444;color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;font-family:inherit;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:360px;text-align:center;`;
+    t.textContent="❌ "+msg;
+    document.body.appendChild(t);
+    setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>document.body.removeChild(t),300);},4000);
+  };
 
   // Detect variables in text
   const getVars = (text) => {
