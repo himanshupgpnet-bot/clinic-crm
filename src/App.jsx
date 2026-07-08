@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.202";
+const CRM_VERSION = "2.9.203";
 
 // Responsive hook
 function useWindowSize() {
@@ -8166,8 +8166,14 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                     try {
                       const fd = new FormData();
                       fd.append("file", file);
-                      const token = (authHeaders()["Authorization"]) || ("Bearer "+sessionStorage.getItem("crm_token"));
-                      const ur = await fetch(API+"/api/upload/media", {method:"POST", headers:{"Authorization":token}, body:fd});
+                      const token = sessionStorage.getItem("crm_token");
+                      if(!token) { showError("Not logged in. Please refresh and try again."); setUploadingMedia(false); return; }
+                      const ur = await fetch(API+"/api/upload/media", {
+                        method:"POST",
+                        headers:{"Authorization":"Bearer "+token},
+                        body:fd
+                      });
+                      if(!ur.ok) { showError("Upload failed: server returned "+ur.status); setUploadingMedia(false); return; }
                       const ud = await ur.json();
                       if(ud.url || ud.filename) {
                         const url = ud.url || ("https://api.codt.my/media/"+ud.filename);
