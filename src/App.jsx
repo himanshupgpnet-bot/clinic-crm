@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.205";
+const CRM_VERSION = "2.9.206";
 
 // Responsive hook
 function useWindowSize() {
@@ -8152,7 +8152,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                       e.target.value=""; return;
                     }
                     if(headerType==="VIDEO"&&!file.type.startsWith("video/")){
-                      showError("Invalid format. Please upload a video file (MP4 recommended).");
+                      showError("Invalid format ("+file.type+"). Please upload a video file (MP4 recommended).");
                       e.target.value=""; return;
                     }
                     if(headerType==="DOCUMENT"&&!allowedDoc.includes(file.type)){
