@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.187";
+const CRM_VERSION = "2.9.188";
 
 // Responsive hook
 function useWindowSize() {
@@ -8148,7 +8148,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
 
           {/* Buttons */}
           <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Buttons <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional — up to 10</span></div>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Buttons <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional — up to 3</span></div>
             <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Create buttons that let customers respond or take action.</div>
             {buttons.map((btn,i)=>(
               <div key={i} style={{background:T.card2,borderRadius:10,padding:12,marginBottom:8,border:`1px solid ${T.border}`}}>
@@ -8175,13 +8175,16 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                     placeholder="+601234567890" style={inputStyle}/>
                 </>}
                 {btn.type==="COPY_CODE"&&<>
-                  <label style={labelStyle}>Offer code example</label>
+                  <label style={labelStyle}>Sample offer code <span style={{color:"#ef4444"}}>*</span></label>
                   <input value={btn.example||""} onChange={e=>updateButton(i,"example",e.target.value)}
                     placeholder="e.g. SAVE20" style={inputStyle}/>
+                  <div style={{marginTop:6,padding:"8px 10px",background:"#fffbeb",borderRadius:8,border:"1px solid #fde68a",fontSize:10,color:"#92400e"}}>
+                    ⚠️ When sending broadcast, you'll need to enter the actual coupon code for each campaign.
+                  </div>
                 </>}
               </div>
             ))}
-            {buttons.length<10&&<div>
+            {buttons.length<3&&<div>
               <div style={{fontSize:11,color:T.textMuted,marginBottom:8}}>Add button:</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {[
