@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.192";
+const CRM_VERSION = "2.9.193";
 
 // Responsive hook
 function useWindowSize() {
@@ -7947,28 +7947,8 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
     if(hasMedia&&!mediaFile&&!headerSampleUrl.trim()) return showError("Please upload a file or paste a URL for the header");
     setSubmitting(true);
 
-    // Upload file if selected
+    // File already uploaded when selected — use the URL
     let finalMediaUrl = headerSampleUrl;
-    if(mediaFile) {
-      try {
-        setUploadingMedia(true);
-        const fd = new FormData();
-        fd.append("file", mediaFile);
-        const token = authHeaders()["Authorization"];
-        const ur = await fetch(API+"/api/upload/media", {
-          method:"POST",
-          headers:{"Authorization": token},
-          body:fd
-        });
-        const ud = await ur.json();
-        finalMediaUrl = ud.url || ("https://api.codt.my/media/"+ud.filename);
-        setUploadingMedia(false);
-      } catch(e) {
-        setSubmitting(false);
-        setUploadingMedia(false);
-        return showError("File upload failed: "+e.message);
-      }
-    }
     try {
       const clinicId = isAdmin&&broadcastClinic ? (broadcastClinic.clinic_id||broadcastClinic.id) : null;
       const url = clinicId ? API+"/api/admin/clients/"+clinicId+"/templates/submit" : API+"/api/templates/submit";
@@ -8132,9 +8112,21 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                     const file = e.target.files[0];
                     if(!file) return;
                     setMediaFile(file);
+                    setUploadingMedia(true);
+                    // Show local preview immediately
                     if(headerType==="IMAGE"){const r=new FileReader();r.onload=ev=>setMediaPreview(ev.target.result);r.readAsDataURL(file);}
                     else setMediaPreview(file.name);
-                    setHeaderSampleUrl("");
+                    // Upload to server immediately
+                    try {
+                      const fd = new FormData();
+                      fd.append("file", file);
+                      const token = authHeaders()["Authorization"];
+                      const ur = await fetch(API+"/api/upload/media", {method:"POST", headers:{"Authorization":token}, body:fd});
+                      const ud = await ur.json();
+                      const url = ud.url || ("https://api.codt.my/media/"+ud.filename);
+                      setHeaderSampleUrl(url);
+                    } catch(err) { showError("Upload failed: "+err.message); }
+                    setUploadingMedia(false);
                     e.target.value="";
                   }}/>
                 <button type="button" onClick={()=>document.getElementById("tmpl-media-upload").click()}
