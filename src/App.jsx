@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.203";
+const CRM_VERSION = "2.9.204";
 
 // Responsive hook
 function useWindowSize() {
@@ -8167,21 +8167,19 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                       const fd = new FormData();
                       fd.append("file", file);
                       const token = sessionStorage.getItem("crm_token");
-                      if(!token) { showError("Not logged in. Please refresh and try again."); setUploadingMedia(false); return; }
                       const ur = await fetch(API+"/api/upload/media", {
                         method:"POST",
                         headers:{"Authorization":"Bearer "+token},
-                        body:fd
+                        body:fd,
+                        mode:"cors"
                       });
-                      if(!ur.ok) { showError("Upload failed: server returned "+ur.status); setUploadingMedia(false); return; }
-                      const ud = await ur.json();
-                      if(ud.url || ud.filename) {
-                        const url = ud.url || ("https://api.codt.my/media/"+ud.filename);
-                        setHeaderSampleUrl(url);
-                      } else {
-                        showError("Upload error: "+(ud.error||"unknown"));
-                      }
-                    } catch(err) { showError("Upload failed: "+err.message+". Try pasting a public URL instead."); }
+                      const text = await ur.text();
+                      let ud = {};
+                      try { ud = JSON.parse(text); } catch(e) { showError("Upload response error: "+text.slice(0,100)); setUploadingMedia(false); return; }
+                      if(ud.url) setHeaderSampleUrl(ud.url);
+                      else if(ud.filename) setHeaderSampleUrl("https://api.codt.my/media/"+ud.filename);
+                      else showError("Upload failed: "+(ud.error||"no URL returned"));
+                    } catch(err) { showError("Upload network error: "+err.message); }
                     setUploadingMedia(false);
                     e.target.value="";
                   }}/>
