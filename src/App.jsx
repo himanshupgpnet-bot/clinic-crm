@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.204";
+const CRM_VERSION = "2.9.205";
 
 // Responsive hook
 function useWindowSize() {
@@ -666,6 +666,15 @@ export default function App() {
   const chatContainerRef = useRef(null);
 
   // Only scroll to bottom when switching to a new chat
+  // Unregister service worker to prevent it from blocking cross-origin API calls
+  useEffect(() => {
+    if("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(reg => reg.unregister());
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if(!selected?.id) return;
     if(selected.id !== prevSelectedId.current) {
