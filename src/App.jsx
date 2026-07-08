@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.209";
+const CRM_VERSION = "2.9.210";
 
 // Responsive hook
 function useWindowSize() {
@@ -7965,6 +7965,10 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
     if(!/^[a-z0-9_]+$/.test(name)) return showError("Template name: lowercase letters, numbers and underscores only. No spaces.");
     if(/^\s*{{/.test(bodyText)) return showError("Variable cannot be at the start of the message. Add text before {{1}}.");
     if(/}}\s*$/.test(bodyText)) return showError("Variable cannot be at the end of the message. Add text after the variable.");
+    // Check variable ratio — Meta requires at least 5 words per variable
+    const varCount = bodyVars.length;
+    const wordCount = bodyText.replace(/{{(\d+)}}/g,"").trim().split(/\s+/).filter(Boolean).length;
+    if(varCount>0 && wordCount/varCount < 5) return showError(`Message too short for ${varCount} variable(s). Add more text or reduce variables. Meta requires at least 5 words per variable.`);
     if(hasMedia&&!headerSampleUrl.trim()) {
       if(mediaFile) return showError("File selected but upload failed. Please try again or paste a URL manually in the Sample field.");
       return showError("Please upload a file or paste a public URL in the Sample field.");
@@ -8187,22 +8191,23 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                       const fd = new FormData();
                       fd.append("file", file);
                       const token = sessionStorage.getItem("crm_token");
-                      await new Promise((resolve, reject) => {
+                      await new Promise((resolve) => {
                         const xhr = new XMLHttpRequest();
-                        let done = false;
                         xhr.open("POST", API+"/api/upload/media");
                         xhr.setRequestHeader("Authorization", "Bearer "+token);
-                        xhr.onload = () => {
-                          done = true;
+                        const handleResponse = () => {
                           try {
                             const ud = JSON.parse(xhr.responseText);
                             if(ud.url) setHeaderSampleUrl(ud.url);
                             else if(ud.filename) setHeaderSampleUrl("https://api.codt.my/media/"+ud.filename);
                             else showError("Upload error: "+(ud.error||"unknown"));
-                          } catch(e) { showError("Upload response error"); }
+                          } catch(e) {
+                            if(!headerSampleUrl) showError("Upload failed — try a smaller file or paste URL manually");
+                          }
                           resolve();
                         };
-                        xhr.onerror = () => { if(!done) showError("Upload failed — network error"); resolve(); };
+                        xhr.onload = handleResponse;
+                        xhr.onerror = handleResponse;
                         xhr.send(fd);
                       });
                     } catch(err) { showError("Upload failed: "+err.message); }
