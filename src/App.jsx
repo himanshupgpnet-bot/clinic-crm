@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.210";
+const CRM_VERSION = "2.9.211";
 
 // Responsive hook
 function useWindowSize() {
@@ -8200,10 +8200,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                             const ud = JSON.parse(xhr.responseText);
                             if(ud.url) setHeaderSampleUrl(ud.url);
                             else if(ud.filename) setHeaderSampleUrl("https://api.codt.my/media/"+ud.filename);
-                            else showError("Upload error: "+(ud.error||"unknown"));
-                          } catch(e) {
-                            if(!headerSampleUrl) showError("Upload failed — try a smaller file or paste URL manually");
-                          }
+                          } catch(e) {}
                           resolve();
                         };
                         xhr.onload = handleResponse;
