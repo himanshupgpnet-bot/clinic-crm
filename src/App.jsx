@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.189";
+const CRM_VERSION = "2.9.190";
 
 // Responsive hook
 function useWindowSize() {
@@ -3627,7 +3627,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                             padding:"8px 10px",color:T.text,fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
                         <div style={{fontSize:9,color:T.textFaint,marginTop:2}}>✏️ Edit to update CRM display only — does not change the approved template in Meta</div>
                       </div>}
-                      <div style={{display:"flex",gap:8"}}>
+                      <div style={{display:"flex",gap:8}}>
                         <button onClick={()=>setSelectedTemplate(t)} disabled={t.status!=="approved"}
                           style={{flex:1,padding:"7px",borderRadius:8,border:"none",
                             background:t.status==="approved"?WA_GREEN:"#ccc",color:"#fff",fontSize:11,fontWeight:700,
