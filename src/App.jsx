@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.208";
+const CRM_VERSION = "2.9.209";
 
 // Responsive hook
 function useWindowSize() {
@@ -8189,9 +8189,11 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                       const token = sessionStorage.getItem("crm_token");
                       await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
+                        let done = false;
                         xhr.open("POST", API+"/api/upload/media");
                         xhr.setRequestHeader("Authorization", "Bearer "+token);
                         xhr.onload = () => {
+                          done = true;
                           try {
                             const ud = JSON.parse(xhr.responseText);
                             if(ud.url) setHeaderSampleUrl(ud.url);
@@ -8200,7 +8202,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                           } catch(e) { showError("Upload response error"); }
                           resolve();
                         };
-                        xhr.onerror = () => { showError("Upload failed — network error"); resolve(); };
+                        xhr.onerror = () => { if(!done) showError("Upload failed — network error"); resolve(); };
                         xhr.send(fd);
                       });
                     } catch(err) { showError("Upload failed: "+err.message); }
