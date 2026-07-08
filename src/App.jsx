@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.188";
+const CRM_VERSION = "2.9.189";
 
 // Responsive hook
 function useWindowSize() {
@@ -3591,19 +3591,63 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   const statusColor = t.status==="approved"?"#16a34a":t.status==="rejected"?"#ef4444":t.status==="pending"?"#d97706":"#6b7280";
                   const statusBg = t.status==="approved"?"#dcfce7":t.status==="rejected"?"#fef2f2":t.status==="pending"?"#fef9c3":"#f1f5f9";
                   const statusLabel = t.status==="approved"?"✅ Approved":t.status==="rejected"?"❌ Rejected":t.status==="pending"?"⏳ Pending":"📝 Draft";
-                  return <div key={t.id} onClick={()=>setSelectedTemplate(t)}
-                    style={{padding:"10px 12px",borderRadius:10,border:`1.5px solid ${selectedTemplate?.id===t.id?WA_GREEN:T.border}`,
-                      background:selectedTemplate?.id===t.id?`${WA_GREEN}08`:T.card2,cursor:"pointer",
-                      display:"flex",alignItems:"center",gap:10,transition:"all .15s"}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.template_name}</div>
-                      <div style={{fontSize:10,color:T.textFaint,marginTop:1}}>{t.language} · {t.category}</div>
+                  const isSelected = selectedTemplate?.id===t.id;
+                  return <div key={t.id}
+                    style={{borderRadius:10,border:`1.5px solid ${isSelected?WA_GREEN:T.border}`,
+                      background:isSelected?`${WA_GREEN}08`:T.card2,transition:"all .15s",overflow:"hidden"}}>
+                    {/* Card header — clickable to select */}
+                    <div onClick={()=>setSelectedTemplate(isSelected?null:t)}
+                      style={{padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:700,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.template_name}</div>
+                        <div style={{fontSize:10,color:T.textFaint,marginTop:1}}>{t.language} · {t.category} · {t.header_type!="none"?t.header_type+" header":"No header"}</div>
+                        {t.body_text&&<div style={{fontSize:10,color:T.textMuted,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:200}}>{t.body_text.slice(0,60)}{t.body_text.length>60?"...":""}</div>}
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+                        <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700,background:statusBg,color:statusColor,whiteSpace:"nowrap"}}>
+                          {statusLabel}
+                        </span>
+                        <span style={{fontSize:10,color:T.textMuted}}>{isSelected?"▲ hide":"▼ details"}</span>
+                      </div>
                     </div>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                      <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700,background:statusBg,color:statusColor,whiteSpace:"nowrap"}}>
-                        {statusLabel}
-                      </span>
-                    </div>
+                    {/* Expanded details */}
+                    {isSelected&&<div style={{borderTop:`1px solid ${T.border}`,padding:"10px 12px",background:T.card}}>
+                      {t.body_text&&<div style={{marginBottom:10}}>
+                        <div style={{fontSize:10,fontWeight:700,color:T.textMuted,marginBottom:4}}>Body text (local display only)</div>
+                        <textarea defaultValue={t.body_text} rows={3}
+                          onBlur={async e=>{
+                            const newBody = e.target.value;
+                            if(newBody===t.body_text) return;
+                            const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                            const url = clinicId?`${API}/api/admin/clients/${clinicId}/templates/${t.id}`:`${API}/api/templates/${t.id}`;
+                            await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({body_text:newBody})});
+                            fetchTemplates(clinicId);
+                          }}
+                          style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,
+                            padding:"8px 10px",color:T.text,fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                        <div style={{fontSize:9,color:T.textFaint,marginTop:2}}>✏️ Edit to update CRM display only — does not change the approved template in Meta</div>
+                      </div>}
+                      <div style={{display:"flex",gap:8"}}>
+                        <button onClick={()=>setSelectedTemplate(t)} disabled={t.status!=="approved"}
+                          style={{flex:1,padding:"7px",borderRadius:8,border:"none",
+                            background:t.status==="approved"?WA_GREEN:"#ccc",color:"#fff",fontSize:11,fontWeight:700,
+                            cursor:t.status==="approved"?"pointer":"not-allowed",fontFamily:"inherit"}}>
+                          {t.status==="approved"?"📤 Use for Broadcast":"Not approved yet"}
+                        </button>
+                        <button onClick={async e=>{
+                          e.stopPropagation();
+                          if(!window.confirm("Delete this template?")) return;
+                          const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                          const url = clinicId?`${API}/api/admin/clients/${clinicId}/templates/${t.id}`:`${API}/api/templates/${t.id}`;
+                          await fetch(url,{method:"DELETE",headers:authHeaders()});
+                          fetchTemplates(clinicId);
+                          if(selectedTemplate?.id===t.id) setSelectedTemplate(null);
+                        }} style={{padding:"7px 12px",borderRadius:8,border:`1px solid #ef4444`,background:"transparent",
+                          color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>}
                   </div>;
                 })}
               </div>}
