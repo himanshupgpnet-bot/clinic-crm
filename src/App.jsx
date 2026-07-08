@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.196";
+const CRM_VERSION = "2.9.197";
 
 // Responsive hook
 function useWindowSize() {
@@ -8100,23 +8100,51 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
               </div>}
             </>}
             {hasMedia&&<div style={{marginTop:8}}>
+              <div style={{fontSize:10,color:T.textMuted,marginBottom:6}}>
+                {headerType==="IMAGE"&&"✅ Supported: JPG, PNG, WEBP · Max 5MB"}
+                {headerType==="VIDEO"&&"✅ Supported: MP4, 3GPP · Max 16MB"}
+                {headerType==="DOCUMENT"&&"✅ Supported: PDF only · Max 100MB"}
+              </div>
               <label style={labelStyle}>Sample {headerType.charAt(0)+headerType.slice(1).toLowerCase()} <span style={{color:"#ef4444"}}>*</span> <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>(used for Meta review only)</span></label>
               <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
                 <input value={headerSampleUrl} onChange={e=>setHeaderSampleUrl(e.target.value)}
                   placeholder={headerType==="IMAGE"?"https://example.com/image.jpg":headerType==="VIDEO"?"https://example.com/video.mp4":"https://example.com/doc.pdf"}
                   style={{...inputStyle,flex:1}}/>
                 <input type="file" id="tmpl-media-upload"
-                  accept={headerType==="IMAGE"?"image/*":headerType==="VIDEO"?"video/*":"application/pdf,.doc,.docx"}
+                  accept={headerType==="IMAGE"?"image/jpeg,image/jpg,image/png,image/webp":headerType==="VIDEO"?"video/mp4,video/3gpp":"application/pdf"}
                   style={{display:"none"}}
                   onChange={async e=>{
                     const file = e.target.files[0];
                     if(!file) return;
+                    // Validate format
+                    const allowedImage = ["image/jpeg","image/jpg","image/png","image/webp"];
+                    const allowedVideo = ["video/mp4","video/3gpp"];
+                    const allowedDoc = ["application/pdf"];
+                    if(headerType==="IMAGE"&&!allowedImage.includes(file.type)){
+                      showError("Invalid format. Image must be JPG, PNG or WEBP.");
+                      e.target.value=""; return;
+                    }
+                    if(headerType==="VIDEO"&&!allowedVideo.includes(file.type)){
+                      showError("Invalid format. Video must be MP4 or 3GPP.");
+                      e.target.value=""; return;
+                    }
+                    if(headerType==="DOCUMENT"&&!allowedDoc.includes(file.type)){
+                      showError("Invalid format. Document must be PDF.");
+                      e.target.value=""; return;
+                    }
+                    // Validate size
+                    const maxSize = headerType==="IMAGE"?5:headerType==="VIDEO"?16:100;
+                    if(file.size > maxSize*1024*1024){
+                      showError(`File too large. Max size for ${headerType.toLowerCase()} is ${maxSize}MB.`);
+                      e.target.value=""; return;
+                    }
                     setMediaFile(file);
                     setUploadingMedia(true);
-                    // Show local preview immediately
+                    // Show local preview
                     if(headerType==="IMAGE"){const r=new FileReader();r.onload=ev=>setMediaPreview(ev.target.result);r.readAsDataURL(file);}
+                    else if(headerType==="VIDEO"){setMediaPreview(URL.createObjectURL(file));}
                     else setMediaPreview(file.name);
-                    // Upload to server immediately
+                    // Upload to server
                     try {
                       const fd = new FormData();
                       fd.append("file", file);
@@ -8313,8 +8341,11 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                         :<div style={{color:"#999",fontSize:11,textAlign:"center"}}>🖼️<br/>Image</div>}
                     </div>}
                   {headerType==="VIDEO"&&
-                    <div style={{height:100,background:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                      <div style={{color:"#fff",fontSize:20}}>▶️</div>
+                    <div style={{height:100,background:"#000",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
+                      {mediaPreview?<video src={mediaPreview} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:null}
+                      <div style={{position:"absolute",width:32,height:32,borderRadius:"50%",background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        <span style={{color:"#fff",fontSize:14}}>▶</span>
+                      </div>
                     </div>}
                   {headerType==="DOCUMENT"&&
                     <div style={{padding:"8px 10px",background:"#f5f5f5",display:"flex",alignItems:"center",gap:6,borderBottom:"1px solid #eee"}}>
