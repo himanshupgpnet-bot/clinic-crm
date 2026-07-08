@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.207";
+const CRM_VERSION = "2.9.208";
 
 // Responsive hook
 function useWindowSize() {
@@ -8182,24 +8182,28 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                     if(headerType==="IMAGE"){const r=new FileReader();r.onload=ev=>setMediaPreview(ev.target.result);r.readAsDataURL(file);}
                     else if(headerType==="VIDEO"){setMediaPreview(URL.createObjectURL(file));}
                     else setMediaPreview(file.name);
-                    // Upload to server
+                    // Upload using XHR to bypass service worker size limits
                     try {
                       const fd = new FormData();
                       fd.append("file", file);
                       const token = sessionStorage.getItem("crm_token");
-                      const ur = await fetch(API+"/api/upload/media", {
-                        method:"POST",
-                        headers:{"Authorization":"Bearer "+token},
-                        body:fd,
-                        mode:"cors"
+                      await new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open("POST", API+"/api/upload/media");
+                        xhr.setRequestHeader("Authorization", "Bearer "+token);
+                        xhr.onload = () => {
+                          try {
+                            const ud = JSON.parse(xhr.responseText);
+                            if(ud.url) setHeaderSampleUrl(ud.url);
+                            else if(ud.filename) setHeaderSampleUrl("https://api.codt.my/media/"+ud.filename);
+                            else showError("Upload error: "+(ud.error||"unknown"));
+                          } catch(e) { showError("Upload response error"); }
+                          resolve();
+                        };
+                        xhr.onerror = () => { showError("Upload failed — network error"); resolve(); };
+                        xhr.send(fd);
                       });
-                      const text = await ur.text();
-                      let ud = {};
-                      try { ud = JSON.parse(text); } catch(e) { showError("Upload response error: "+text.slice(0,100)); setUploadingMedia(false); return; }
-                      if(ud.url) setHeaderSampleUrl(ud.url);
-                      else if(ud.filename) setHeaderSampleUrl("https://api.codt.my/media/"+ud.filename);
-                      else showError("Upload failed: "+(ud.error||"no URL returned"));
-                    } catch(err) { showError("Upload network error: "+err.message); }
+                    } catch(err) { showError("Upload failed: "+err.message); }
                     setUploadingMedia(false);
                     e.target.value="";
                   }}/>
