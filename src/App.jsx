@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.199";
+const CRM_VERSION = "2.9.200";
 
 // Responsive hook
 function useWindowSize() {
@@ -7908,6 +7908,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const [localError, setLocalError] = React.useState("");
   const [mediaFile, setMediaFile] = React.useState(null); // stored locally until submit
   const [mediaPreview, setMediaPreview] = React.useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
   const showError = (msg) => { setLocalError(msg); setTimeout(()=>setLocalError(""),4000); };
 
   // Detect variables in text
@@ -8113,7 +8114,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                   placeholder={headerType==="IMAGE"?"https://example.com/image.jpg":headerType==="VIDEO"?"https://example.com/video.mp4":"https://example.com/doc.pdf"}
                   style={{...inputStyle,flex:1}}/>
                 <input type="file" id="tmpl-media-upload"
-                  accept={headerType==="IMAGE"?"image/jpeg,image/jpg,image/png,image/webp":headerType==="VIDEO"?"video/mp4,video/3gpp":"application/pdf"}
+                  accept={headerType==="IMAGE"?"image/jpeg,image/jpg,image/png,image/webp":headerType==="VIDEO"?"video/mp4,video/3gpp,video/quicktime,video/*":"application/pdf"}
                   style={{display:"none"}}
                   onChange={async e=>{
                     const file = e.target.files[0];
@@ -8126,8 +8127,8 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                       showError("Invalid format. Image must be JPG, PNG or WEBP.");
                       e.target.value=""; return;
                     }
-                    if(headerType==="VIDEO"&&!allowedVideo.includes(file.type)){
-                      showError("Invalid format. Video must be MP4 or 3GPP.");
+                    if(headerType==="VIDEO"&&!file.type.startsWith("video/")){
+                      showError("Invalid format. Please upload a video file (MP4 recommended).");
                       e.target.value=""; return;
                     }
                     if(headerType==="DOCUMENT"&&!allowedDoc.includes(file.type)){
@@ -8196,14 +8197,23 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                     color:T.text,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",
                     fontStyle:lbl==="I"?"italic":"normal",textDecoration:lbl==="S"?"line-through":"none"}}>{lbl}</div>
                 ))}
-                {/* Emoji picker */}
-                {["😊","👋","🎉","✅","🔥","💪","🌟","❤️","👍","📞","📅","💰","🏥","🎁","⚡"].map(em=>(
-                  <button key={em} type="button" onClick={()=>setBodyText(prev=>prev+em)}
+                {/* Emoji picker button */}
+                <div style={{position:"relative"}}>
+                  <button type="button" onClick={()=>setShowEmojiPicker(p=>!p)}
                     style={{width:26,height:26,borderRadius:6,border:`1px solid ${T.border}`,background:T.card2,
                       fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    {em}
+                    😊
                   </button>
-                ))}
+                  {showEmojiPicker&&<div style={{position:"absolute",bottom:32,left:0,background:T.card,border:`1px solid ${T.border}`,
+                    borderRadius:10,padding:8,zIndex:999,display:"flex",flexWrap:"wrap",gap:4,width:200,boxShadow:"0 4px 16px rgba(0,0,0,.15)"}}>
+                    {["😊","👋","🎉","✅","🔥","💪","🌟","❤️","👍","📞","📅","💰","🏥","🎁","⚡","😍","🙏","💯","🚀","⭐","😄","💚","🎯","📢","🔔","💡","⏰","🌺","🤝","🎊","💫","😎","🌈","📱","💊","🏃","🌸","🍀","💎","🔑"].map(em=>(
+                      <button key={em} type="button" onClick={()=>{setBodyText(prev=>prev+em);setShowEmojiPicker(false);}}
+                        style={{width:28,height:28,borderRadius:6,border:"none",background:"transparent",fontSize:16,cursor:"pointer"}}>
+                        {em}
+                      </button>
+                    ))}
+                  </div>}
+                </div>
               </div>
               <button type="button" onClick={()=>{
                 const _vars=getVars(bodyText);
