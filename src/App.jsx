@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.211";
+const CRM_VERSION = "2.9.212";
 
 // Responsive hook
 function useWindowSize() {
@@ -8191,22 +8191,34 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                       const fd = new FormData();
                       fd.append("file", file);
                       const token = sessionStorage.getItem("crm_token");
+                      const ext = file.name.split(".").pop().toLowerCase();
+                      let uploadedUrl = "";
                       await new Promise((resolve) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open("POST", API+"/api/upload/media");
                         xhr.setRequestHeader("Authorization", "Bearer "+token);
-                        const handleResponse = () => {
+                        xhr.timeout = 60000;
+                        xhr.onload = () => {
                           try {
                             const ud = JSON.parse(xhr.responseText);
-                            if(ud.url) setHeaderSampleUrl(ud.url);
-                            else if(ud.filename) setHeaderSampleUrl("https://api.codt.my/media/"+ud.filename);
+                            if(ud.url) uploadedUrl = ud.url;
+                            else if(ud.filename) uploadedUrl = "https://api.codt.my/media/"+ud.filename;
                           } catch(e) {}
                           resolve();
                         };
-                        xhr.onload = handleResponse;
-                        xhr.onerror = handleResponse;
+                        xhr.onerror = () => resolve();
+                        xhr.ontimeout = () => resolve();
                         xhr.send(fd);
                       });
+                      if(uploadedUrl) {
+                        setHeaderSampleUrl(uploadedUrl);
+                      } else {
+                        try {
+                          const r2 = await fetch(API+"/api/upload/last?ext="+ext, {headers:{"Authorization":"Bearer "+token}});
+                          const d2 = await r2.json();
+                          if(d2.url) setHeaderSampleUrl(d2.url);
+                        } catch(e) {}
+                      }
                     } catch(err) { showError("Upload failed: "+err.message); }
                     setUploadingMedia(false);
                     e.target.value="";
