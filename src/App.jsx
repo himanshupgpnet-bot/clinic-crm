@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.218";
+const CRM_VERSION = "2.9.220";
 
 // Responsive hook
 function useWindowSize() {
@@ -3551,7 +3551,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📢 Broadcast</div>
             <div style={{fontSize:13,color:T.textMuted,marginBottom:16}}>Send WhatsApp template messages to multiple contacts at once.</div>
             <div style={{display:"grid",gridTemplateColumns:`1fr ${selectedTemplate?"280px":"0px"}`,gap:selectedTemplate?20:0,alignItems:"start",transition:"grid-template-columns .3s"}}>
-            <div>{/* Left column — form */}
+            <div>
 
             {/* Template selector — card stack */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
@@ -3851,7 +3851,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
             </div>}
             </div>{/* end 2-col grid */}
-            </div> /* end send tab */}
+            </div> {/* end send tab */}
 
             {/* ── CREATE TEMPLATE ── */}
             {broadcastSubTab==="create"&&<CreateTemplatePanel
