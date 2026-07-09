@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.224";
+const CRM_VERSION = "2.9.225";
 
 // Responsive hook
 function useWindowSize() {
@@ -3684,27 +3684,60 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
 
             {/* Phone preview — shows when template selected */}
-            {selectedTemplate&&<div style={{display:"flex",gap:16,marginBottom:16,alignItems:"flex-start"}}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:11,color:T.textMuted,marginBottom:4}}>Selected: <strong style={{color:T.text}}>{selectedTemplate.template_name}</strong> · {selectedTemplate.category}</div>
+            {selectedTemplate&&<div style={{marginBottom:16,display:"flex",gap:20,alignItems:"flex-start"}}>
+              {/* Template info */}
+              <div style={{flex:1,background:T.card,borderRadius:12,padding:14,border:`1px solid ${T.border}`}}>
+                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:8}}>SELECTED TEMPLATE</div>
+                <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:4}}>{selectedTemplate.template_name}</div>
+                <div style={{fontSize:11,color:T.textMuted,marginBottom:2}}>{selectedTemplate.category} · {selectedTemplate.language}</div>
+                {selectedTemplate.header_type!=="none"&&<div style={{fontSize:11,color:T.textMuted}}>Header: {selectedTemplate.header_type}</div>}
               </div>
-              <div style={{flexShrink:0,background:"#1a1a1a",borderRadius:28,padding:"8px 5px",boxShadow:"0 4px 16px rgba(0,0,0,.3)",width:220}}>
-                <div style={{background:"#e5ddd5",borderRadius:20,overflow:"hidden"}}>
-                  <div style={{background:"#075e54",padding:"8px 10px",display:"flex",alignItems:"center",gap:6}}>
-                    <div style={{width:22,height:22,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:700}}>
+              {/* Phone frame */}
+              <div style={{flexShrink:0,width:260,background:"#1a1a1a",borderRadius:36,padding:"12px 8px",boxShadow:"0 8px 32px rgba(0,0,0,.4)"}}>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>
+                  <div style={{width:60,height:5,borderRadius:3,background:"#333"}}/>
+                </div>
+                <div style={{background:"#e5ddd5",borderRadius:24,overflow:"hidden",minHeight:400}}>
+                  {/* WhatsApp header */}
+                  <div style={{background:"#075e54",padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{width:32,height:32,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",fontWeight:700,flexShrink:0}}>
                       {selectedTemplate.template_name[0]?.toUpperCase()}
                     </div>
-                    <div style={{fontSize:9,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selectedTemplate.template_name}</div>
-                  </div>
-                  <div style={{padding:"6px 5px"}}>
-                    <div style={{background:"#fff",borderRadius:"0 8px 8px 8px",overflow:"hidden"}}>
-                      {selectedTemplate.header_value&&selectedTemplate.header_type==="IMAGE"&&<img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:100,objectFit:"cover",display:"block"}}/>}
-                      {selectedTemplate.header_value&&selectedTemplate.header_type==="VIDEO"&&<video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:100,display:"block"}}/>}
-                      {selectedTemplate.body_text&&<div style={{padding:"6px 8px",fontSize:9,color:"#1a1a1a",lineHeight:1.4,whiteSpace:"pre-wrap"}}>{selectedTemplate.body_text.slice(0,120)}{selectedTemplate.body_text.length>120?"...":""}</div>}
-                      {selectedTemplate.footer_text&&<div style={{padding:"0 8px 4px",fontSize:8,color:"#888"}}>{selectedTemplate.footer_text}</div>}
-                      <div style={{padding:"0 8px 4px",fontSize:8,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>{selectedTemplate.template_name}</div>
+                      <div style={{fontSize:10,color:"#b2dfdb"}}>template preview</div>
                     </div>
                   </div>
+                  {/* Chat area */}
+                  <div style={{padding:"12px 8px"}}>
+                    <div style={{background:"#fff",borderRadius:"0 12px 12px 12px",overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,.12)"}}>
+                      {selectedTemplate.header_value&&selectedTemplate.header_type==="IMAGE"&&
+                        <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:160,objectFit:"cover",display:"block"}}/>}
+                      {selectedTemplate.header_value&&selectedTemplate.header_type==="VIDEO"&&
+                        <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:160,display:"block"}}/>}
+                      {selectedTemplate.header_value&&selectedTemplate.header_type==="DOCUMENT"&&
+                        <div style={{padding:"10px 12px",background:"#f0f0f0",display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid #e0e0e0"}}>
+                          <span style={{fontSize:20}}>📄</span>
+                          <span style={{fontSize:11,color:"#555"}}>{selectedTemplate.header_value.split("/").pop()}</span>
+                        </div>}
+                      {selectedTemplate.body_text&&<div style={{padding:"10px 12px",fontSize:13,color:"#1a1a1a",lineHeight:1.6,whiteSpace:"pre-wrap"}}>
+                        {selectedTemplate.body_text}
+                      </div>}
+                      {selectedTemplate.footer_text&&<div style={{padding:"4px 12px 8px",fontSize:11,color:"#888"}}>{selectedTemplate.footer_text}</div>}
+                      <div style={{padding:"2px 12px 8px",fontSize:10,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+                    </div>
+                    {(()=>{try{const btns=JSON.parse(selectedTemplate.buttons||"[]");
+                      if(!Array.isArray(btns)||btns.length===0) return null;
+                      return <div style={{marginTop:6,display:"flex",flexDirection:"column",gap:4}}>
+                        {btns.slice(0,3).map((b,i)=><div key={i} style={{background:"#fff",borderRadius:10,padding:"10px",textAlign:"center",fontSize:13,fontWeight:600,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                          {b.type==="URL"?"🔗 ":b.type==="PHONE_NUMBER"?"📞 ":b.type==="COPY_CODE"?"📋 ":"↩️ "}{b.text||b.example}
+                        </div>)}
+                      </div>;
+                    }catch{return null;}})()}
+                  </div>
+                </div>
+                <div style={{display:"flex",justifyContent:"center",marginTop:8}}>
+                  <div style={{width:40,height:5,borderRadius:3,background:"#333"}}/>
                 </div>
               </div>
             </div>}
