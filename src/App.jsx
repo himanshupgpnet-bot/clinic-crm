@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.228";
+const CRM_VERSION = "2.9.230";
 
 // Responsive hook
 function useWindowSize() {
@@ -1545,7 +1545,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   const navStyle = {height:56,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 12px",gap:4,flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.07)"};
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100dvh",background:T.bg,fontFamily:"'Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",background:T.bg,fontFamily:"'Segoe UI', sans-serif",color:T.text,overflow:"hidden"}}>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
@@ -3698,187 +3698,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>}
             </div>
 
-            {/* Phone preview — shows when template selected */}
-            {selectedTemplate&&<div style={{marginBottom:16,display:"flex",gap:20,alignItems:"flex-start"}}>
-              {/* Template info */}
-              <div style={{flex:1,background:T.card,borderRadius:12,padding:14,border:`1px solid ${T.border}`}}>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:8}}>SELECTED TEMPLATE</div>
-                <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:4}}>{selectedTemplate.template_name}</div>
-                <div style={{fontSize:11,color:T.textMuted,marginBottom:2}}>{selectedTemplate.category} · {selectedTemplate.language}</div>
-                {selectedTemplate.header_type!=="none"&&<div style={{fontSize:11,color:T.textMuted}}>Header: {selectedTemplate.header_type}</div>}
-              </div>
-              {/* Phone frame */}
-              <div style={{flexShrink:0,width:260,background:"#1a1a1a",borderRadius:36,padding:"12px 8px",boxShadow:"0 8px 32px rgba(0,0,0,.4)"}}>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>
-                  <div style={{width:60,height:5,borderRadius:3,background:"#333"}}/>
-                </div>
-                <div style={{background:"#e5ddd5",borderRadius:24,overflow:"hidden",minHeight:400}}>
-                  {/* WhatsApp header */}
-                  <div style={{background:"#075e54",padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
-                    <div style={{width:32,height:32,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",fontWeight:700,flexShrink:0}}>
-                      {selectedTemplate.template_name[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>{selectedTemplate.template_name}</div>
-                      <div style={{fontSize:10,color:"#b2dfdb"}}>template preview</div>
-                    </div>
-                  </div>
-                  {/* Chat area */}
-                  <div style={{padding:"12px 8px"}}>
-                    <div style={{background:"#fff",borderRadius:"0 12px 12px 12px",overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,.12)"}}>
-                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
-                        <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:160,objectFit:"cover",display:"block"}}/>}
-                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="VIDEO"&&
-                        <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:160,display:"block"}}/>}
-                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="DOCUMENT"&&
-                        <div style={{padding:"10px 12px",background:"#f0f0f0",display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid #e0e0e0"}}>
-                          <span style={{fontSize:20}}>📄</span>
-                          <span style={{fontSize:11,color:"#555"}}>{selectedTemplate.header_value.split("/").pop()}</span>
-                        </div>}
-                      {selectedTemplate.body_text&&<div style={{padding:"10px 12px",fontSize:13,color:"#1a1a1a",lineHeight:1.6,whiteSpace:"pre-wrap"}}>
-                        {selectedTemplate.body_text}
-                      </div>}
-                      {selectedTemplate.footer_text&&<div style={{padding:"4px 12px 8px",fontSize:11,color:"#888"}}>{selectedTemplate.footer_text}</div>}
-                      <div style={{padding:"2px 12px 8px",fontSize:10,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
-                    </div>
-                    {(()=>{try{const btns=JSON.parse(selectedTemplate.buttons||"[]");
-                      if(!Array.isArray(btns)||btns.length===0) return null;
-                      return <div style={{marginTop:6,display:"flex",flexDirection:"column",gap:4}}>
-                        {btns.slice(0,3).map((b,i)=><div key={i} style={{background:"#fff",borderRadius:10,padding:"10px",textAlign:"center",fontSize:13,fontWeight:600,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                          {b.type==="URL"?"🔗 ":b.type==="PHONE_NUMBER"?"📞 ":b.type==="COPY_CODE"?"📋 ":"↩️ "}{b.text||b.example}
-                        </div>)}
-                      </div>;
-                    }catch{return null;}})()}
-                  </div>
-                </div>
-                <div style={{display:"flex",justifyContent:"center",marginTop:8}}>
-                  <div style={{width:40,height:5,borderRadius:3,background:"#333"}}/>
-                </div>
-              </div>
-            </div>}
-
-            {/* Upload contacts */}
-            <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>2. Select Contacts</div>
-
-              {/* Two options */}
-              <div style={{display:"flex",gap:8,marginBottom:16}}>
-                <button onClick={()=>document.getElementById("broadcast-file-input").click()}
-                  style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                  📎 Upload CSV / Excel
-                </button>
-                <button onClick={()=>{setPickedContacts(new Set());setContactPickerSearch("");setShowContactPicker(true);}}
-                  style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${WA_GREEN}30`,background:`${WA_GREEN}08`,color:WA_GREEN,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                  👥 Pick from Inbox
-                </button>
-              </div>
-
-              <input type="file" accept=".csv,.xlsx,.xls" onChange={e=>{
-                const file = e.target.files[0];
-                if(!file) return;
-                setBroadcastFile(file);
-                const reader = new FileReader();
-                reader.onload = ev => {
-                  const lines = ev.target.result.split("\n").filter(l=>l.trim());
-                  const headers = lines[0].split(",").map(h=>h.trim().toLowerCase().replace(/"/g,""));
-                  const phoneIdx = headers.findIndex(h=>h.includes("phone")||h.includes("number")||h.includes("mobile"));
-                  const nameIdx = headers.findIndex(h=>h.includes("name"));
-                  const newContacts = [];
-                  for(let i=1;i<lines.length;i++){
-                    const cols = lines[i].split(",").map(c=>c.trim().replace(/"/g,""));
-                    const phone = phoneIdx>=0?cols[phoneIdx]:"";
-                    const name = nameIdx>=0?cols[nameIdx]:"";
-                    if(phone) newContacts.push({phone,name:name||phone});
-                  }
-                  setBroadcastContacts(newContacts);
-                };
-                reader.readAsText(file);
-              }} style={{display:"none"}} id="broadcast-file-input"/>
-
-              {broadcastContacts.length>0&&<div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                  <span style={{fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} contact{broadcastContacts.length>1?"s":""} selected</span>
-                  <button onClick={()=>{setBroadcastContacts([]);setBroadcastProgress(null);}} style={{fontSize:11,color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>✕ Clear all</button>
-                </div>
-                <div style={{maxHeight:120,overflowY:"auto",background:T.card2,borderRadius:8,padding:8}}>
-                  {broadcastContacts.map((c,i)=>(
-                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",borderBottom:i<broadcastContacts.length-1?`1px solid ${T.border}`:"none"}}>
-                      <span style={{fontSize:11,color:T.text}}>{c.name}</span>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{fontSize:11,color:T.textMuted}}>{c.phone}</span>
-                        <button onClick={()=>setBroadcastContacts(p=>p.filter((_,j)=>j!==i))} style={{fontSize:10,color:"#ef4444",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>✕</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>}
-            </div>
-
-            {/* Send button */}
-            <div style={{background:T.card,borderRadius:16,padding:20,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>3. Send Broadcast</div>
-
-              {/* Confirmation summary */}
-              {selectedTemplate&&broadcastContacts.length>0&&!broadcastProgress&&(
-                <div style={{background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:12,color:T.text}}>
-                  Ready to send <strong>{selectedTemplate.template_name}</strong> to <strong>{broadcastContacts.length} contact{broadcastContacts.length>1?"s":""}</strong>.
-                </div>
-              )}
-
-              <button onClick={async()=>{
-                if(!selectedTemplate) return showToast("Please select a template first","#ef4444");
-                if(broadcastContacts.length===0) return showToast("Please select contacts first","#ef4444");
-                setBroadcastProgress({total:broadcastContacts.length, done:0, failed:0, active:true});
-                
-                const cs = await fetch(`${API}/api/client-settings`,{headers:authHeaders()}).then(r=>r.json()).catch(()=>({}));
-                
-                for(let i=0;i<broadcastContacts.length;i++){
-                  const contact = broadcastContacts[i];
-                  const msg = (selectedTemplate.body_text||"").replace(/\{\{Name\}\}/gi, contact.name);
-                  try {
-                    await fetch(`${API}/api/broadcast/send`,{method:"POST",headers:authHeaders(),body:JSON.stringify({
-                      phone: contact.phone,
-                      name: contact.name,
-                      template_name: selectedTemplate.template_name,
-                      language: selectedTemplate.language||"en",
-                      header_type: selectedTemplate.header_type||"none",
-                      header_value: selectedTemplate.header_value||"",
-                      clinic_id: isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null,
-                    })});
-                    setBroadcastProgress(p=>({...p, done:p.done+1}));
-                  } catch {
-                    setBroadcastProgress(p=>({...p, failed:p.failed+1, done:p.done+1}));
-                  }
-                  await new Promise(r=>setTimeout(r,300));
-                }
-                setBroadcastProgress(p=>({...p, active:false}));
-              }} disabled={!selectedTemplate||broadcastContacts.length===0||broadcastProgress?.active}
-                style={{width:"100%",padding:"12px",borderRadius:10,border:"none",
-                  background:(!selectedTemplate||broadcastContacts.length===0)?"#ccc":WA_GREEN,
-                  color:"#fff",fontSize:14,fontWeight:700,cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer",fontFamily:"inherit"}}>
-                📤 Send to {broadcastContacts.length} Contacts
-              </button>
-
-              {/* Progress */}
-              {broadcastProgress&&<div style={{marginTop:14,background:T.card2,borderRadius:10,padding:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                  <span style={{fontSize:12,fontWeight:600,color:T.text}}>
-                    {broadcastProgress.active?"Sending...":"Done!"}
-                  </span>
-                  <span style={{fontSize:12,color:T.textMuted}}>{broadcastProgress.done}/{broadcastProgress.total}</span>
-                </div>
-                <div style={{height:6,borderRadius:3,background:T.border,overflow:"hidden"}}>
-                  <div style={{height:6,borderRadius:3,background:WA_GREEN,width:`${(broadcastProgress.done/broadcastProgress.total)*100}%`,transition:"width .3s"}}/>
-                </div>
-                {broadcastProgress.failed>0&&<div style={{fontSize:11,color:"#ef4444",marginTop:4}}>{broadcastProgress.failed} failed</div>}
-                {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
-              </div>}
-            </div>
-          </div>}
-            </div>}
-
-            {/* ── CREATE TEMPLATE ── */}
-            {broadcastSubTab==="create"&&<CreateTemplatePanel
               T={T} WA_GREEN={WA_GREEN} dark={dark}
               API={API} authHeaders={authHeaders} authToken={authToken}
               isAdmin={isAdmin} broadcastClinic={broadcastClinic}
@@ -4302,6 +4121,47 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 Go to Settings →
               </button>
             </div>
+          </div>
+        </div>}
+        {/* Fixed phone preview when template selected in broadcast */}
+        {tab==="broadcast"&&broadcastSubTab==="send"&&selectedTemplate&&<div style={{
+          position:"fixed",right:20,top:"50%",transform:"translateY(-50%)",
+          zIndex:100,width:240,background:"#1a1a1a",borderRadius:32,padding:"10px 6px",
+          boxShadow:"0 8px 32px rgba(0,0,0,.5)"}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+            <div style={{width:50,height:4,borderRadius:2,background:"#333"}}/>
+          </div>
+          <div style={{background:"#e5ddd5",borderRadius:22,overflow:"hidden"}}>
+            <div style={{background:"#075e54",padding:"8px 10px",display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:26,height:26,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700,flexShrink:0}}>
+                {selectedTemplate.template_name[0]?.toUpperCase()}
+              </div>
+              <div style={{fontSize:10,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selectedTemplate.template_name}</div>
+            </div>
+            <div style={{padding:"8px 6px",maxHeight:400,overflowY:"auto"}}>
+              <div style={{background:"#fff",borderRadius:"0 10px 10px 10px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
+                  <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:120,objectFit:"cover",display:"block"}}/>}
+                {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="VIDEO"&&
+                  <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:120,display:"block"}}/>}
+                {selectedTemplate.body_text&&<div style={{padding:"8px 10px",fontSize:11,color:"#1a1a1a",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
+                  {selectedTemplate.body_text}
+                </div>}
+                {selectedTemplate.footer_text&&<div style={{padding:"0 10px 6px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
+                <div style={{padding:"0 10px 6px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+              </div>
+              {(()=>{try{const btns=JSON.parse(selectedTemplate.buttons||"[]");
+                if(!Array.isArray(btns)||btns.length===0) return null;
+                return <div style={{marginTop:4,display:"flex",flexDirection:"column",gap:3}}>
+                  {btns.slice(0,3).map((b,i)=><div key={i} style={{background:"#fff",borderRadius:8,padding:"8px",textAlign:"center",fontSize:10,fontWeight:600,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                    {b.type==="URL"?"🔗 ":b.type==="PHONE_NUMBER"?"📞 ":b.type==="COPY_CODE"?"📋 ":"↩️ "}{b.text||b.example}
+                  </div>)}
+                </div>;
+              }catch{return null;}})()}
+            </div>
+          </div>
+          <div style={{display:"flex",justifyContent:"center",marginTop:6}}>
+            <div style={{width:30,height:4,borderRadius:2,background:"#333"}}/>
           </div>
         </div>}
         <ConfirmModal modal={confirmModal} onClose={()=>setConfirmModal(null)} T={T} WA_GREEN={WA_GREEN}/>
