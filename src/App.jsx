@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.227";
+const CRM_VERSION = "2.9.228";
 
 // Responsive hook
 function useWindowSize() {
@@ -3540,15 +3540,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {[{id:"send",label:"📢 Send Broadcast"},{id:"create",label:"📝 Create Template"}].map(st=>(
                 <button key={st.id} onClick={()=>{
                   if(st.id==="create") {
-                    // Check required setup
-                    const cs = isAdmin&&broadcastClinic ? broadcastClinic : appSettings;
+                    // Only check if clearly not set up (no token at all)
                     const missing = [];
-                    const wabaId = cs?.waba_id||cs?.waba_id;
-                    const phoneNumId = cs?.phone_number_id||cs?.wa_phone_number_id;
-                    const token = cs?.whatsapp_token||cs?.wa_token;
-                    if(!wabaId) missing.push({field:"WABA ID", desc:"WhatsApp Business Account ID — found in Meta WhatsApp Manager URL as asset_id"});
-                    if(!phoneNumId) missing.push({field:"Phone Number ID", desc:"Found in Meta Developer → WhatsApp → API Setup"});
-                    if(!token) missing.push({field:"WhatsApp Token", desc:"System user token from Meta Developer app"});
+                    const token = appSettings?.whatsapp_token||appSettings?.wa_token||appSettings?.anthropic_key;
+                    if(!token) missing.push({field:"WhatsApp Token", desc:"System user token from Meta Developer app. Add it in Integrations → WhatsApp."});
                     if(missing.length>0) {
                       setSetupMissing(missing);
                       setShowSetupModal(true);
