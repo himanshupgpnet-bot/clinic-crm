@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.225";
+const CRM_VERSION = "2.9.226";
 
 // Responsive hook
 function useWindowSize() {
@@ -3711,11 +3711,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {/* Chat area */}
                   <div style={{padding:"12px 8px"}}>
                     <div style={{background:"#fff",borderRadius:"0 12px 12px 12px",overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,.12)"}}>
-                      {selectedTemplate.header_value&&selectedTemplate.header_type==="IMAGE"&&
+                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
                         <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:160,objectFit:"cover",display:"block"}}/>}
-                      {selectedTemplate.header_value&&selectedTemplate.header_type==="VIDEO"&&
+                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="VIDEO"&&
                         <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:160,display:"block"}}/>}
-                      {selectedTemplate.header_value&&selectedTemplate.header_type==="DOCUMENT"&&
+                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="DOCUMENT"&&
                         <div style={{padding:"10px 12px",background:"#f0f0f0",display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid #e0e0e0"}}>
                           <span style={{fontSize:20}}>📄</span>
                           <span style={{fontSize:11,color:"#555"}}>{selectedTemplate.header_value.split("/").pop()}</span>
