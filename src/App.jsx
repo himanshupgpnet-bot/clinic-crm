@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.214";
+const CRM_VERSION = "2.9.215";
 
 // Responsive hook
 function useWindowSize() {
@@ -3616,65 +3616,40 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 })}
               </div>}
 
-              {/* Selected template preview */}
-              {selectedTemplate&&<div style={{background:T.card2,borderRadius:10,padding:14,border:`1px solid ${T.border}`}}>
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                  <span style={{fontSize:20}}>📋</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedTemplate.template_name}</div>
-                    <div style={{fontSize:11,color:T.textMuted}}>{selectedTemplate.language||"en"} · {selectedTemplate.category||"MARKETING"}</div>
+              {/* Selected template — phone preview */}
+              {selectedTemplate&&<div style={{marginTop:12}}>
+                <div style={{fontWeight:600,fontSize:11,color:T.textMuted,marginBottom:8,textAlign:"center"}}>Template Preview</div>
+                <div style={{width:220,margin:"0 auto",background:"#1a1a1a",borderRadius:28,padding:"10px 6px",boxShadow:"0 4px 20px rgba(0,0,0,.3)"}}>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+                    <div style={{width:40,height:4,borderRadius:2,background:"#333"}}/>
                   </div>
-                  <button onClick={()=>{
-                    setNewTemplate({...selectedTemplate});
-                    setShowTemplateForm(true);
-                  }}
-                    style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                    ✏️ Edit
-                  </button>
+                  <div style={{background:"#e5ddd5",borderRadius:20,overflow:"hidden"}}>
+                    <div style={{background:"#075e54",padding:"8px 10px",display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{width:24,height:24,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>
+                        {selectedTemplate.template_name[0]?.toUpperCase()}
+                      </div>
+                      <div style={{fontSize:10,fontWeight:700,color:"#fff"}}>{selectedTemplate.template_name}</div>
+                    </div>
+                    <div style={{padding:"8px 6px"}}>
+                      <div style={{background:"#fff",borderRadius:"0 8px 8px 8px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                        {selectedTemplate.header_value&&selectedTemplate.header_type==="IMAGE"&&
+                          <img src={selectedTemplate.header_value} alt="header" style={{width:"100%",height:80,objectFit:"cover"}}/>}
+                        {selectedTemplate.header_value&&selectedTemplate.header_type==="VIDEO"&&
+                          <div style={{height:80,background:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <span style={{fontSize:20}}>▶️</span>
+                          </div>}
+                        {selectedTemplate.body_text&&<div style={{padding:"8px",fontSize:10,color:"#1a1a1a",lineHeight:1.4,whiteSpace:"pre-wrap"}}>
+                          {selectedTemplate.body_text.slice(0,150)}{selectedTemplate.body_text.length>150?"...":""}
+                        </div>}
+                        {selectedTemplate.footer_text&&<div style={{padding:"2px 8px 6px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
+                        <div style={{padding:"0 8px 6px",fontSize:8,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"center",marginTop:6}}>
+                    <div style={{width:30,height:4,borderRadius:2,background:"#333"}}/>
+                  </div>
                 </div>
-                {/* Status badge */}
-                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                  <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:700,
-                    background:selectedTemplate.status==="approved"?"#dcfce7":
-                              selectedTemplate.status==="rejected"?"#fef2f2":"#fef9c3",
-                    color:selectedTemplate.status==="approved"?"#16a34a":
-                          selectedTemplate.status==="rejected"?"#ef4444":"#854d0e"}}>
-                    {selectedTemplate.status==="approved"?"✅ Approved":
-                     selectedTemplate.status==="rejected"?"❌ Rejected":
-                     selectedTemplate.status==="pending"?"⏳ Pending Approval":"📝 Draft"}
-                  </span>
-                  {selectedTemplate.meta_template_id&&<button onClick={async()=>{
-                    const r = await fetch(`${API}/api/templates/${selectedTemplate.id}/status`,{headers:authHeaders()});
-                    if(r.ok){
-                      const d = await r.json();
-                      fetchTemplates(broadcastClinic?.clinic_id||null);
-                      showToast(`Template status: ${d.meta_status}`,'info');
-                    }
-                  }} style={{fontSize:10,padding:"3px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.card,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                    🔄 Check Status
-                  </button>}
-                  {selectedTemplate.status!=="approved"&&<button onClick={async()=>{
-                    const r = await fetch(`${API}/api/templates/${selectedTemplate.id}/submit`,{method:"POST",headers:authHeaders()});
-                    const d = await r.json();
-                    if(r.ok){
-                      showToast(`Submitted! Status: ${d.meta_status}`,'success');
-                      fetchTemplates(broadcastClinic?.clinic_id||null);
-                    } else showToast(d.error,'error');
-                  }} style={{fontSize:10,padding:"3px 8px",borderRadius:6,border:"none",background:"#1877f2",color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
-                    🚀 Submit to Meta
-                  </button>}
-                </div>
-                {selectedTemplate.body_text&&<div style={{marginTop:8,fontSize:12,color:T.text,background:T.bg,borderRadius:8,padding:"8px 10px",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
-                    {(()=>{
-                      try{
-                        const vars=typeof selectedTemplate.variables==="string"?JSON.parse(selectedTemplate.variables||"{}"):selectedTemplate.variables||{};
-                        if(typeof vars==="object"&&!Array.isArray(vars)){
-                          return selectedTemplate.body_text.replace(/{{(\w+)}}/g,(_,k)=>vars[`{{${k}}}`]||`[${k}]`);
-                        }
-                      }catch{}
-                      return selectedTemplate.body_text;
-                    })()}
-                  </div>}
               </div>}
 
               {/* Add template form — simple */}
