@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.221";
+const CRM_VERSION = "2.9.222";
 
 // Responsive hook
 function useWindowSize() {
@@ -3850,6 +3850,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>
               </div>
             </div>}
+            </div>
             </div>
             </div>}
 
