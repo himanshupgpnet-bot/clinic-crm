@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.212";
+const CRM_VERSION = "2.9.213";
 
 // Responsive hook
 function useWindowSize() {
@@ -3606,13 +3606,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   return <div key={t.id}
                     style={{borderRadius:10,border:`1.5px solid ${isSelected?WA_GREEN:T.border}`,
                       background:isSelected?`${WA_GREEN}08`:T.card2,transition:"all .15s",overflow:"hidden"}}>
-                    {/* Card header — clickable to select */}
+                    {/* Card header — clickable to select/expand */}
                     <div onClick={()=>setSelectedTemplate(isSelected?null:t)}
                       style={{padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontWeight:700,fontSize:12,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.template_name}</div>
                         <div style={{fontSize:10,color:T.textFaint,marginTop:1}}>{t.language} · {t.category} · {t.header_type!="none"?t.header_type+" header":"No header"}</div>
                         {t.body_text&&<div style={{fontSize:10,color:T.textMuted,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:200}}>{t.body_text.slice(0,60)}{t.body_text.length>60?"...":""}</div>}
+                        {isSelected&&t.status==="approved"&&<div style={{fontSize:10,color:WA_GREEN,fontWeight:700,marginTop:3}}>✅ Selected for broadcast</div>}
                       </div>
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
                         <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700,background:statusBg,color:statusColor,whiteSpace:"nowrap"}}>
