@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.226";
+const CRM_VERSION = "2.9.227";
 
 // Responsive hook
 function useWindowSize() {
@@ -195,7 +195,9 @@ export default function App() {
   const [exportModal, setExportModal] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [broadcastSubTab, setBroadcastSubTab] = useState("send"); // "send" | "create"
+  const [broadcastSubTab, setBroadcastSubTab] = useState("send");
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [setupMissing, setSetupMissing] = useState([]);
   const [createTemplateStep, setCreateTemplateStep] = useState(1); // 1=setup, 2=edit, 3=submit
   const [createTemplateSubmitting, setCreateTemplateSubmitting] = useState(false);
   const [createTemplateResult, setCreateTemplateResult] = useState(null);
@@ -3536,7 +3538,25 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             {/* Sub-tab switcher */}
             <div style={{display:"flex",gap:8,marginBottom:20,borderBottom:`2px solid ${T.border}`,paddingBottom:0}}>
               {[{id:"send",label:"📢 Send Broadcast"},{id:"create",label:"📝 Create Template"}].map(st=>(
-                <button key={st.id} onClick={()=>{setBroadcastSubTab(st.id);setCreateTemplateStep(1);setCreateTemplateResult(null);}}
+                <button key={st.id} onClick={()=>{
+                  if(st.id==="create") {
+                    // Check required setup
+                    const cs = isAdmin&&broadcastClinic ? broadcastClinic : appSettings;
+                    const missing = [];
+                    const wabaId = cs?.waba_id||cs?.waba_id;
+                    const phoneNumId = cs?.phone_number_id||cs?.wa_phone_number_id;
+                    const token = cs?.whatsapp_token||cs?.wa_token;
+                    if(!wabaId) missing.push({field:"WABA ID", desc:"WhatsApp Business Account ID — found in Meta WhatsApp Manager URL as asset_id"});
+                    if(!phoneNumId) missing.push({field:"Phone Number ID", desc:"Found in Meta Developer → WhatsApp → API Setup"});
+                    if(!token) missing.push({field:"WhatsApp Token", desc:"System user token from Meta Developer app"});
+                    if(missing.length>0) {
+                      setSetupMissing(missing);
+                      setShowSetupModal(true);
+                      return;
+                    }
+                  }
+                  setBroadcastSubTab(st.id);setCreateTemplateStep(1);setCreateTemplateResult(null);
+                }}
                   style={{padding:"8px 16px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",
                     fontSize:13,fontWeight:700,color:broadcastSubTab===st.id?WA_GREEN:T.textMuted,
                     borderBottom:broadcastSubTab===st.id?`2px solid ${WA_GREEN}`:"2px solid transparent",
@@ -4261,6 +4281,34 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>}
 
         {/* ══ CONFIRM MODAL ══ */}
+        {/* Setup Missing Modal */}
+        {showSetupModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:T.card,borderRadius:20,padding:28,maxWidth:440,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+            <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>⚠️</div>
+            <div style={{fontWeight:800,fontSize:18,color:T.text,marginBottom:8,textAlign:"center"}}>Setup Required</div>
+            <div style={{fontSize:13,color:T.textMuted,marginBottom:20,textAlign:"center"}}>
+              To create templates, the following need to be configured in Settings first:
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+              {setupMissing.map((m,i)=>(
+                <div key={i} style={{background:T.card2,borderRadius:12,padding:"12px 14px",border:`1px solid ${T.border}`}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#ef4444",marginBottom:4}}>❌ {m.field}</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{m.desc}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setShowSetupModal(false)}
+                style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                Close
+              </button>
+              <button onClick={()=>{setShowSetupModal(false);setTab("settings");}}
+                style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                Go to Settings →
+              </button>
+            </div>
+          </div>
+        </div>}
         <ConfirmModal modal={confirmModal} onClose={()=>setConfirmModal(null)} T={T} WA_GREEN={WA_GREEN}/>
 
         {/* ══ IDLE WARNING MODAL ══ */}
