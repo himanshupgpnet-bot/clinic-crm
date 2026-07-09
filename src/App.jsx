@@ -3850,8 +3850,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>
               </div>
             </div>}
-            </div>{/* end 2-col grid */}
-            </div> {/* end send tab */}
+            </div>
+            </div>}
 
             {/* ── CREATE TEMPLATE ── */}
             {broadcastSubTab==="create"&&<CreateTemplatePanel
