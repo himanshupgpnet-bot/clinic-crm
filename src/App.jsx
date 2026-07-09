@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.215";
+const CRM_VERSION = "2.9.216";
 
 // Responsive hook
 function useWindowSize() {
@@ -3616,34 +3616,58 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 })}
               </div>}
 
-              {/* Selected template — phone preview */}
-              {selectedTemplate&&<div style={{marginTop:12}}>
-                <div style={{fontWeight:600,fontSize:11,color:T.textMuted,marginBottom:8,textAlign:"center"}}>Template Preview</div>
-                <div style={{width:220,margin:"0 auto",background:"#1a1a1a",borderRadius:28,padding:"10px 6px",boxShadow:"0 4px 20px rgba(0,0,0,.3)"}}>
+              {/* Selected template — phone preview (right side) */}
+              {selectedTemplate&&<div style={{display:"grid",gridTemplateColumns:"1fr 260px",gap:16,marginTop:12,alignItems:"start"}}>
+                <div style={{fontSize:11,color:T.textMuted}}>
+                  <div style={{fontWeight:700,color:T.text,fontSize:13,marginBottom:4}}>{selectedTemplate.template_name}</div>
+                  <div style={{marginBottom:2}}>{selectedTemplate.category} · {selectedTemplate.language}</div>
+                  {selectedTemplate.header_type!=="none"&&<div style={{marginBottom:2}}>Header: {selectedTemplate.header_type}</div>}
+                  {selectedTemplate.buttons&&JSON.parse(selectedTemplate.buttons||"[]").length>0&&
+                    <div style={{marginBottom:2}}>Buttons: {JSON.parse(selectedTemplate.buttons||"[]").length}</div>}
+                </div>
+                {/* Phone frame */}
+                <div style={{background:"#1a1a1a",borderRadius:32,padding:"10px 6px",boxShadow:"0 6px 24px rgba(0,0,0,.35)"}}>
                   <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
                     <div style={{width:40,height:4,borderRadius:2,background:"#333"}}/>
                   </div>
-                  <div style={{background:"#e5ddd5",borderRadius:20,overflow:"hidden"}}>
-                    <div style={{background:"#075e54",padding:"8px 10px",display:"flex",alignItems:"center",gap:6}}>
-                      <div style={{width:24,height:24,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>
+                  <div style={{background:"#e5ddd5",borderRadius:22,overflow:"hidden",minHeight:300}}>
+                    <div style={{background:"#075e54",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:28,height:28,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700}}>
                         {selectedTemplate.template_name[0]?.toUpperCase()}
                       </div>
-                      <div style={{fontSize:10,fontWeight:700,color:"#fff"}}>{selectedTemplate.template_name}</div>
+                      <div style={{fontSize:11,fontWeight:700,color:"#fff"}}>{selectedTemplate.template_name}</div>
                     </div>
                     <div style={{padding:"8px 6px"}}>
-                      <div style={{background:"#fff",borderRadius:"0 8px 8px 8px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                      <div style={{background:"#fff",borderRadius:"0 10px 10px 10px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                        {/* Image header */}
                         {selectedTemplate.header_value&&selectedTemplate.header_type==="IMAGE"&&
-                          <img src={selectedTemplate.header_value} alt="header" style={{width:"100%",height:80,objectFit:"cover"}}/>}
+                          <img src={selectedTemplate.header_value} alt="header" style={{width:"100%",maxHeight:130,objectFit:"cover"}}/>}
+                        {/* Video header — playable */}
                         {selectedTemplate.header_value&&selectedTemplate.header_type==="VIDEO"&&
-                          <div style={{height:80,background:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                            <span style={{fontSize:20}}>▶️</span>
+                          <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:130,objectFit:"cover",display:"block"}}/>}
+                        {/* Document header */}
+                        {selectedTemplate.header_value&&selectedTemplate.header_type==="DOCUMENT"&&
+                          <div style={{padding:"8px",background:"#f5f5f5",display:"flex",alignItems:"center",gap:6,borderBottom:"1px solid #eee"}}>
+                            <span>📄</span><span style={{fontSize:10,color:"#555",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selectedTemplate.header_value.split("/").pop()}</span>
                           </div>}
-                        {selectedTemplate.body_text&&<div style={{padding:"8px",fontSize:10,color:"#1a1a1a",lineHeight:1.4,whiteSpace:"pre-wrap"}}>
-                          {selectedTemplate.body_text.slice(0,150)}{selectedTemplate.body_text.length>150?"...":""}
+                        {/* Text header */}
+                        {selectedTemplate.header_text&&<div style={{padding:"8px 10px 4px",fontWeight:700,fontSize:11,color:"#1a1a1a"}}>{selectedTemplate.header_text}</div>}
+                        {/* Body */}
+                        {selectedTemplate.body_text&&<div style={{padding:"8px 10px",fontSize:11,color:"#1a1a1a",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
+                          {selectedTemplate.body_text}
                         </div>}
-                        {selectedTemplate.footer_text&&<div style={{padding:"2px 8px 6px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
-                        <div style={{padding:"0 8px 6px",fontSize:8,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+                        {/* Footer */}
+                        {selectedTemplate.footer_text&&<div style={{padding:"2px 10px 6px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
+                        <div style={{padding:"0 10px 6px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
                       </div>
+                      {/* Buttons */}
+                      {(()=>{try{const btns=JSON.parse(selectedTemplate.buttons||"[]");
+                        return btns.length>0&&<div style={{marginTop:4,display:"flex",flexDirection:"column",gap:3}}>
+                          {btns.slice(0,3).map((b,i)=><div key={i} style={{background:"#fff",borderRadius:8,padding:"8px",textAlign:"center",fontSize:10,fontWeight:600,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                            {b.type==="URL"?"🔗 ":b.type==="PHONE_NUMBER"?"📞 ":b.type==="COPY_CODE"?"📋 ":"↩️ "}{b.text||b.example}
+                          </div>)}
+                        </div>;
+                      }catch{return null;}})()}
                     </div>
                   </div>
                   <div style={{display:"flex",justifyContent:"center",marginTop:6}}>
