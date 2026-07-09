@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.216";
+const CRM_VERSION = "2.9.217";
 
 // Responsive hook
 function useWindowSize() {
@@ -3622,8 +3622,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <div style={{fontWeight:700,color:T.text,fontSize:13,marginBottom:4}}>{selectedTemplate.template_name}</div>
                   <div style={{marginBottom:2}}>{selectedTemplate.category} · {selectedTemplate.language}</div>
                   {selectedTemplate.header_type!=="none"&&<div style={{marginBottom:2}}>Header: {selectedTemplate.header_type}</div>}
-                  {selectedTemplate.buttons&&JSON.parse(selectedTemplate.buttons||"[]").length>0&&
-                    <div style={{marginBottom:2}}>Buttons: {JSON.parse(selectedTemplate.buttons||"[]").length}</div>}
+                  {(()=>{try{const b=JSON.parse(selectedTemplate.buttons||"[]");return Array.isArray(b)&&b.length>0&&<div style={{marginBottom:2}}>Buttons: {b.length}</div>}catch{return null}})()} 
                 </div>
                 {/* Phone frame */}
                 <div style={{background:"#1a1a1a",borderRadius:32,padding:"10px 6px",boxShadow:"0 6px 24px rgba(0,0,0,.35)"}}>
@@ -3662,7 +3661,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       </div>
                       {/* Buttons */}
                       {(()=>{try{const btns=JSON.parse(selectedTemplate.buttons||"[]");
-                        return btns.length>0&&<div style={{marginTop:4,display:"flex",flexDirection:"column",gap:3}}>
+                        if(!Array.isArray(btns)||btns.length===0) return null;
+                        return <div style={{marginTop:4,display:"flex",flexDirection:"column",gap:3}}>
                           {btns.slice(0,3).map((b,i)=><div key={i} style={{background:"#fff",borderRadius:8,padding:"8px",textAlign:"center",fontSize:10,fontWeight:600,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
                             {b.type==="URL"?"🔗 ":b.type==="PHONE_NUMBER"?"📞 ":b.type==="COPY_CODE"?"📋 ":"↩️ "}{b.text||b.example}
                           </div>)}
