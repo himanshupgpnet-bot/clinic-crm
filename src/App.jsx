@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.238";
+const CRM_VERSION = "2.9.239";
 
 // Responsive hook
 function useWindowSize() {
@@ -208,6 +208,18 @@ export default function App() {
   const [broadcastContacts, setBroadcastContacts] = useState([]);
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastSearch, setBroadcastSearch] = useState("");
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState("");
+  const [scheduledBroadcasts, setScheduledBroadcasts] = useState([]);
+
+  const fetchScheduledBroadcasts = async (clinicId) => {
+    try {
+      const url = clinicId ? `${API}/api/admin/clients/${clinicId}/scheduled-broadcasts` : `${API}/api/scheduled-broadcasts`;
+      const r = await fetch(url, {headers: authHeaders()});
+      const d = await r.json();
+      setScheduledBroadcasts(Array.isArray(d) ? d : []);
+    } catch(e) {}
+  };
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -3793,43 +3805,104 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             {/* Send */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>3. Send Broadcast</div>
+
+              {/* Send Now / Schedule toggle */}
+              <div style={{display:"flex",gap:8,marginBottom:14}}>
+                <button onClick={()=>setScheduleMode(false)}
+                  style={{flex:1,padding:"9px",borderRadius:8,border:`2px solid ${!scheduleMode?WA_GREEN:T.border}`,
+                    background:!scheduleMode?WA_GREEN+"15":"transparent",color:!scheduleMode?WA_GREEN:T.text,
+                    fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  📤 Send Now
+                </button>
+                <button onClick={()=>setScheduleMode(true)}
+                  style={{flex:1,padding:"9px",borderRadius:8,border:`2px solid ${scheduleMode?WA_GREEN:T.border}`,
+                    background:scheduleMode?WA_GREEN+"15":"transparent",color:scheduleMode?WA_GREEN:T.text,
+                    fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  🕐 Schedule
+                </button>
+              </div>
+
+              {/* Schedule date/time picker */}
+              {scheduleMode&&<div style={{marginBottom:14}}>
+                <label style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:4,display:"block"}}>Select date & time</label>
+                <input type="datetime-local" value={scheduleAt} onChange={e=>setScheduleAt(e.target.value)}
+                  min={new Date(Date.now()+60000).toISOString().slice(0,16)}
+                  style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,
+                    background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+              </div>}
+
+              {/* Send / Schedule button */}
               <button onClick={async()=>{
                 if(!selectedTemplate) return showToast("Select a template first","#ef4444");
                 if(broadcastContacts.length===0) return showToast("Select contacts first","#ef4444");
                 const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                setBroadcastProgress({active:true,done:0,total:broadcastContacts.length,failed:0});
-                let done=0,failed=0;
-                for(const contact of broadcastContacts){
-                  try{
-                    const url=clinicId?`${API}/api/admin/clients/${clinicId}/broadcast`:`${API}/api/broadcast/send`;
-                    const token=sessionStorage.getItem("crm_token");
-                    const result = await new Promise((resolve)=>{
-                      const xhr=new XMLHttpRequest();
-                      xhr.open("POST",url);
-                      xhr.setRequestHeader("Authorization","Bearer "+token);
-                      xhr.setRequestHeader("Content-Type","application/json");
-                      xhr.onload=()=>resolve(xhr.status>=200&&xhr.status<300);
-                      xhr.onerror=()=>resolve(false);
-                      xhr.send(JSON.stringify({
-                        template_name:selectedTemplate.template_name,
-                        language:selectedTemplate.language||"en",
-                        phone:contact.phone,
-                        name:contact.name||contact.phone,
-                        header_value:selectedTemplate.header_value||"",
-                        header_type:selectedTemplate.header_type||"none"
-                      }));
-                    });
-                    if(result) done++; else failed++;
-                  }catch{failed++;}
-                  setBroadcastProgress({active:true,done:done+failed,total:broadcastContacts.length,failed});
+
+                if(scheduleMode) {
+                  // Schedule broadcast
+                  if(!scheduleAt) return showToast("Select a date and time","#ef4444");
+                  const scheduledUtc = new Date(scheduleAt).toISOString();
+                  const url = clinicId ? `${API}/api/admin/clients/${clinicId}/scheduled-broadcasts` : `${API}/api/scheduled-broadcasts`;
+                  const token = sessionStorage.getItem("crm_token");
+                  const xhr = new XMLHttpRequest();
+                  xhr.open("POST", url);
+                  xhr.setRequestHeader("Authorization","Bearer "+token);
+                  xhr.setRequestHeader("Content-Type","application/json");
+                  xhr.onload = () => {
+                    if(xhr.status===200||xhr.status===201) {
+                      showToast(`✅ Scheduled for ${new Date(scheduleAt).toLocaleString()}`,"#22c55e");
+                      setScheduleAt("");
+                      setScheduleMode(false);
+                      fetchScheduledBroadcasts(clinicId);
+                    } else {
+                      showToast("❌ Failed to schedule","#ef4444");
+                    }
+                  };
+                  xhr.send(JSON.stringify({
+                    template_name:selectedTemplate.template_name,
+                    language:selectedTemplate.language||"en",
+                    header_value:selectedTemplate.header_value||"",
+                    header_type:selectedTemplate.header_type||"none",
+                    contacts:broadcastContacts,
+                    scheduled_at:scheduledUtc
+                  }));
+                } else {
+                  // Send now
+                  setBroadcastProgress({active:true,done:0,total:broadcastContacts.length,failed:0});
+                  let done=0,failed=0;
+                  for(const contact of broadcastContacts){
+                    try{
+                      const url=clinicId?`${API}/api/admin/clients/${clinicId}/broadcast`:`${API}/api/broadcast/send`;
+                      const token=sessionStorage.getItem("crm_token");
+                      const result = await new Promise((resolve)=>{
+                        const xhr=new XMLHttpRequest();
+                        xhr.open("POST",url);
+                        xhr.setRequestHeader("Authorization","Bearer "+token);
+                        xhr.setRequestHeader("Content-Type","application/json");
+                        xhr.onload=()=>resolve(xhr.status>=200&&xhr.status<300);
+                        xhr.onerror=()=>resolve(false);
+                        xhr.send(JSON.stringify({
+                          template_name:selectedTemplate.template_name,
+                          language:selectedTemplate.language||"en",
+                          phone:contact.phone,
+                          name:contact.name||contact.phone,
+                          header_value:selectedTemplate.header_value||"",
+                          header_type:selectedTemplate.header_type||"none"
+                        }));
+                      });
+                      if(result) done++; else failed++;
+                    }catch{failed++;}
+                    setBroadcastProgress({active:true,done:done+failed,total:broadcastContacts.length,failed});
+                  }
+                  setBroadcastProgress({active:false,done,total:broadcastContacts.length,failed});
                 }
-                setBroadcastProgress({active:false,done,total:broadcastContacts.length,failed});
               }} disabled={!selectedTemplate||broadcastContacts.length===0||broadcastProgress?.active}
                 style={{width:"100%",padding:"12px",borderRadius:10,border:"none",
                   background:(!selectedTemplate||broadcastContacts.length===0)?"#ccc":WA_GREEN,
-                  color:"#fff",fontSize:14,fontWeight:700,cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer",fontFamily:"inherit"}}>
-                📤 Send to {broadcastContacts.length} Contacts
+                  color:"#fff",fontSize:14,fontWeight:700,
+                  cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer",fontFamily:"inherit"}}>
+                {scheduleMode?`🕐 Schedule for ${broadcastContacts.length} Contacts`:`📤 Send to ${broadcastContacts.length} Contacts`}
               </button>
+
               {broadcastProgress&&<div style={{marginTop:14,background:T.card2,borderRadius:10,padding:14}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
                   <span style={{fontSize:12,fontWeight:600,color:T.text}}>{broadcastProgress.active?"Sending...":"Done!"}</span>
@@ -3842,6 +3915,30 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
               </div>}
             </div>
+
+            {/* Scheduled broadcasts list */}
+            {scheduledBroadcasts.length>0&&<div style={{background:T.card,borderRadius:16,padding:20,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>📅 Scheduled</div>
+              {scheduledBroadcasts.filter(s=>s.status==="pending").map(s=>(
+                <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                  padding:"10px 12px",background:T.card2,borderRadius:10,marginBottom:8,border:`1px solid ${T.border}`}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:12,color:T.text}}>{s.template_name}</div>
+                    <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>
+                      {new Date(s.scheduled_at).toLocaleString()} · {JSON.parse(s.contacts||"[]").length} contacts
+                    </div>
+                  </div>
+                  <button onClick={async()=>{
+                    const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                    await fetch(`${API}/api/scheduled-broadcasts/${s.id}`,{method:"DELETE",headers:authHeaders()});
+                    fetchScheduledBroadcasts(clinicId);
+                  }} style={{padding:"4px 10px",borderRadius:8,border:`1px solid #ef4444`,background:"transparent",
+                    color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                    Cancel
+                  </button>
+                </div>
+              ))}
+            </div>}
             </div>
             </div>}
 
