@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.230";
+const CRM_VERSION = "2.9.232";
 
 // Responsive hook
 function useWindowSize() {
@@ -1545,7 +1545,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   const navStyle = {height:56,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 12px",gap:4,flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.07)"};
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100dvh",background:T.bg,fontFamily:"'Segoe UI', sans-serif",color:T.text,overflow:"hidden"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:T.bg,fontFamily:"'Segoe UI', sans-serif",color:T.text,overflow:"hidden"}}>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
@@ -3532,7 +3532,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>}
 
           {/* Main content */}
-          <div style={{flex:1,overflowY:"auto",padding:24}}>
           {(!isAdmin||(isAdmin&&broadcastClinic))&&<div style={{maxWidth:700,margin:"0 auto"}}>
 
             {/* Sub-tab switcher */}
@@ -3697,7 +3696,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </button>
               </div>}
             </div>
+            </div>}
 
+            {broadcastSubTab==="create"&&<CreateTemplatePanel
               T={T} WA_GREEN={WA_GREEN} dark={dark}
               API={API} authHeaders={authHeaders} authToken={authToken}
               isAdmin={isAdmin} broadcastClinic={broadcastClinic}
@@ -3712,7 +3713,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client</div>
             <div style={{fontSize:13}}>Choose from the sidebar to send broadcasts</div>
           </div>}
-          </div>
+          </div>}
         </div>}
 
         {tab==="notes"&&<NotesTab
@@ -4123,47 +4124,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
           </div>
         </div>}
-        {/* Fixed phone preview when template selected in broadcast */}
-        {tab==="broadcast"&&broadcastSubTab==="send"&&selectedTemplate&&<div style={{
-          position:"fixed",right:20,top:"50%",transform:"translateY(-50%)",
-          zIndex:100,width:240,background:"#1a1a1a",borderRadius:32,padding:"10px 6px",
-          boxShadow:"0 8px 32px rgba(0,0,0,.5)"}}>
-          <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
-            <div style={{width:50,height:4,borderRadius:2,background:"#333"}}/>
-          </div>
-          <div style={{background:"#e5ddd5",borderRadius:22,overflow:"hidden"}}>
-            <div style={{background:"#075e54",padding:"8px 10px",display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:26,height:26,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700,flexShrink:0}}>
-                {selectedTemplate.template_name[0]?.toUpperCase()}
-              </div>
-              <div style={{fontSize:10,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selectedTemplate.template_name}</div>
-            </div>
-            <div style={{padding:"8px 6px",maxHeight:400,overflowY:"auto"}}>
-              <div style={{background:"#fff",borderRadius:"0 10px 10px 10px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
-                  <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:120,objectFit:"cover",display:"block"}}/>}
-                {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="VIDEO"&&
-                  <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:120,display:"block"}}/>}
-                {selectedTemplate.body_text&&<div style={{padding:"8px 10px",fontSize:11,color:"#1a1a1a",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
-                  {selectedTemplate.body_text}
-                </div>}
-                {selectedTemplate.footer_text&&<div style={{padding:"0 10px 6px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
-                <div style={{padding:"0 10px 6px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
-              </div>
-              {(()=>{try{const btns=JSON.parse(selectedTemplate.buttons||"[]");
-                if(!Array.isArray(btns)||btns.length===0) return null;
-                return <div style={{marginTop:4,display:"flex",flexDirection:"column",gap:3}}>
-                  {btns.slice(0,3).map((b,i)=><div key={i} style={{background:"#fff",borderRadius:8,padding:"8px",textAlign:"center",fontSize:10,fontWeight:600,color:"#0088cc",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                    {b.type==="URL"?"🔗 ":b.type==="PHONE_NUMBER"?"📞 ":b.type==="COPY_CODE"?"📋 ":"↩️ "}{b.text||b.example}
-                  </div>)}
-                </div>;
-              }catch{return null;}})()}
-            </div>
-          </div>
-          <div style={{display:"flex",justifyContent:"center",marginTop:6}}>
-            <div style={{width:30,height:4,borderRadius:2,background:"#333"}}/>
-          </div>
-        </div>}
+
         <ConfirmModal modal={confirmModal} onClose={()=>setConfirmModal(null)} T={T} WA_GREEN={WA_GREEN}/>
 
         {/* ══ IDLE WARNING MODAL ══ */}
