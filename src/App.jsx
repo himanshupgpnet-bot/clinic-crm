@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.243";
+const CRM_VERSION = "2.9.244";
 
 // Responsive hook
 function useWindowSize() {
@@ -3778,26 +3778,46 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box"}}/>
               {/* Contact list with checkboxes */}
               <div style={{maxHeight:200,overflowY:"auto",border:`1px solid ${T.border}`,borderRadius:8}}>
-                {contacts.filter(c=>{
+                {(()=>{
                   const q=(broadcastSearch||"").toLowerCase();
-                  return !q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q);
-                }).map((c,i,arr)=>{
-                  const isChecked = broadcastContacts.some(x=>x.phone===c.phone);
-                  return <div key={c.phone||i} onClick={()=>{
-                    if(isChecked) setBroadcastContacts(p=>p.filter(x=>x.phone!==c.phone));
-                    else setBroadcastContacts(p=>[...p,{name:c.name||c.phone,phone:c.phone}]);
-                  }} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer",
-                    background:isChecked?`${WA_GREEN}10`:"transparent",
-                    borderBottom:i<arr.length-1?`1px solid ${T.border}`:"none"}}>
-                    <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${isChecked?WA_GREEN:T.border}`,background:isChecked?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      {isChecked&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:600,color:T.text}}>{c.name||c.phone}</div>
-                      <div style={{fontSize:10,color:T.textMuted}}>{c.phone}</div>
-                    </div>
-                  </div>;
-                })}
+                  const filtered=contacts.filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q));
+                  const phoneMatch=broadcastSearch&&broadcastSearch.replace(/\D/g,"").length>=7;
+                  const exactMatch=contacts.some(c=>c.phone===broadcastSearch||c.phone==="+"+broadcastSearch||c.phone.replace(/\D/g,"")===broadcastSearch.replace(/\D/g,""));
+                  return <>
+                    {filtered.map((c,i,arr)=>{
+                      const isChecked = broadcastContacts.some(x=>x.phone===c.phone);
+                      return <div key={c.phone||i} onClick={()=>{
+                        if(isChecked) setBroadcastContacts(p=>p.filter(x=>x.phone!==c.phone));
+                        else setBroadcastContacts(p=>[...p,{name:c.name||c.phone,phone:c.phone}]);
+                      }} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer",
+                        background:isChecked?`${WA_GREEN}10`:"transparent",
+                        borderBottom:i<arr.length-1?`1px solid ${T.border}`:"none"}}>
+                        <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${isChecked?WA_GREEN:T.border}`,background:isChecked?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          {isChecked&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:600,color:T.text}}>{c.name||c.phone}</div>
+                          <div style={{fontSize:10,color:T.textMuted}}>{c.phone}</div>
+                        </div>
+                      </div>;
+                    })}
+                    {phoneMatch&&!exactMatch&&<div onClick={()=>{
+                      const newContact={name:broadcastSearch,phone:broadcastSearch};
+                      setBroadcastContacts(p=>[...p,newContact]);
+                      setBroadcastSearch("");
+                    }} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer",
+                      background:WA_GREEN+"08",borderTop:filtered.length>0?`1px solid ${T.border}`:"none"}}>
+                      <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${WA_GREEN}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <span style={{color:WA_GREEN,fontSize:14,fontWeight:700}}>+</span>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,fontWeight:600,color:WA_GREEN}}>Add "{broadcastSearch}"</div>
+                        <div style={{fontSize:10,color:T.textMuted}}>Send to this number directly</div>
+                      </div>
+                    </div>}
+                    {filtered.length===0&&!phoneMatch&&<div style={{padding:"12px",fontSize:12,color:T.textMuted,textAlign:"center"}}>No contacts found</div>}
+                  </>;
+                })()}
               </div>
               {broadcastContacts.length>0&&<div style={{marginTop:6,fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} selected</div>}
             </div>
