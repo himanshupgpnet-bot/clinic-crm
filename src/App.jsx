@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.234";
+const CRM_VERSION = "2.9.235";
 
 // Responsive hook
 function useWindowSize() {
@@ -3700,45 +3700,44 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             {/* Upload contacts */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>2. Select Contacts</div>
-              <div style={{display:"flex",gap:8,marginBottom:12}}>
-                <button onClick={()=>document.getElementById("broadcast-file-input").click()}
-                  style={{padding:"9px 16px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
-                  📎 Upload CSV / Excel
-                </button>
-                <select onChange={e=>{
-                  const val = e.target.value;
-                  if(!val) return;
-                  const filtered = contacts.filter(c=>val==="all"?true:val==="hot"?c.lead_score>=70:val==="warm"?(c.lead_score>=30&&c.lead_score<70):c.lead_score<30);
-                  setBroadcastContacts(filtered.map(c=>({name:c.name||c.phone,phone:c.phone})));
-                  e.target.value="";
-                }} style={{flex:1,padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                  <option value="">Or select from contacts…</option>
-                  <option value="all">All contacts</option>
-                  <option value="hot">🔥 Hot leads only</option>
-                  <option value="warm">🟡 Warm leads only</option>
-                  <option value="cold">🔵 Cold leads only</option>
-                </select>
-              </div>
-              <input type="file" accept=".csv,.xlsx,.xls" style={{display:"none"}} id="broadcast-file-input" onChange={async e=>{
-                const file = e.target.files[0]; if(!file) return;
-                const text = await file.text();
-                const lines2 = text.split("\n").filter(Boolean);
-                const parsed = lines2.slice(1).map(l=>{const p=l.split(",");return{name:(p[0]||"").trim().replace(/"/g,""),phone:(p[1]||p[0]||"").trim().replace(/"/g,"").replace(/\s/g,"")};}).filter(c=>c.phone);
-                setBroadcastContacts(parsed);
-              }}/>
-              {broadcastContacts.length>0&&<div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <span style={{fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} contact{broadcastContacts.length>1?"s":""} selected</span>
-                  <button onClick={()=>setBroadcastContacts([])} style={{border:"none",background:"none",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Clear</button>
-                </div>
-                <div style={{maxHeight:120,overflowY:"auto",fontSize:11,color:T.textMuted}}>
-                  {broadcastContacts.map((c,i)=>(
-                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",borderBottom:i<broadcastContacts.length-1?`1px solid ${T.border}`:"none"}}>
-                      <span>{c.name||c.phone}</span>
-                      <span style={{color:T.textFaint}}>{c.phone}</span>
+              <button onClick={()=>document.getElementById("broadcast-file-input").click()}
+                style={{padding:"9px 16px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:12}}>
+                📎 Upload CSV / Excel
+              </button>
+              <input type="file" accept=".csv,.xlsx,.xls" onChange={e=>{
+                const file=e.target.files[0]; if(!file) return;
+                const reader=new FileReader();
+                reader.onload=ev=>{
+                  const text=ev.target.result;
+                  const rows=text.split("\n").filter(Boolean);
+                  const parsed=rows.slice(1).map(l=>{const p=l.split(",");return{name:(p[0]||"").trim().replace(/"/g,""),phone:(p[1]||p[0]||"").trim().replace(/"/g,"").replace(/\s/g,"")};}).filter(c=>c.phone);
+                  setBroadcastContacts(parsed);
+                };
+                reader.readAsText(file);
+              }} style={{display:"none"}} id="broadcast-file-input"/>
+              {/* Contact list with checkboxes */}
+              <div style={{maxHeight:200,overflowY:"auto",border:`1px solid ${T.border}`,borderRadius:8}}>
+                {contacts.map((c,i)=>{
+                  const isChecked = broadcastContacts.some(x=>x.phone===c.phone);
+                  return <div key={c.phone||i} onClick={()=>{
+                    if(isChecked) setBroadcastContacts(p=>p.filter(x=>x.phone!==c.phone));
+                    else setBroadcastContacts(p=>[...p,{name:c.name||c.phone,phone:c.phone}]);
+                  }} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer",
+                    background:isChecked?`${WA_GREEN}10`:"transparent",
+                    borderBottom:i<contacts.length-1?`1px solid ${T.border}`:"none"}}>
+                    <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${isChecked?WA_GREEN:T.border}`,background:isChecked?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      {isChecked&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
                     </div>
-                  ))}
-                </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,color:T.text}}>{c.name||c.phone}</div>
+                      <div style={{fontSize:10,color:T.textMuted}}>{c.phone}</div>
+                    </div>
+                  </div>;
+                })}
+              </div>
+              {broadcastContacts.length>0&&<div style={{marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} selected</span>
+                <button onClick={()=>setBroadcastContacts([])} style={{border:"none",background:"none",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Clear all</button>
               </div>}
             </div>
 
@@ -3746,13 +3745,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>3. Send Broadcast</div>
               <div style={{marginBottom:12}}>
-                <label style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:4,display:"block"}}>Personalisation variable (replaces {"{{1}}"} in message)</label>
-                <input id="broadcast-name-input" placeholder="e.g. customer name or promo code"
+                <label style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:4,display:"block"}}>Customer name (used in message personalisation)</label>
+                <input id="broadcast-name-input" placeholder="Leave blank to use contact name"
                   style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
               </div>
               <button onClick={async()=>{
                 if(!selectedTemplate) return showToast("Select a template first","#ef4444");
-                if(broadcastContacts.length===0) return showToast("Add contacts first","#ef4444");
+                if(broadcastContacts.length===0) return showToast("Select contacts first","#ef4444");
                 const nameVal = document.getElementById("broadcast-name-input")?.value||"";
                 const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
                 setBroadcastProgress({active:true,done:0,total:broadcastContacts.length,failed:0});
