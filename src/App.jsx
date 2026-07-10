@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.235";
+const CRM_VERSION = "2.9.236";
 
 // Responsive hook
 function useWindowSize() {
@@ -207,6 +207,7 @@ export default function App() {
   const [newTemplate, setNewTemplate] = useState({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
   const [broadcastContacts, setBroadcastContacts] = useState([]);
   const [broadcastProgress, setBroadcastProgress] = useState(null);
+  const [broadcastSearch, setBroadcastSearch] = useState("");
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -3697,13 +3698,58 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </button>
               </div>}
 
+            {/* Phone preview */}
+            {selectedTemplate&&<div style={{marginBottom:16,display:"flex",justifyContent:"center"}}>
+              <div style={{width:260,background:"#1a1a1a",borderRadius:32,padding:"10px 6px",boxShadow:"0 6px 24px rgba(0,0,0,.4)"}}>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+                  <div style={{width:40,height:4,borderRadius:2,background:"#333"}}/>
+                </div>
+                <div style={{background:"#e5ddd5",borderRadius:22,overflow:"hidden"}}>
+                  <div style={{background:"#075e54",padding:"8px 10px",display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:26,height:26,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>
+                      {selectedTemplate.template_name[0]?.toUpperCase()}
+                    </div>
+                    <div style={{fontSize:11,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selectedTemplate.template_name}</div>
+                  </div>
+                  <div style={{padding:"8px 6px"}}>
+                    <div style={{background:"#fff",borderRadius:"0 10px 10px 10px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
+                        <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:130,objectFit:"cover",display:"block"}}/>}
+                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="VIDEO"&&
+                        <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:130,display:"block"}}/>}
+                      {selectedTemplate.body_text&&<div style={{padding:"8px 10px",fontSize:11,color:"#1a1a1a",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
+                        {selectedTemplate.body_text}
+                      </div>}
+                      {selectedTemplate.footer_text&&<div style={{padding:"0 10px 6px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
+                      <div style={{padding:"0 10px 6px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{display:"flex",justifyContent:"center",marginTop:6}}>
+                  <div style={{width:30,height:4,borderRadius:2,background:"#333"}}/>
+                </div>
+              </div>
+            </div>}
+
             {/* Upload contacts */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>2. Select Contacts</div>
-              <button onClick={()=>document.getElementById("broadcast-file-input").click()}
-                style={{padding:"9px 16px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:12}}>
-                📎 Upload CSV / Excel
-              </button>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontWeight:700,fontSize:14,color:T.text}}>2. Select Contacts</div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>setBroadcastContacts(contacts.map(c=>({name:c.name||c.phone,phone:c.phone})))}
+                    style={{fontSize:11,padding:"4px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit"}}>
+                    Select all
+                  </button>
+                  <button onClick={()=>setBroadcastContacts([])}
+                    style={{fontSize:11,padding:"4px 10px",borderRadius:8,border:`1px solid #ef4444`,background:"transparent",color:"#ef4444",cursor:"pointer",fontFamily:"inherit"}}>
+                    Clear
+                  </button>
+                  <button onClick={()=>document.getElementById("broadcast-file-input").click()}
+                    style={{fontSize:11,padding:"4px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit"}}>
+                    📎 CSV
+                  </button>
+                </div>
+              </div>
               <input type="file" accept=".csv,.xlsx,.xls" onChange={e=>{
                 const file=e.target.files[0]; if(!file) return;
                 const reader=new FileReader();
@@ -3715,16 +3761,22 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 };
                 reader.readAsText(file);
               }} style={{display:"none"}} id="broadcast-file-input"/>
+              {/* Search */}
+              <input placeholder="Search by name or number..." value={broadcastSearch||""} onChange={e=>setBroadcastSearch(e.target.value)}
+                style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box"}}/>
               {/* Contact list with checkboxes */}
               <div style={{maxHeight:200,overflowY:"auto",border:`1px solid ${T.border}`,borderRadius:8}}>
-                {contacts.map((c,i)=>{
+                {contacts.filter(c=>{
+                  const q=(broadcastSearch||"").toLowerCase();
+                  return !q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q);
+                }).map((c,i,arr)=>{
                   const isChecked = broadcastContacts.some(x=>x.phone===c.phone);
                   return <div key={c.phone||i} onClick={()=>{
                     if(isChecked) setBroadcastContacts(p=>p.filter(x=>x.phone!==c.phone));
                     else setBroadcastContacts(p=>[...p,{name:c.name||c.phone,phone:c.phone}]);
                   }} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer",
                     background:isChecked?`${WA_GREEN}10`:"transparent",
-                    borderBottom:i<contacts.length-1?`1px solid ${T.border}`:"none"}}>
+                    borderBottom:i<arr.length-1?`1px solid ${T.border}`:"none"}}>
                     <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${isChecked?WA_GREEN:T.border}`,background:isChecked?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       {isChecked&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
                     </div>
@@ -3735,24 +3787,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </div>;
                 })}
               </div>
-              {broadcastContacts.length>0&&<div style={{marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} selected</span>
-                <button onClick={()=>setBroadcastContacts([])} style={{border:"none",background:"none",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Clear all</button>
-              </div>}
+              {broadcastContacts.length>0&&<div style={{marginTop:6,fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} selected</div>}
             </div>
 
             {/* Send */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
               <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>3. Send Broadcast</div>
-              <div style={{marginBottom:12}}>
-                <label style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:4,display:"block"}}>Customer name (used in message personalisation)</label>
-                <input id="broadcast-name-input" placeholder="Leave blank to use contact name"
-                  style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
-              </div>
               <button onClick={async()=>{
                 if(!selectedTemplate) return showToast("Select a template first","#ef4444");
                 if(broadcastContacts.length===0) return showToast("Select contacts first","#ef4444");
-                const nameVal = document.getElementById("broadcast-name-input")?.value||"";
                 const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
                 setBroadcastProgress({active:true,done:0,total:broadcastContacts.length,failed:0});
                 let done=0,failed=0;
@@ -3763,7 +3806,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       template_name:selectedTemplate.template_name,
                       language:selectedTemplate.language||"en",
                       phone:contact.phone,
-                      name:nameVal||contact.name||contact.phone,
+                      name:contact.name||contact.phone,
                       header_value:selectedTemplate.header_value||"",
                       header_type:selectedTemplate.header_type||"none"
                     })});
