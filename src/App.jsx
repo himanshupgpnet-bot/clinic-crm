@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.240";
+const CRM_VERSION = "2.9.241";
 
 // Responsive hook
 function useWindowSize() {
@@ -3933,7 +3933,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <div>
                     <div style={{fontWeight:700,fontSize:12,color:T.text}}>{s.template_name}</div>
                     <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>
-                      {new Date(s.scheduled_at).toLocaleString()} · {JSON.parse(s.contacts||"[]").length} contacts
+                      {new Date(s.scheduled_at).toLocaleString()} · {(Array.isArray(s.contacts)?s.contacts:(typeof s.contacts==="string"?JSON.parse(s.contacts||"[]"):[])).length} contacts
                     </div>
                   </div>
                   <button onClick={async()=>{
