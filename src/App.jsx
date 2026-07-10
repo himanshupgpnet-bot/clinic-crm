@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.233";
+const CRM_VERSION = "2.9.234";
 
 // Responsive hook
 function useWindowSize() {
@@ -3696,6 +3696,101 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   💾 Save Template
                 </button>
               </div>}
+
+            {/* Upload contacts */}
+            <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>2. Select Contacts</div>
+              <div style={{display:"flex",gap:8,marginBottom:12}}>
+                <button onClick={()=>document.getElementById("broadcast-file-input").click()}
+                  style={{padding:"9px 16px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                  📎 Upload CSV / Excel
+                </button>
+                <select onChange={e=>{
+                  const val = e.target.value;
+                  if(!val) return;
+                  const filtered = contacts.filter(c=>val==="all"?true:val==="hot"?c.lead_score>=70:val==="warm"?(c.lead_score>=30&&c.lead_score<70):c.lead_score<30);
+                  setBroadcastContacts(filtered.map(c=>({name:c.name||c.phone,phone:c.phone})));
+                  e.target.value="";
+                }} style={{flex:1,padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                  <option value="">Or select from contacts…</option>
+                  <option value="all">All contacts</option>
+                  <option value="hot">🔥 Hot leads only</option>
+                  <option value="warm">🟡 Warm leads only</option>
+                  <option value="cold">🔵 Cold leads only</option>
+                </select>
+              </div>
+              <input type="file" accept=".csv,.xlsx,.xls" style={{display:"none"}} id="broadcast-file-input" onChange={async e=>{
+                const file = e.target.files[0]; if(!file) return;
+                const text = await file.text();
+                const lines2 = text.split("\n").filter(Boolean);
+                const parsed = lines2.slice(1).map(l=>{const p=l.split(",");return{name:(p[0]||"").trim().replace(/"/g,""),phone:(p[1]||p[0]||"").trim().replace(/"/g,"").replace(/\s/g,"")};}).filter(c=>c.phone);
+                setBroadcastContacts(parsed);
+              }}/>
+              {broadcastContacts.length>0&&<div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <span style={{fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} contact{broadcastContacts.length>1?"s":""} selected</span>
+                  <button onClick={()=>setBroadcastContacts([])} style={{border:"none",background:"none",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Clear</button>
+                </div>
+                <div style={{maxHeight:120,overflowY:"auto",fontSize:11,color:T.textMuted}}>
+                  {broadcastContacts.map((c,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",borderBottom:i<broadcastContacts.length-1?`1px solid ${T.border}`:"none"}}>
+                      <span>{c.name||c.phone}</span>
+                      <span style={{color:T.textFaint}}>{c.phone}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>}
+            </div>
+
+            {/* Send */}
+            <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>3. Send Broadcast</div>
+              <div style={{marginBottom:12}}>
+                <label style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:4,display:"block"}}>Personalisation variable (replaces {"{{1}}"} in message)</label>
+                <input id="broadcast-name-input" placeholder="e.g. customer name or promo code"
+                  style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+              </div>
+              <button onClick={async()=>{
+                if(!selectedTemplate) return showToast("Select a template first","#ef4444");
+                if(broadcastContacts.length===0) return showToast("Add contacts first","#ef4444");
+                const nameVal = document.getElementById("broadcast-name-input")?.value||"";
+                const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                setBroadcastProgress({active:true,done:0,total:broadcastContacts.length,failed:0});
+                let done=0,failed=0;
+                for(const contact of broadcastContacts){
+                  try{
+                    const url=clinicId?`${API}/api/admin/clients/${clinicId}/broadcast`:`${API}/api/broadcast`;
+                    const r=await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({
+                      template_name:selectedTemplate.template_name,
+                      language:selectedTemplate.language||"en",
+                      phone:contact.phone,
+                      name:nameVal||contact.name||contact.phone,
+                      header_value:selectedTemplate.header_value||"",
+                      header_type:selectedTemplate.header_type||"none"
+                    })});
+                    if(r.ok) done++; else failed++;
+                  }catch{failed++;}
+                  setBroadcastProgress({active:true,done:done+failed,total:broadcastContacts.length,failed});
+                }
+                setBroadcastProgress({active:false,done,total:broadcastContacts.length,failed});
+              }} disabled={!selectedTemplate||broadcastContacts.length===0||broadcastProgress?.active}
+                style={{width:"100%",padding:"12px",borderRadius:10,border:"none",
+                  background:(!selectedTemplate||broadcastContacts.length===0)?"#ccc":WA_GREEN,
+                  color:"#fff",fontSize:14,fontWeight:700,cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer",fontFamily:"inherit"}}>
+                📤 Send to {broadcastContacts.length} Contacts
+              </button>
+              {broadcastProgress&&<div style={{marginTop:14,background:T.card2,borderRadius:10,padding:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                  <span style={{fontSize:12,fontWeight:600,color:T.text}}>{broadcastProgress.active?"Sending...":"Done!"}</span>
+                  <span style={{fontSize:12,color:T.textMuted}}>{broadcastProgress.done}/{broadcastProgress.total}</span>
+                </div>
+                <div style={{height:6,borderRadius:3,background:T.border,overflow:"hidden"}}>
+                  <div style={{height:6,borderRadius:3,background:WA_GREEN,width:`${(broadcastProgress.done/broadcastProgress.total)*100}%`,transition:"width .3s"}}/>
+                </div>
+                {broadcastProgress.failed>0&&<div style={{fontSize:11,color:"#ef4444",marginTop:4}}>{broadcastProgress.failed} failed</div>}
+                {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
+              </div>}
+            </div>
             </div>
             </div>}
 
