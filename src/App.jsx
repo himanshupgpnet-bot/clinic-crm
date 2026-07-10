@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.241";
+const CRM_VERSION = "2.9.242";
 
 // Responsive hook
 function useWindowSize() {
@@ -3824,11 +3824,63 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
               {/* Schedule date/time picker */}
               {scheduleMode&&<div style={{marginBottom:14}}>
-                <label style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:4,display:"block"}}>Select date & time</label>
-                <input type="datetime-local" value={scheduleAt} onChange={e=>setScheduleAt(e.target.value)}
-                  min={new Date(Date.now()+60000).toISOString().slice(0,16)}
-                  style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,
-                    background:T.input,color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                <label style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:6,display:"block"}}>Select date & time</label>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
+                  {/* Date */}
+                  <input type="date" value={(scheduleAt||"").slice(0,10)}
+                    min={new Date(Date.now()+60000).toISOString().slice(0,10)}
+                    onChange={e=>{
+                      const d=e.target.value;
+                      const rest=(scheduleAt||"").slice(10)||"T12:00 AM".slice(0);
+                      setScheduleAt(d+(rest||"T12:00"));
+                    }}
+                    style={{padding:"9px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",gridColumn:"1 / 3"}}/>
+                  {/* Hour */}
+                  <select value={scheduleAt?String(parseInt((scheduleAt||"T12:00").split("T")[1]?.split(":")[0])%12||12):"12"}
+                    onChange={e=>{
+                      const parts=(scheduleAt||new Date().toISOString().slice(0,10)+"T12:00").split("T");
+                      const timeParts=(parts[1]||"12:00").split(":");
+                      const isPM=parseInt(timeParts[0])>=12;
+                      const h=parseInt(e.target.value)+(isPM?12:0);
+                      setScheduleAt(parts[0]+"T"+(h===24?"00":h===12&&!isPM?"00":h<10?"0"+h:h)+":"+timeParts[1]);
+                    }}
+                    style={{padding:"9px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(h=><option key={h} value={h}>{h}</option>)}
+                  </select>
+                  {/* Minute */}
+                  <select value={(scheduleAt||"T00:00").split("T")[1]?.split(":")[1]||"00"}
+                    onChange={e=>{
+                      const parts=(scheduleAt||new Date().toISOString().slice(0,10)+"T12:00").split("T");
+                      const timeParts=(parts[1]||"12:00").split(":");
+                      setScheduleAt(parts[0]+"T"+timeParts[0]+":"+e.target.value);
+                    }}
+                    style={{padding:"9px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                    {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m=><option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                {/* AM/PM */}
+                <div style={{display:"flex",gap:8,marginTop:8}}>
+                  {["AM","PM"].map(ap=>{
+                    const h=parseInt((scheduleAt||"T12:00").split("T")[1]?.split(":")[0]||12);
+                    const isAM=h<12;
+                    const active=(ap==="AM"&&isAM)||(ap==="PM"&&!isAM);
+                    return <button key={ap} type="button" onClick={()=>{
+                      const parts=(scheduleAt||new Date().toISOString().slice(0,10)+"T12:00").split("T");
+                      const timeParts=(parts[1]||"12:00").split(":");
+                      let hr=parseInt(timeParts[0]);
+                      if(ap==="AM"&&hr>=12) hr-=12;
+                      if(ap==="PM"&&hr<12) hr+=12;
+                      setScheduleAt(parts[0]+"T"+(hr<10?"0"+hr:hr)+":"+timeParts[1]);
+                    }} style={{flex:1,padding:"8px",borderRadius:8,border:`2px solid ${active?WA_GREEN:T.border}`,
+                      background:active?WA_GREEN+"20":"transparent",color:active?WA_GREEN:T.text,
+                      fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      {ap}
+                    </button>;
+                  })}
+                </div>
+                {scheduleAt&&<div style={{marginTop:8,fontSize:11,color:WA_GREEN,fontWeight:600,textAlign:"center"}}>
+                  📅 {new Date(scheduleAt).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})}
+                </div>}
               </div>}
 
               {/* Send / Schedule button */}
@@ -3926,26 +3978,32 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
             {/* Scheduled broadcasts list */}
             {scheduledBroadcasts.length>0&&<div style={{background:T.card,borderRadius:16,padding:20,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>📅 Scheduled</div>
-              {scheduledBroadcasts.filter(s=>s.status==="pending").map(s=>(
-                <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>📅 Broadcasts</div>
+              {scheduledBroadcasts.map(s=>{
+                const contactCount=(Array.isArray(s.contacts)?s.contacts:(typeof s.contacts==="string"?JSON.parse(s.contacts||"[]"):[])).length;
+                const isPending=s.status==="pending";
+                const isSent=s.status==="sent";
+                const statusColor=isPending?"#d97706":isSent?"#16a34a":"#ef4444";
+                const statusLabel=isPending?"⏳ Pending":isSent?"✅ Sent":"❌ Failed";
+                return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                   padding:"10px 12px",background:T.card2,borderRadius:10,marginBottom:8,border:`1px solid ${T.border}`}}>
                   <div>
                     <div style={{fontWeight:700,fontSize:12,color:T.text}}>{s.template_name}</div>
                     <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>
-                      {new Date(s.scheduled_at).toLocaleString()} · {(Array.isArray(s.contacts)?s.contacts:(typeof s.contacts==="string"?JSON.parse(s.contacts||"[]"):[])).length} contacts
+                      {new Date(s.scheduled_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})} · {contactCount} contacts
                     </div>
+                    <div style={{fontSize:10,fontWeight:700,color:statusColor,marginTop:2}}>{statusLabel}</div>
                   </div>
-                  <button onClick={async()=>{
+                  {isPending&&<button onClick={async()=>{
                     const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
                     await fetch(`${API}/api/scheduled-broadcasts/${s.id}`,{method:"DELETE",headers:authHeaders()});
                     fetchScheduledBroadcasts(clinicId);
                   }} style={{padding:"4px 10px",borderRadius:8,border:`1px solid #ef4444`,background:"transparent",
                     color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
                     Cancel
-                  </button>
-                </div>
-              ))}
+                  </button>}
+                </div>;
+              })}
             </div>}
             </div>
             </div>}
