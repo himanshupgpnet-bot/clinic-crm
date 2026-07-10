@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.237";
+const CRM_VERSION = "2.9.238";
 
 // Responsive hook
 function useWindowSize() {
@@ -3802,15 +3802,24 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 for(const contact of broadcastContacts){
                   try{
                     const url=clinicId?`${API}/api/admin/clients/${clinicId}/broadcast`:`${API}/api/broadcast/send`;
-                    const r=await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({
-                      template_name:selectedTemplate.template_name,
-                      language:selectedTemplate.language||"en",
-                      phone:contact.phone,
-                      name:contact.name||contact.phone,
-                      header_value:selectedTemplate.header_value||"",
-                      header_type:selectedTemplate.header_type||"none"
-                    })});
-                    if(r.ok) done++; else failed++;
+                    const token=sessionStorage.getItem("crm_token");
+                    const result = await new Promise((resolve)=>{
+                      const xhr=new XMLHttpRequest();
+                      xhr.open("POST",url);
+                      xhr.setRequestHeader("Authorization","Bearer "+token);
+                      xhr.setRequestHeader("Content-Type","application/json");
+                      xhr.onload=()=>resolve(xhr.status>=200&&xhr.status<300);
+                      xhr.onerror=()=>resolve(false);
+                      xhr.send(JSON.stringify({
+                        template_name:selectedTemplate.template_name,
+                        language:selectedTemplate.language||"en",
+                        phone:contact.phone,
+                        name:contact.name||contact.phone,
+                        header_value:selectedTemplate.header_value||"",
+                        header_type:selectedTemplate.header_type||"none"
+                      }));
+                    });
+                    if(result) done++; else failed++;
                   }catch{failed++;}
                   setBroadcastProgress({active:true,done:done+failed,total:broadcastContacts.length,failed});
                 }
