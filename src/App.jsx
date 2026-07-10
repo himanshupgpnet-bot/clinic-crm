@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.236";
+const CRM_VERSION = "2.9.237";
 
 // Responsive hook
 function useWindowSize() {
@@ -3801,7 +3801,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 let done=0,failed=0;
                 for(const contact of broadcastContacts){
                   try{
-                    const url=clinicId?`${API}/api/admin/clients/${clinicId}/broadcast`:`${API}/api/broadcast`;
+                    const url=clinicId?`${API}/api/admin/clients/${clinicId}/broadcast`:`${API}/api/broadcast/send`;
                     const r=await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({
                       template_name:selectedTemplate.template_name,
                       language:selectedTemplate.language||"en",
