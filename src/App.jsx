@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.232";
+const CRM_VERSION = "2.9.233";
 
 // Responsive hook
 function useWindowSize() {
@@ -3532,7 +3532,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>}
 
           {/* Main content */}
-          {(!isAdmin||(isAdmin&&broadcastClinic))&&<div style={{maxWidth:700,margin:"0 auto"}}>
+          <div style={{flex:1,overflowY:"auto",padding:24}}>
+            {(!isAdmin||(isAdmin&&broadcastClinic))&&<div style={{maxWidth:700,margin:"0 auto"}}>
 
             {/* Sub-tab switcher */}
             <div style={{display:"flex",gap:8,marginBottom:20,borderBottom:`2px solid ${T.border}`,paddingBottom:0}}>
@@ -3708,12 +3709,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               onSuccess={()=>{ fetchTemplates(isAdmin&&broadcastClinic?broadcastClinic.clinic_id:null); setBroadcastSubTab("send"); }}
             />}
 
+          </div>}
+
           {isAdmin&&!broadcastClinic&&<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",color:T.textMuted}}>
             <div style={{fontSize:48,marginBottom:12}}>👈</div>
             <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client</div>
             <div style={{fontSize:13}}>Choose from the sidebar to send broadcasts</div>
           </div>}
-          </div>}
+          </div>
         </div>}
 
         {tab==="notes"&&<NotesTab
