@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.239";
+const CRM_VERSION = "2.9.240";
 
 // Responsive hook
 function useWindowSize() {
@@ -3849,12 +3849,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   xhr.setRequestHeader("Content-Type","application/json");
                   xhr.onload = () => {
                     if(xhr.status===200||xhr.status===201) {
-                      showToast(`✅ Scheduled for ${new Date(scheduleAt).toLocaleString()}`,"#22c55e");
+                      const t=document.createElement("div");
+                      t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#22c55e;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;font-family:inherit;box-shadow:0 4px 20px rgba(0,0,0,.2);";
+                      t.textContent="✅ Scheduled for "+new Date(scheduleAt).toLocaleString();
+                      document.body.appendChild(t);
+                      setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>document.body.removeChild(t),300);},3000);
                       setScheduleAt("");
                       setScheduleMode(false);
                       fetchScheduledBroadcasts(clinicId);
                     } else {
-                      showToast("❌ Failed to schedule","#ef4444");
+                      const t=document.createElement("div");
+                      t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#ef4444;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;font-family:inherit;box-shadow:0 4px 20px rgba(0,0,0,.2);";
+                      t.textContent="❌ Failed to schedule";
+                      document.body.appendChild(t);
+                      setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>document.body.removeChild(t),300);},3000);
                     }
                   };
                   xhr.send(JSON.stringify({
