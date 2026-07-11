@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.244";
+const CRM_VERSION = "2.9.246";
 
 // Responsive hook
 function useWindowSize() {
@@ -72,13 +72,13 @@ const daysAgo = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.to
 const TABS = [
   {id:"crm",          icon:"💬", label:"Inbox"},
   {id:"leads",        icon:"🎯", label:"Leads"},
-  {id:"analytics",    icon:"📊", label:"Analytics"},
-  {id:"bot",          icon:"🤖", label:"Test Bot"},
-  {id:"kb",           icon:"📋", label:"Knowledge"},
-  {id:"integrations", icon:"🔌", label:"Integrations"},
-  {id:"settings",     icon:"⚙️", label:"Settings"},
-  {id:"notes",        icon:"📝", label:"Notes"},
   {id:"broadcast",    icon:"📢", label:"Broadcast"},
+  {id:"analytics",    icon:"📊", label:"Analytics"},
+  {id:"kb",           icon:"📋", label:"Knowledge"},
+  {id:"bot",          icon:"🤖", label:"Test Bot"},
+  {id:"notes",        icon:"📝", label:"Notes"},
+  {id:"integrations", icon:"🔌", label:"Connect"},
+  {id:"settings",     icon:"⚙️", label:"Settings"},
   {id:"admin",        icon:"👑", label:"Admin", adminOnly:true},
 ];
 
@@ -1500,17 +1500,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   const warmCount   = contacts.filter(c=>c.lead==="warm"&&(c.pipelineStage||"new")!=="done").length;
 
   const T = dark ? {
-    bg:"#0b141a",sidebar:"#111b21",nav:"#202c33",border:"#2a3942",
-    card:"#182229",card2:"#2a3942",input:"#2a3942",inputBorder:"#3b4a54",
-    text:"#e9edef",textMuted:"#8696a0",textFaint:"#667781",
-    msgOut:"#005c4b",msgIn:"#182229",chatBg:"#0b141a",
-    sidebarHover:"#202c33",selectedBg:"#2a3942",overlay:"rgba(0,0,0,.7)",
+    bg:"#0f1117",sidebar:"#1a1d27",nav:"#1a1d27",border:"#2d3048",
+    card:"#1e2235",card2:"#252840",input:"#252840",inputBorder:"#3d4165",
+    text:"#f1f3f9",textMuted:"#8b92b8",textFaint:"#5a6080",
+    msgOut:"#1a3a4a",msgIn:"#1e2235",chatBg:"#0f1117",
+    sidebarHover:"#252840",selectedBg:"#2d3048",overlay:"rgba(0,0,0,.75)",
   } : {
-    bg:"#f0f2f5",sidebar:"#ffffff",nav:"#ffffff",border:"#e9edef",
-    card:"#ffffff",card2:"#f0f2f5",input:"#f0f2f5",inputBorder:"#e9edef",
-    text:"#111b21",textMuted:"#667781",textFaint:"#8696a0",
-    msgOut:"#d9fdd3",msgIn:"#ffffff",chatBg:WA_BG,
-    sidebarHover:"#f5f6f6",selectedBg:"#f0f2f5",overlay:"rgba(0,0,0,.5)",
+    bg:"#f5f6fa",sidebar:"#ffffff",nav:"#ffffff",border:"#e8eaf0",
+    card:"#ffffff",card2:"#f5f6fa",input:"#f5f6fa",inputBorder:"#e8eaf0",
+    text:"#1a1d2e",textMuted:"#6b7290",textFaint:"#9fa6c0",
+    msgOut:"#e3f5e1",msgIn:"#ffffff",chatBg:"#eef0f5",
+    sidebarHover:"#f0f1f8",selectedBg:"#eef0f8",overlay:"rgba(0,0,0,.4)",
   };
 
   function LeadBadge({lead,score,reason,small}) {
@@ -1555,25 +1555,29 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     </div>;
   }
 
-  const navStyle = {height:56,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 12px",gap:4,flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.07)"};
+  const navStyle = {height:60,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 20px",gap:4,flexShrink:0,boxShadow:"0 1px 8px rgba(0,0,0,.06)"};
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:T.bg,fontFamily:"'Segoe UI', sans-serif",color:T.text,overflow:"hidden"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:T.bg,fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden"}}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#8696a040;border-radius:4px}
-        textarea:focus,input:focus,select:focus{outline:none}textarea{resize:none}
+        ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:${T.border};border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+        textarea:focus,input:focus,select:focus{outline:none;border-color:${WA_GREEN}!important;box-shadow:0 0 0 3px ${WA_GREEN}18}
+        input,textarea,select{transition:border-color .15s,box-shadow .15s}
+        textarea{resize:none}
+        button{transition:all .15s;cursor:pointer}
         .ci{transition:background .15s;cursor:pointer;position:relative}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}
         .mb{animation:fadeUp .2s ease}@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         .sc{transition:transform .15s}.sc:hover{transform:translateY(-2px)}
         .tb{transition:all .15s;cursor:pointer;border:none;background:transparent;font-family:inherit}
         .sb:active{transform:scale(.92)}
-        .qa-row.hl{background:#dcfce7!important;border-color:${WA_GREEN}!important}
+        .qa-row.hl{background:#dcfce720!important;border-color:${WA_GREEN}!important}
         input::placeholder,textarea::placeholder{color:${T.textFaint}}
         @keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
-        .kc{border-radius:12px;min-height:200px;transition:background .15s}.kc.over{background:${dark?"#1a2e23":"#dcfce7"}!important}
-        .kcard{cursor:grab;transition:transform .15s,box-shadow .15s}.kcard:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.15)}.kcard:active{cursor:grabbing}
-        .cc{background:${T.card};border:1px solid ${T.border};border-radius:14px;padding:20px;margin-bottom:16px}
+        .kc{border-radius:16px;min-height:200px;transition:background .15s}.kc.over{background:${dark?"#1a2e23":"#e8fdf0"}!important}
+        .kcard{cursor:grab;transition:transform .15s,box-shadow .15s}.kcard:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12)}.kcard:active{cursor:grabbing}
+        .cc{background:${T.card};border:1px solid ${T.border};border-radius:16px;padding:20px;margin-bottom:16px}
         @media(min-width:640px){
           .hide-desktop{display:none!important}
         }
@@ -3746,7 +3750,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             {/* Upload contacts */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div style={{fontWeight:700,fontSize:14,color:T.text}}>2. Select Contacts</div>
+                <div style={{fontWeight:700,fontSize:14,color:T.text}}>2. Select Contacts <span style={{fontSize:11,color:T.textMuted,fontWeight:400}}>({contacts.length} total)</span></div>
                 <div style={{display:"flex",gap:6}}>
                   <button onClick={()=>setBroadcastContacts(contacts.map(c=>({name:c.name||c.phone,phone:c.phone})))}
                     style={{fontSize:11,padding:"4px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit"}}>
