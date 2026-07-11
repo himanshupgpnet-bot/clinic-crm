@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.246";
+const CRM_VERSION = "2.9.247";
 
 // Responsive hook
 function useWindowSize() {
@@ -1980,37 +1980,43 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
 
-        <div className="hide-mobile nav-sidebar" style={{width:52,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
-          
+        <div className="hide-mobile nav-sidebar" style={{width:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
+          {/* Sidebar logo */}
+          <div style={{padding:"16px 14px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+            <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+              {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"💬"}
+            </div>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:T.text}}>{currentUser?.company_name||"Nexora CRM"}</div>
+              <div style={{fontSize:10,color:T.textMuted}}>{isAdmin?"Admin":"WhatsApp Business"}</div>
+            </div>
+          </div>
 
           {/* Nav items */}
-          <div style={{flex:1,padding:"6px 4px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
+          <div style={{flex:1,padding:"8px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
             {(()=>{
               const visibleTabs = TABS.filter(t=>!t.adminOnly||isAdmin).filter(t=>canSee(t.id));
-              const iconSize = visibleTabs.length <= 5 ? 26 : visibleTabs.length <= 7 ? 22 : 20;
-              const padding = visibleTabs.length <= 5 ? "12px 0" : visibleTabs.length <= 7 ? "10px 0" : "8px 0";
               return visibleTabs.map(t=>(
                 <div key={t.id} style={{position:"relative"}} className="nav-item-wrap">
-                  <button onClick={()=>safeSetTab(t.id)} title={t.label}
-                    style={{display:"flex",alignItems:"center",justifyContent:"center",
-                      padding,borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",width:"100%",
-                      background:tab===t.id?`${WA_GREEN}20`:"transparent",
-                      color:tab===t.id?WA_GREEN:T.textMuted,position:"relative",
-                      transition:"background .15s"}}>
-                    <span style={{fontSize:iconSize}}>{t.icon}</span>
+                  <button onClick={()=>safeSetTab(t.id)}
+                    style={{display:"flex",alignItems:"center",gap:10,
+                      padding:"9px 12px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",width:"100%",
+                      background:tab===t.id?`${WA_GREEN}15`:"transparent",
+                      color:tab===t.id?WA_GREEN:T.textMuted,
+                      fontSize:13,fontWeight:tab===t.id?600:400,
+                      textAlign:"left",
+                      transition:"all .15s"}}>
+                    <span style={{fontSize:18,flexShrink:0,width:22,textAlign:"center"}}>{t.icon}</span>
+                    <span style={{flex:1}}>{t.label}</span>
                     {t.id==="crm"&&totalUnread>0&&<span style={{
-                      position:"absolute",top:6,right:6,
                       background:WA_GREEN,color:"#fff",borderRadius:10,
-                      minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",
-                      fontSize:9,fontWeight:800,padding:"0 3px",
-                      border:`2px solid ${T.sidebar}`,lineHeight:1
+                      minWidth:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",
+                      fontSize:10,fontWeight:700,padding:"0 4px",lineHeight:1
                     }}>{totalUnread>99?"99+":totalUnread}</span>}
                     {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{
-                      position:"absolute",top:6,right:6,
                       background:"#ef4444",color:"#fff",borderRadius:10,
-                      minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",
-                      fontSize:9,fontWeight:800,padding:"0 3px",
-                      border:`2px solid ${T.sidebar}`,lineHeight:1
+                      minWidth:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",
+                      fontSize:10,fontWeight:700,padding:"0 4px",lineHeight:1
                     }}>{(hotCount+warmCount)>99?"99+":(hotCount+warmCount)}</span>}
                   </button>
                   <div className="nav-tooltip">
