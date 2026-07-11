@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.249";
+const CRM_VERSION = "2.9.251";
 
 // Responsive hook
 function useWindowSize() {
@@ -1558,63 +1558,213 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   const navStyle = {height:60,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 20px",gap:4,flexShrink:0,boxShadow:"0 1px 8px rgba(0,0,0,.06)"};
 
+  // ── MOBILE INBOX (WhatsApp style) ──────────────────────────────────────────
+  const WA_BG_MOBILE = "#e5ddd5";
+  const [mobileChat, setMobileChat] = useState(null); // selected contact for chat view
+
+  if (isMobile) {
+    const sortedContacts = [...contacts].sort((a,b)=>{
+      const at = a.last_message_time||a.updated_at||"";
+      const bt = b.last_message_time||b.updated_at||"";
+      return bt.localeCompare(at);
+    });
+
+    // ── MOBILE CHAT VIEW ──
+    if (mobileChat) {
+      const msgs = messages[mobileChat.phone]||messages[mobileChat.id]||[];
+      return (
+        <div style={{height:"100vh",display:"flex",flexDirection:"column",background:WA_BG_MOBILE,fontFamily:"'Helvetica Neue',Arial,sans-serif"}}>
+          {/* Header */}
+          <div style={{background:"#25D366",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0,paddingTop:"env(safe-area-inset-top,10px)"}}>
+            <button onClick={()=>setMobileChat(null)} style={{background:"none",border:"none",cursor:"pointer",padding:"0 4px",display:"flex",alignItems:"center"}}>
+              <span style={{fontSize:22,color:"#fff"}}>‹</span>
+            </button>
+            <div style={{width:38,height:38,borderRadius:"50%",background:mobileChat.color||"#7c3aed",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff",flexShrink:0}}>
+              {(mobileChat.name||mobileChat.phone||"?")[0].toUpperCase()}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{mobileChat.name||mobileChat.phone}</div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,.8)"}}>{mobileChat.phone}</div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div style={{flex:1,overflowY:"auto",padding:"12px 10px",display:"flex",flexDirection:"column",gap:4}}>
+            {msgs.length===0&&<div style={{textAlign:"center",color:"#8696a0",fontSize:12,marginTop:40}}>No messages yet</div>}
+            {msgs.map((m,i)=>{
+              const isOut = m.from_==="bot"||m.from_==="agent";
+              const isBot = m.from_==="bot";
+              return (
+                <div key={m.id||i} style={{alignSelf:isOut?"flex-end":"flex-start",maxWidth:"80%"}}>
+                  {isBot&&m.agent_name&&<div style={{fontSize:10,color:"#25D366",fontWeight:700,marginBottom:2,marginLeft:4}}>{m.agent_name||"AI"}</div>}
+                  <div style={{
+                    background:isOut?"#d9fdd3":"#fff",
+                    borderRadius:isOut?"10px 0 10px 10px":"0 10px 10px 10px",
+                    padding:"7px 10px",fontSize:13,color:"#111",lineHeight:1.45,
+                    borderLeft:isBot?"3px solid #25D366":"none"
+                  }}>
+                    {m.text||m.message||""}
+                    <div style={{fontSize:9,color:"#8696a0",textAlign:"right",marginTop:3}}>
+                      {m.time||""} {isOut?"✓✓":""}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Compose */}
+          <div style={{background:"#f0f2f5",padding:"8px 10px",display:"flex",alignItems:"center",gap:8,flexShrink:0,paddingBottom:"env(safe-area-inset-bottom,8px)"}}>
+            <div style={{flex:1,background:"#fff",borderRadius:22,padding:"9px 14px",fontSize:13,color:"#8696a0",border:"none"}}>
+              Message
+            </div>
+            <div style={{width:42,height:42,borderRadius:"50%",background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <span style={{fontSize:20,color:"#fff"}}>🎤</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── MOBILE CHAT LIST ──
+    return (
+      <div style={{height:"100vh",display:"flex",flexDirection:"column",background:"#fff",fontFamily:"'Helvetica Neue',Arial,sans-serif"}}>
+        {/* Header */}
+        <div style={{background:"#25D366",padding:"12px 16px 8px",paddingTop:"env(safe-area-inset-top,12px)",flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <span style={{fontSize:20,fontWeight:700,color:"#fff"}}>{currentUser?.company_name||"Nexora"}</span>
+            <div style={{display:"flex",gap:16,alignItems:"center"}}>
+              <span style={{fontSize:20,color:"#fff"}}>🔍</span>
+              <span style={{fontSize:20,color:"#fff"}}>⋮</span>
+            </div>
+          </div>
+          {/* Search bar */}
+          <div style={{background:"rgba(255,255,255,.2)",borderRadius:8,padding:"7px 12px",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:14,color:"rgba(255,255,255,.8)"}}>🔍</span>
+            <span style={{fontSize:13,color:"rgba(255,255,255,.7)"}}>Search</span>
+          </div>
+        </div>
+
+        {/* Chat list */}
+        <div style={{flex:1,overflowY:"auto"}}>
+          {sortedContacts.length===0&&<div style={{textAlign:"center",color:"#8696a0",fontSize:13,marginTop:60}}>No conversations yet</div>}
+          {sortedContacts.map((c,i)=>{
+            const unread = c.unread_count||0;
+            const lastMsg = c.last_message||c.last_msg||"";
+            const lastTime = c.last_message_time||c.updated_at||"";
+            const timeStr = lastTime ? new Date(lastTime).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",hour12:true}) : "";
+            const colors = ["#7c3aed","#0891b2","#059669","#d97706","#e11d48","#6366f1","#0f766e","#b45309"];
+            const color = colors[i%colors.length];
+            const initials = (c.name||c.phone||"?").slice(0,2).toUpperCase();
+            return (
+              <div key={c.id||c.phone} onClick={()=>setMobileChat({...c,color})}
+                style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:"0.5px solid #f0f2f5",cursor:"pointer",active:{background:"#f5f5f5"}}}>
+                <div style={{width:48,height:48,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:"#fff",flexShrink:0}}>
+                  {initials}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                    <span style={{fontSize:15,fontWeight:600,color:"#111"}}>{c.name||c.phone}</span>
+                    <span style={{fontSize:11,color:unread>0?"#25D366":"#8696a0"}}>{timeStr}</span>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:13,color:"#8696a0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"75%"}}>{lastMsg||c.phone}</span>
+                    {unread>0&&<div style={{background:"#25D366",color:"#fff",borderRadius:"50%",minWidth:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,padding:"0 4px"}}>{unread>99?"99+":unread}</div>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  // ── END MOBILE ──────────────────────────────────────────────────────────────
+
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:T.bg,fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:${T.border};border-radius:8px}::-webkit-scrollbar-track{background:transparent}
-        textarea:focus,input:focus,select:focus{outline:none;border-color:${WA_GREEN}!important;box-shadow:0 0 0 3px ${WA_GREEN}18}
+        textarea:focus,input:focus,select:focus{outline:none;border-color:${WA_GREEN}!important;box-shadow:0 0 0 3px ${WA_GREEN}15}
         input,textarea,select{transition:border-color .15s,box-shadow .15s}
         textarea{resize:none}
         button{transition:all .15s;cursor:pointer}
-        .ci{transition:background .15s;cursor:pointer;position:relative}.ci:hover{background:${T.sidebarHover}}.ci.active{background:${T.selectedBg}}
+
+        .ci{transition:background .15s;cursor:pointer;position:relative}
+        .ci:hover{background:${T.sidebarHover}}
+        .ci.active{background:${WA_GREEN}10;border-right:2px solid ${WA_GREEN}}
+
+        .nav-item-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;width:100%;text-align:left;font-size:13px;transition:all .15s;background:transparent;font-weight:400}
+        .nav-item-btn:hover{background:${T.sidebarHover};color:${T.text}}
+        .nav-item-btn.active{background:${WA_GREEN}15;color:${WA_GREEN}!important;font-weight:600}
+
+        .nx-card{background:${T.card};border-radius:12px;border:1px solid ${T.border};padding:20px;margin-bottom:16px}
+        .nx-card-title{font-size:13px;font-weight:700;color:${T.text};margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+        .nx-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid ${T.border};background:${T.card};color:${T.text};font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+        .nx-btn:hover{background:${T.card2}}
+        .nx-btn.primary{background:${WA_GREEN};color:#fff;border-color:${WA_GREEN}}
+        .nx-btn.primary:hover{background:#1db954;border-color:#1db954}
+        .nx-btn.danger{color:#ef4444;border-color:#ef444440}
+        .nx-btn.danger:hover{background:#fef2f2}
+
+        .nx-input{width:100%;padding:9px 12px;border-radius:8px;border:1px solid ${T.border};background:${T.input};color:${T.text};font-size:12px;font-family:inherit;outline:none;transition:all .15s}
+        .nx-input:focus{border-color:${WA_GREEN};background:${T.card};box-shadow:0 0 0 3px ${WA_GREEN}12}
+        .nx-label{display:block;font-size:12px;font-weight:600;color:${T.text};margin-bottom:6px}
+        .nx-hint{font-size:10px;color:${T.textMuted};margin-top:4px}
+
+        .nx-table{width:100%;border-collapse:collapse;font-size:12px}
+        .nx-table th{text-align:left;padding:10px 14px;background:${T.card2};color:${T.textMuted};font-weight:600;font-size:11px;border-bottom:1px solid ${T.border};white-space:nowrap}
+        .nx-table td{padding:10px 14px;border-bottom:1px solid ${T.border};color:${T.text};vertical-align:middle}
+        .nx-table tr:hover td{background:${T.card2}}
+
+        .nx-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+        .nx-badge.hot{background:#fef2f2;color:#dc2626}
+        .nx-badge.warm{background:#fffbeb;color:#b45309}
+        .nx-badge.cold{background:#eff6ff;color:#1d4ed8}
+        .nx-badge.success{background:#f0fdf4;color:#15803d}
+        .nx-badge.pending{background:#fffbeb;color:#b45309}
+        .nx-badge.failed{background:#fef2f2;color:#dc2626}
+
+        .nx-stat{background:${T.card};border-radius:12px;border:1px solid ${T.border};padding:16px}
+        .nx-stat-label{font-size:11px;color:${T.textMuted};font-weight:500;margin-bottom:6px}
+        .nx-stat-val{font-size:24px;font-weight:800;color:${T.text};line-height:1}
+
+        .nx-page-header{background:${T.card};border-bottom:1px solid ${T.border};padding:14px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+        .nx-page-title{font-size:15px;font-weight:700;color:${T.text}}
+        .nx-page-sub{font-size:11px;color:${T.textMuted};margin-top:1px}
+
+        .nx-filter{font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid ${T.border};background:transparent;color:${T.textMuted};cursor:pointer;white-space:nowrap;font-weight:500;font-family:inherit;transition:all .15s}
+        .nx-filter:hover{border-color:${WA_GREEN};color:${WA_GREEN}}
+        .nx-filter.active{background:${WA_GREEN};color:#fff;border-color:${WA_GREEN}}
+
+        .nx-search{display:flex;align-items:center;gap:6px;background:${T.card2};border-radius:8px;padding:7px 10px;border:1px solid ${T.border};transition:all .15s}
+        .nx-search:focus-within{border-color:${WA_GREEN};background:${T.card}}
+        .nx-search input{border:none;background:transparent;font-size:12px;color:${T.text};width:100%;outline:none;font-family:inherit}
+
+        .nx-toggle{width:34px;height:19px;border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+        .nx-toggle.on{background:${WA_GREEN}}
+        .nx-toggle.off{background:${T.border}}
+        .nx-toggle-dot{width:15px;height:15px;background:#fff;border-radius:50%;position:absolute;top:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+        .nx-toggle.on .nx-toggle-dot{left:17px}
+        .nx-toggle.off .nx-toggle-dot{left:2px}
+
         .mb{animation:fadeUp .2s ease}@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-        .sc{transition:transform .15s}.sc:hover{transform:translateY(-2px)}
-        .tb{transition:all .15s;cursor:pointer;border:none;background:transparent;font-family:inherit}
         .sb:active{transform:scale(.92)}
         .qa-row.hl{background:#dcfce720!important;border-color:${WA_GREEN}!important}
         input::placeholder,textarea::placeholder{color:${T.textFaint}}
         @keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
-        .kc{border-radius:16px;min-height:200px;transition:background .15s}.kc.over{background:${dark?"#1a2e23":"#e8fdf0"}!important}
+        .kc{border-radius:12px;min-height:200px;transition:background .15s}.kc.over{background:${dark?"#1a2e23":"#e8fdf0"}!important}
         .kcard{cursor:grab;transition:transform .15s,box-shadow .15s}.kcard:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12)}.kcard:active{cursor:grabbing}
-        .cc{background:${T.card};border:1px solid ${T.border};border-radius:16px;padding:20px;margin-bottom:16px}
-        @media(min-width:640px){
-          .hide-desktop{display:none!important}
-        }
+        .cc{background:${T.card};border:1px solid ${T.border};border-radius:12px;padding:20px;margin-bottom:16px}
+        @media(min-width:640px){.hide-desktop{display:none!important}}
         .nav-item-wrap:hover .nav-tooltip{opacity:1!important;visibility:visible!important}
-        
-        .nav-tooltip{
-          position:absolute;left:58px;top:50%;transform:translateY(-50%);
-          background:#111827;color:#fff;padding:6px 12px;border-radius:8px;
-          font-size:11px;font-weight:600;white-space:nowrap;z-index:9999;
-          opacity:0;visibility:hidden;pointer-events:none;
-          box-shadow:0 4px 16px rgba(0,0,0,.4);
-          transition:opacity .15s,visibility .15s}
-        .nav-tooltip::after{content:"";position:absolute;right:100%;top:50%;
-          transform:translateY(-50%);border:5px solid transparent;border-right-color:#111827}
-        .nav-item-wrap:hover .nav-tooltip{opacity:1;visibility:visible}
+        .nav-tooltip{position:absolute;left:58px;top:50%;transform:translateY(-50%);background:#111827;color:#fff;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap;z-index:9999;opacity:0;visibility:hidden;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .15s,visibility .15s}
+        .nav-tooltip::after{content:"";position:absolute;right:100%;top:50%;transform:translateY(-50%);border:5px solid transparent;border-right-color:#111827}
         @keyframes pulse{0%{transform:scale(1);opacity:.8}70%{transform:scale(2.2);opacity:0}100%{transform:scale(1);opacity:0}}
-        .pulse-ring{position:absolute;top:0;left:0;width:10px;height:10px;border-radius:50%;
-          background:#25D366;animation:pulse 2s ease-out infinite}
-        @media(max-width:639px){
-          .hide-mobile{display:none!important}
-          .mobile-full{width:100%!important}
-          .cc{padding:14px!important}
-          .kc{min-height:120px!important}
-          input,textarea,select{font-size:16px!important} /* prevent iOS zoom */
-          .mobile-chat-input{padding-bottom:env(safe-area-inset-bottom,12px)!important}
-          .mobile-topbar{padding-top:env(safe-area-inset-top,0px)!important}
-          .contacts-list{padding-bottom:70px!important}
-          body{overscroll-behavior:none}
-        }
-        @media(max-width:1023px){
-          .hide-tablet{display:none!important}
-          .tablet-full{width:100%!important}
-        }
-        @media(min-width:640px) and (max-width:1023px){
-          .tablet-stack{flex-direction:column!important}
-        }
+        @media(max-width:1023px){.tablet-stack{flex-direction:column!important}}
       `}</style>
 
 
@@ -1993,13 +2143,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               return visibleTabs.map(t=>(
                 <div key={t.id} style={{position:"relative"}} className="nav-item-wrap">
                   <button onClick={()=>safeSetTab(t.id)}
-                    style={{display:"flex",alignItems:"center",gap:10,
-                      padding:"9px 12px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",width:"100%",
-                      background:tab===t.id?`${WA_GREEN}15`:"transparent",
-                      color:tab===t.id?WA_GREEN:T.textMuted,
-                      fontSize:13,fontWeight:tab===t.id?600:400,
-                      textAlign:"left",
-                      transition:"all .15s"}}>
+                    className={`nav-item-btn${tab===t.id?" active":""}`}>
                     <span style={{fontSize:18,flexShrink:0,width:22,textAlign:"center"}}>{t.icon}</span>
                     <span style={{flex:1}}>{t.label}</span>
                     {t.id==="crm"&&totalUnread>0&&<span style={{
@@ -2021,12 +2165,22 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             })()}
           </div>
 
-          {/* Bottom status dot with pulse */}
-          <div style={{padding:"12px 0",display:"flex",justifyContent:"center",alignItems:"center"}}>
-            <div style={{position:"relative",width:10,height:10}}>
-              <div style={{width:10,height:10,borderRadius:"50%",
-                background:backendStatus==="online"?WA_GREEN:"#ef4444"}}/>
-              {backendStatus==="online"&&<div className="pulse-ring"/>}
+          {/* User profile at bottom */}
+          <div style={{padding:"10px",borderTop:`1px solid ${T.border}`,flexShrink:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,cursor:"pointer",transition:"background .15s"}}
+              onMouseEnter={e=>e.currentTarget.style.background=T.sidebarHover}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <div style={{width:30,height:30,borderRadius:"50%",background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700,flexShrink:0}}>
+                {(currentUser?.username||"U")[0].toUpperCase()}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:600,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.username||"User"}</div>
+                <div style={{fontSize:10,color:T.textMuted,display:"flex",alignItems:"center",gap:4}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:backendStatus==="online"?WA_GREEN:"#ef4444",flexShrink:0}}/>
+                  {backendStatus==="online"?"Live":"Offline"}
+                </div>
+              </div>
+              <i style={{fontSize:14,color:T.textFaint}}>⋮</i>
             </div>
           </div>
         </div>
