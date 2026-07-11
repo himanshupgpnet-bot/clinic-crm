@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.247";
+const CRM_VERSION = "2.9.248";
 
 // Responsive hook
 function useWindowSize() {
@@ -198,6 +198,7 @@ export default function App() {
   const [broadcastSubTab, setBroadcastSubTab] = useState("send");
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupMissing, setSetupMissing] = useState([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [createTemplateStep, setCreateTemplateStep] = useState(1); // 1=setup, 2=edit, 3=submit
   const [createTemplateSubmitting, setCreateTemplateSubmitting] = useState(false);
   const [createTemplateResult, setCreateTemplateResult] = useState(null);
@@ -1893,15 +1894,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </button>
 
         <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:4,flex:1}}>
-          <div style={{width:34,height:34,borderRadius:8,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:currentUser?.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},${WA_GREEN})`}}>
-            {currentUser?.logo_url
-              ? <img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="logo"/>
-              : <span style={{fontSize:16}}>🤖</span>}
-          </div>
-          <div className="hide-mobile">
-            <div style={{fontWeight:700,fontSize:13}}>{currentUser?.company_name||"Nexora CRM"}</div>
-            <div style={{fontSize:10,color:T.textMuted}}>{isAdmin?"Admin Dashboard":"WhatsApp Business"}</div>
-          </div>
+          {/* Sidebar toggle button */}
+          <button onClick={()=>setSidebarCollapsed(s=>!s)} className="hide-mobile"
+            style={{padding:"6px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,
+              color:T.textMuted,fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+            {sidebarCollapsed?"▶ Menu":"◀ Hide"}
+          </button>
         </div>
 
 
@@ -1980,7 +1978,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
 
-        <div className="hide-mobile nav-sidebar" style={{width:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
+        <div className="hide-mobile nav-sidebar" style={{width:sidebarCollapsed?0:200,flexShrink:0,background:T.sidebar,borderRight:sidebarCollapsed?"none":`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative",transition:"width .2s ease"}}>
           {/* Sidebar logo */}
           <div style={{padding:"16px 14px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
             <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
