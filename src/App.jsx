@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.248";
+const CRM_VERSION = "2.9.249";
 
 // Responsive hook
 function useWindowSize() {
@@ -1893,13 +1893,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           {[0,1,2].map(i=><div key={i} style={{width:18,height:2,background:menuOpen?WA_GREEN:T.textMuted,borderRadius:2,transition:"all .2s",transform:menuOpen?(i===0?"rotate(45deg) translate(4px,4px)":i===2?"rotate(-45deg) translate(4px,-4px)":"scaleX(0)"):"none"}}/>)}
         </button>
 
-        <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:4,flex:1}}>
-          {/* Sidebar toggle button */}
+        <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:4,flex:1}}>
+          {/* Sidebar toggle */}
           <button onClick={()=>setSidebarCollapsed(s=>!s)} className="hide-mobile"
-            style={{padding:"6px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,
-              color:T.textMuted,fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-            {sidebarCollapsed?"▶ Menu":"◀ Hide"}
+            style={{width:28,height:28,borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",
+              color:T.textMuted,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            {sidebarCollapsed?"»":"«"}
           </button>
+          {/* Brand */}
+          <div style={{display:"flex",alignItems:"center",gap:8}} className="hide-mobile">
+            <div style={{width:28,height:28,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>
+              {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"💬"}
+            </div>
+            <span style={{fontWeight:700,fontSize:15,color:T.text}}>{currentUser?.company_name||"Nexora"}</span>
+          </div>
         </div>
 
 
@@ -1979,17 +1986,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
 
         <div className="hide-mobile nav-sidebar" style={{width:sidebarCollapsed?0:200,flexShrink:0,background:T.sidebar,borderRight:sidebarCollapsed?"none":`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative",transition:"width .2s ease"}}>
-          {/* Sidebar logo */}
-          <div style={{padding:"16px 14px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-            <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
-              {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"💬"}
-            </div>
-            <div>
-              <div style={{fontWeight:700,fontSize:13,color:T.text}}>{currentUser?.company_name||"Nexora CRM"}</div>
-              <div style={{fontSize:10,color:T.textMuted}}>{isAdmin?"Admin":"WhatsApp Business"}</div>
-            </div>
-          </div>
-
           {/* Nav items */}
           <div style={{flex:1,padding:"8px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
             {(()=>{
