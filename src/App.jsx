@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.254";
+const CRM_VERSION = "2.9.255";
 
 // Responsive hook
 function useWindowSize() {
@@ -2400,7 +2400,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <div style={{fontWeight:700,fontSize:14,color:T.text}}>{selected.name}</div>
                   <div style={{fontSize:11,color:T.textMuted}}>{selected.phone}</div>
                 </div>
-                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginLeft:"auto"}}>
+                <div style={{display:"flex",gap:8,alignItems:"center",marginLeft:"auto"}}>
                   <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)}
                     style={{background:selected.lead==="hot"?"#fef2f2":selected.lead==="warm"?"#fffbeb":T.card2,
                       border:`1px solid ${selected.lead==="hot"?"#fecaca":selected.lead==="warm"?"#fde68a":T.border}`,
@@ -2409,15 +2409,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
                     <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option><option value="done">✅ Done</option>
                   </select>
-                  <button onClick={()=>toggleBot(selected.id)} className="nx-btn"
-                    style={{background:selected.botActive?"#f0fdf4":T.card2,color:selected.botActive?"#15803d":T.textMuted,borderColor:selected.botActive?"#bbf7d0":T.border}}>
-                    🤖 {selected.botActive?"ON":"OFF"}
+                  <button onClick={()=>toggleBot(selected.id)} title={selected.botActive?"Bot ON — click to turn off":"Bot OFF — click to turn on"}
+                    style={{width:32,height:32,borderRadius:8,border:`1px solid ${selected.botActive?"#bbf7d0":T.border}`,
+                      background:selected.botActive?"#f0fdf4":T.card2,color:selected.botActive?"#15803d":T.textMuted,
+                      display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                    <i className="ti ti-robot" style={{fontSize:16}}/>
                   </button>
                   <button onClick={()=>{const rows=[["Time","Date","From","Message"]];(selected.messages||[]).forEach(m=>{rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);});const csv=rows.map(r=>r.join(",")).join("\n");const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`chat_${selected.name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);}}
-                    className="nx-btn">📥</button>
-                  <button onClick={()=>setArchiveConfirm(selected.id)} className="nx-btn">📦</button>
-                  {!isMobile&&<button onClick={()=>setShowRightPanel(p=>!p)}
-                    className="nx-btn" style={{background:showRightPanel?`${WA_GREEN}15`:T.card2,color:showRightPanel?WA_GREEN:T.textMuted,borderColor:showRightPanel?WA_GREEN:T.border}}>ℹ️ Info</button>}
+                    title="Export chat" style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                    <i className="ti ti-download" style={{fontSize:16}}/>
+                  </button>
+                  <button onClick={()=>setArchiveConfirm(selected.id)} title="Archive"
+                    style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                    <i className="ti ti-archive" style={{fontSize:16}}/>
+                  </button>
                 </div>
               </div>
 
@@ -2578,76 +2583,85 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {selected.booking_confirmed&&<span className="nx-badge success">✅ Booked</span>}
               </div>
             </div>
-            {/* Lead score visual */}
-            {selected.leadScore>0&&<div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`}}>
-              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>Lead Score</div>
+            {/* Lead score — mockup style */}
+            {selected.leadScore>0&&<div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Lead Score</div>
               <div style={{background:T.card2,borderRadius:8,padding:"10px 12px",border:`1px solid ${T.border}`}}>
-                <div style={{fontSize:10,color:T.textMuted,marginBottom:6,fontWeight:500}}>Score</div>
-                <div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden",marginBottom:4}}>
+                <div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden",marginBottom:6}}>
                   <div style={{height:5,borderRadius:3,width:`${selected.leadScore||0}%`,background:selected.lead==="hot"?"#ef4444":selected.lead==="warm"?"#f59e0b":"#3b82f6",transition:"width .8s ease"}}/>
                 </div>
-                <div style={{fontSize:11,fontWeight:700,color:selected.lead==="hot"?"#dc2626":selected.lead==="warm"?"#b45309":"#1d4ed8"}}>{selected.leadScore}/100 · {selected.lead==="hot"?"Hot lead":selected.lead==="warm"?"Warm lead":"Cold lead"}</div>
+                <div style={{fontSize:11,fontWeight:700,color:selected.lead==="hot"?"#dc2626":selected.lead==="warm"?"#b45309":"#1d4ed8"}}>{selected.leadScore} · {selected.lead==="hot"?"Hot lead":selected.lead==="warm"?"Warm lead":"Cold lead"}</div>
               </div>
             </div>}
-            {/* Ad source */}
-            <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`}}>
-              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>Lead Source</div>
-              {adHistory.length>0?(
-                <div>
-                  {adHistory.length>1&&<div style={{display:"flex",gap:4,marginBottom:8,justifyContent:"center"}}>
-                    {adHistory.map((_,i)=>(
-                      <button key={i} onClick={()=>setAdHistoryPage(i)}
-                        style={{width:8,height:8,borderRadius:"50%",border:"none",cursor:"pointer",padding:0,background:adHistoryPage===i?WA_GREEN:"#e8eaef"}}/>
-                    ))}
-                  </div>}
-                  {adHistory[adHistoryPage]&&<div style={{background:`${WA_GREEN}10`,borderRadius:10,padding:"10px 12px",border:"1px solid rgba(108,99,255,.2)"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <div style={{fontSize:11,fontWeight:700,color:WA_GREEN}}>{adHistoryPage===0?"Latest":"#"+(adHistory.length-adHistoryPage)}</div>
-                      <div style={{fontSize:10,color:T.textFaint}}>{new Date(adHistory[adHistoryPage].created_at).toLocaleDateString("en-MY")}</div>
-                    </div>
-                    <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:4}}>📌 {adHistory[adHistoryPage].ad_headline||"Ad"}</div>
-                    {adHistory[adHistoryPage].first_message&&<div style={{fontSize:11,color:T.textMuted,marginBottom:4,fontStyle:"italic"}}>"{adHistory[adHistoryPage].first_message}"</div>}
-                    {adHistory[adHistoryPage].ad_source&&<a href={adHistory[adHistoryPage].ad_source} target="_blank" rel="noreferrer"
-                      style={{fontSize:11,color:WA_GREEN,textDecoration:"none",display:"flex",alignItems:"center",gap:3}}>🔗 View Ad ↗</a>}
-                    {adHistory.length>1&&<div style={{display:"flex",gap:4,marginTop:8}}>
-                      <button onClick={()=>setAdHistoryPage(p=>Math.min(p+1,adHistory.length-1))} disabled={adHistoryPage>=adHistory.length-1}
-                        style={{flex:1,padding:"4px",borderRadius:6,border:`1px solid ${T.border}`,background:"#fff",color:T.textMuted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>← Older</button>
-                      <button onClick={()=>setAdHistoryPage(p=>Math.max(p-1,0))} disabled={adHistoryPage<=0}
-                        style={{flex:1,padding:"4px",borderRadius:6,border:`1px solid ${T.border}`,background:"#fff",color:T.textMuted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Newer →</button>
-                    </div>}
-                  </div>}
-                </div>
-              ):<div style={{fontSize:12,color:T.textFaint,fontStyle:"italic"}}>Organic / Direct message</div>}
-            </div>
-            {/* Stats */}
-            <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`}}>
-              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>💬 Conversation</div>
+
+            {/* Details — mockup style */}
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Details</div>
               {[
-                {l:"Total messages",v:selected.messages?.length||0},
-                {l:"Customer msgs",v:selected.messages?.filter(m=>m.from==="user")?.length||0},
-                {l:"Bot msgs",v:selected.messages?.filter(m=>m.from==="bot")?.length||0},
-                {l:"Agent msgs",v:selected.messages?.filter(m=>m.from==="agent")?.length||0},
-                {l:"Follow-ups sent",v:selected.followupCount||0},
-              ].map(r=>(
-                <div key={r.l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,fontSize:11}}>
-                  <span style={{color:T.textFaint}}>{r.l}</span>
-                  <span style={{fontWeight:600,color:T.text}}>{r.v}</span>
+                {icon:"ti ti-phone", val:selected.phone},
+                {icon:"ti ti-calendar", val:`First seen ${selected.firstSeen||"—"}`},
+                {icon:"ti ti-message-2", val:`${selected.messages?.length||0} messages`},
+                {icon:"ti ti-clock", val:selected.last_seen?`Active ${new Date(selected.last_seen).toLocaleString("en-MY",{dateStyle:"short",timeStyle:"short"})}`:"—"},
+              ].map((r,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:i<3?`1px solid ${T.border}`:"none"}}>
+                  <i className={r.icon} style={{fontSize:14,color:T.textMuted,flexShrink:0,width:16}}/>
+                  <span style={{fontSize:11,color:T.text}}>{r.val}</span>
                 </div>
               ))}
             </div>
-            {/* Status */}
-            <div style={{padding:"14px 16px"}}>
-              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>⚙️ Status</div>
-              {[
-                {l:"Bot",v:selected.botActive?"🤖 Active":"👤 Manual",vc:selected.botActive?"#16a34a":T.textMuted},
-                {l:"Assigned To",v:selected.assignedTo?"Agent #"+selected.assignedTo:"Unassigned",vc:T.text},
-                {l:"Pipeline",v:selected.pipelineStage||"new",vc:T.text},
-              ].map(r=>(
-                <div key={r.l} style={{display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:11}}>
-                  <span style={{color:T.textFaint}}>{r.l}</span>
-                  <span style={{fontWeight:600,color:r.vc,textTransform:"capitalize"}}>{r.v}</span>
+
+            {/* Tags */}
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Tags</div>
+              <div>
+                {selected.lead==="hot"&&<span className="nx-badge hot" style={{margin:2}}>🔥 Hot lead</span>}
+                {selected.lead==="warm"&&<span className="nx-badge warm" style={{margin:2}}>🟡 Warm lead</span>}
+                {selected.lead==="cold"&&<span className="nx-badge cold" style={{margin:2}}>🔵 Cold</span>}
+                {selected.booking_confirmed&&<span className="nx-badge success" style={{margin:2}}>✅ Booked</span>}
+                {selected.pipelineStage&&selected.pipelineStage!=="new"&&<span className="nx-badge success" style={{margin:2}}>{selected.pipelineStage}</span>}
+                {!selected.botActive&&<span style={{display:"inline-flex",fontSize:10,padding:"3px 8px",borderRadius:20,margin:2,fontWeight:500,background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>Manual</span>}
+              </div>
+            </div>
+
+            {/* AI Bot toggle */}
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>AI Bot</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:T.card2,borderRadius:8,border:`1px solid ${T.border}`}}>
+                <span style={{fontSize:11,fontWeight:600,color:T.text}}>{selected.botActive?"Bot active":"Bot paused"}</span>
+                <div onClick={()=>toggleBot(selected.id)}
+                  className={`nx-toggle ${selected.botActive?"on":"off"}`}
+                  style={{cursor:"pointer"}}>
+                  <div className="nx-toggle-dot"/>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Lead selector */}
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Lead Status</div>
+              <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)}
+                style={{width:"100%",padding:"8px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+                <option value="hot">🔥 Hot</option>
+                <option value="warm">🟡 Warm</option>
+                <option value="cold">🔵 Cold</option>
+                <option value="done">✅ Done</option>
+              </select>
+            </div>
+
+            {/* Quick actions */}
+            <div style={{padding:"12px 14px"}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Quick actions</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <button onClick={()=>safeSetTab("broadcast")} className="nx-btn" style={{width:"100%",justifyContent:"center"}}>
+                  <i className="ti ti-speakerphone" style={{fontSize:14}}/> Send template
+                </button>
+                <button onClick={()=>safeSetTab("notes")} className="nx-btn" style={{width:"100%",justifyContent:"center"}}>
+                  <i className="ti ti-notes" style={{fontSize:14}}/> Add note
+                </button>
+                <button onClick={()=>setArchiveConfirm(selected.id)} className="nx-btn" style={{width:"100%",justifyContent:"center"}}>
+                  <i className="ti ti-archive" style={{fontSize:14}}/> Archive chat
+                </button>
+              </div>
             </div>
           </div>}
         </>}
