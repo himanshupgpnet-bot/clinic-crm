@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.258";
+const CRM_VERSION = "2.9.259";
 
 // Responsive hook
 function useWindowSize() {
@@ -247,6 +247,7 @@ export default function App() {
   const [notesLoading, setNotesLoading] = useState(false);
   const [notesClinic, setNotesClinic] = useState(null);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [changelogSeen, setChangelogSeen] = useState("");
   const [dark, setDark] = useState(false);
 
@@ -2112,9 +2113,58 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             })()}
           </div>
 
-          {/* User profile + controls at bottom — clean like mockup */}
-          <div style={{padding:"10px",borderTop:`1px solid ${T.border}`,flexShrink:0}}>
-            {/* User row with controls */}
+          {/* User profile bottom — clean with 3 dots menu */}
+          <div style={{padding:"10px",borderTop:`1px solid ${T.border}`,flexShrink:0,position:"relative"}}>
+            {/* 3-dot popup menu */}
+            {showUserMenu&&<>
+              <div onClick={()=>setShowUserMenu(false)} style={{position:"fixed",inset:0,zIndex:199}}/>
+              <div style={{position:"absolute",bottom:"100%",left:10,right:10,marginBottom:4,background:T.card,border:`1px solid ${T.border}`,borderRadius:12,boxShadow:"0 8px 24px rgba(0,0,0,.15)",zIndex:200,overflow:"hidden"}}>
+                {/* Dark mode toggle */}
+                <button onClick={()=>setDark(d=>!d)}
+                  style={{width:"100%",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",color:T.text,fontSize:13,textAlign:"left",borderBottom:`1px solid ${T.border}`}}>
+                  <span style={{fontSize:16}}>{dark?"☀️":"🌙"}</span>
+                  <span>{dark?"Light mode":"Dark mode"}</span>
+                </button>
+                {/* What's new */}
+                <button onClick={()=>{setShowChangelog(c=>!c);setShowUserMenu(false);if(hasUnread)setChangelogSeen(latestVersion);}}
+                  style={{width:"100%",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",color:T.text,fontSize:13,textAlign:"left",borderBottom:`1px solid ${T.border}`,position:"relative"}}>
+                  <span style={{fontSize:16}}>🔔</span>
+                  <span>What's new</span>
+                  {hasUnread&&<span style={{marginLeft:"auto",background:"#ef4444",color:"#fff",borderRadius:10,fontSize:10,fontWeight:700,padding:"1px 6px"}}>NEW</span>}
+                </button>
+                {/* Version */}
+                <div style={{padding:"8px 14px",fontSize:11,color:T.textFaint,borderBottom:`1px solid ${T.border}`}}>
+                  v{CRM_VERSION}
+                </div>
+                {/* Logout */}
+                <button onClick={()=>{setShowUserMenu(false);setConfirmModal({title:"Log Out?",message:"Log out of Nexora CRM?",icon:"🔐",danger:false,confirmText:"Yes, Log Out",onConfirm:()=>doLogout()});}}
+                  style={{width:"100%",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",color:"#ef4444",fontSize:13,textAlign:"left"}}>
+                  <i className="ti ti-logout" style={{fontSize:16}}/>
+                  <span>Log out</span>
+                </button>
+              </div>
+            </>}
+
+            {/* Changelog panel */}
+            {showChangelog&&<div style={{position:"absolute",bottom:"100%",left:10,right:10,marginBottom:4,background:T.card,border:`1px solid ${T.border}`,borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,.15)",zIndex:200,overflow:"hidden"}}>
+              <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <span style={{fontWeight:700,fontSize:13}}>🔔 What's New</span>
+                <button onClick={()=>setShowChangelog(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:14,color:T.textMuted}}>✕</button>
+              </div>
+              <div style={{maxHeight:260,overflowY:"auto"}}>
+                {CHANGELOG.map((c,i)=><div key={c.version} style={{padding:"10px 14px",borderBottom:i<CHANGELOG.length-1?`1px solid ${T.border}`:"none"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                    <span style={{background:c.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6}}>{c.tag}</span>
+                    <span style={{fontWeight:700,fontSize:12}}>v{c.version}</span>
+                    <span style={{fontSize:10,color:T.textMuted,marginLeft:"auto"}}>{c.date}</span>
+                    {i===0&&<span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6}}>NEW</span>}
+                  </div>
+                  {c.items?.map((item,j)=><div key={j} style={{fontSize:11,color:T.textMuted,marginBottom:2}}>· {item}</div>)}
+                </div>)}
+              </div>
+            </div>}
+
+            {/* User row */}
             <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,cursor:"pointer",transition:"background .15s"}}
               onMouseEnter={e=>e.currentTarget.style.background=T.sidebarHover}
               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
@@ -2128,38 +2178,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <span style={{fontSize:10,color:T.textMuted}}>{backendStatus==="online"?"Live":"Offline"}</span>
                 </div>
               </div>
-              {/* Icon controls — 3 dots style */}
-              <div style={{display:"flex",gap:2,alignItems:"center"}}>
-                <button onClick={()=>setDark(d=>!d)} title={dark?"Light":"Dark"}
-                  style={{width:24,height:24,borderRadius:6,border:"none",background:"transparent",color:T.textMuted,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"☀️":"🌙"}</button>
-                <div style={{position:"relative"}}>
-                  <button onClick={()=>{setShowChangelog(c=>!c);if(hasUnread)setChangelogSeen(latestVersion);}} title="What's new"
-                    style={{width:24,height:24,borderRadius:6,border:"none",background:"transparent",color:hasUnread?"#d97706":T.textMuted,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-                    🔔{hasUnread&&<span style={{position:"absolute",top:1,right:1,width:5,height:5,borderRadius:"50%",background:"#ef4444"}}/>}
-                  </button>
-                  {showChangelog&&<div style={{position:"absolute",left:0,bottom:32,width:320,background:T.card,border:`1px solid ${T.border}`,borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,.15)",zIndex:200,overflow:"hidden"}}>
-                    <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <span style={{fontWeight:700,fontSize:13}}>🔔 What's New</span>
-                      <button onClick={()=>setShowChangelog(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:14,color:T.textMuted}}>✕</button>
-                    </div>
-                    <div style={{maxHeight:280,overflowY:"auto"}}>
-                      {CHANGELOG.map((c,i)=><div key={c.version} style={{padding:"10px 14px",borderBottom:i<CHANGELOG.length-1?`1px solid ${T.border}`:"none"}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                          <span style={{background:c.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6}}>{c.tag}</span>
-                          <span style={{fontWeight:700,fontSize:12}}>v{c.version}</span>
-                          <span style={{fontSize:10,color:T.textMuted,marginLeft:"auto"}}>{c.date}</span>
-                          {i===0&&<span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6}}>NEW</span>}
-                        </div>
-                        {c.items?.map((item,j)=><div key={j} style={{fontSize:11,color:T.textMuted,marginBottom:2}}>· {item}</div>)}
-                      </div>)}
-                    </div>
-                  </div>}
-                </div>
-                <button onClick={()=>setConfirmModal({title:"Log Out?",message:"Log out of Nexora CRM?",icon:"🔐",danger:false,confirmText:"Yes, Log Out",onConfirm:()=>doLogout()})}
-                  title="Logout" style={{width:24,height:24,borderRadius:6,border:"none",background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <i className="ti ti-logout" style={{fontSize:13}}/>
-                </button>
-              </div>
+              <button onClick={e=>{e.stopPropagation();setShowUserMenu(m=>!m);setShowChangelog(false);}}
+                style={{width:24,height:24,borderRadius:6,border:"none",background:"transparent",color:T.textMuted,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <i className="ti ti-dots-vertical" style={{fontSize:16}}/>
+              </button>
             </div>
           </div>
         </div>
