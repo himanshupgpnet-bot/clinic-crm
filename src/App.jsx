@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.253";
+const CRM_VERSION = "2.9.254";
 
 // Responsive hook
 function useWindowSize() {
@@ -222,7 +222,7 @@ export default function App() {
     } catch(e) {}
   };
   const [broadcastFile, setBroadcastFile] = useState(null);
-  const [showRightPanel, setShowRightPanel] = useState(false);
+  const [showRightPanel, setShowRightPanel] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [adHistory, setAdHistory] = useState([]);
 
@@ -2191,17 +2191,23 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {/* ══ CRM TAB ══ */}
         {tab==="crm"&&<>
           {/* ══ INBOX SIDEBAR ══ */}
-          <div style={{width:isMobile?"100%":isTablet?270:300,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,
+          <div style={{width:isMobile?"100%":isTablet?260:280,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,
             ...(isMobile&&selected?{display:"none"}:{})}}>
 
-            {/* Sidebar Top */}
-            <div style={{padding:"12px 14px 10px",borderBottom:`1px solid ${T.border}`}}>
+            {/* Sidebar Top — matches mockup */}
+            <div style={{padding:"14px",borderBottom:`1px solid ${T.border}`}}>
               {/* Title row */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                 <span style={{fontSize:14,fontWeight:700,color:T.text}}>Inbox <span style={{fontSize:11,fontWeight:400,color:T.textMuted}}>({contacts.length})</span></span>
-                <button onClick={()=>setShowInboxStats(p=>!p)} className="nx-btn" style={{padding:"4px 10px",fontSize:11}}>
-                  {showInboxStats?"▲ Hide":"▼ Filters"}
-                </button>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>setExportModal(true)} className="nx-btn" style={{padding:"4px 8px",fontSize:11}} title="Export CSV"><i className="ti ti-download" style={{fontSize:14}}/></button>
+                  <button onClick={()=>{setSelectMode(p=>!p);setSelectedChats(new Set());}} className={`nx-btn${selectMode?" danger":""}`} style={{padding:"4px 8px",fontSize:11}} title="Select">
+                    <i className={`ti ti-${selectMode?"x":"checkbox"}`} style={{fontSize:14}}/>
+                  </button>
+                  <button onClick={()=>setShowInboxStats(p=>!p)} className="nx-btn" style={{padding:"4px 8px",fontSize:11}}>
+                    <i className={`ti ti-adjustments-horizontal`} style={{fontSize:14}}/>
+                  </button>
+                </div>
               </div>
 
               {showInboxStats&&<>
@@ -2246,17 +2252,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   ))}
                 </div>
 
-                {/* Action buttons */}
-                <div style={{display:"flex",gap:5,marginBottom:8}}>
-                  <button onClick={()=>setExportModal(true)} style={{flex:1,padding:"6px",borderRadius:8,border:"1px solid #e8eaef",background:"#f8f9fc",color:"#6b7280",fontSize:11,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all .15s"}}>📥 CSV</button>
-                  <button onClick={()=>{setSelectMode(p=>!p);setSelectedChats(new Set());}} style={{flex:1,padding:"6px",borderRadius:8,border:`1px solid ${selectMode?"#e11d48":"#e8eaef"}`,background:selectMode?"#fff1f3":"#f8f9fc",color:selectMode?"#e11d48":"#6b7280",fontSize:11,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
-                    {selectMode?"✕ Cancel":"☑️ Select"}
-                  </button>
-                </div>
-
                 {/* Bulk action bar */}
-                {selectMode&&selectedChats.size>0&&<div style={{marginBottom:6}}>
-                  <div style={{padding:"5px 8px",borderRadius:8,background:"#f8f9fc",fontSize:11,color:"#6b7280",fontWeight:600,textAlign:"center",marginBottom:4}}>{selectedChats.size} selected</div>
+                {selectMode&&selectedChats.size>0&&<div style={{marginBottom:8,padding:"8px",background:T.card2,borderRadius:8,border:`1px solid ${T.border}`}}>
+                  <div style={{fontSize:11,color:T.text,fontWeight:600,textAlign:"center",marginBottom:6}}>{selectedChats.size} selected</div>
                   <div style={{display:"flex",gap:4}}>
                     <button onClick={async()=>{
                       const phones=[...selectedChats];
@@ -2266,32 +2264,32 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       }
                       setContacts(p=>p.map(c=>selectedChats.has(c.phone)?{...c,unread:1}:c));
                       setSelectedChats(new Set());setSelectMode(false);
-                    }} style={{flex:1,padding:"6px 4px",borderRadius:8,border:"1px solid #bbf7d0",background:"#f0fdf4",color:"#16a34a",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🔴 Unread</button>
+                    }} className="nx-btn" style={{flex:1,justifyContent:"center",fontSize:11}}>🔴 Unread</button>
                     <button onClick={async()=>{
                       if(!confirm(`Delete ${selectedChats.size} chat${selectedChats.size>1?"s":""}?`)) return;
                       for(const phone of [...selectedChats]){await fetch(`${API}/api/conversations/${phone.replace("+","")}`,{method:"DELETE",headers:authHeaders()});}
                       setSelectedChats(new Set());setSelectMode(false);fetchConversations();
                       if(selected&&selectedChats.has(selected.phone))setSelected(null);
-                    }} style={{flex:1,padding:"6px 4px",borderRadius:8,border:"none",background:"#e11d48",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑️ Delete</button>
+                    }} className="nx-btn danger" style={{flex:1,justifyContent:"center",fontSize:11}}>🗑️ Delete</button>
                   </div>
                 </div>}
 
                 {/* Search */}
                 <div className="nx-search" style={{marginBottom:8}}>
-                  <span style={{fontSize:13,color:T.textFaint}}>🔍</span>
+                  <i className="ti ti-search" style={{fontSize:14,color:T.textFaint}}/>
                   <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search contacts..."/>
                 </div>
 
                 {/* Filter pills */}
-                <div style={{display:"flex",gap:4,marginBottom:6,flexWrap:"wrap"}}>
-                  {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=>(
+                <div style={{display:"flex",gap:4,flexWrap:"nowrap",overflowX:"auto",paddingBottom:2}}>
+                  {[{id:"all",label:"All"},{id:"unread",label:"Unread"},{id:"manual",label:"Manual"}].map(f=>(
                     <button key={f.id} onClick={()=>{setInboxFilter(f.id);setShowArchived(false);}}
                       className={`nx-filter${inboxFilter===f.id&&!showArchived?" active":""}`}>
                       {f.label}
                     </button>
                   ))}
                   <button onClick={()=>{setShowArchived(p=>!p);if(!archivedContacts.length)fetchArchived();}}
-                    className={`nx-filter${showArchived?" active":""}`}>📦</button>
+                    className={`nx-filter${showArchived?" active":""}`}>Archived</button>
                 </div>
 
                 {inboxFilter==="manual"&&!showArchived&&<div style={{marginBottom:6}}>
@@ -2318,9 +2316,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
 
             {/* CONTACT LIST */}
-            <div style={{flex:1,overflowY:"auto",padding:"6px 8px"}}>
-              {loading&&<div style={{padding:20,textAlign:"center",color:"#9ca3af",fontSize:12}}>Loading...</div>}
-              {!loading&&filtered.length===0&&<div style={{padding:24,textAlign:"center",color:"#9ca3af",fontSize:12}}>
+            <div style={{flex:1,overflowY:"auto"}}>
+              {loading&&<div style={{padding:20,textAlign:"center",color:T.textMuted,fontSize:12}}>Loading...</div>}
+              {!loading&&filtered.length===0&&<div style={{padding:24,textAlign:"center",color:T.textMuted,fontSize:12}}>
                 <div style={{fontSize:32,marginBottom:8}}>💬</div>
                 {backendStatus==="offline"?"⚠️ Backend offline":"No conversations"}
               </div>}
@@ -2331,18 +2329,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     if(selectMode){setSelectedChats(p=>{const n=new Set(p);n.has(c.phone)?n.delete(c.phone):n.add(c.phone);return n;});}
                     else{selectContact(c);}
                   }}
-                  style={{borderRadius:12,padding:"10px 10px",display:"flex",alignItems:"flex-start",gap:10,cursor:"pointer",
-                    transition:"all .18s",position:"relative",marginBottom:2,
-                    border:`1px solid ${selected?.id===c.id?"rgba(108,99,255,.3)":selectMode&&selectedChats.has(c.phone)?"#fecdd3":"transparent"}`,
-                    background:selected?.id===c.id?"#f0effe":selectMode&&selectedChats.has(c.phone)?"#fff1f3":"transparent"}}
-                  onMouseEnter={e=>{if(selected?.id!==c.id)e.currentTarget.style.background="#f8f9fc";}}
-                  onMouseLeave={e=>{if(selected?.id!==c.id)e.currentTarget.style.background=selectMode&&selectedChats.has(c.phone)?"#fff1f3":"transparent";}}>
-
-                  {/* Selected left border */}
-                  {selected?.id===c.id&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:WA_GREEN,borderRadius:"0 3px 3px 0"}}/>}
+                  style={{padding:"11px 14px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",
+                    transition:"background .1s",position:"relative",
+                    borderBottom:`1px solid ${T.border}`,
+                    borderRight:selected?.id===c.id?`2px solid ${WA_GREEN}`:"2px solid transparent",
+                    background:selected?.id===c.id?`${WA_GREEN}10`:selectMode&&selectedChats.has(c.phone)?`${WA_GREEN}08`:"transparent"}}
+                  onMouseEnter={e=>{if(selected?.id!==c.id)e.currentTarget.style.background=T.sidebarHover;}}
+                  onMouseLeave={e=>{if(selected?.id!==c.id)e.currentTarget.style.background=selectMode&&selectedChats.has(c.phone)?`${WA_GREEN}08`:"transparent";}}>
 
                   {/* Checkbox in select mode */}
-                  {selectMode&&<div style={{width:18,height:18,borderRadius:4,border:`2px solid ${selectedChats.has(c.phone)?WA_GREEN:"#e8eaef"}`,background:selectedChats.has(c.phone)?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
+                  {selectMode&&<div style={{width:18,height:18,borderRadius:4,border:`2px solid ${selectedChats.has(c.phone)?WA_GREEN:T.border}`,background:selectedChats.has(c.phone)?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                     {selectedChats.has(c.phone)&&<span style={{color:"#fff",fontSize:11,fontWeight:700}}>✓</span>}
                   </div>}
 
@@ -2360,33 +2356,24 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
                   {/* Info */}
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:2}}>
-                      <span style={{fontWeight:c.unread>0?700:600,fontSize:isMobile?15:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?160:130}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                      <span style={{fontWeight:c.unread>0?700:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>
                         {c.name}
                       </span>
-                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",flexShrink:0,marginLeft:4}}>
-                        <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?700:400}}>{c.lastTime}</span>
-                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>{c.lastDate.includes("/")?c.lastDate:c.lastDate.split("-").reverse().join("/")}</span>}
-                      </div>
+                      <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?700:400,flexShrink:0,marginLeft:4}}>{c.lastTime}</span>
                     </div>
-                    <div style={{fontSize:11,color:c.unread>0?T.text:T.textMuted,fontWeight:c.unread>0?500:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?220:180,marginBottom:4}}>
-                      {c.lastMessage||"No messages"}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:4}}>
+                      <span style={{fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
+                        {c.lastMessage||"No messages"}
+                      </span>
+                      {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,fontSize:9,fontWeight:700,padding:"1px 5px",minWidth:16,textAlign:"center",flexShrink:0}}>{c.unread>9?"9+":c.unread}</span>}
+                      {!c.unread&&!c.botActive&&<span style={{fontSize:9,background:"#f0fdf4",color:"#15803d",padding:"1px 5px",borderRadius:6,fontWeight:600,flexShrink:0}}>BOT</span>}
                     </div>
+                  </div>
                     {/* Tags + score bar */}
                     <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      {c.lead==="hot"&&<span className="nx-badge hot">🔥 Hot</span>}
-                      {c.lead==="warm"&&<span className="nx-badge warm">🟡 Warm</span>}
-                      {c.lead==="cold"&&<span className="nx-badge cold">🔵 Cold</span>}
-                      {!c.botActive&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:20,fontWeight:600,background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>Manual</span>}
-                      {c.leadScore>0&&<div style={{marginLeft:"auto",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                        <div style={{height:3,width:32,borderRadius:2,background:T.border,overflow:"hidden"}}>
-                          <div style={{height:3,borderRadius:2,width:`${c.leadScore}%`,background:c.lead==="hot"?"#e11d48":c.lead==="warm"?"#d97706":"#3b82f6"}}/>
-                        </div>
-                        <div style={{fontSize:9,color:T.textFaint}}>{c.leadScore}</div>
-                      </div>}
-                    </div>
                     {inboxFilter==="manual"&&!c.botActive&&<div onClick={e=>{e.stopPropagation();toggleBot(c.id);}}
-                      style={{marginTop:5,display:"inline-flex",alignItems:"center",gap:4,padding:"2px 8px",borderRadius:6,background:"#f0fdf4",border:"1px solid #bbf7d0",cursor:"pointer"}}>
+                      style={{marginTop:4,display:"inline-flex",alignItems:"center",gap:4,padding:"2px 8px",borderRadius:6,background:"#f0fdf4",border:"1px solid #bbf7d0",cursor:"pointer"}}>
                       <span style={{fontSize:10,color:"#16a34a",fontWeight:700}}>🤖 Turn Bot ON</span>
                     </div>}
                   </div>
@@ -2569,95 +2556,72 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{fontSize:12,color:"#9ca3af"}}>Choose from the list to start chatting</div>
           </div>}
 
-          {/* RIGHT PANEL */}
-          {selected&&showRightPanel&&!isMobile&&<div style={{width:292,flexShrink:0,borderLeft:"1px solid #e8eaef",background:"#ffffff",overflowY:"auto",display:"flex",flexDirection:"column"}}>
-            <div style={{padding:"12px 16px",borderBottom:"1px solid #e8eaef",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#f8f9fc"}}>
-              <div style={{fontWeight:700,fontSize:11,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1}}>Contact Details</div>
-              <button onClick={()=>setShowRightPanel(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:18,color:"#9ca3af",lineHeight:1}}>×</button>
+          {/* RIGHT PANEL — always visible on desktop when contact selected, like mockup */}
+          {selected&&!isMobile&&<div style={{width:240,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.sidebar,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+            <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{fontWeight:700,fontSize:13,color:T.text}}>Contact info</div>
+              <button onClick={()=>setShowRightPanel(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted,lineHeight:1}}>×</button>
             </div>
             {/* Profile */}
-            <div style={{padding:"18px 16px",borderBottom:"1px solid #e8eaef",textAlign:"center",background:"linear-gradient(180deg,#f8f9fc,#ffffff)"}}>
+            <div style={{padding:"16px",borderBottom:`1px solid ${T.border}`,textAlign:"center"}}>
               {selected.profile_pic_url
-                ?<img src={selected.profile_pic_url} style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",marginBottom:10,border:"3px solid #6c63ff",boxShadow:"0 0 0 4px rgba(108,99,255,.1)"}} alt="profile"/>
-                :<div style={{width:64,height:64,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:700,color:"#fff",margin:"0 auto 10px",
-                  boxShadow:selected.lead==="hot"?"0 0 0 2.5px #e11d48,0 0 0 5px rgba(225,29,72,.12)":selected.lead==="warm"?"0 0 0 2.5px #d97706,0 0 0 5px rgba(217,119,6,.1)":"0 4px 14px rgba(0,0,0,.1)"}}>{selected.avatar}</div>}
-              <div style={{fontWeight:800,fontSize:15,color:"#0d0f1a"}}>{selected.name}</div>
-              <div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>{selected.phone}</div>
-              {selected.last_seen&&<div style={{fontSize:10,color:"#9ca3af",marginTop:4}}>🕐 Last seen: {new Date(selected.last_seen).toLocaleString("en-MY",{dateStyle:"short",timeStyle:"short"})}</div>}
+                ?<img src={selected.profile_pic_url} style={{width:56,height:56,borderRadius:"50%",objectFit:"cover",marginBottom:8,border:`3px solid ${WA_GREEN}`}} alt="profile"/>
+                :<div style={{width:56,height:56,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700,color:"#fff",margin:"0 auto 8px",
+                  boxShadow:selected.lead==="hot"?`0 0 0 2px #e11d48`:selected.lead==="warm"?`0 0 0 2px #d97706`:"none"}}>{selected.avatar}</div>}
+              <div style={{fontWeight:700,fontSize:14,color:T.text}}>{selected.name}</div>
+              <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{selected.phone}</div>
+              {selected.last_seen&&<div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Last seen: {new Date(selected.last_seen).toLocaleString("en-MY",{dateStyle:"short",timeStyle:"short"})}</div>}
               <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:10}}>
-                <span style={{fontSize:10,padding:"3px 10px",borderRadius:20,fontWeight:700,
-                  background:selected.lead==="hot"?"#fff1f3":selected.lead==="warm"?"#fffbeb":"#f1f5f9",
-                  color:selected.lead==="hot"?"#e11d48":selected.lead==="warm"?"#d97706":"#6b7280",
-                  border:`1px solid ${selected.lead==="hot"?"#fecdd3":selected.lead==="warm"?"#fde68a":"#e2e8f0"}`}}>
-                  {selected.lead==="hot"?"🔥 Hot":selected.lead==="warm"?"🟡 Warm":"❄️ Cold"}
+                <span className={`nx-badge ${selected.lead==="hot"?"hot":selected.lead==="warm"?"warm":"cold"}`}>
+                  {selected.lead==="hot"?"🔥 Hot":selected.lead==="warm"?"🟡 Warm":"🔵 Cold"}
                 </span>
-                <span style={{fontSize:10,padding:"3px 10px",borderRadius:20,fontWeight:700,
-                  background:selected.booking_confirmed?"#f0fdf4":"#f1f5f9",
-                  color:selected.booking_confirmed?"#16a34a":"#6b7280",
-                  border:`1px solid ${selected.booking_confirmed?"#bbf7d0":"#e2e8f0"}`}}>
-                  {selected.booking_confirmed?"✅ Booked":"⏳ Not booked"}
-                </span>
+                {selected.booking_confirmed&&<span className="nx-badge success">✅ Booked</span>}
               </div>
             </div>
             {/* Lead score visual */}
-            {selected.leadScore>0&&<div style={{padding:"14px 16px",borderBottom:"1px solid #e8eaef"}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>🎯 Lead Score</div>
-              <div style={{display:"flex",alignItems:"center",gap:12,background:"#f8f9fc",borderRadius:10,padding:"10px 12px",border:"1px solid #e8eaef"}}>
-                <div style={{position:"relative",width:52,height:52,flexShrink:0}}>
-                  <svg width="52" height="52" style={{transform:"rotate(-90deg)"}}>
-                    <circle cx="26" cy="26" r="20" fill="none" stroke="#e8eaef" strokeWidth="5"/>
-                    <circle cx="26" cy="26" r="20" fill="none"
-                      stroke={selected.lead==="hot"?"#e11d48":selected.lead==="warm"?"#d97706":"#3b82f6"}
-                      strokeWidth="5" strokeDasharray="125.7"
-                      strokeDashoffset={125.7*(1-(selected.leadScore||0)/100)} strokeLinecap="round"
-                      style={{transition:"stroke-dashoffset .8s ease"}}/>
-                  </svg>
-                  <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
-                    <div style={{fontSize:13,fontWeight:900,color:selected.lead==="hot"?"#e11d48":selected.lead==="warm"?"#d97706":"#3b82f6",lineHeight:1}}>{selected.leadScore}</div>
-                    <div style={{fontSize:7,color:"#9ca3af"}}>/100</div>
-                  </div>
+            {selected.leadScore>0&&<div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>Lead Score</div>
+              <div style={{background:T.card2,borderRadius:8,padding:"10px 12px",border:`1px solid ${T.border}`}}>
+                <div style={{fontSize:10,color:T.textMuted,marginBottom:6,fontWeight:500}}>Score</div>
+                <div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden",marginBottom:4}}>
+                  <div style={{height:5,borderRadius:3,width:`${selected.leadScore||0}%`,background:selected.lead==="hot"?"#ef4444":selected.lead==="warm"?"#f59e0b":"#3b82f6",transition:"width .8s ease"}}/>
                 </div>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:selected.lead==="hot"?"#e11d48":selected.lead==="warm"?"#d97706":"#6b7280",marginBottom:3}}>
-                    {selected.lead==="hot"?"🔥 High Intent":selected.lead==="warm"?"🟡 Interested":"🔵 Browsing"}
-                  </div>
-                  <div style={{fontSize:10,color:"#6b7280",lineHeight:1.5}}>{selected.leadReason||"AI classification"}</div>
-                </div>
+                <div style={{fontSize:11,fontWeight:700,color:selected.lead==="hot"?"#dc2626":selected.lead==="warm"?"#b45309":"#1d4ed8"}}>{selected.leadScore}/100 · {selected.lead==="hot"?"Hot lead":selected.lead==="warm"?"Warm lead":"Cold lead"}</div>
               </div>
             </div>}
             {/* Ad source */}
-            <div style={{padding:"14px 16px",borderBottom:"1px solid #e8eaef"}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>📢 Lead Source</div>
+            <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>Lead Source</div>
               {adHistory.length>0?(
                 <div>
                   {adHistory.length>1&&<div style={{display:"flex",gap:4,marginBottom:8,justifyContent:"center"}}>
                     {adHistory.map((_,i)=>(
                       <button key={i} onClick={()=>setAdHistoryPage(i)}
-                        style={{width:8,height:8,borderRadius:"50%",border:"none",cursor:"pointer",padding:0,background:adHistoryPage===i?"#6c63ff":"#e8eaef"}}/>
+                        style={{width:8,height:8,borderRadius:"50%",border:"none",cursor:"pointer",padding:0,background:adHistoryPage===i?WA_GREEN:"#e8eaef"}}/>
                     ))}
                   </div>}
-                  {adHistory[adHistoryPage]&&<div style={{background:"#f0effe",borderRadius:10,padding:"10px 12px",border:"1px solid rgba(108,99,255,.2)"}}>
+                  {adHistory[adHistoryPage]&&<div style={{background:`${WA_GREEN}10`,borderRadius:10,padding:"10px 12px",border:"1px solid rgba(108,99,255,.2)"}}>
                     <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <div style={{fontSize:11,fontWeight:700,color:"#6c63ff"}}>{adHistoryPage===0?"Latest":"#"+(adHistory.length-adHistoryPage)}</div>
-                      <div style={{fontSize:10,color:"#9ca3af"}}>{new Date(adHistory[adHistoryPage].created_at).toLocaleDateString("en-MY")}</div>
+                      <div style={{fontSize:11,fontWeight:700,color:WA_GREEN}}>{adHistoryPage===0?"Latest":"#"+(adHistory.length-adHistoryPage)}</div>
+                      <div style={{fontSize:10,color:T.textFaint}}>{new Date(adHistory[adHistoryPage].created_at).toLocaleDateString("en-MY")}</div>
                     </div>
-                    <div style={{fontSize:12,fontWeight:700,color:"#0d0f1a",marginBottom:4}}>📌 {adHistory[adHistoryPage].ad_headline||"Ad"}</div>
-                    {adHistory[adHistoryPage].first_message&&<div style={{fontSize:11,color:"#6b7280",marginBottom:4,fontStyle:"italic"}}>"{adHistory[adHistoryPage].first_message}"</div>}
+                    <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:4}}>📌 {adHistory[adHistoryPage].ad_headline||"Ad"}</div>
+                    {adHistory[adHistoryPage].first_message&&<div style={{fontSize:11,color:T.textMuted,marginBottom:4,fontStyle:"italic"}}>"{adHistory[adHistoryPage].first_message}"</div>}
                     {adHistory[adHistoryPage].ad_source&&<a href={adHistory[adHistoryPage].ad_source} target="_blank" rel="noreferrer"
-                      style={{fontSize:11,color:"#6c63ff",textDecoration:"none",display:"flex",alignItems:"center",gap:3}}>🔗 View Ad ↗</a>}
+                      style={{fontSize:11,color:WA_GREEN,textDecoration:"none",display:"flex",alignItems:"center",gap:3}}>🔗 View Ad ↗</a>}
                     {adHistory.length>1&&<div style={{display:"flex",gap:4,marginTop:8}}>
                       <button onClick={()=>setAdHistoryPage(p=>Math.min(p+1,adHistory.length-1))} disabled={adHistoryPage>=adHistory.length-1}
-                        style={{flex:1,padding:"4px",borderRadius:6,border:"1px solid #e8eaef",background:"#fff",color:"#6b7280",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>← Older</button>
+                        style={{flex:1,padding:"4px",borderRadius:6,border:`1px solid ${T.border}`,background:"#fff",color:T.textMuted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>← Older</button>
                       <button onClick={()=>setAdHistoryPage(p=>Math.max(p-1,0))} disabled={adHistoryPage<=0}
-                        style={{flex:1,padding:"4px",borderRadius:6,border:"1px solid #e8eaef",background:"#fff",color:"#6b7280",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Newer →</button>
+                        style={{flex:1,padding:"4px",borderRadius:6,border:`1px solid ${T.border}`,background:"#fff",color:T.textMuted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Newer →</button>
                     </div>}
                   </div>}
                 </div>
-              ):<div style={{fontSize:12,color:"#9ca3af",fontStyle:"italic"}}>Organic / Direct message</div>}
+              ):<div style={{fontSize:12,color:T.textFaint,fontStyle:"italic"}}>Organic / Direct message</div>}
             </div>
             {/* Stats */}
-            <div style={{padding:"14px 16px",borderBottom:"1px solid #e8eaef"}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>💬 Conversation</div>
+            <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>💬 Conversation</div>
               {[
                 {l:"Total messages",v:selected.messages?.length||0},
                 {l:"Customer msgs",v:selected.messages?.filter(m=>m.from==="user")?.length||0},
@@ -2666,21 +2630,21 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {l:"Follow-ups sent",v:selected.followupCount||0},
               ].map(r=>(
                 <div key={r.l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,fontSize:11}}>
-                  <span style={{color:"#9ca3af"}}>{r.l}</span>
-                  <span style={{fontWeight:600,color:"#0d0f1a"}}>{r.v}</span>
+                  <span style={{color:T.textFaint}}>{r.l}</span>
+                  <span style={{fontWeight:600,color:T.text}}>{r.v}</span>
                 </div>
               ))}
             </div>
             {/* Status */}
             <div style={{padding:"14px 16px"}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>⚙️ Status</div>
+              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>⚙️ Status</div>
               {[
-                {l:"Bot",v:selected.botActive?"🤖 Active":"👤 Manual",vc:selected.botActive?"#16a34a":"#6b7280"},
-                {l:"Assigned To",v:selected.assignedTo?"Agent #"+selected.assignedTo:"Unassigned",vc:"#0d0f1a"},
-                {l:"Pipeline",v:selected.pipelineStage||"new",vc:"#0d0f1a"},
+                {l:"Bot",v:selected.botActive?"🤖 Active":"👤 Manual",vc:selected.botActive?"#16a34a":T.textMuted},
+                {l:"Assigned To",v:selected.assignedTo?"Agent #"+selected.assignedTo:"Unassigned",vc:T.text},
+                {l:"Pipeline",v:selected.pipelineStage||"new",vc:T.text},
               ].map(r=>(
                 <div key={r.l} style={{display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:11}}>
-                  <span style={{color:"#9ca3af"}}>{r.l}</span>
+                  <span style={{color:T.textFaint}}>{r.l}</span>
                   <span style={{fontWeight:600,color:r.vc,textTransform:"capitalize"}}>{r.v}</span>
                 </div>
               ))}
@@ -5248,26 +5212,26 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
           </div>}
 
           {/* Selected contact display */}
-          {selectedContact&&!existingNoteWarn&&<div style={{margin:"12px 20px 0",padding:"10px 12px",background:"#f0effe",borderRadius:10,border:"1px solid rgba(108,99,255,.2)",display:"flex",alignItems:"center",gap:10}}>
+          {selectedContact&&!existingNoteWarn&&<div style={{margin:"12px 20px 0",padding:"10px 12px",background:`${WA_GREEN}10`,borderRadius:10,border:"1px solid rgba(108,99,255,.2)",display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6c63ff,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>
               {(selectedContact.name||"?")[0]?.toUpperCase()}
             </div>
             <div style={{flex:1}}>
-              <div style={{fontWeight:700,fontSize:13,color:"#0d0f1a"}}>{selectedContact.name}</div>
-              <div style={{fontSize:11,color:"#6b7280"}}>{selectedContact.phone}</div>
+              <div style={{fontWeight:700,fontSize:13,color:T.text}}>{selectedContact.name}</div>
+              <div style={{fontSize:11,color:T.textMuted}}>{selectedContact.phone}</div>
             </div>
             <button onClick={()=>{setSelectedContact(null);setContactSearch("");}}
-              style={{border:"none",background:"none",cursor:"pointer",color:"#9ca3af",fontSize:16}}>×</button>
+              style={{border:"none",background:"none",cursor:"pointer",color:T.textFaint,fontSize:16}}>×</button>
           </div>}
 
           {/* Search + contact list */}
           {!selectedContact&&<div style={{padding:"12px 20px 0",flexShrink:0}}>
             <div style={{position:"relative"}}>
-              <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:"#9ca3af"}}>🔍</span>
+              <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:T.textFaint}}>🔍</span>
               <input autoFocus value={contactSearch} onChange={e=>setContactSearch(e.target.value)}
                 placeholder="Search by name or phone..."
-                style={{width:"100%",padding:"8px 12px 8px 30px",borderRadius:10,border:`1.5px solid #e8eaef`,background:"#f8f9fc",color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}
-                onFocus={e=>e.target.style.borderColor="#6c63ff"} onBlur={e=>e.target.style.borderColor="#e8eaef"}/>
+                style={{width:"100%",padding:"8px 12px 8px 30px",borderRadius:10,border:`1.5px solid #e8eaef`,background:T.card2,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color .15s"}}
+                onFocus={e=>e.target.style.borderColor=WA_GREEN} onBlur={e=>e.target.style.borderColor="#e8eaef"}/>
             </div>
           </div>}
 
@@ -5280,7 +5244,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
             }).slice(0,30).map((c,i)=>(
               <div key={c.id} onClick={()=>selectContactForNote(c)}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:10,cursor:"pointer",border:"1px solid transparent",marginBottom:2,transition:"all .15s"}}
-                onMouseEnter={e=>{e.currentTarget.style.background="#f0effe";e.currentTarget.style.borderColor="rgba(108,99,255,.15)";}}
+                onMouseEnter={e=>{e.currentTarget.style.background=`${WA_GREEN}10`;e.currentTarget.style.borderColor="rgba(108,99,255,.15)";}}
                 onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="transparent";}}>
                 <div style={{width:36,height:36,borderRadius:"50%",background:c.lead==="hot"?"linear-gradient(135deg,#e11d48,#f43f5e)":c.lead==="warm"?"linear-gradient(135deg,#d97706,#f59e0b)":"linear-gradient(135deg,#6c63ff,#8b5cf6)",
                   display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0,
@@ -5289,7 +5253,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||c.phone}</div>
-                  <div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>{c.phone}</div>
+                  <div style={{fontSize:10,color:T.textFaint,marginTop:1}}>{c.phone}</div>
                 </div>
                 <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
                   {c.lead==="hot"&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:20,fontWeight:700,background:"#fff1f3",color:"#e11d48",border:"1px solid #fecdd3"}}>🔥 Hot</span>}
@@ -5299,7 +5263,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                 </div>
               </div>
             ))}
-            {contacts.length===0&&<div style={{textAlign:"center",padding:24,color:"#9ca3af",fontSize:12}}>No contacts in inbox yet</div>}
+            {contacts.length===0&&<div style={{textAlign:"center",padding:24,color:T.textFaint,fontSize:12}}>No contacts in inbox yet</div>}
           </div>}
 
           {/* Note textarea + save */}
@@ -5307,11 +5271,11 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
             <div style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:6}}>Note</div>
             <textarea value={modalNoteText} onChange={e=>setModalNoteText(e.target.value)}
               placeholder="Write your note here..." rows={3} autoFocus
-              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid rgba(108,99,255,.3)",background:"#f0effe",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box",lineHeight:1.55}}
-              onFocus={e=>e.target.style.borderColor="#6c63ff"} onBlur={e=>e.target.style.borderColor="rgba(108,99,255,.3)"}/>
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid rgba(108,99,255,.3)",background:`${WA_GREEN}10`,color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box",lineHeight:1.55}}
+              onFocus={e=>e.target.style.borderColor=WA_GREEN} onBlur={e=>e.target.style.borderColor="rgba(108,99,255,.3)"}/>
             <div style={{display:"flex",gap:8,marginTop:10}}>
               <button onClick={saveModalNote} disabled={saving||!modalNoteText.trim()}
-                style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:saving||!modalNoteText.trim()?"#e8eaef":"linear-gradient(135deg,#6c63ff,#5a52e0)",color:saving||!modalNoteText.trim()?"#9ca3af":"#fff",fontSize:13,fontWeight:700,cursor:saving||!modalNoteText.trim()?"not-allowed":"pointer",fontFamily:"inherit",boxShadow:!saving&&modalNoteText.trim()?"0 2px 10px rgba(108,99,255,.25)":"none"}}>
+                style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:saving||!modalNoteText.trim()?"#e8eaef":"linear-gradient(135deg,#6c63ff,#5a52e0)",color:saving||!modalNoteText.trim()?T.textFaint:"#fff",fontSize:13,fontWeight:700,cursor:saving||!modalNoteText.trim()?"not-allowed":"pointer",fontFamily:"inherit",boxShadow:!saving&&modalNoteText.trim()?"0 2px 10px rgba(108,99,255,.25)":"none"}}>
                 {saving?"⏳ Saving...":"💾 Save Note"}
               </button>
               <button onClick={()=>{setShowAddModal(false);setExistingNoteWarn(null);}}
@@ -5436,7 +5400,7 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
               const isAI = n.agent_name==="🤖 Auto-Note";
               const isHighlighted = highlightNoteId===n.id;
               const stripeColor = isAI?"linear-gradient(90deg,#7c3aed,#8b5cf6)":isHot?"linear-gradient(90deg,#e11d48,#f43f5e)":"linear-gradient(90deg,#d97706,#f59e0b)";
-              const borderColor = isHighlighted?"#6c63ff":isHot?"rgba(225,29,72,.2)":"rgba(217,119,6,.15)";
+              const borderColor = isHighlighted?WA_GREEN:isHot?"rgba(225,29,72,.2)":"rgba(217,119,6,.15)";
               const bgColor = isAI?"linear-gradient(160deg,#fff,#faf5ff)":"#ffffff";
               return (
               <div key={n.id} id={"note-card-"+n.id}
@@ -5457,11 +5421,11 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
-                        style={{fontWeight:700,fontSize:13,color:"#0d0f1a",background:"none",border:"none",cursor:"pointer",padding:0,textAlign:"left",fontFamily:"inherit",transition:"color .15s"}}
-                        onMouseEnter={e=>e.target.style.color="#6c63ff"} onMouseLeave={e=>e.target.style.color="#0d0f1a"}>
+                        style={{fontWeight:700,fontSize:13,color:T.text,background:"none",border:"none",cursor:"pointer",padding:0,textAlign:"left",fontFamily:"inherit",transition:"color .15s"}}
+                        onMouseEnter={e=>e.target.style.color=WA_GREEN} onMouseLeave={e=>e.target.style.color=T.text}>
                         {n.contact_name||n.contact_id}
                       </button>
-                      <div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>{n.contact_id}</div>
+                      <div style={{fontSize:10,color:T.textFaint,marginTop:1}}>{n.contact_id}</div>
                     </div>
                   </div>
                   {/* Action buttons row — separate, below contact */}
@@ -5494,15 +5458,15 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
                     </div>
                   )}
                   {/* Meta */}
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:10,color:"#9ca3af",marginBottom:10}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:10,color:T.textFaint,marginBottom:10}}>
                     <span>by {n.agent_name||"Agent"}</span>
                     <span>{fmt(n.created_at)}</span>
                   </div>
                   {/* Jump button */}
                   <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
-                    style={{width:"100%",padding:"7px",borderRadius:8,border:"1px solid #e8eaef",background:"#f8f9fc",color:"#6b7280",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,transition:"all .15s"}}
-                    onMouseEnter={e=>{e.currentTarget.style.background="#f0effe";e.currentTarget.style.color="#6c63ff";e.currentTarget.style.borderColor="rgba(108,99,255,.2)";}}
-                    onMouseLeave={e=>{e.currentTarget.style.background="#f8f9fc";e.currentTarget.style.color="#6b7280";e.currentTarget.style.borderColor="#e8eaef";}}>
+                    style={{width:"100%",padding:"7px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,transition:"all .15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=`${WA_GREEN}10`;e.currentTarget.style.color=WA_GREEN;e.currentTarget.style.borderColor=`${WA_GREEN}30`;}}
+                    onMouseLeave={e=>{e.currentTarget.style.background=T.card2;e.currentTarget.style.color=T.textMuted;e.currentTarget.style.borderColor="#e8eaef";}}>
                     💬 Jump to Chat
                   </button>
                 </div>
@@ -5713,7 +5677,7 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
                 ):canConnect?(
                   <button onClick={()=>{
                     if(!conn.fields.length){
-                      showToast(conn.label+" — coming soon!","#0d0f1a");
+                      showToast(conn.label+" — coming soon!",T.text);
                       return;
                     }
                     const init={};conn.fields.forEach(f=>{init[f.key]=connData[f.key]||"";});
@@ -6487,7 +6451,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
             <div style={{textAlign:"center",marginBottom:20}}>
               <div style={{fontSize:36,marginBottom:8}}>🔌</div>
               <div style={{fontWeight:800,fontSize:17,marginBottom:4}}>Integrations Access</div>
-              <div style={{fontSize:12,color:"#6b7280"}}>Select which connectors this user can see and manage</div>
+              <div style={{fontSize:12,color:T.textMuted}}>Select which connectors this user can see and manage</div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
               {INTEGRATION_CONNECTORS.map(c=>{
@@ -6553,7 +6517,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
       {/* Global summary — all clients combined */}
       {clinics.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:20}}>
         {[
-          {icon:"🏢",v:clinics.length,l:"Total Clients",sub:clinics.filter(c=>c.active!==false).length+" Active · "+clinics.filter(c=>c.active===false).length+" Disabled",c:"#6c63ff",bg:"#f0effe"},
+          {icon:"🏢",v:clinics.length,l:"Total Clients",sub:clinics.filter(c=>c.active!==false).length+" Active · "+clinics.filter(c=>c.active===false).length+" Disabled",c:WA_GREEN,bg:`${WA_GREEN}10`},
           {icon:"👥",v:adminOverview.length>0?adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0):"…",l:"Total Contacts",sub:"Across all clients",c:"#2563eb",bg:"#eff6ff"},
           {icon:"👤",v:users.filter(u=>u.role!=="admin").length,l:"Total Staff",sub:users.filter(u=>u.role!=="admin"&&u.active).length+" Active · "+users.filter(u=>u.role!=="admin"&&!u.active).length+" Deactivated",c:"#d97706",bg:"#fffbeb"},
           {icon:"🔥",v:adminOverview.length>0?adminOverview.reduce((s,c)=>s+(c.hot_leads||0),0):"…",l:"Hot Leads",sub:"All clients combined",c:"#e11d48",bg:"#fff1f3"},
@@ -6606,7 +6570,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                 placeholder="sk-ant-... or sk-..."
                 style={{flex:1,padding:"7px 10px",borderRadius:8,border:"1px solid "+T.border,background:T.card,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
               <button onClick={()=>saveGlobalSettings(globalSettings)} disabled={savingGlobal}
-                style={{padding:"7px 14px",borderRadius:8,border:"none",background:"#6c63ff",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:savingGlobal?0.6:1}}>
+                style={{padding:"7px 14px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:savingGlobal?0.6:1}}>
                 {savingGlobal?"Saving...":"💾 Save"}
               </button>
             </div>
@@ -6721,7 +6685,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                     {v:ov?ov.hot_leads||0:"—",l:"🔥 Hot Leads",c:"#e11d48"},
                     {v:ov?(ov.hot_leads||0)+(ov.warm_leads||0):"—",l:"🟡 Warm+Hot",c:"#d97706"},
                     {v:ov?botRate+"%":"—",l:"🤖 Bot Rate",c:"#16a34a"},
-                    {v:ov?ov.active_convos||0:"—",l:"💬 Active",c:"#6c63ff"},
+                    {v:ov?ov.active_convos||0:"—",l:"💬 Active",c:WA_GREEN},
                   ].map((s,i)=>(
                     <div key={s.l} style={{textAlign:"center",padding:"12px 8px",borderRight:i<4?`1px solid ${T.border}`:"none"}}>
                       <div style={{fontSize:s.v==="—"?22:18,fontWeight:900,color:s.v==="—"?T.textFaint:s.c,lineHeight:1,marginBottom:3}}>{s.v}</div>
@@ -6790,7 +6754,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                                 {perms.length===0
                                   ?<span style={{fontSize:9,color:T.textFaint,fontStyle:"italic"}}>No permissions set</span>
                                   :perms.map(p=>(
-                                    <span key={p.key} style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:"#f0effe",color:"#6c63ff",fontWeight:600,border:"1px solid rgba(108,99,255,.2)"}}>{p.label}</span>
+                                    <span key={p.key} style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:`${WA_GREEN}10`,color:WA_GREEN,fontWeight:600,border:"1px solid rgba(108,99,255,.2)"}}>{p.label}</span>
                                   ))}
                               </div>
                               {/* Session info */}
@@ -6934,7 +6898,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
         .an5{animation:_fadeUp .4s .32s cubic-bezier(.22,1,.36,1) both}
         .kpi-hover:hover{transform:translateY(-3px)!important}
         .bar-hover:hover{opacity:.75}
-        .drill-row:hover{background:${dark?"#ffffff08":"#f8f9fc"}!important}
+        .drill-row:hover{background:${dark?"#ffffff08":T.card2}!important}
       `}</style>
 
       {/* ── DRILLDOWN OVERLAY ── */}
@@ -7139,18 +7103,18 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                     const ta=a.total_clicks||a.total_leads||0; const tb=b.total_clicks||b.total_leads||0;
                     return (tb>0?(b.hot_leads||0)/tb:0)-(ta>0?(a.hot_leads||0)/ta:0);
                   })[0];
-                  return <div style={{background:"#f0effe",borderRadius:10,padding:"10px 12px",marginBottom:14,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9",lineHeight:1.7}}>
+                  return <div style={{background:`${WA_GREEN}10`,borderRadius:10,padding:"10px 12px",marginBottom:14,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9",lineHeight:1.7}}>
                     {byBook&&<div style={{display:"flex",alignItems:"flex-start",gap:6,cursor:"help"}} title={`Most bookings winner: ${byBook.bookings} patients confirmed their booking after coming from this ad. This is your best ad for closing deals — the most patients actually committed to a consultation.`}>
                       <span>🏆</span>
-                      <span><strong>{byBook.ad_headline}</strong> — most bookings ({byBook.bookings}) <span style={{fontSize:10,color:"#9ca3af"}}>ⓘ</span></span>
+                      <span><strong>{byBook.ad_headline}</strong> — most bookings ({byBook.bookings}) <span style={{fontSize:10,color:T.textFaint}}>ⓘ</span></span>
                     </div>}
                     {byConv&&<div style={{display:"flex",alignItems:"flex-start",gap:6,cursor:"help"}} title={`Best conversion winner: ${byConv.conversion_rate}% of people who messaged from this ad ended up booking. Meaning if 10 people messaged, ${Math.round(byConv.conversion_rate/10)} booked. High conversion = ad attracts serious patients who are ready to commit.`}>
                       <span>📈</span>
-                      <span>Best conversion: <strong>{byConv.ad_headline}</strong> ({byConv.conversion_rate}%) <span style={{fontSize:10,color:"#9ca3af"}}>ⓘ</span></span>
+                      <span>Best conversion: <strong>{byConv.ad_headline}</strong> ({byConv.conversion_rate}%) <span style={{fontSize:10,color:T.textFaint}}>ⓘ</span></span>
                     </div>}
                     {byHot&&<div style={{display:"flex",alignItems:"flex-start",gap:6,cursor:"help"}} title={`Best hot rate winner: ${(byHot.total_clicks||byHot.total_leads||0)>0?Math.round((byHot.hot_leads||0)/(byHot.total_clicks||byHot.total_leads||1)*100):0}% of people from this ad became hot leads — meaning they showed strong intent to book (asked for dates, prices, ready to come in). High hot rate = ad is attracting the right audience with real health needs.`}>
                       <span>🔥</span>
-                      <span>Best hot rate: <strong>{byHot.ad_headline}</strong> ({(byHot.total_clicks||byHot.total_leads||0)>0?Math.round((byHot.hot_leads||0)/(byHot.total_clicks||byHot.total_leads||1)*100):0}%) <span style={{fontSize:10,color:"#9ca3af"}}>ⓘ</span></span>
+                      <span>Best hot rate: <strong>{byHot.ad_headline}</strong> ({(byHot.total_clicks||byHot.total_leads||0)>0?Math.round((byHot.hot_leads||0)/(byHot.total_clicks||byHot.total_leads||1)*100):0}%) <span style={{fontSize:10,color:T.textFaint}}>ⓘ</span></span>
                     </div>}
                   </div>;
                 })()}
@@ -7168,7 +7132,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                   const convBg = ad.conversion_rate>=8?"#f0fdf4":ad.conversion_rate>=4?"#fffbeb":"#fef2f2";
                   return (
                     <div key={i} style={{background:T.card2,borderRadius:14,marginBottom:12,border:`1px solid ${T.border}`,overflow:"hidden",animation:`_slideInL .3s ${i*0.04}s both`,transition:"all .15s"}}
-                      onMouseEnter={e=>{e.currentTarget.style.borderColor="#6c63ff";e.currentTarget.style.transform="translateX(3px)";}}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor=WA_GREEN;e.currentTarget.style.transform="translateX(3px)";}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.transform="none";}}>
                       {/* Header */}
                       <div style={{padding:"12px 14px 10px",borderBottom:`1px solid ${T.border}`}}>
@@ -7180,7 +7144,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                                 {ad.ad_source_type==="ad"?"📘 Facebook":ad.ad_source_type==="instagram"?"📸 Instagram":ad.ad_source_type||"📢 Ad"}
                               </span>
                               {ad.ad_url&&<a href={ad.ad_url} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
-                                style={{fontSize:9,color:"#6c63ff",fontWeight:600,textDecoration:"none"}}>🔗 View Ad ↗</a>}
+                                style={{fontSize:9,color:WA_GREEN,fontWeight:600,textDecoration:"none"}}>🔗 View Ad ↗</a>}
                             </div>
                           </div>
                           <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:700,flexShrink:0,background:convBg,color:convColor,border:`1px solid ${convColor}25`}}>
@@ -7197,7 +7161,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                         {/* 6 stat boxes */}
                         <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:5,marginBottom:10}}>
                           {[
-                            {v:total,l:"Clicks",c:"#6c63ff",tip:"People who clicked this ad AND sent a WhatsApp message. This is real engagement — not just impressions."},
+                            {v:total,l:"Clicks",c:WA_GREEN,tip:"People who clicked this ad AND sent a WhatsApp message. This is real engagement — not just impressions."},
                             {v:ad.hot_leads||0,l:"🔥 Hot",c:"#e11d48",tip:"Leads marked Hot — showed strong booking intent (asked for dates, prices, ready to come in)."},
                             {v:ad.warm_leads||0,l:"🟡 Warm",c:"#d97706",tip:"Leads marked Warm — showed genuine interest but not ready to book yet."},
                             {v:ad.cold_leads||0,l:"🔵 Cold",c:"#3b82f6",tip:"Leads marked Cold — just browsing, no specific health concern mentioned."},
@@ -7216,13 +7180,13 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                         {/* Key metrics row */}
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:10}}>
                           {[
-                            {icon:"🔥",label:"Hot Rate",val:hotRate+"%",color:hotRate>=15?"#e11d48":hotRate>=8?"#d97706":"#6b7280",
+                            {icon:"🔥",label:"Hot Rate",val:hotRate+"%",color:hotRate>=15?"#e11d48":hotRate>=8?"#d97706":T.textMuted,
                               tip:`${hotRate}% of people who messaged from this ad became hot leads. Target: 15%+. Low = ad attracting wrong audience or bot not qualifying leads well.`},
                             {icon:"📊",label:"Quality Score",val:qualityScore+"/10",color:qualityScore>=6?"#16a34a":qualityScore>=3?"#d97706":"#e11d48",
                               tip:`Quality score based on hot+warm leads ratio. Score = (hot×3 + warm×1) ÷ total × 10. 6+/10 is good, below 3 means mostly cold leads.`},
-                            {icon:"📈",label:"Daily Avg",val:dailyAvg+" leads",color:"#6c63ff",
+                            {icon:"📈",label:"Daily Avg",val:dailyAvg+" leads",color:WA_GREEN,
                               tip:`Average leads per day this ad was active. Total ${total} clicks ÷ ${daysActive} active days = ${dailyAvg} leads/day.`},
-                            {icon:"📅",label:"Active Days",val:daysActive+" days",color:"#6b7280",
+                            {icon:"📅",label:"Active Days",val:daysActive+" days",color:T.textMuted,
                               tip:`How many days this ad has been running based on first and last lead received.`},
                           ].map(m=>(
                             <div key={m.label} title={m.tip}
@@ -7826,7 +7790,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
     <div style={{textAlign:"center",padding:"40px 20px"}}>
       <div style={{width:56,height:56,margin:"0 auto 20px",position:"relative"}}>
         <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"3px solid #f0effe"}}/>
-        <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"3px solid transparent",borderTopColor:"#6c63ff",animation:"spin .8s linear infinite"}}/>
+        <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"3px solid transparent",borderTopColor:WA_GREEN,animation:"spin .8s linear infinite"}}/>
         <div style={{position:"absolute",inset:6,borderRadius:"50%",background:"linear-gradient(135deg,#6c63ff20,#8b5cf620)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🤖</div>
       </div>
       <div style={{fontWeight:700,fontSize:14,color:T.text,marginBottom:6}}>{loadingMsg}</div>
@@ -7848,7 +7812,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
       {suggestWelcome&&<div style={{marginBottom:16,padding:"14px 16px",background:"#eff6ff",borderRadius:12,border:"1px solid #bfdbfe"}}>
         <div style={{fontWeight:700,fontSize:12,color:"#1d4ed8",marginBottom:4}}>💡 Update Welcome Message too?</div>
         <div style={{fontSize:11,color:"#1e40af",marginBottom:8}}>Your new prompt includes this greeting. Set it as the auto-send Welcome Message for new customers:</div>
-        <div style={{background:"#fff",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#0d0f1a",marginBottom:10,border:"1px solid #bfdbfe",fontStyle:"italic"}}>"{suggestWelcome}"</div>
+        <div style={{background:"#fff",borderRadius:8,padding:"8px 12px",fontSize:12,color:T.text,marginBottom:10,border:"1px solid #bfdbfe",fontStyle:"italic"}}>"{suggestWelcome}"</div>
         <div style={{display:"flex",gap:6}}>
           <button onClick={async()=>{
             const body={welcome:suggestWelcome};
@@ -7862,13 +7826,13 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
           }} style={{padding:"6px 14px",borderRadius:8,border:"none",background:"#2563eb",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
             ✅ Yes, Update It
           </button>
-          <button onClick={()=>setSuggestWelcome("")} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #bfdbfe",background:"#fff",color:"#6b7280",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
+          <button onClick={()=>setSuggestWelcome("")} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #bfdbfe",background:"#fff",color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
         </div>
       </div>}
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
         {[
-          {id:"generate",icon:"🆕",title:"Generate Fresh Prompt",desc:"Describe your business, answer AI-generated questions, get a complete bot personality",badge:"Best for new setup",color:"#6c63ff"},
+          {id:"generate",icon:"🆕",title:"Generate Fresh Prompt",desc:"Describe your business, answer AI-generated questions, get a complete bot personality",badge:"Best for new setup",color:WA_GREEN},
           {id:"enhance",icon:"✏️",title:"Add New Rule",desc:"Type what you want to change in plain English — AI finds the right place and adds it perfectly",badge:"Best for updates",color:"#0891b2"},
         ].map(m=>(
           <div key={m.id} onClick={()=>setMode(m.id)}
@@ -7911,7 +7875,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
           {["If customer asks about price, don't tell them — ask them to come in first","Kalau customer cakap Melayu, balas dalam Melayu","Never mention competitor clinics by name","If customer seems angry, apologise sincerely before helping"].map(ex=>(
             <button key={ex} onClick={()=>setNewLogic(ex)}
-              style={{padding:"8px 12px",borderRadius:9,border:"1px solid "+T.border,background:newLogic===ex?"#f0effe":T.card2,color:newLogic===ex?"#6c63ff":T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all .15s"}}>
+              style={{padding:"8px 12px",borderRadius:9,border:"1px solid "+T.border,background:newLogic===ex?`${WA_GREEN}10`:T.card2,color:newLogic===ex?WA_GREEN:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all .15s"}}>
               💡 {ex}
             </button>
           ))}
@@ -7926,7 +7890,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
       </>}
 
       {!loading&&step===3&&enhanceResult&&<>
-        <div style={{marginBottom:12,padding:"12px 14px",background:"#f0effe",borderRadius:12,border:"1px solid #ddd6fe"}}>
+        <div style={{marginBottom:12,padding:"12px 14px",background:`${WA_GREEN}10`,borderRadius:12,border:"1px solid #ddd6fe"}}>
           <div style={{fontWeight:700,fontSize:12,color:"#6d28d9",marginBottom:4}}>📍 Added to: <strong>{enhanceResult.added_to_section}</strong></div>
           <div style={{fontSize:11,color:"#7c3aed"}}>Rule written as: <em>{enhanceResult.converted_rule}</em></div>
         </div>
@@ -7964,11 +7928,11 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
               <div style={{width:24,height:24,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,
                 background:step>=s?"linear-gradient(135deg,#6c63ff,#8b5cf6)":T.card2,
                 color:step>=s?"#fff":T.textMuted,
-                border:"2px solid "+(step>=s?"#6c63ff":T.border),
+                border:"2px solid "+(step>=s?WA_GREEN:T.border),
                 transition:"all .3s"}}>
                 {step>s?"✓":s}
               </div>
-              {s<3&&<div style={{width:16,height:2,borderRadius:1,background:step>s?"#6c63ff":T.border,transition:"background .3s"}}/>}
+              {s<3&&<div style={{width:16,height:2,borderRadius:1,background:step>s?WA_GREEN:T.border,transition:"background .3s"}}/>}
             </div>
           ))}
         </div>
@@ -7977,7 +7941,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
       {/* Step labels */}
       <div style={{display:"flex",gap:4,marginBottom:20,fontSize:10,color:T.textMuted}}>
         {["Describe Business","Answer Questions","Review & Apply"].map((l,i)=>(
-          <span key={l} style={{flex:1,textAlign:i===0?"left":i===2?"right":"center",fontWeight:step===i+1?700:400,color:step===i+1?"#6c63ff":T.textMuted}}>{l}</span>
+          <span key={l} style={{flex:1,textAlign:i===0?"left":i===2?"right":"center",fontWeight:step===i+1?700:400,color:step===i+1?WA_GREEN:T.textMuted}}>{l}</span>
         ))}
       </div>
 
@@ -8002,7 +7966,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
           ].map(ex=>(
             <button key={ex} onClick={()=>setBusinessDesc(ex)}
               style={{padding:"5px 12px",borderRadius:20,border:"1px solid "+T.border,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor="#6c63ff";e.currentTarget.style.color="#6c63ff";}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=WA_GREEN;e.currentTarget.style.color=WA_GREEN;}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.textMuted;}}>
               {ex}
             </button>
@@ -8023,7 +7987,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
 
       {/* STEP 2 */}
       {!loading&&step===2&&questions.length>0&&<>
-        <div style={{marginBottom:16,padding:"10px 14px",background:"#f0effe",borderRadius:10,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9"}}>
+        <div style={{marginBottom:16,padding:"10px 14px",background:`${WA_GREEN}10`,borderRadius:10,border:"1px solid #ddd6fe",fontSize:11,color:"#6d28d9"}}>
           🧠 AI generated <strong>{questions.length} questions</strong> specific to your business. Answer what you can — skip anything that doesn't apply.
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
@@ -8039,9 +8003,9 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
                 {(q.options||[]).map(opt=>(
                   <button key={opt} onClick={()=>setAnswers(p=>({...p,[q.id]:p[q.id]===opt?"":opt}))}
                     style={{padding:"5px 12px",borderRadius:20,fontFamily:"inherit",fontSize:11,cursor:"pointer",transition:"all .15s",
-                      border:"1.5px solid "+(answers[q.id]===opt?"#6c63ff":T.border),
-                      background:answers[q.id]===opt?"#f0effe":T.card,
-                      color:answers[q.id]===opt?"#6c63ff":T.text,
+                      border:"1.5px solid "+(answers[q.id]===opt?WA_GREEN:T.border),
+                      background:answers[q.id]===opt?`${WA_GREEN}10`:T.card,
+                      color:answers[q.id]===opt?WA_GREEN:T.text,
                       fontWeight:answers[q.id]===opt?700:400}}>
                     {answers[q.id]===opt?"✓ ":""}{opt}
                   </button>
@@ -8055,8 +8019,8 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
                     const cur = Array.isArray(p[q.id])?p[q.id]:[];
                     return {...p,[q.id]:isOn?cur.filter(x=>x!==opt):[...cur,opt]};
                   })} style={{padding:"5px 12px",borderRadius:20,fontFamily:"inherit",fontSize:11,cursor:"pointer",transition:"all .15s",
-                    border:"1.5px solid "+(isOn?"#6c63ff":T.border),
-                    background:isOn?"#f0effe":T.card,color:isOn?"#6c63ff":T.text,fontWeight:isOn?700:400}}>
+                    border:"1.5px solid "+(isOn?WA_GREEN:T.border),
+                    background:isOn?`${WA_GREEN}10`:T.card,color:isOn?WA_GREEN:T.text,fontWeight:isOn?700:400}}>
                     {isOn?"✓ ":""}{opt}
                   </button>;
                 })}
@@ -8818,7 +8782,7 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
     for(const [k,v] of Object.entries(caseLabels)){
       if(v.label===label||(label||"").toLowerCase().includes(v.label.toLowerCase())) return v;
     }
-    return {icon:"⚠️",label:label||"Issue",color:"#6b7280",bg:"#f8f9fc",border:"#e8eaef"};
+    return {icon:"⚠️",label:label||"Issue",color:T.textMuted,bg:T.card2,border:"#e8eaef"};
   };
 
   const analyse = async () => {
@@ -8872,7 +8836,7 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
   const statsTotal = result ? Object.values(result.stats||{}).reduce((a,b)=>a+b,0) : 0;
 
   return (
-    <div style={{background:dark?"#1a1f2e":"#f0effe",border:"2px solid rgba(108,99,255,.2)",borderRadius:16,padding:20,marginBottom:20}}>
+    <div style={{background:dark?"#1a1f2e":`${WA_GREEN}10`,border:"2px solid rgba(108,99,255,.2)",borderRadius:16,padding:20,marginBottom:20}}>
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:16}}>
         <div style={{width:42,height:42,borderRadius:12,background:"linear-gradient(135deg,#6c63ff,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,boxShadow:"0 2px 10px rgba(108,99,255,.25)"}}>🤖</div>
@@ -8950,7 +8914,7 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
                 {/* Issue */}
                 <div style={{padding:"8px 12px",borderBottom:`1px solid ${T.border}`,background:"#fef2f2"}}>
                   <div style={{fontSize:10,fontWeight:700,color:"#e11d48",marginBottom:2}}>❌ ISSUE</div>
-                  <div style={{fontSize:12,color:"#0d0f1a",fontWeight:600}}>{s.issue}</div>
+                  <div style={{fontSize:12,color:T.text,fontWeight:600}}>{s.issue}</div>
                 </div>
                 {s.current_rule&&<div style={{padding:"8px 12px",borderBottom:`1px solid ${T.border}`,background:"#fff7ed"}}>
                   <div style={{fontSize:10,fontWeight:700,color:"#d97706",marginBottom:2}}>📋 CURRENT RULE</div>
@@ -9003,10 +8967,10 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
                   <span style={{fontSize:10,fontWeight:700,color:cs.color}}>{cs.label}</span>
                 </div>
                 <div style={{padding:"8px 12px",borderBottom:`1px solid ${T.border}`}}>
-                  <div style={{fontSize:10,fontWeight:700,color:"#6c63ff",marginBottom:2}}>Q:</div>
+                  <div style={{fontSize:10,fontWeight:700,color:WA_GREEN,marginBottom:2}}>Q:</div>
                   <div style={{fontSize:12,fontWeight:600,color:T.text}}>{q.question}</div>
                 </div>
-                <div style={{padding:"8px 12px",borderBottom:`1px solid ${T.border}`,background:"#f8f9fc"}}>
+                <div style={{padding:"8px 12px",borderBottom:`1px solid ${T.border}`,background:T.card2}}>
                   <div style={{fontSize:10,fontWeight:700,color:"#16a34a",marginBottom:2}}>A:</div>
                   <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{q.answer}</div>
                 </div>
