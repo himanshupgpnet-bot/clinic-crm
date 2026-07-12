@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.251";
+const CRM_VERSION = "2.9.252";
 
 // Responsive hook
 function useWindowSize() {
@@ -2187,17 +2187,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {/* ══ CRM TAB ══ */}
         {tab==="crm"&&<>
-          {/* ══ PREMIUM SIDEBAR ══ */}
-          <div style={{width:isMobile?"100%":isTablet?270:306,background:"#ffffff",borderRight:"1px solid #e8eaef",display:"flex",flexDirection:"column",flexShrink:0,
+          {/* ══ INBOX SIDEBAR ══ */}
+          <div style={{width:isMobile?"100%":isTablet?270:300,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,
             ...(isMobile&&selected?{display:"none"}:{})}}>
 
             {/* Sidebar Top */}
-            <div style={{padding:"10px 12px 8px",borderBottom:"1px solid #e8eaef"}}>
+            <div style={{padding:"12px 14px 10px",borderBottom:`1px solid ${T.border}`}}>
               {/* Title row */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                <span style={{fontSize:11,fontWeight:700,color:"#6b7280",letterSpacing:.5,textTransform:"uppercase"}}>{contacts.length} Chats</span>
-                <button onClick={()=>setShowInboxStats(p=>!p)} style={{fontSize:10,padding:"3px 9px",borderRadius:20,border:"1px solid #e8eaef",background:"#f8f9fc",color:"#6b7280",cursor:"pointer",fontFamily:"inherit"}}>
-                  {showInboxStats?"Hide ▲":"Filters ▼"}
+                <span style={{fontSize:14,fontWeight:700,color:T.text}}>Inbox <span style={{fontSize:11,fontWeight:400,color:T.textMuted}}>({contacts.length})</span></span>
+                <button onClick={()=>setShowInboxStats(p=>!p)} className="nx-btn" style={{padding:"4px 10px",fontSize:11}}>
+                  {showInboxStats?"▲ Hide":"▼ Filters"}
                 </button>
               </div>
 
@@ -2274,36 +2274,21 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>}
 
                 {/* Search */}
-                <div style={{position:"relative",marginBottom:7}}>
-                  <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:"#9ca3af"}}>🔍</span>
-                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
-                    style={{width:"100%",background:"#f8f9fc",border:"1px solid #e8eaef",borderRadius:10,padding:"7px 12px 7px 30px",color:"#0d0f1a",fontSize:12,fontFamily:"inherit",outline:"none",transition:"border-color .15s"}}
-                    onFocus={e=>e.target.style.borderColor="#6c63ff"} onBlur={e=>e.target.style.borderColor="#e8eaef"}/>
+                <div className="nx-search" style={{marginBottom:8}}>
+                  <span style={{fontSize:13,color:T.textFaint}}>🔍</span>
+                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search contacts..."/>
                 </div>
 
                 {/* Filter pills */}
-                <div style={{display:"flex",gap:3,marginBottom:5}}>
-                  {["all","open"].map(f=>(
-                    <button key={f} onClick={()=>setFilter(f)}
-                      style={{flex:1,padding:"4px 0",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:600,textTransform:"capitalize",
-                        background:filter===f?"#6c63ff":"#f8f9fc",color:filter===f?"#fff":"#6b7280",
-                        boxShadow:filter===f?"0 2px 8px rgba(108,99,255,.25)":"none",transition:"all .15s"}}>
-                      {f}
-                    </button>
-                  ))}
-                </div>
-
-                <div style={{display:"flex",gap:3,marginBottom:5}}>
+                <div style={{display:"flex",gap:4,marginBottom:6,flexWrap:"wrap"}}>
                   {[{id:"all",label:"All"},{id:"unread",label:"🔔 Unread"},{id:"manual",label:"👤 Manual"}].map(f=>(
                     <button key={f.id} onClick={()=>{setInboxFilter(f.id);setShowArchived(false);}}
-                      style={{flex:1,padding:isMobile?"10px 4px":"4px 0",minHeight:isMobile?44:28,borderRadius:22,border:`1px solid ${inboxFilter===f.id&&!showArchived?"#e8eaef":"#e8eaef"}`,cursor:"pointer",fontFamily:"inherit",fontSize:isMobile?12:10,fontWeight:inboxFilter===f.id&&!showArchived?700:600,
-                        background:inboxFilter===f.id&&!showArchived?"#f0f1f8":"#f8f9fc",color:inboxFilter===f.id&&!showArchived?"#0d0f1a":"#6b7280",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      className={`nx-filter${inboxFilter===f.id&&!showArchived?" active":""}`}>
                       {f.label}
                     </button>
                   ))}
                   <button onClick={()=>{setShowArchived(p=>!p);if(!archivedContacts.length)fetchArchived();}}
-                    style={{flex:1,padding:isMobile?"10px 4px":"4px 0",minHeight:isMobile?44:28,borderRadius:22,border:"1px solid #e8eaef",cursor:"pointer",fontFamily:"inherit",fontSize:isMobile?12:10,fontWeight:600,
-                      background:showArchived?"#f0f1f8":"#f8f9fc",color:showArchived?"#0d0f1a":"#6b7280",display:"flex",alignItems:"center",justifyContent:"center"}}>📦</button>
+                    className={`nx-filter${showArchived?" active":""}`}>📦</button>
                 </div>
 
                 {inboxFilter==="manual"&&!showArchived&&<div style={{marginBottom:6}}>
@@ -2351,54 +2336,50 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   onMouseLeave={e=>{if(selected?.id!==c.id)e.currentTarget.style.background=selectMode&&selectedChats.has(c.phone)?"#fff1f3":"transparent";}}>
 
                   {/* Selected left border */}
-                  {selected?.id===c.id&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6c63ff",borderRadius:"0 3px 3px 0"}}/>}
+                  {selected?.id===c.id&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:WA_GREEN,borderRadius:"0 3px 3px 0"}}/>}
 
                   {/* Checkbox in select mode */}
-                  {selectMode&&<div style={{width:18,height:18,borderRadius:4,border:`2px solid ${selectedChats.has(c.phone)?"#e11d48":"#e8eaef"}`,background:selectedChats.has(c.phone)?"#e11d48":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
+                  {selectMode&&<div style={{width:18,height:18,borderRadius:4,border:`2px solid ${selectedChats.has(c.phone)?WA_GREEN:"#e8eaef"}`,background:selectedChats.has(c.phone)?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
                     {selectedChats.has(c.phone)&&<span style={{color:"#fff",fontSize:11,fontWeight:700}}>✓</span>}
                   </div>}
 
                   {/* AVATAR */}
                   <div style={{position:"relative",flexShrink:0}}>
-                    <div style={{width:44,height:44,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14,color:"#fff",
-                      boxShadow:c.lead==="hot"?"0 0 0 2.5px #e11d48,0 0 0 4px rgba(225,29,72,.15)":c.lead==="warm"?"0 0 0 2.5px #d97706,0 0 0 4px rgba(217,119,6,.12)":"none",
-                      transition:"box-shadow .2s"}}>
+                    <div style={{width:40,height:40,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",
+                      boxShadow:c.lead==="hot"?`0 0 0 2px #e11d48`:c.lead==="warm"?`0 0 0 2px #d97706`:"none"}}>
                       {c.avatar||"?"}
                     </div>
-                    {/* Unread badge */}
-                    {c.unread>0&&<div style={{position:"absolute",top:-2,right:-2,background:"#e11d48",color:"#fff",borderRadius:"50%",width:17,height:17,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,border:"2px solid #fff"}}>
+                    {c.unread>0&&<div style={{position:"absolute",top:-2,right:-2,background:WA_GREEN,color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,border:"2px solid "+T.sidebar}}>
                       {c.unread>9?"9+":c.unread}
                     </div>}
-                    {/* Bot dot */}
-                    {c.botActive&&<div style={{position:"absolute",bottom:-1,right:-1,width:13,height:13,borderRadius:"50%",background:"#16a34a",border:"2px solid #fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:6}}>🤖</div>}
+                    {c.botActive&&<div style={{position:"absolute",bottom:-1,right:-1,width:12,height:12,borderRadius:"50%",background:"#16a34a",border:"2px solid "+T.sidebar,display:"flex",alignItems:"center",justifyContent:"center",fontSize:6}}>🤖</div>}
                   </div>
 
                   {/* Info */}
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:2}}>
-                      <span style={{fontWeight:c.unread>0?700:600,fontSize:isMobile?15:13,color:"#0d0f1a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?160:135}}>
+                      <span style={{fontWeight:c.unread>0?700:600,fontSize:isMobile?15:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?160:130}}>
                         {c.name}
                       </span>
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",flexShrink:0,marginLeft:4}}>
-                        <span style={{fontSize:isMobile?12:10,color:c.unread>0?"#e11d48":"#9ca3af",fontWeight:c.unread>0?700:400}}>{c.lastTime}</span>
-                        {c.lastDate&&<span style={{fontSize:9,color:"#9ca3af"}}>{c.lastDate.includes("/")?c.lastDate:c.lastDate.split("-").reverse().join("/")}</span>}
+                        <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?700:400}}>{c.lastTime}</span>
+                        {c.lastDate&&<span style={{fontSize:9,color:T.textFaint}}>{c.lastDate.includes("/")?c.lastDate:c.lastDate.split("-").reverse().join("/")}</span>}
                       </div>
                     </div>
-                    <div style={{fontSize:isMobile?13:11,color:c.unread>0?"#0d0f1a":"#6b7280",fontWeight:c.unread>0?500:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?220:190,marginBottom:5}}>
+                    <div style={{fontSize:11,color:c.unread>0?T.text:T.textMuted,fontWeight:c.unread>0?500:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:isMobile?220:180,marginBottom:4}}>
                       {c.lastMessage||"No messages"}
                     </div>
                     {/* Tags + score bar */}
                     <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      {c.lead==="hot"&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:20,fontWeight:600,background:"#fff1f3",color:"#e11d48",border:"1px solid #fecdd3"}}>🔥 Hot</span>}
-                      {c.lead==="warm"&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:20,fontWeight:600,background:"#fffbeb",color:"#d97706",border:"1px solid #fde68a"}}>🟡 Warm</span>}
-                      {c.lead==="cold"&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:20,fontWeight:600,background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe"}}>🔵 Cold</span>}
+                      {c.lead==="hot"&&<span className="nx-badge hot">🔥 Hot</span>}
+                      {c.lead==="warm"&&<span className="nx-badge warm">🟡 Warm</span>}
+                      {c.lead==="cold"&&<span className="nx-badge cold">🔵 Cold</span>}
                       {!c.botActive&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:20,fontWeight:600,background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>Manual</span>}
-                      {/* Score bar */}
                       {c.leadScore>0&&<div style={{marginLeft:"auto",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                        <div style={{height:3,width:36,borderRadius:2,background:"#e8eaef",overflow:"hidden"}}>
+                        <div style={{height:3,width:32,borderRadius:2,background:T.border,overflow:"hidden"}}>
                           <div style={{height:3,borderRadius:2,width:`${c.leadScore}%`,background:c.lead==="hot"?"#e11d48":c.lead==="warm"?"#d97706":"#3b82f6"}}/>
                         </div>
-                        <div style={{fontSize:9,color:"#9ca3af"}}>{c.leadScore}/100</div>
+                        <div style={{fontSize:9,color:T.textFaint}}>{c.leadScore}</div>
                       </div>}
                     </div>
                     {inboxFilter==="manual"&&!c.botActive&&<div onClick={e=>{e.stopPropagation();toggleBot(c.id);}}
@@ -2416,56 +2397,54 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
 
               {/* CHAT HEADER */}
-              <div style={{padding:"10px 16px",background:"#ffffff",borderBottom:"1px solid #e8eaef",display:"flex",alignItems:"center",gap:10,flexShrink:0,boxShadow:"0 1px 0 #e8eaef"}}>
-                {isMobile&&<button onClick={()=>setSelected(null)} style={{background:"none",border:"none",cursor:"pointer",color:"#6c63ff",fontSize:26,padding:"0 4px 0 0",display:"flex",alignItems:"center",lineHeight:1}}>‹</button>}
+              <div style={{padding:"10px 18px",background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+                {isMobile&&<button onClick={()=>setSelected(null)} style={{background:"none",border:"none",cursor:"pointer",color:WA_GREEN,fontSize:26,padding:"0 4px 0 0",display:"flex",alignItems:"center",lineHeight:1}}>‹</button>}
                 <div style={{position:"relative",flexShrink:0}}>
-                  <div style={{width:40,height:40,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",
-                    boxShadow:selected.lead==="hot"?"0 0 0 2px #e11d48,0 0 0 4px rgba(225,29,72,.12)":selected.lead==="warm"?"0 0 0 2px #d97706,0 0 0 4px rgba(217,119,6,.1)":"none"}}>
+                  <div style={{width:38,height:38,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",
+                    boxShadow:selected.lead==="hot"?`0 0 0 2px #e11d48`:selected.lead==="warm"?`0 0 0 2px #d97706`:"none"}}>
                     {selected.avatar}
                   </div>
-                  <div style={{position:"absolute",bottom:0,right:0,width:11,height:11,borderRadius:"50%",background:"#16a34a",border:"2px solid #fff"}}/>
+                  <div style={{position:"absolute",bottom:0,right:0,width:10,height:10,borderRadius:"50%",background:"#16a34a",border:"2px solid "+T.card}}/>
                 </div>
                 <div>
-                  <div style={{fontWeight:700,fontSize:14,color:"#0d0f1a"}}>{selected.name}</div>
-                  <div style={{fontSize:11,color:"#9ca3af"}}>{selected.phone}</div>
+                  <div style={{fontWeight:700,fontSize:14,color:T.text}}>{selected.name}</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{selected.phone}</div>
                 </div>
-                <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap",marginLeft:"auto"}}>
+                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginLeft:"auto"}}>
                   <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)}
-                    style={{background:selected.lead==="hot"?"#fff1f3":selected.lead==="warm"?"#fffbeb":"#f8f9fc",
-                      border:`1px solid ${selected.lead==="hot"?"#fecdd3":selected.lead==="warm"?"#fde68a":"#e8eaef"}`,
+                    style={{background:selected.lead==="hot"?"#fef2f2":selected.lead==="warm"?"#fffbeb":T.card2,
+                      border:`1px solid ${selected.lead==="hot"?"#fecaca":selected.lead==="warm"?"#fde68a":T.border}`,
                       borderRadius:20,padding:"5px 10px",
-                      color:selected.lead==="hot"?"#e11d48":selected.lead==="warm"?"#d97706":"#6b7280",
-                      fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                      color:selected.lead==="hot"?"#dc2626":selected.lead==="warm"?"#b45309":T.textMuted,
+                      fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
                     <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option><option value="done">✅ Done</option>
                   </select>
-                  <button onClick={()=>toggleBot(selected.id)}
-                    style={{padding:"5px 12px",borderRadius:20,border:`1px solid ${selected.botActive?"#bbf7d0":"#e8eaef"}`,cursor:"pointer",
-                      background:selected.botActive?"#f0fdf4":"#f8f9fc",color:selected.botActive?"#16a34a":"#6b7280",fontSize:11,fontWeight:600,fontFamily:"inherit"}}>
+                  <button onClick={()=>toggleBot(selected.id)} className="nx-btn"
+                    style={{background:selected.botActive?"#f0fdf4":T.card2,color:selected.botActive?"#15803d":T.textMuted,borderColor:selected.botActive?"#bbf7d0":T.border}}>
                     🤖 {selected.botActive?"ON":"OFF"}
                   </button>
                   <button onClick={()=>{const rows=[["Time","Date","From","Message"]];(selected.messages||[]).forEach(m=>{rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);});const csv=rows.map(r=>r.join(",")).join("\n");const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`chat_${selected.name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);}}
-                    style={{padding:"5px 10px",borderRadius:20,border:"1px solid #e8eaef",background:"#f8f9fc",color:"#6b7280",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📥</button>
-                  <button onClick={()=>setArchiveConfirm(selected.id)}
-                    style={{padding:"5px 10px",borderRadius:20,border:"1px solid #fde68a",background:"#fffbeb",color:"#d97706",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📦</button>
+                    className="nx-btn">📥</button>
+                  <button onClick={()=>setArchiveConfirm(selected.id)} className="nx-btn">📦</button>
                   {!isMobile&&<button onClick={()=>setShowRightPanel(p=>!p)}
-                    style={{padding:"5px 10px",borderRadius:20,border:`1px solid ${showRightPanel?"rgba(108,99,255,.3)":"#e8eaef"}`,background:showRightPanel?"#f0effe":"#f8f9fc",color:showRightPanel?"#6c63ff":"#6b7280",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>ℹ️ Info</button>}
+                    className="nx-btn" style={{background:showRightPanel?`${WA_GREEN}15`:T.card2,color:showRightPanel?WA_GREEN:T.textMuted,borderColor:showRightPanel?WA_GREEN:T.border}}>ℹ️ Info</button>}
                 </div>
               </div>
 
               {/* BOT ACTIVE BAR */}
-              {selected.botActive&&<div style={{background:"#f0fdf4",borderBottom:"1px solid #bbf7d0",padding:"4px 16px",fontSize:11,color:"#15803d",display:"flex",alignItems:"center",gap:6}}>
+              {selected.botActive&&<div style={{background:"#f0fdf4",borderBottom:"1px solid #bbf7d0",padding:"5px 18px",fontSize:11,color:"#15803d",display:"flex",alignItems:"center",gap:6}}>
                 🤖 Bot is handling this — toggle off to reply manually
                 <div style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"#16a34a"}}/>
               </div>}
 
               {/* LEAD BAR */}
               {(selected.lead==="hot"||selected.lead==="warm")&&<div style={{
-                background:selected.lead==="hot"?"linear-gradient(90deg,#fff1f3,#ffffff)":"linear-gradient(90deg,#fffbeb,#ffffff)",
-                borderBottom:`1px solid ${selected.lead==="hot"?"#fecdd3":"#fde68a"}`,
-                padding:"7px 16px",display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:14}}>{selected.lead==="hot"?"🔥":"🟡"}</span>
-                <span style={{fontWeight:700,fontSize:11,color:selected.lead==="hot"?"#e11d48":"#d97706"}}>{selected.lead==="hot"?"Hot":"Warm"} Lead:</span>
-                <span style={{fontSize:11,color:"#6b7280",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selected.leadReason||"Keyword match"}</span>
+                background:selected.lead==="hot"?"#fef2f2":"#fffbeb",
+                borderBottom:`1px solid ${selected.lead==="hot"?"#fecaca":"#fde68a"}`,
+                padding:"6px 18px",display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:13}}>{selected.lead==="hot"?"🔥":"🟡"}</span>
+                <span style={{fontWeight:700,fontSize:11,color:selected.lead==="hot"?"#dc2626":"#b45309"}}>{selected.lead==="hot"?"Hot":"Warm"} Lead:</span>
+                <span style={{fontSize:11,color:T.textMuted,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selected.leadReason||"Keyword match"}</span>
                 {(()=>{
                   const lastUserMsg=selected.messages?.filter(m=>m.from==="user").slice(-1)[0];
                   const lastUserTime=(()=>{
@@ -2521,35 +2500,35 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   const isBot=msg.from==="bot";
                   const isAgent=msg.from==="agent";
                   return <div key={msg.id||i} className="mb" style={{display:"flex",justifyContent:isOut?"flex-end":"flex-start",alignItems:"flex-end",gap:8}}>
-                    {!isOut&&<div style={{width:28,height:28,borderRadius:"50%",background:getColor(selected.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",marginBottom:2,boxShadow:"0 1px 4px rgba(0,0,0,.1)"}}>{selected.avatar}</div>}
+                    {!isOut&&<div style={{width:28,height:28,borderRadius:"50%",background:getColor(selected.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>{selected.avatar}</div>}
                     <div style={{maxWidth:"65%"}}>
                       {isOut&&<div style={{fontSize:9,fontWeight:700,marginBottom:3,textAlign:"right",letterSpacing:.2,
-                        color:isBot?"#6c63ff":isAgent?"#0284c7":"#6b7280"}}>
-                        {isBot?(msg.agentName?.startsWith("📤")?msg.agentName:"🤖 Sara"):msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
+                        color:isBot?WA_GREEN:isAgent?"#0284c7":T.textMuted}}>
+                        {isBot?(msg.agentName?.startsWith("📤")?msg.agentName:"🤖 "+selected.botName||"AI"):msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
                       </div>}
                       <div style={{
-                        background:isOut?(isBot?"linear-gradient(135deg,#6c63ff,#5a52e0)":isAgent?"linear-gradient(135deg,#0284c7,#0369a1)":"#f0effe"):"#ffffff",
-                        borderRadius:isOut?"18px 4px 18px 18px":"4px 18px 18px 18px",
-                        padding:"10px 14px",
-                        boxShadow:isOut&&isBot?"0 2px 12px rgba(108,99,255,.2)":isOut&&isAgent?"0 2px 10px rgba(2,132,199,.15)":"0 1px 4px rgba(0,0,0,.06)",
-                        border:!isOut?"1px solid #e8eaef":"none"}}>
+                        background:isOut?(isBot?WA_GREEN:isAgent?"#0284c7":T.card2):T.msgIn,
+                        borderRadius:isOut?"12px 2px 12px 12px":"2px 12px 12px 12px",
+                        padding:"9px 13px",
+                        boxShadow:"0 1px 2px rgba(0,0,0,.06)",
+                        border:isOut?`1px solid ${isBot?WA_GREEN:isAgent?"#0284c7":T.border}`:isBot?`1px solid ${T.border};border-left:3px solid ${WA_GREEN}`:`1px solid ${T.border}`}}>
                         {msg.mediaUrl&&msg.text?.startsWith("[Image")?(
                           <div><img src={msg.mediaUrl} alt="image" style={{maxWidth:"100%",maxHeight:220,borderRadius:8,display:"block",cursor:"pointer"}} onClick={()=>window.open(msg.mediaUrl,"_blank")}/></div>
                         ):msg.mediaUrl&&msg.text?.startsWith("[Document")?(
                           <a href={msg.mediaUrl} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,textDecoration:"none",background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px"}}>
                             <span style={{fontSize:20}}>📄</span>
-                            <span style={{fontSize:12,color:isOut?"rgba(255,255,255,.9)":"#6c63ff",fontWeight:600}}>{msg.text.replace("[Document: ","").replace("]","")}</span>
+                            <span style={{fontSize:12,color:isOut?"rgba(255,255,255,.9)":WA_GREEN,fontWeight:600}}>{msg.text.replace("[Document: ","").replace("]","")}</span>
                           </a>
                         ):msg.text?.startsWith("📢 Broadcast:")?(
                           <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 10px"}}>
-                            <div style={{fontSize:10,color:isOut?"rgba(255,255,255,.7)":"#6c63ff",fontWeight:700,marginBottom:4}}>📢 BROADCAST</div>
-                            <div style={{fontSize:12,fontWeight:600,color:isOut?"#fff":"#0d0f1a"}}>{msg.text.replace("📢 Broadcast: ","")}</div>
+                            <div style={{fontSize:10,color:isOut?"rgba(255,255,255,.7)":WA_GREEN,fontWeight:700,marginBottom:4}}>📢 BROADCAST</div>
+                            <div style={{fontSize:12,fontWeight:600,color:isOut?"#fff":T.text}}>{msg.text.replace("📢 Broadcast: ","")}</div>
                           </div>
                         ):(
-                          <div style={{fontSize:13,lineHeight:1.55,whiteSpace:"pre-wrap",color:isOut?"#ffffff":"#0d0f1a"}}>{msg.text}</div>
+                          <div style={{fontSize:13,lineHeight:1.55,whiteSpace:"pre-wrap",color:isOut?"#ffffff":T.text}}>{msg.text}</div>
                         )}
                         <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:4,marginTop:5}}>
-                          <span style={{fontSize:9,color:isOut?"rgba(255,255,255,.5)":"#9ca3af"}}>{formatMsgTime(msg.time,msg.date)}</span>
+                          <span style={{fontSize:9,color:isOut?"rgba(255,255,255,.6)":T.textFaint}}>{formatMsgTime(msg.time,msg.date)}</span>
                           {isOut&&msg.is_read&&<span style={{fontSize:10,color:"rgba(255,255,255,.7)"}}>✓✓</span>}
                           {isOut&&!msg.is_read&&<span style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>✓</span>}
                         </div>
@@ -2562,7 +2541,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
 
               {/* INPUT BAR */}
-              <div className="mobile-chat-input" style={{padding:"10px 14px",background:"#ffffff",borderTop:"1px solid #e8eaef",display:"flex",gap:8,alignItems:"flex-end",
+              <div className="mobile-chat-input" style={{padding:"10px 16px",background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"flex-end",
                 flexShrink:0,paddingBottom:"10px"}}>
                 <div style={{flex:1,background:"#f8f9fc",border:"1.5px solid #e8eaef",borderRadius:14,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
                   onFocus={()=>{}} onBlur={()=>{}}>
