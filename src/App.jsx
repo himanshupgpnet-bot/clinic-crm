@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.261";
+const CRM_VERSION = "2.9.262";
 
 // Responsive hook
 function useWindowSize() {
@@ -2810,14 +2810,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
                     onDragLeave={()=>setDragOver(null)}
                     onDrop={e=>onDrop(e,col.id)}
-                    style={{background:dark?col.dark+"60":col.bg,borderRadius:14,border:`1.5px solid ${dragOver===col.id?col.color:col.border}`,overflow:"hidden",transition:"border .15s"}}>
+                    style={{background:T.card,borderRadius:12,border:`1px solid ${dragOver===col.id?col.color:T.border}`,overflow:"hidden",transition:"border .15s",boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
                     {/* Column header */}
-                    <div style={{padding:"12px 14px",borderBottom:`1px solid ${col.border}`,background:dark?col.dark+"80":col.bg}}>
+                    <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,background:T.sidebar}}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                        <div style={{fontWeight:800,fontSize:13,color:col.color}}>{col.label}</div>
-                        <div style={{background:col.color,color:"#fff",borderRadius:10,padding:"1px 8px",fontSize:11,fontWeight:700,minWidth:22,textAlign:"center"}}>{colContacts.length}</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{width:8,height:8,borderRadius:"50%",background:col.color,flexShrink:0}}/>
+                          <span style={{fontWeight:700,fontSize:13,color:T.text}}>{col.label}</span>
+                        </div>
+                        <div style={{background:`${col.color}15`,color:col.color,borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:700}}>{colContacts.length}</div>
                       </div>
-                      <div style={{fontSize:10,color:col.color,opacity:.7,marginTop:2}}>{col.sub}</div>
+                      <div style={{fontSize:11,color:T.textMuted,marginTop:4,paddingLeft:16}}>{col.sub}</div>
                       {col.id==="done"&&colContacts.length>0&&<button onClick={async()=>{
                         if(!confirm(`Move all ${colContacts.length} Done leads back to Warm?`)) return;
                         for(const c of colContacts){
@@ -2825,7 +2828,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                           await fetch(`${API}/api/conversations/${c.id}/pipeline`,{method:"PATCH",headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`},body:JSON.stringify({stage:"new"})});
                         }
                         fetchConversations();
-                      }} style={{marginTop:6,width:"100%",padding:"4px",borderRadius:6,border:"1px solid #86efac",background:"#f0fdf4",color:"#16a34a",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      }} className="nx-btn" style={{marginTop:8,width:"100%",justifyContent:"center",fontSize:11}}>
                         ↩️ Reset All to Warm
                       </button>}
                     </div>
@@ -2843,10 +2846,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                             onDragStart={e=>onDragStart(e,c.id)}
                             onClick={()=>{setTab("crm");selectContact(c);}}
                             style={{background:T.card,borderRadius:10,padding:12,border:`1px solid ${T.border}`,
-                              borderLeft:`3px solid ${col.color}`,cursor:"grab",
-                              boxShadow:"0 1px 4px rgba(0,0,0,.06)",transition:"box-shadow .15s"}}
-                            onMouseEnter={e=>e.currentTarget.style.boxShadow="0 3px 12px rgba(0,0,0,.12)"}
-                            onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,.06)"}>
+                              cursor:"grab",transition:"all .15s",
+                              boxShadow:"0 1px 3px rgba(0,0,0,.05)"}}
+                            onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.1)";e.currentTarget.style.transform="translateY(-1px)";}}
+                            onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.05)";e.currentTarget.style.transform="none";}}>
 
                             {/* Name + avatar */}
                             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
