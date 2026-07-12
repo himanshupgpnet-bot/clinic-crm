@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.257";
+const CRM_VERSION = "2.9.258";
 
 // Responsive hook
 function useWindowSize() {
@@ -2112,10 +2112,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             })()}
           </div>
 
-          {/* User profile + controls at bottom */}
+          {/* User profile + controls at bottom — clean like mockup */}
           <div style={{padding:"10px",borderTop:`1px solid ${T.border}`,flexShrink:0}}>
-            {/* User row */}
-            <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,cursor:"pointer",transition:"background .15s",marginBottom:6}}
+            {/* User row with controls */}
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,cursor:"pointer",transition:"background .15s"}}
               onMouseEnter={e=>e.currentTarget.style.background=T.sidebarHover}
               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
               <div style={{width:30,height:30,borderRadius:"50%",background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700,flexShrink:0}}>
@@ -2123,48 +2123,44 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:12,fontWeight:600,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.username||"User"}</div>
-                <div style={{fontSize:10,color:T.textMuted}}>{currentUser?.company_name||"Nexora"}</div>
+                <div style={{display:"flex",alignItems:"center",gap:4,marginTop:1}}>
+                  <div style={{width:5,height:5,borderRadius:"50%",background:backendStatus==="online"?WA_GREEN:"#ef4444",flexShrink:0}}/>
+                  <span style={{fontSize:10,color:T.textMuted}}>{backendStatus==="online"?"Live":"Offline"}</span>
+                </div>
               </div>
-            </div>
-            {/* Controls row */}
-            <div style={{display:"flex",gap:4,alignItems:"center"}}>
-              <div style={{display:"flex",alignItems:"center",gap:4,flex:1}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:backendStatus==="online"?WA_GREEN:backendStatus==="offline"?"#ef4444":"#f59e0b",flexShrink:0}}/>
-                <span style={{fontSize:10,color:T.textMuted}}>{backendStatus==="online"?"Live":"Offline"}</span>
-              </div>
-              <button onClick={()=>setDark(d=>!d)} style={{width:28,height:28,borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",color:T.textMuted,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"☀️":"🌙"}</button>
-              <div style={{position:"relative"}}>
-                <button onClick={()=>{setShowChangelog(c=>!c); if(hasUnread){setChangelogSeen(latestVersion);}}}
-                  style={{width:28,height:28,borderRadius:8,border:`1px solid ${hasUnread?"#f59e0b":T.border}`,background:hasUnread?"#fef3c7":"transparent",color:hasUnread?"#d97706":T.textMuted,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  🔔
-                  {hasUnread&&<span style={{position:"absolute",top:-3,right:-3,width:7,height:7,borderRadius:"50%",background:"#ef4444",border:"2px solid white"}}/>}
+              {/* Icon controls — 3 dots style */}
+              <div style={{display:"flex",gap:2,alignItems:"center"}}>
+                <button onClick={()=>setDark(d=>!d)} title={dark?"Light":"Dark"}
+                  style={{width:24,height:24,borderRadius:6,border:"none",background:"transparent",color:T.textMuted,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"☀️":"🌙"}</button>
+                <div style={{position:"relative"}}>
+                  <button onClick={()=>{setShowChangelog(c=>!c);if(hasUnread)setChangelogSeen(latestVersion);}} title="What's new"
+                    style={{width:24,height:24,borderRadius:6,border:"none",background:"transparent",color:hasUnread?"#d97706":T.textMuted,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+                    🔔{hasUnread&&<span style={{position:"absolute",top:1,right:1,width:5,height:5,borderRadius:"50%",background:"#ef4444"}}/>}
+                  </button>
+                  {showChangelog&&<div style={{position:"absolute",left:0,bottom:32,width:320,background:T.card,border:`1px solid ${T.border}`,borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,.15)",zIndex:200,overflow:"hidden"}}>
+                    <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <span style={{fontWeight:700,fontSize:13}}>🔔 What's New</span>
+                      <button onClick={()=>setShowChangelog(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:14,color:T.textMuted}}>✕</button>
+                    </div>
+                    <div style={{maxHeight:280,overflowY:"auto"}}>
+                      {CHANGELOG.map((c,i)=><div key={c.version} style={{padding:"10px 14px",borderBottom:i<CHANGELOG.length-1?`1px solid ${T.border}`:"none"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                          <span style={{background:c.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6}}>{c.tag}</span>
+                          <span style={{fontWeight:700,fontSize:12}}>v{c.version}</span>
+                          <span style={{fontSize:10,color:T.textMuted,marginLeft:"auto"}}>{c.date}</span>
+                          {i===0&&<span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6}}>NEW</span>}
+                        </div>
+                        {c.items?.map((item,j)=><div key={j} style={{fontSize:11,color:T.textMuted,marginBottom:2}}>· {item}</div>)}
+                      </div>)}
+                    </div>
+                  </div>}
+                </div>
+                <button onClick={()=>setConfirmModal({title:"Log Out?",message:"Log out of Nexora CRM?",icon:"🔐",danger:false,confirmText:"Yes, Log Out",onConfirm:()=>doLogout()})}
+                  title="Logout" style={{width:24,height:24,borderRadius:6,border:"none",background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <i className="ti ti-logout" style={{fontSize:13}}/>
                 </button>
-                {showChangelog&&<div style={{position:"absolute",left:0,bottom:36,width:340,background:T.card,border:`1px solid ${T.border}`,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.15)",zIndex:200,overflow:"hidden"}}>
-                  <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <div style={{fontWeight:700,fontSize:14}}>🔔 What's New</div>
-                    <button onClick={()=>setShowChangelog(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted}}>✕</button>
-                  </div>
-                  <div style={{maxHeight:300,overflowY:"auto"}}>
-                    {CHANGELOG.map((c,i)=><div key={c.version} style={{padding:"12px 16px",borderBottom:i<CHANGELOG.length-1?`1px solid ${T.border}`:"none"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                        <span style={{background:c.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8}}>{c.tag}</span>
-                        <span style={{fontWeight:700,fontSize:13}}>v{c.version}</span>
-                        <span style={{fontSize:11,color:T.textMuted,marginLeft:"auto"}}>{c.date}</span>
-                        {i===0&&<span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8}}>LATEST</span>}
-                      </div>
-                      {c.items?.map((item,j)=><div key={j} style={{fontSize:11,color:T.textMuted,marginBottom:2}}>· {item}</div>)}
-                    </div>)}
-                  </div>
-                </div>}
               </div>
-              <button onClick={()=>setConfirmModal({
-                title:"Log Out?",message:"Are you sure you want to log out of Nexora CRM?",icon:"🔐",danger:false,confirmText:"Yes, Log Out",
-                onConfirm:()=>doLogout()
-              })} style={{width:28,height:28,borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit"}} title="Logout">
-                <i className="ti ti-logout" style={{fontSize:14}}/>
-              </button>
             </div>
-            <div style={{fontSize:9,color:T.textFaint,textAlign:"center",padding:"4px 0 8px"}}>v{CRM_VERSION}</div>
           </div>
         </div>
 
