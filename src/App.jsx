@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.255";
+const CRM_VERSION = "2.9.256";
 
 // Responsive hook
 function useWindowSize() {
@@ -1461,6 +1461,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   ).filter(c=>{
     if(inboxFilter==="unread") return c.unread>0;
     if(inboxFilter==="manual") return c.hasAgentReply && !c.botActive;
+    if(inboxFilter==="hot") return c.lead==="hot";
     return true;
   }).filter(c=>{
     if(!inboxDateFilter) return true;
@@ -2051,15 +2052,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               color:T.textMuted,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             {sidebarCollapsed?"»":"«"}
           </button>
-          {/* Current tab title — like mockup */}
-          <div className="hide-mobile">
-            <div style={{fontWeight:700,fontSize:15,color:T.text}}>
-              {tab==="crm"?"Inbox":tab==="leads"?"Leads":tab==="broadcast"?"Broadcast":tab==="analytics"?"Analytics":tab==="kb"?"Knowledge Base":tab==="bot"?"Test Bot":tab==="notes"?"Notes":tab==="integrations"?"Connect":tab==="settings"?"Settings":tab==="admin"?"Admin Panel":"Nexora"}
-            </div>
-            <div style={{fontSize:11,color:T.textMuted}}>
-              {tab==="crm"?`${contacts.length} conversations`:tab==="leads"?`${hotCount} hot · ${warmCount} warm`:tab==="broadcast"?"Send & schedule messages":tab==="analytics"?"Performance overview":tab==="kb"?"Train your AI bot":tab==="bot"?"Test bot responses":tab==="settings"?"Configure your workspace":tab==="admin"?"Manage all clients":""}
-            </div>
-          </div>
         </div>
 
 
@@ -2194,20 +2186,21 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           <div style={{width:isMobile?"100%":isTablet?260:280,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,
             ...(isMobile&&selected?{display:"none"}:{})}}>
 
-            {/* Sidebar Top — matches mockup */}
+            {/* Sidebar Top — matches mockup exactly */}
             <div style={{padding:"14px",borderBottom:`1px solid ${T.border}`}}>
               {/* Title row */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                <span style={{fontSize:14,fontWeight:700,color:T.text}}>Inbox <span style={{fontSize:11,fontWeight:400,color:T.textMuted}}>({contacts.length})</span></span>
-                <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>setExportModal(true)} className="nx-btn" style={{padding:"4px 8px",fontSize:11}} title="Export CSV"><i className="ti ti-download" style={{fontSize:14}}/></button>
-                  <button onClick={()=>{setSelectMode(p=>!p);setSelectedChats(new Set());}} className={`nx-btn${selectMode?" danger":""}`} style={{padding:"4px 8px",fontSize:11}} title="Select">
-                    <i className={`ti ti-${selectMode?"x":"checkbox"}`} style={{fontSize:14}}/>
-                  </button>
-                  <button onClick={()=>setShowInboxStats(p=>!p)} className="nx-btn" style={{padding:"4px 8px",fontSize:11}}>
-                    <i className={`ti ti-adjustments-horizontal`} style={{fontSize:14}}/>
-                  </button>
+                <span style={{fontSize:14,fontWeight:700,color:T.text}}>Inbox</span>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <i className="ti ti-adjustments-horizontal" onClick={()=>setShowInboxStats(p=>!p)} style={{fontSize:16,color:T.textMuted,cursor:"pointer"}}/>
+                  <i className="ti ti-edit" onClick={()=>{setSelectMode(p=>!p);setSelectedChats(new Set());}} style={{fontSize:16,color:T.textMuted,cursor:"pointer"}}/>
                 </div>
+              </div>
+
+              {/* Search — always visible like mockup */}
+              <div className="nx-search" style={{marginBottom:8}}>
+                <i className="ti ti-search" style={{fontSize:14,color:T.textFaint}}/>
+                <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search conversations..."/>
               </div>
 
               {showInboxStats&&<>
@@ -2274,23 +2267,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </div>
                 </div>}
 
-                {/* Search */}
-                <div className="nx-search" style={{marginBottom:8}}>
-                  <i className="ti ti-search" style={{fontSize:14,color:T.textFaint}}/>
-                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search contacts..."/>
-                </div>
 
-                {/* Filter pills */}
-                <div style={{display:"flex",gap:4,flexWrap:"nowrap",overflowX:"auto",paddingBottom:2}}>
-                  {[{id:"all",label:"All"},{id:"unread",label:"Unread"},{id:"manual",label:"Manual"}].map(f=>(
-                    <button key={f.id} onClick={()=>{setInboxFilter(f.id);setShowArchived(false);}}
-                      className={`nx-filter${inboxFilter===f.id&&!showArchived?" active":""}`}>
-                      {f.label}
-                    </button>
-                  ))}
-                  <button onClick={()=>{setShowArchived(p=>!p);if(!archivedContacts.length)fetchArchived();}}
-                    className={`nx-filter${showArchived?" active":""}`}>Archived</button>
-                </div>
 
                 {inboxFilter==="manual"&&!showArchived&&<div style={{marginBottom:6}}>
                   <button onClick={()=>{
@@ -2313,6 +2290,18 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {inboxDateFilter&&<button onClick={()=>setInboxDateFilter("")} style={{background:"none",border:"none",cursor:"pointer",color:"#9ca3af",fontSize:14,padding:"0 4px"}}>✕</button>}
                 </div>
               </>}
+            </div>
+
+            {/* Filters — always visible like mockup */}
+            <div style={{display:"flex",gap:4,padding:"8px 10px",borderBottom:`1px solid ${T.border}`,overflowX:"auto"}}>
+              {[{id:"all",label:"All"},{id:"unread",label:"Unread"},{id:"manual",label:"Bot off"},{id:"hot",label:"Hot leads"}].map(f=>(
+                <button key={f.id} onClick={()=>{setInboxFilter(f.id);setShowArchived(false);}}
+                  className={`nx-filter${inboxFilter===f.id&&!showArchived?" active":""}`}>
+                  {f.label}
+                </button>
+              ))}
+              <button onClick={()=>{setShowArchived(p=>!p);if(!archivedContacts.length)fetchArchived();}}
+                className={`nx-filter${showArchived?" active":""}`}>Archived</button>
             </div>
 
             {/* CONTACT LIST */}
@@ -2400,7 +2389,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <div style={{fontWeight:700,fontSize:14,color:T.text}}>{selected.name}</div>
                   <div style={{fontSize:11,color:T.textMuted}}>{selected.phone}</div>
                 </div>
-                <div style={{display:"flex",gap:8,alignItems:"center",marginLeft:"auto"}}>
+                <div style={{display:"flex",gap:10,alignItems:"center",marginLeft:"auto"}}>
                   <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)}
                     style={{background:selected.lead==="hot"?"#fef2f2":selected.lead==="warm"?"#fffbeb":T.card2,
                       border:`1px solid ${selected.lead==="hot"?"#fecaca":selected.lead==="warm"?"#fde68a":T.border}`,
@@ -2409,20 +2398,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
                     <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option><option value="done">✅ Done</option>
                   </select>
-                  <button onClick={()=>toggleBot(selected.id)} title={selected.botActive?"Bot ON — click to turn off":"Bot OFF — click to turn on"}
-                    style={{width:32,height:32,borderRadius:8,border:`1px solid ${selected.botActive?"#bbf7d0":T.border}`,
-                      background:selected.botActive?"#f0fdf4":T.card2,color:selected.botActive?"#15803d":T.textMuted,
-                      display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
-                    <i className="ti ti-robot" style={{fontSize:16}}/>
-                  </button>
-                  <button onClick={()=>{const rows=[["Time","Date","From","Message"]];(selected.messages||[]).forEach(m=>{rows.push([m.time||"",m.date||"",m.from==="user"?selected.name:m.from==="bot"?"Bot":m.agentName||"Agent",'"'+(m.text||"").replace(/"/g,'""')+'"']);});const csv=rows.map(r=>r.join(",")).join("\n");const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`chat_${selected.name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);}}
-                    title="Export chat" style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
-                    <i className="ti ti-download" style={{fontSize:16}}/>
-                  </button>
-                  <button onClick={()=>setArchiveConfirm(selected.id)} title="Archive"
-                    style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
-                    <i className="ti ti-archive" style={{fontSize:16}}/>
-                  </button>
+                  <i className="ti ti-search" onClick={()=>{}} title="Search" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
+                  <i className="ti ti-phone" onClick={()=>{}} title="Call" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
+                  <i className="ti ti-robot" onClick={()=>toggleBot(selected.id)} title={selected.botActive?"Bot ON — click to pause":"Bot OFF — click to activate"}
+                    style={{fontSize:18,color:selected.botActive?WA_GREEN:T.textMuted,cursor:"pointer"}}/>
+                  <i className="ti ti-dots-vertical" onClick={()=>{}} title="More" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
                 </div>
               </div>
 
