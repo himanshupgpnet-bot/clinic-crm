@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.260";
+const CRM_VERSION = "2.9.261";
 
 // Responsive hook
 function useWindowSize() {
@@ -248,6 +248,7 @@ export default function App() {
   const [notesClinic, setNotesClinic] = useState(null);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [leadsFilterOpen, setLeadsFilterOpen] = useState(false);
   const [changelogSeen, setChangelogSeen] = useState("");
   const [dark, setDark] = useState(false);
 
@@ -2701,14 +2702,31 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <input value={leadsSearch} onChange={e=>setLeadsSearch(e.target.value)} placeholder="Search..."/>
                   {leadsSearch&&<i className="ti ti-x" onClick={()=>setLeadsSearch("")} style={{fontSize:12,color:T.textMuted,cursor:"pointer"}}/>}
                 </div>
-                {/* Agent filter */}
-                <select value={leadsUserFilter} onChange={e=>setLeadsUserFilter(e.target.value)}
-                  className="nx-btn" style={{padding:"6px 10px",cursor:"pointer",color:leadsUserFilter?WA_GREEN:T.textMuted,fontWeight:leadsUserFilter?600:400}}>
-                  <option value="">All Agents</option>
-                  <option value="unassigned">Unassigned</option>
-                  {clinicUsers.filter(u=>u.active!==false).map(u=>(<option key={u.id} value={String(u.id)}>@{u.username}</option>))}
-                </select>
-                {leadsUserFilter&&<button onClick={()=>setLeadsUserFilter("")} className="nx-btn" style={{fontSize:11}}>✕</button>}
+                {/* Filter button with popup */}
+                <div style={{position:"relative"}}>
+                  <button className={`nx-btn${leadsUserFilter?" primary":""}`}
+                    onClick={()=>setLeadsFilterOpen(o=>!o)}>
+                    <i className="ti ti-filter" style={{fontSize:14}}/>
+                    {leadsUserFilter?"Filtered":"Filter"}
+                  </button>
+                  {leadsFilterOpen&&<>
+                    <div onClick={()=>setLeadsFilterOpen(false)} style={{position:"fixed",inset:0,zIndex:199}}/>
+                    <div style={{position:"absolute",right:0,top:"calc(100% + 6px)",width:200,background:T.card,border:`1px solid ${T.border}`,borderRadius:12,boxShadow:"0 8px 24px rgba(0,0,0,.12)",zIndex:200,overflow:"hidden"}}>
+                      <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.border}`,fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6}}>Filter by Agent</div>
+                      {[{value:"",label:"All Agents"},{value:"unassigned",label:"Unassigned"},...clinicUsers.filter(u=>u.active!==false).map(u=>({value:String(u.id),label:"@"+u.username}))].map(opt=>(
+                        <div key={opt.value} onClick={()=>{setLeadsUserFilter(opt.value);setLeadsFilterOpen(false);}}
+                          style={{padding:"9px 14px",cursor:"pointer",fontSize:13,
+                            background:leadsUserFilter===opt.value?`${WA_GREEN}12`:"transparent",
+                            color:leadsUserFilter===opt.value?WA_GREEN:T.text,
+                            fontWeight:leadsUserFilter===opt.value?600:400,
+                            borderBottom:`1px solid ${T.border}`}}>
+                          {leadsUserFilter===opt.value&&<i className="ti ti-check" style={{fontSize:12,marginRight:6}}/>}
+                          {opt.label}
+                        </div>
+                      ))}
+                    </div>
+                  </>}
+                </div>
                 <button onClick={()=>setExportModal(true)} className="nx-btn">
                   <i className="ti ti-download" style={{fontSize:14}}/> Export
                 </button>
