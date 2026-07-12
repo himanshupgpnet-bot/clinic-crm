@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.259";
+const CRM_VERSION = "2.9.260";
 
 // Responsive hook
 function useWindowSize() {
@@ -2678,63 +2678,64 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>}
 
           {/* Leads content - New Lead-based Kanban */}
-          <div style={{flex:1,overflow:"auto",padding:16}}>
-            {isAdmin&&leadsClinic&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,padding:"10px 14px",borderRadius:12,background:T.card,border:`1px solid ${T.border}`}}>
-              <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                {leadsClinic.logo_url?<img src={leadsClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
+          <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
+            {isAdmin&&leadsClinic&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:`1px solid ${T.border}`,background:T.card,flexShrink:0}}>
+              <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {leadsClinic.logo_url?<img src={leadsClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:14}}>🏢</span>}
               </div>
-              <div style={{fontWeight:700,fontSize:14}}>{leadsClinic.company_name||leadsClinic.username}</div>
-              <button onClick={()=>setLeadsClinic(null)} style={{marginLeft:"auto",padding:"5px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>← All</button>
+              <div style={{fontWeight:700,fontSize:13,color:T.text}}>{leadsClinic.company_name||leadsClinic.username}</div>
+              <button onClick={()=>setLeadsClinic(null)} className="nx-btn" style={{marginLeft:"auto",fontSize:11,padding:"4px 10px"}}>← All</button>
             </div>}
 
-            {/* Header */}
-            <div style={{marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+            {/* Page header — matches mockup */}
+            <div className="nx-page-header" style={{flexShrink:0}}>
+              <i className="ti ti-target" style={{fontSize:20,color:WA_GREEN}}/>
               <div>
-                <div style={{fontWeight:800,fontSize:17}}>🎯 Lead Board</div>
-                <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>AI-classified leads · Assign to team · Track performance</div>
+                <div className="nx-page-title">Leads</div>
+                <div className="nx-page-sub">AI-classified · Track your pipeline</div>
               </div>
-              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                {/* Search bar */}
-                <div style={{position:"relative"}}>
-                  <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:T.textFaint}}>🔍</span>
-                  <input value={leadsSearch} onChange={e=>setLeadsSearch(e.target.value)}
-                    placeholder="Search name or phone..."
-                    style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 12px 6px 30px",color:T.text,fontSize:12,width:180,fontFamily:"inherit"}}/>
-                  {leadsSearch&&<button onClick={()=>setLeadsSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:12,color:T.textMuted}}>✕</button>}
+              <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                {/* Search */}
+                <div className="nx-search" style={{width:180}}>
+                  <i className="ti ti-search" style={{fontSize:14,color:T.textFaint}}/>
+                  <input value={leadsSearch} onChange={e=>setLeadsSearch(e.target.value)} placeholder="Search..."/>
+                  {leadsSearch&&<i className="ti ti-x" onClick={()=>setLeadsSearch("")} style={{fontSize:12,color:T.textMuted,cursor:"pointer"}}/>}
                 </div>
-                {/* Date filter */}
-                <div style={{display:"flex",alignItems:"center",gap:4,background:T.card,border:`1px solid ${T.border}`,borderRadius:20,padding:"4px 12px"}}>
-                  <span style={{fontSize:11,color:T.textFaint}}>📅</span>
-                  <input type="date" value={leadsDateFrom} onChange={e=>setLeadsDateFrom(e.target.value)}
-                    style={{background:"transparent",border:"none",color:T.text,fontSize:11,fontFamily:"inherit",outline:"none",width:110}}/>
-                  <span style={{fontSize:10,color:T.textFaint}}>—</span>
-                  <input type="date" value={leadsDateTo} onChange={e=>setLeadsDateTo(e.target.value)}
-                    style={{background:"transparent",border:"none",color:T.text,fontSize:11,fontFamily:"inherit",outline:"none",width:110}}/>
-                  {(leadsDateFrom||leadsDateTo)&&<button onClick={()=>{setLeadsDateFrom("");setLeadsDateTo("");}}
-                    style={{border:"none",background:"none",cursor:"pointer",fontSize:11,color:T.textMuted}}>✕</button>}
-                </div>
-                {/* User filter */}
+                {/* Agent filter */}
                 <select value={leadsUserFilter} onChange={e=>setLeadsUserFilter(e.target.value)}
-                  style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:20,
-                    padding:"5px 12px",color:leadsUserFilter?WA_GREEN:T.textMuted,
-                    fontSize:11,fontFamily:"inherit",outline:"none",cursor:"pointer",
-                    fontWeight:leadsUserFilter?700:400}}>
-                  <option value="">👥 All Agents</option>
-                  <option value="unassigned">👤 Unassigned</option>
-                  {clinicUsers.filter(u=>u.active!==false).map(u=>(
-                    <option key={u.id} value={String(u.id)}>@{u.username}</option>
-                  ))}
+                  className="nx-btn" style={{padding:"6px 10px",cursor:"pointer",color:leadsUserFilter?WA_GREEN:T.textMuted,fontWeight:leadsUserFilter?600:400}}>
+                  <option value="">All Agents</option>
+                  <option value="unassigned">Unassigned</option>
+                  {clinicUsers.filter(u=>u.active!==false).map(u=>(<option key={u.id} value={String(u.id)}>@{u.username}</option>))}
                 </select>
-                {leadsUserFilter&&<button onClick={()=>setLeadsUserFilter("")}
-                  style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${T.border}`,
-                    background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                  ✕ Clear
-                </button>}
-
-                <div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#ef4444",fontWeight:700}}>🔥 {hotCount} Hot</div>
-                <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#f59e0b",fontWeight:700}}>🟡 {warmCount} Warm</div>
+                {leadsUserFilter&&<button onClick={()=>setLeadsUserFilter("")} className="nx-btn" style={{fontSize:11}}>✕</button>}
+                <button onClick={()=>setExportModal(true)} className="nx-btn">
+                  <i className="ti ti-download" style={{fontSize:14}}/> Export
+                </button>
               </div>
             </div>
+
+            {/* Stat cards — matches mockup */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,padding:"16px 16px 0",flexShrink:0}}>
+              <div className="nx-stat">
+                <div className="nx-stat-label">🔥 Hot leads</div>
+                <div className="nx-stat-val" style={{color:"#dc2626"}}>{hotCount}</div>
+                <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Active pipeline</div>
+              </div>
+              <div className="nx-stat">
+                <div className="nx-stat-label">🟡 Warm leads</div>
+                <div className="nx-stat-val" style={{color:"#b45309"}}>{warmCount}</div>
+                <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Needs nurturing</div>
+              </div>
+              <div className="nx-stat">
+                <div className="nx-stat-label">🔵 Cold leads</div>
+                <div className="nx-stat-val" style={{color:"#1d4ed8"}}>{contacts.filter(c=>c.lead==="cold"&&(c.pipelineStage||"new")!=="done").length}</div>
+                <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Low priority</div>
+              </div>
+            </div>
+
+            {/* Kanban board */}
+            <div style={{flex:1,overflow:"auto",padding:16}}>
 
             {/* 4 Lead Columns */}
             <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(4,minmax(220px,1fr))",gap:12,minWidth:isMobile?"auto":isTablet?"auto":900}}>
@@ -2934,6 +2935,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 );
               })}
             </div>
+          </div>
           </div>
         </div>}
 
