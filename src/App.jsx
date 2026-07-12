@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.252";
+const CRM_VERSION = "2.9.253";
 
 // Responsive hook
 function useWindowSize() {
@@ -70,16 +70,16 @@ const today = () => new Date().toISOString().split("T")[0];
 const daysAgo = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; };
 
 const TABS = [
-  {id:"crm",          icon:"💬", label:"Inbox"},
-  {id:"leads",        icon:"🎯", label:"Leads"},
-  {id:"broadcast",    icon:"📢", label:"Broadcast"},
-  {id:"analytics",    icon:"📊", label:"Analytics"},
-  {id:"kb",           icon:"📋", label:"Knowledge"},
-  {id:"bot",          icon:"🤖", label:"Test Bot"},
-  {id:"notes",        icon:"📝", label:"Notes"},
-  {id:"integrations", icon:"🔌", label:"Connect"},
-  {id:"settings",     icon:"⚙️", label:"Settings"},
-  {id:"admin",        icon:"👑", label:"Admin", adminOnly:true},
+  {id:"crm",          icon:"ti ti-message-2",    label:"Inbox"},
+  {id:"leads",        icon:"ti ti-target",        label:"Leads"},
+  {id:"broadcast",    icon:"ti ti-speakerphone",  label:"Broadcast"},
+  {id:"analytics",    icon:"ti ti-chart-bar",     label:"Analytics"},
+  {id:"kb",           icon:"ti ti-book",          label:"Knowledge"},
+  {id:"bot",          icon:"ti ti-robot",         label:"Test Bot"},
+  {id:"notes",        icon:"ti ti-notes",         label:"Notes"},
+  {id:"integrations", icon:"ti ti-plug",          label:"Connect"},
+  {id:"settings",     icon:"ti ti-settings",      label:"Settings"},
+  {id:"admin",        icon:"ti ti-crown",         label:"Admin", adminOnly:true},
 ];
 
 export default function App() {
@@ -1685,6 +1685,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:T.bg,fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css');
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:${T.border};border-radius:8px}::-webkit-scrollbar-track{background:transparent}
         textarea:focus,input:focus,select:focus{outline:none;border-color:${WA_GREEN}!important;box-shadow:0 0 0 3px ${WA_GREEN}15}
@@ -2050,12 +2051,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               color:T.textMuted,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             {sidebarCollapsed?"»":"«"}
           </button>
-          {/* Brand */}
-          <div style={{display:"flex",alignItems:"center",gap:8}} className="hide-mobile">
-            <div style={{width:28,height:28,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>
-              {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"💬"}
+          {/* Current tab title — like mockup */}
+          <div className="hide-mobile">
+            <div style={{fontWeight:700,fontSize:15,color:T.text}}>
+              {tab==="crm"?"Inbox":tab==="leads"?"Leads":tab==="broadcast"?"Broadcast":tab==="analytics"?"Analytics":tab==="kb"?"Knowledge Base":tab==="bot"?"Test Bot":tab==="notes"?"Notes":tab==="integrations"?"Connect":tab==="settings"?"Settings":tab==="admin"?"Admin Panel":"Nexora"}
             </div>
-            <span style={{fontWeight:700,fontSize:15,color:T.text}}>{currentUser?.company_name||"Nexora"}</span>
+            <div style={{fontSize:11,color:T.textMuted}}>
+              {tab==="crm"?`${contacts.length} conversations`:tab==="leads"?`${hotCount} hot · ${warmCount} warm`:tab==="broadcast"?"Send & schedule messages":tab==="analytics"?"Performance overview":tab==="kb"?"Train your AI bot":tab==="bot"?"Test bot responses":tab==="settings"?"Configure your workspace":tab==="admin"?"Manage all clients":""}
+            </div>
           </div>
         </div>
 
@@ -2121,7 +2124,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",
                 background:tab===t.id?`${WA_GREEN}15`:T.sidebar,
                 color:tab===t.id?WA_GREEN:T.text,fontWeight:tab===t.id?700:400,fontSize:14,textAlign:"left"}}>
-              <span style={{fontSize:18}}>{t.icon}</span>
+              <i className={t.icon} style={{fontSize:18}}/>
               <span style={{flex:1}}>{t.label}</span>
               {t.id==="crm"&&totalUnread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:11,fontWeight:700}}>{totalUnread}</span>}
               {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:11,fontWeight:700}}>{hotCount+warmCount}</span>}
@@ -2144,7 +2147,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div key={t.id} style={{position:"relative"}} className="nav-item-wrap">
                   <button onClick={()=>safeSetTab(t.id)}
                     className={`nav-item-btn${tab===t.id?" active":""}`}>
-                    <span style={{fontSize:18,flexShrink:0,width:22,textAlign:"center"}}>{t.icon}</span>
+                    <i className={t.icon} style={{fontSize:18,flexShrink:0,width:20,textAlign:"center"}}/>
                     <span style={{flex:1}}>{t.label}</span>
                     {t.id==="crm"&&totalUnread>0&&<span style={{
                       background:WA_GREEN,color:"#fff",borderRadius:10,
