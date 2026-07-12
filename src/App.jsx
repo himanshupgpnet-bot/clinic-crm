@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.256";
+const CRM_VERSION = "2.9.257";
 
 // Responsive hook
 function useWindowSize() {
@@ -2038,72 +2038,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       </div>}
 
       {/* NAV */}
-      <div style={navStyle}>
-        {/* Hamburger - mobile only */}
-        <button className="tb hide-desktop" onClick={()=>setMenuOpen(m=>!m)}
+      {/* Mobile hamburger only — desktop has no top bar like mockup */}
+      <div className="hide-desktop" style={{height:56,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 14px",gap:10,flexShrink:0}}>
+        <button className="tb" onClick={()=>setMenuOpen(m=>!m)}
           style={{width:38,height:38,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4,padding:8,flexShrink:0}}>
           {[0,1,2].map(i=><div key={i} style={{width:18,height:2,background:menuOpen?WA_GREEN:T.textMuted,borderRadius:2,transition:"all .2s",transform:menuOpen?(i===0?"rotate(45deg) translate(4px,4px)":i===2?"rotate(-45deg) translate(4px,-4px)":"scaleX(0)"):"none"}}/>)}
         </button>
-
-        <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:4,flex:1}}>
-          {/* Sidebar toggle */}
-          <button onClick={()=>setSidebarCollapsed(s=>!s)} className="hide-mobile"
-            style={{width:28,height:28,borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",
-              color:T.textMuted,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            {sidebarCollapsed?"»":"«"}
-          </button>
+        <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+          <div style={{width:26,height:26,borderRadius:7,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>💬</div>
+          <span style={{fontWeight:700,fontSize:14,color:T.text}}>{currentUser?.company_name||"Nexora"}</span>
         </div>
-
-
-
-        <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11}}>
-            <div style={{width:6,height:6,borderRadius:"50%",background:backendStatus==="online"?WA_GREEN:backendStatus==="offline"?"#ef4444":"#f59e0b"}}/>
-            <span className="hide-mobile" style={{color:T.textMuted,fontSize:10}}>{backendStatus==="online"?"Live":"Offline"}</span>
-          </div>
-          <div className="hide-mobile" style={{fontSize:10,color:T.textFaint,background:T.card2,border:`1px solid ${T.border}`,borderRadius:12,padding:"2px 8px"}}>
-            v{CRM_VERSION}{backendVersion&&` · API v${backendVersion}`}
-          </div>
-          <button onClick={()=>setDark(d=>!d)} style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{dark?"☀️":"🌙"}</button>
-          {/* User info + logout */}
-          <div style={{display:"flex",alignItems:"center",gap:6,padding:"3px 10px",borderRadius:18,background:T.card2,border:`1px solid ${T.border}`}}>
-            <span style={{fontSize:11,color:T.textMuted}}>{isAdmin?"👑":"👤"} {currentUser?.username}</span>
-            <button onClick={()=>setConfirmModal({
-              title:"Log Out?",
-              message:"Are you sure you want to log out of Nexora CRM?",
-              icon:"🔐",
-              danger:false,
-              confirmText:"Yes, Log Out",
-              onConfirm:()=>doLogout()
-            })} style={{padding:"2px 8px",borderRadius:10,border:"none",background:"#ef444420",color:"#ef4444",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Logout</button>
-          </div>
-          {/* Notification Bell */}
-          <div style={{position:"relative"}}>
-            <button onClick={()=>{setShowChangelog(c=>!c); if(hasUnread){setChangelogSeen(latestVersion);}}}
-              style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${hasUnread?"#f59e0b":T.border}`,background:hasUnread?"#fef3c7":T.card2,color:hasUnread?"#d97706":T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
-              🔔
-              {hasUnread&&<span style={{position:"absolute",top:-4,right:-4,width:8,height:8,borderRadius:"50%",background:"#ef4444",border:"2px solid white"}}/>}
-            </button>
-            {/* Changelog dropdown */}
-            {showChangelog&&<div style={{position:"absolute",right:0,top:36,width:340,background:T.card,border:`1px solid ${T.border}`,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.15)",zIndex:200,overflow:"hidden"}}>
-              <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div style={{fontWeight:700,fontSize:14}}>🔔 What's New</div>
-                <button onClick={()=>setShowChangelog(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted}}>✕</button>
-              </div>
-              <div style={{maxHeight:400,overflowY:"auto"}}>
-                {CHANGELOG.map((c,i)=><div key={c.version} style={{padding:"12px 16px",borderBottom:i<CHANGELOG.length-1?`1px solid ${T.border}`:"none"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                    <span style={{background:c.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8}}>{c.tag}</span>
-                    <span style={{fontWeight:700,fontSize:13}}>v{c.version}</span>
-                    <span style={{fontSize:11,color:T.textMuted,marginLeft:"auto"}}>{c.date}</span>
-                    {i===0&&<span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8}}>LATEST</span>}
-                  </div>
-                  {c.items.map((item,j)=><div key={j} style={{fontSize:12,color:T.textMuted,marginBottom:3,paddingLeft:4}}>{item}</div>)}
-                </div>)}
-              </div>
-            </div>}
-          </div>
-        </div>
+        <button onClick={()=>setDark(d=>!d)} style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{dark?"☀️":"🌙"}</button>
       </div>
 
       {/* HAMBURGER SIDEBAR OVERLAY */}
@@ -2131,6 +2076,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
 
         <div className="hide-mobile nav-sidebar" style={{width:sidebarCollapsed?0:200,flexShrink:0,background:T.sidebar,borderRight:sidebarCollapsed?"none":`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative",transition:"width .2s ease"}}>
+          {/* Brand — top of sidebar like mockup */}
+          <div style={{padding:"16px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+            <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:"#fff",flexShrink:0}}>
+              {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"N"}
+            </div>
+            <span style={{fontWeight:700,fontSize:14,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Nexora"}</span>
+          </div>
           {/* Nav items */}
           <div style={{flex:1,padding:"8px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
             {(()=>{
@@ -2160,9 +2112,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             })()}
           </div>
 
-          {/* User profile at bottom */}
+          {/* User profile + controls at bottom */}
           <div style={{padding:"10px",borderTop:`1px solid ${T.border}`,flexShrink:0}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,cursor:"pointer",transition:"background .15s"}}
+            {/* User row */}
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,cursor:"pointer",transition:"background .15s",marginBottom:6}}
               onMouseEnter={e=>e.currentTarget.style.background=T.sidebarHover}
               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
               <div style={{width:30,height:30,borderRadius:"50%",background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700,flexShrink:0}}>
@@ -2170,13 +2123,48 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:12,fontWeight:600,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.username||"User"}</div>
-                <div style={{fontSize:10,color:T.textMuted,display:"flex",alignItems:"center",gap:4}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:backendStatus==="online"?WA_GREEN:"#ef4444",flexShrink:0}}/>
-                  {backendStatus==="online"?"Live":"Offline"}
-                </div>
+                <div style={{fontSize:10,color:T.textMuted}}>{currentUser?.company_name||"Nexora"}</div>
               </div>
-              <i style={{fontSize:14,color:T.textFaint}}>⋮</i>
             </div>
+            {/* Controls row */}
+            <div style={{display:"flex",gap:4,alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:4,flex:1}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:backendStatus==="online"?WA_GREEN:backendStatus==="offline"?"#ef4444":"#f59e0b",flexShrink:0}}/>
+                <span style={{fontSize:10,color:T.textMuted}}>{backendStatus==="online"?"Live":"Offline"}</span>
+              </div>
+              <button onClick={()=>setDark(d=>!d)} style={{width:28,height:28,borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",color:T.textMuted,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"☀️":"🌙"}</button>
+              <div style={{position:"relative"}}>
+                <button onClick={()=>{setShowChangelog(c=>!c); if(hasUnread){setChangelogSeen(latestVersion);}}}
+                  style={{width:28,height:28,borderRadius:8,border:`1px solid ${hasUnread?"#f59e0b":T.border}`,background:hasUnread?"#fef3c7":"transparent",color:hasUnread?"#d97706":T.textMuted,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  🔔
+                  {hasUnread&&<span style={{position:"absolute",top:-3,right:-3,width:7,height:7,borderRadius:"50%",background:"#ef4444",border:"2px solid white"}}/>}
+                </button>
+                {showChangelog&&<div style={{position:"absolute",left:0,bottom:36,width:340,background:T.card,border:`1px solid ${T.border}`,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.15)",zIndex:200,overflow:"hidden"}}>
+                  <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div style={{fontWeight:700,fontSize:14}}>🔔 What's New</div>
+                    <button onClick={()=>setShowChangelog(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted}}>✕</button>
+                  </div>
+                  <div style={{maxHeight:300,overflowY:"auto"}}>
+                    {CHANGELOG.map((c,i)=><div key={c.version} style={{padding:"12px 16px",borderBottom:i<CHANGELOG.length-1?`1px solid ${T.border}`:"none"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                        <span style={{background:c.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8}}>{c.tag}</span>
+                        <span style={{fontWeight:700,fontSize:13}}>v{c.version}</span>
+                        <span style={{fontSize:11,color:T.textMuted,marginLeft:"auto"}}>{c.date}</span>
+                        {i===0&&<span style={{background:"#ef4444",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8}}>LATEST</span>}
+                      </div>
+                      {c.items?.map((item,j)=><div key={j} style={{fontSize:11,color:T.textMuted,marginBottom:2}}>· {item}</div>)}
+                    </div>)}
+                  </div>
+                </div>}
+              </div>
+              <button onClick={()=>setConfirmModal({
+                title:"Log Out?",message:"Are you sure you want to log out of Nexora CRM?",icon:"🔐",danger:false,confirmText:"Yes, Log Out",
+                onConfirm:()=>doLogout()
+              })} style={{width:28,height:28,borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit"}} title="Logout">
+                <i className="ti ti-logout" style={{fontSize:14}}/>
+              </button>
+            </div>
+            <div style={{fontSize:9,color:T.textFaint,textAlign:"center",padding:"4px 0 8px"}}>v{CRM_VERSION}</div>
           </div>
         </div>
 
