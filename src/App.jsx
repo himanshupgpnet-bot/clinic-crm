@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.262";
+const CRM_VERSION = "2.9.263";
 
 // Responsive hook
 function useWindowSize() {
@@ -3671,40 +3671,39 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             })}
           </div>}
 
-          {/* Main content */}
-          <div style={{flex:1,overflowY:"auto",padding:24}}>
-            {(!isAdmin||(isAdmin&&broadcastClinic))&&<div style={{maxWidth:700,margin:"0 auto"}}>
+          {/* Main content — mockup style */}
+          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            {(!isAdmin||(isAdmin&&broadcastClinic))&&<>
 
-            {/* Sub-tab switcher */}
-            <div style={{display:"flex",gap:8,marginBottom:20,borderBottom:`2px solid ${T.border}`,paddingBottom:0}}>
-              {[{id:"send",label:"📢 Send Broadcast"},{id:"create",label:"📝 Create Template"}].map(st=>(
-                <button key={st.id} onClick={()=>{
-                  if(st.id==="create") {
-                    // Only check if clearly not set up (no token at all)
-                    const missing = [];
-                    const token = appSettings?.whatsapp_token||appSettings?.wa_token||appSettings?.anthropic_key;
-                    if(!token) missing.push({field:"WhatsApp Token", desc:"System user token from Meta Developer app. Add it in Integrations → WhatsApp."});
-                    if(missing.length>0) {
-                      setSetupMissing(missing);
-                      setShowSetupModal(true);
-                      return;
-                    }
-                  }
-                  setBroadcastSubTab(st.id);setCreateTemplateStep(1);setCreateTemplateResult(null);
-                }}
-                  style={{padding:"8px 16px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",
-                    fontSize:13,fontWeight:700,color:broadcastSubTab===st.id?WA_GREEN:T.textMuted,
-                    borderBottom:broadcastSubTab===st.id?`2px solid ${WA_GREEN}`:"2px solid transparent",
-                    marginBottom:-2,transition:"all .15s"}}>
-                  {st.label}
+            {/* Page header — matches mockup */}
+            <div className="nx-page-header" style={{flexShrink:0}}>
+              <i className="ti ti-speakerphone" style={{fontSize:20,color:WA_GREEN}}/>
+              <div>
+                <div className="nx-page-title">Broadcast</div>
+                <div className="nx-page-sub">Send WhatsApp templates to multiple contacts</div>
+              </div>
+              <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+                <button onClick={()=>{setBroadcastSubTab("send");setCreateTemplateStep(1);setCreateTemplateResult(null);}}
+                  className={`nx-btn${broadcastSubTab==="send"?" primary":""}`}>
+                  <i className="ti ti-send" style={{fontSize:14}}/> Send Broadcast
                 </button>
-              ))}
+                <button onClick={()=>{
+                  const missing=[];
+                  const token=appSettings?.whatsapp_token||appSettings?.wa_token||appSettings?.anthropic_key;
+                  if(!token) missing.push({field:"WhatsApp Token",desc:"Add it in Integrations → WhatsApp."});
+                  if(missing.length>0){setSetupMissing(missing);setShowSetupModal(true);return;}
+                  setBroadcastSubTab("create");setCreateTemplateStep(1);setCreateTemplateResult(null);
+                }} className={`nx-btn${broadcastSubTab==="create"?" primary":""}`}>
+                  <i className="ti ti-plus" style={{fontSize:14}}/> Create Template
+                </button>
+              </div>
             </div>
 
-            {/* ── SEND BROADCAST (existing, untouched) ── */}
-            {broadcastSubTab==="send"&&<div>
-            <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📢 Broadcast</div>
-            <div style={{fontSize:13,color:T.textMuted,marginBottom:16}}>Send WhatsApp template messages to multiple contacts at once.</div>
+            {/* ── SEND BROADCAST — two column layout like mockup ── */}
+            {broadcastSubTab==="send"&&<div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
+            <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+            {/* Left column — steps */}
+            <div style={{flex:1,minWidth:0}}>
             {/* Template selector — card stack */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -3836,39 +3835,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   💾 Save Template
                 </button>
               </div>}
-
-            {/* Phone preview */}
-            {selectedTemplate&&<div style={{marginBottom:16,display:"flex",justifyContent:"center"}}>
-              <div style={{width:260,background:"#1a1a1a",borderRadius:32,padding:"10px 6px",boxShadow:"0 6px 24px rgba(0,0,0,.4)"}}>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
-                  <div style={{width:40,height:4,borderRadius:2,background:"#333"}}/>
-                </div>
-                <div style={{background:"#e5ddd5",borderRadius:22,overflow:"hidden"}}>
-                  <div style={{background:"#075e54",padding:"8px 10px",display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{width:26,height:26,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>
-                      {selectedTemplate.template_name[0]?.toUpperCase()}
-                    </div>
-                    <div style={{fontSize:11,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selectedTemplate.template_name}</div>
-                  </div>
-                  <div style={{padding:"8px 6px"}}>
-                    <div style={{background:"#fff",borderRadius:"0 10px 10px 10px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
-                        <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:130,objectFit:"cover",display:"block"}}/>}
-                      {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="VIDEO"&&
-                        <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:130,display:"block"}}/>}
-                      {selectedTemplate.body_text&&<div style={{padding:"8px 10px",fontSize:11,color:"#1a1a1a",lineHeight:1.5,whiteSpace:"pre-wrap"}}>
-                        {selectedTemplate.body_text}
-                      </div>}
-                      {selectedTemplate.footer_text&&<div style={{padding:"0 10px 6px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
-                      <div style={{padding:"0 10px 6px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
-                    </div>
-                  </div>
-                </div>
-                <div style={{display:"flex",justifyContent:"center",marginTop:6}}>
-                  <div style={{width:30,height:4,borderRadius:2,background:"#333"}}/>
-                </div>
-              </div>
-            </div>}
 
             {/* Upload contacts */}
             <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
@@ -4101,37 +4067,79 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>}
             </div>
 
-            {/* Scheduled broadcasts list */}
-            {scheduledBroadcasts.length>0&&<div style={{background:T.card,borderRadius:16,padding:20,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>📅 Broadcasts</div>
-              {scheduledBroadcasts.map(s=>{
-                const contactCount=(Array.isArray(s.contacts)?s.contacts:(typeof s.contacts==="string"?JSON.parse(s.contacts||"[]"):[])).length;
-                const isPending=s.status==="pending";
-                const isSent=s.status==="sent";
-                const statusColor=isPending?"#d97706":isSent?"#16a34a":"#ef4444";
-                const statusLabel=isPending?"⏳ Pending":isSent?"✅ Sent":"❌ Failed";
-                return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                  padding:"10px 12px",background:T.card2,borderRadius:10,marginBottom:8,border:`1px solid ${T.border}`}}>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:12,color:T.text}}>{s.template_name}</div>
-                    <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>
-                      {new Date(s.scheduled_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})} · {contactCount} contacts
-                    </div>
-                    <div style={{fontSize:10,fontWeight:700,color:statusColor,marginTop:2}}>{statusLabel}</div>
+            </div>{/* end left column */}
+
+            {/* Right column — phone preview + scheduled */}
+            <div style={{width:260,flexShrink:0}}>
+              {/* Phone preview card */}
+              <div className="nx-card" style={{marginBottom:16}}>
+                <div className="nx-card-title">
+                  <i className="ti ti-device-mobile" style={{fontSize:16,color:WA_GREEN}}/>
+                  Preview
+                </div>
+                {selectedTemplate?<div style={{background:"#1a1a1a",borderRadius:28,padding:"10px 6px",boxShadow:"0 6px 24px rgba(0,0,0,.4)"}}>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+                    <div style={{width:36,height:4,borderRadius:2,background:"#333"}}/>
                   </div>
-                  {isPending&&<button onClick={async()=>{
-                    const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                    await fetch(`${API}/api/scheduled-broadcasts/${s.id}`,{method:"DELETE",headers:authHeaders()});
-                    fetchScheduledBroadcasts(clinicId);
-                  }} style={{padding:"4px 10px",borderRadius:8,border:`1px solid #ef4444`,background:"transparent",
-                    color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                    Cancel
-                  </button>}
-                </div>;
-              })}
-            </div>}
-            </div>
-            </div>}
+                  <div style={{background:"#e5ddd5",borderRadius:20,overflow:"hidden"}}>
+                    <div style={{background:"#075e54",padding:"8px 10px",display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:24,height:24,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:700}}>
+                        {selectedTemplate.template_name[0]?.toUpperCase()}
+                      </div>
+                      <div style={{fontSize:10,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selectedTemplate.template_name}</div>
+                    </div>
+                    <div style={{padding:"8px 6px"}}>
+                      <div style={{background:"#fff",borderRadius:"0 8px 8px 8px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                        {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
+                          <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:110,objectFit:"cover",display:"block"}}/>}
+                        {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="VIDEO"&&
+                          <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:110,display:"block"}}/>}
+                        {selectedTemplate.body_text&&<div style={{padding:"7px 9px",fontSize:10,color:"#1a1a1a",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{selectedTemplate.body_text}</div>}
+                        {selectedTemplate.footer_text&&<div style={{padding:"0 9px 5px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
+                        <div style={{padding:"0 9px 5px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"center",marginTop:6}}>
+                    <div style={{width:28,height:4,borderRadius:2,background:"#333"}}/>
+                  </div>
+                </div>:<div style={{textAlign:"center",padding:"24px 0",color:T.textFaint,fontSize:12}}>Select a template to preview</div>}
+              </div>
+
+              {/* Scheduled card */}
+              <div className="nx-card">
+                <div className="nx-card-title">
+                  <i className="ti ti-calendar" style={{fontSize:16,color:WA_GREEN}}/>
+                  Scheduled
+                </div>
+                {scheduledBroadcasts.length===0?
+                  <div style={{textAlign:"center",padding:"16px 0",color:T.textFaint,fontSize:12}}>No scheduled broadcasts</div>:
+                  scheduledBroadcasts.slice(0,5).map(s=>{
+                    const contactCount=(Array.isArray(s.contacts)?s.contacts:(typeof s.contacts==="string"?JSON.parse(s.contacts||"[]"):[])).length;
+                    const isPending=s.status==="pending";
+                    const isSent=s.status==="sent";
+                    const statusColor=isPending?"#b45309":isSent?WA_GREEN:"#ef4444";
+                    const statusLabel=isPending?"⏳ Pending":isSent?"✅ Sent":"❌ Failed";
+                    return <div key={s.id} style={{padding:"10px",background:T.card2,borderRadius:8,marginBottom:8,border:`1px solid ${T.border}`}}>
+                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>{s.template_name}</div>
+                      <div style={{fontSize:10,color:T.textMuted}}>{new Date(s.scheduled_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})} · {contactCount} contacts</div>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:4}}>
+                        <span style={{fontSize:10,fontWeight:700,color:statusColor}}>{statusLabel}</span>
+                        {isPending&&<button onClick={async()=>{
+                          const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                          await fetch(`${API}/api/scheduled-broadcasts/${s.id}`,{method:"DELETE",headers:authHeaders()});
+                          fetchScheduledBroadcasts(clinicId);
+                        }} style={{fontSize:10,color:"#ef4444",border:"none",background:"none",cursor:"pointer",padding:0}}>Cancel</button>}
+                      </div>
+                    </div>;
+                  })
+                }
+              </div>
+            </div>{/* end scheduled nx-card */}
+            </div>{/* end right column */}
+
+            </div>{/* end two-column flex */}
+            </div>}{/* end send tab */}
 
             {broadcastSubTab==="create"&&<CreateTemplatePanel
               T={T} WA_GREEN={WA_GREEN} dark={dark}
@@ -4143,7 +4151,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               onSuccess={()=>{ fetchTemplates(isAdmin&&broadcastClinic?broadcastClinic.clinic_id:null); setBroadcastSubTab("send"); }}
             />}
 
-          </div>}
+          </>}
 
           {isAdmin&&!broadcastClinic&&<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",color:T.textMuted}}>
             <div style={{fontSize:48,marginBottom:12}}>👈</div>
