@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.277";
+const CRM_VERSION = "2.9.278";
 
 // Responsive hook
 function useWindowSize() {
@@ -6825,22 +6825,18 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
     day:`Day Detail`,
   };
 
-  // KPI card style
+  // KPI card — matches mockup stat-card style, keeps drilldown
   const KpiCard = ({icon,val,label,sub,color,bg,trend,type}) => (
-    <div onClick={()=>openDrill(type)}
-      style={{background:T.card,borderRadius:14,padding:"18px 16px",border:`1px solid ${drillOpen&&drillType===type?color:T.border}`,
-        boxShadow:drillOpen&&drillType===type?`0 0 0 2px ${color}30,0 4px 20px rgba(0,0,0,.08)`:`0 1px 3px rgba(0,0,0,.06)`,
-        transition:"all .2s",cursor:"pointer",position:"relative",overflow:"hidden",flex:1,minWidth:0}}
-      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,.1)`;}}
-      onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=drillOpen&&drillType===type?`0 0 0 2px ${color}30,0 4px 20px rgba(0,0,0,.08)`:`0 1px 3px rgba(0,0,0,.06)`;}}
-    >
-      {trend&&<div style={{position:"absolute",top:12,right:12,fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:20,background:"#e8faf0",color:"#00a846"}}>{trend}</div>}
-      <div style={{width:36,height:36,borderRadius:9,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,marginBottom:12}}>{icon}</div>
-      <div style={{fontSize:28,fontWeight:900,letterSpacing:-1,lineHeight:1,color,marginBottom:3}}>{val??"-"}</div>
-      <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:2}}>{label}</div>
-      <div style={{fontSize:10,color:T.textFaint}}>{sub}</div>
-      <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,borderRadius:"0 0 14px 14px",background:`linear-gradient(90deg,${color},${color}80)`}}/>
-      <div style={{position:"absolute",bottom:10,right:12,fontSize:9,color:T.textFaint,opacity:.6}}>Click to explore →</div>
+    <div onClick={()=>openDrill(type)} className="nx-stat"
+      style={{cursor:"pointer",transition:"all .15s",flex:1,minWidth:0,position:"relative"}}
+      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.08)";}}
+      onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+      <div className="nx-stat-label">{label}</div>
+      <div className="nx-stat-val" style={{color,marginBottom:4}}>{val??"-"}</div>
+      <div style={{fontSize:11,color:T.textMuted}}>{sub}</div>
+      {trend&&<div style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:6,background:"#f0fdf4",color:"#15803d",marginTop:6}}>{trend}</div>}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,borderRadius:"0 0 12px 12px",background:color,opacity:.3}}/>
+      <div style={{position:"absolute",top:10,right:10,fontSize:9,color:T.textFaint}}>↗</div>
     </div>
   );
 
@@ -7219,26 +7215,29 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
         </div>
       </>}
 
-      {/* ── HEADER ── */}
-      <div className="an1" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:10}}>
+      {/* ── HEADER — matches mockup ── */}
+      <div className="nx-page-header an1" style={{marginBottom:20,borderRadius:12,border:`1px solid ${T.border}`}}>
+        <i className="ti ti-chart-bar" style={{fontSize:20,color:WA_GREEN}}/>
         <div>
-          <div style={{fontWeight:800,fontSize:20,letterSpacing:-.5,marginBottom:3}}>📊 Analytics</div>
-          <div style={{fontSize:12,color:T.textMuted}}>Click any card to drill down into details</div>
+          <div className="nx-page-title">Analytics</div>
+          <div className="nx-page-sub">Click any card to drill into details</div>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-          {[{id:"7d",label:"7D"},{id:"30d",label:"30D"},{id:"90d",label:"90D"},{id:"custom",label:"Custom"}].map(p=>(
+        <div style={{marginLeft:"auto",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+          {[{id:"7d",label:"7 days"},{id:"30d",label:"30 days"},{id:"90d",label:"90 days"},{id:"custom",label:"Custom"}].map(p=>(
             <button key={p.id} onClick={()=>setPreset(p.id)}
-              style={{padding:"6px 14px",borderRadius:16,border:`1px solid ${T.border}`,background:datePreset===p.id?WA_GREEN:T.card,color:datePreset===p.id?"#fff":T.textMuted,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}>
+              className={`nx-filter${datePreset===p.id?" active":""}`}>
               {p.label}
             </button>
           ))}
           {datePreset==="custom"&&<>
-            <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:"5px 8px",color:T.text,fontSize:12}}/>
-            <span style={{color:T.textMuted}}>→</span>
-            <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:"5px 8px",color:T.text,fontSize:12}}/>
-            <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} style={{padding:"6px 12px",borderRadius:16,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Apply</button>
+            <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:"5px 8px",color:T.text,fontSize:12,outline:"none"}}/>
+            <span style={{color:T.textMuted,fontSize:12}}>→</span>
+            <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:"5px 8px",color:T.text,fontSize:12,outline:"none"}}/>
+            <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} className="nx-btn primary" style={{fontSize:12}}>Apply</button>
           </>}
-          <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} style={{padding:"6px 10px",borderRadius:16,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🔄</button>
+          <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} className="nx-btn" style={{padding:"6px 10px"}}>
+            <i className="ti ti-refresh" style={{fontSize:14}}/>
+          </button>
         </div>
       </div>
 
@@ -7319,23 +7318,22 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
             </div>
           </div>
 
-          {/* KPI CARDS */}
-          <div className="an3" style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+          {/* KPI CARDS — matches mockup stats-grid */}
+          <div className="an3" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
             <KpiCard icon="👥" val={total} label="Total Contacts" sub="All conversations" color="#2563eb" bg="#eff6ff" trend={`▲ ${growth.pct||0}%`} type="contacts"/>
+            <KpiCard icon="🤖" val={`${botRate}%`} label="Bot Automation" sub={`${totals.botMessages||0} msgs handled`} color={WA_GREEN} bg="#f0fdf4" trend={`${Math.round((totals.botMessages||0)*2/60)}hrs saved`} type="bot"/>
             <KpiCard icon="🔥" val={hot} label="Hot Leads" sub={`${growth.conversionRate||0}% conversion`} color="#ef4444" bg="#fef2f2" trend="High intent" type="hot"/>
-            <KpiCard icon="✅" val={done} label="Bookings Closed" sub={`In selected period`} color="#22c55e" bg="#f0fdf4" trend="Confirmed" type="bookings"/>
-            <KpiCard icon="🤖" val={`${botRate}%`} label="Bot Automation" sub={`${totals.botMessages||0} msgs handled`} color="#00c853" bg="#f0fdf4" trend={`${Math.round((totals.botMessages||0)*2/60)}hrs saved`} type="bot"/>
-            <KpiCard icon="📢" val={adSummary.count||0} label="Ad Sources" sub={`${adSummary.totalClicks||0} total clicks`} color="#7c3aed" bg="#f5f3ff" trend={`${adSummary.totalBookings||0} booked`} type="ads"/>
+            <KpiCard icon="✅" val={done} label="Bookings Closed" sub="Confirmed" color="#22c55e" bg="#f0fdf4" trend="Converted" type="bookings"/>
           </div>
 
-          {/* DAILY CHART + DONUT */}
+          {/* DAILY CHART + LEAD BREAKDOWN — matches mockup 2fr 1fr grid */}
           <div className="an4" style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,marginBottom:20}}>
             {/* Daily bar chart */}
-            <div style={{background:T.card,borderRadius:14,padding:20,border:`1px solid ${T.border}`}}>
-              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:16}}>
-                <div>
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>Daily Activity</div>
-                  <div style={{fontSize:11,color:T.textFaint}}>Click any bar to see that day's details</div>
+            <div style={{background:T.card,borderRadius:12,padding:20,border:`1px solid ${T.border}`}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <i className="ti ti-chart-line" style={{fontSize:16,color:WA_GREEN}}/>
+                  <div style={{fontWeight:700,fontSize:13,color:T.text}}>Messages per day</div>
                 </div>
                 <div style={{display:"flex",gap:12}}>
                   {[{c:WA_GREEN,l:"Bot"},{c:"#6366f1",l:"Customer"},{c:"#f59e0b",l:"Agent"}].map(l=>(
@@ -7425,35 +7423,39 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 👆 Click any bar to see that day's breakdown
               </div>}
             </div>
-            {/* Bot donut */}
-            <div style={{background:T.card,borderRadius:14,padding:20,border:`1px solid ${T.border}`,display:"flex",flexDirection:"column"}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>🤖 Bot Performance</div>
-              <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>Automation this period</div>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:1}}>
-                <div style={{position:"relative",width:100,height:100}}>
-                  <svg width="100" height="100" style={{transform:"rotate(-90deg)"}}>
-                    <circle cx="50" cy="50" r="42" fill="none" stroke={T.border} strokeWidth="11"/>
-                    <circle cx="50" cy="50" r="42" fill="none" stroke={WA_GREEN} strokeWidth="11"
-                      strokeDasharray="263.9"
-                      strokeDashoffset={263.9*(1-botRate/100)}
-                      strokeLinecap="round"
-                      style={{transition:"stroke-dashoffset 1s ease"}}/>
-                  </svg>
-                  <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
-                    <div style={{fontSize:20,fontWeight:900,color:WA_GREEN}}>{botRate}%</div>
-                    <div style={{fontSize:9,color:T.textFaint}}>auto</div>
-                  </div>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:7,marginTop:14,width:"100%"}}>
-                  {[{l:"Bot replies",v:totals.botMessages||0,c:WA_GREEN},{l:"Customer",v:totals.userMessages||0,c:"#6366f1"},{l:"Agent",v:totals.agentMessages||0,c:"#f59e0b"},{l:"Follow-ups",v:totals.followups||0,c:"#f59e0b"}].map(s=>(
-                    <div key={s.l} style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-                      <span style={{display:"flex",alignItems:"center",gap:5,color:T.textMuted}}><div style={{width:7,height:7,borderRadius:"50%",background:s.c}}/>{s.l}</span>
-                      <strong style={{color:s.c}}>{s.v}</strong>
+            {/* Lead breakdown — matches mockup */}
+            <div style={{background:T.card,borderRadius:12,padding:20,border:`1px solid ${T.border}`,display:"flex",flexDirection:"column"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+                <i className="ti ti-target" style={{fontSize:16,color:WA_GREEN}}/>
+                <div style={{fontWeight:700,fontSize:13,color:T.text}}>Lead breakdown</div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+                {[
+                  {l:`🔥 Hot (${hot})`,v:total>0?Math.round(hot/total*100):0,c:"#ef4444"},
+                  {l:`🟡 Warm (${warm})`,v:total>0?Math.round(warm/total*100):0,c:"#f59e0b"},
+                  {l:`🔵 Cold (${cold})`,v:total>0?Math.round(cold/total*100):0,c:"#3b82f6"},
+                ].map(s=>(
+                  <div key={s.l}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
+                      <span style={{color:T.text}}>{s.l}</span>
+                      <span style={{fontWeight:600,color:s.c}}>{s.v}%</span>
                     </div>
-                  ))}
+                    <div style={{height:6,background:T.card2,borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:6,background:s.c,borderRadius:3,width:`${s.v}%`,transition:"width .8s ease"}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{borderTop:`1px solid ${T.border}`,paddingTop:14}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <i className="ti ti-robot" style={{fontSize:14,color:WA_GREEN}}/>
+                  <span style={{fontWeight:600,fontSize:12,color:T.text}}>Top performing</span>
                 </div>
-                <div style={{marginTop:12,padding:"8px 10px",background:`${WA_GREEN}12`,borderRadius:8,fontSize:10,color:"#166534",width:"100%",border:`1px solid ${WA_GREEN}30`}}>
-                  💡 Saved ~<strong>{Math.round((totals.botMessages||0)*2/60)} hrs</strong> of manual replies
+                <div style={{display:"flex",flexDirection:"column",gap:5,fontSize:11,color:T.textMuted}}>
+                  <div>🤖 Bot handled: <strong style={{color:T.text}}>{totals.botMessages||0} msgs</strong></div>
+                  <div>👤 Human: <strong style={{color:T.text}}>{(totals.agentMessages||0)} msgs</strong></div>
+                  <div>📊 Bot rate: <strong style={{color:WA_GREEN}}>{botRate}%</strong></div>
+                  <div>✅ Bookings: <strong style={{color:T.text}}>{done}</strong></div>
                 </div>
               </div>
             </div>
