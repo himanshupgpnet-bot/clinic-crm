@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.266";
+const CRM_VERSION = "2.9.267";
 
 // Responsive hook
 function useWindowSize() {
@@ -8194,8 +8194,8 @@ function LeadsMap({T, WA_GREEN, countryData, dark}) {
 
 // ── CREATE TEMPLATE PANEL ─────────────────────────────────────────────────────
 function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, isAdmin, broadcastClinic, step, setStep, submitting, setSubmitting, result, setResult, onSuccess}) {
-  const inputStyle = {width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"};
-  const labelStyle = {fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5,display:"block"};
+  const inputStyle = {width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none",transition:"border-color .15s"};
+  const labelStyle = {fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:5,display:"block",letterSpacing:.2};
 
   const [category, setCategory] = React.useState("MARKETING");
   const [name, setName] = React.useState("");
@@ -8305,9 +8305,14 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const stepLabels = ["1. Set up","2. Edit template","3. Submit"];
 
   return (
-    <div>
-      <div style={{fontWeight:800,fontSize:22,marginBottom:4,color:T.text}}>📝 Create Template</div>
-      <div style={{fontSize:13,color:T.textMuted,marginBottom:20}}>Create a WhatsApp message template and submit to Meta for approval.</div>
+    <div style={{padding:"0 20px 20px"}}>
+      <div style={{padding:"16px 0 14px",borderBottom:`1px solid ${T.border}`,marginBottom:20,display:"flex",alignItems:"center",gap:10}}>
+        <i className="ti ti-template" style={{fontSize:18,color:WA_GREEN}}/>
+        <div>
+          <div style={{fontWeight:700,fontSize:15,color:T.text}}>Create Template</div>
+          <div style={{fontSize:11,color:T.textMuted}}>Submit a WhatsApp template to Meta for approval</div>
+        </div>
+      </div>
 
       {/* Step indicator */}
       <div style={{display:"flex",gap:0,marginBottom:24,background:T.card2,borderRadius:12,padding:4,border:`1px solid ${T.border}`}}>
@@ -8323,26 +8328,29 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
       {step===1&&<div>
         <div style={{fontWeight:700,fontSize:15,marginBottom:4,color:T.text}}>Choose a category</div>
         <div style={{fontSize:12,color:T.textMuted,marginBottom:16}}>Select the type that best describes your message template.</div>
-        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
           {categories.map(c=>(
             <div key={c.id} onClick={()=>setCategory(c.id)}
-              style={{padding:"14px 16px",borderRadius:12,border:`2px solid ${category===c.id?WA_GREEN:T.border}`,
-                background:category===c.id?WA_GREEN+"10":T.card,cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}>
-              <div style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${category===c.id?WA_GREEN:T.border}`,
-                background:category===c.id?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                {category===c.id&&<div style={{width:8,height:8,borderRadius:"50%",background:"#fff"}}/>}
+              style={{padding:"12px 14px",borderRadius:10,border:`1px solid ${category===c.id?WA_GREEN:T.border}`,
+                background:category===c.id?`${WA_GREEN}08`:T.card,cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}
+              onMouseEnter={e=>{if(category!==c.id)e.currentTarget.style.borderColor=T.textFaint;}}
+              onMouseLeave={e=>{if(category!==c.id)e.currentTarget.style.borderColor=T.border;}}>
+              <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${category===c.id?WA_GREEN:T.border}`,
+                background:category===c.id?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
+                {category===c.id&&<div style={{width:6,height:6,borderRadius:"50%",background:"#fff"}}/>}
               </div>
-              <div style={{fontSize:20}}>{c.icon}</div>
-              <div>
-                <div style={{fontWeight:700,fontSize:13,color:T.text}}>{c.label}</div>
-                <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{c.desc}</div>
+              <div style={{fontSize:18,flexShrink:0}}>{c.icon}</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600,fontSize:13,color:T.text}}>{c.label}</div>
+                <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>{c.desc}</div>
               </div>
+              {category===c.id&&<i className="ti ti-check" style={{fontSize:16,color:WA_GREEN,flexShrink:0}}/>}
             </div>
           ))}
         </div>
-        <button onClick={()=>setStep(2)}
-          style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-          Next →
+        <button onClick={()=>setStep(2)} className="nx-btn primary"
+          style={{width:"100%",justifyContent:"center",padding:"11px",fontSize:13,fontWeight:600}}>
+          <i className="ti ti-arrow-right" style={{fontSize:14}}/> Continue
         </button>
       </div>}
 
@@ -8352,8 +8360,8 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
 
           {/* Name + Language */}
-          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:T.text}}>Template name and language</div>
+          <div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
+            <div style={{fontWeight:600,fontSize:12,marginBottom:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6}}>Template name and language</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div>
                 <label style={labelStyle}>Name your template</label>
@@ -8393,7 +8401,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
           </div>
 
           {/* Header */}
-          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+          <div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Header <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional</span></div>
             {/* Media type selector — None means text header, Image/Video/Document means media */}
             <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
@@ -8535,7 +8543,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
           </div>
 
           {/* Body */}
-          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+          <div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Body <span style={{fontSize:10,color:"#ef4444",fontWeight:400}}>Required</span></div>
             <textarea value={bodyText} onChange={e=>setBodyText(e.target.value)} maxLength={1024} rows={5}
               placeholder={"Hello {{1}}, your appointment is confirmed for {{2}}."}
@@ -8582,7 +8590,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
           </div>
 
           {/* Variable Samples */}
-          {bodyVars.length>0&&<div style={{background:T.card2,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+          {bodyVars.length>0&&<div style={{background:T.card2,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Variable Samples</div>
             <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>Include samples of all variables to help Meta review your template. Do not include real customer information.</div>
             <div style={{fontWeight:600,fontSize:11,color:T.text,marginBottom:8}}>Body</div>
@@ -8596,7 +8604,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
           </div>}
 
           {/* Footer */}
-          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+          <div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Footer <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional / 60 chars</span></div>
             <input value={footerText} onChange={e=>setFooterText(e.target.value)} maxLength={60}
               placeholder="e.g. Reply STOP to unsubscribe" style={inputStyle}/>
@@ -8604,7 +8612,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
           </div>
 
           {/* Buttons */}
-          <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+          <div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Buttons <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>Optional — up to 3</span></div>
             <div style={{fontSize:11,color:T.textMuted,marginBottom:10}}>Create buttons that let customers respond or take action.</div>
             {buttons.map((btn,i)=>(
