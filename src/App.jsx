@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.267";
+const CRM_VERSION = "2.9.268";
 
 // Responsive hook
 function useWindowSize() {
@@ -1075,13 +1075,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   // Fast health ping — independent of conversations load
   useEffect(() => {
     const ping = async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
       try {
-        const r = await fetch(`${API}/health`, {signal: AbortSignal.timeout(5000)});
+        const r = await fetch(`${API}/health`, {signal: controller.signal});
+        clearTimeout(timer);
         if(r.ok) setBackendStatus("online");
-        else setBackendStatus("offline");
-      } catch { setBackendStatus("offline"); }
+      } catch(e) {
+        clearTimeout(timer);
+        // Only set offline if it's not an abort — aborts are timeouts, not real offline
+        if(e.name !== "AbortError") setBackendStatus("offline");
+      }
     };
-    ping(); // immediate
+    ping();
     const t = setInterval(ping, 30000);
     return () => clearInterval(t);
   }, []);
