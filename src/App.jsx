@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.280";
+const CRM_VERSION = "2.9.281";
 
 // Responsive hook
 function useWindowSize() {
@@ -7228,7 +7228,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
         <i className="ti ti-chart-bar" style={{fontSize:20,color:WA_GREEN}}/>
         <div>
           <div className="nx-page-title">Analytics</div>
-          <div className="nx-page-sub">Click any card to drill into details</div>
+          <div className="nx-page-sub">{dateFrom} → {dateTo}</div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           {[{id:"7d",label:"7 days"},{id:"30d",label:"30 days"},{id:"90d",label:"90 days"},{id:"custom",label:"Custom"}].map(p=>(
