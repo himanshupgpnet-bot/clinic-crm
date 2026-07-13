@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.282";
+const CRM_VERSION = "2.9.283";
 
 // Responsive hook
 function useWindowSize() {
@@ -7323,10 +7323,10 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
 
           {/* KPI CARDS — matches mockup stats-grid */}
           <div className="an3" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:20}}>
-            <KpiCard icon="👥" val={total} label="Total Contacts" sub="All conversations" color="#2563eb" bg="#eff6ff" trend={`▲ ${growth.pct||0}%`} type="contacts"/>
-            <KpiCard icon="🤖" val={`${botRate}%`} label="Bot Automation" sub={`${totals.botMessages||0} msgs handled`} color={WA_GREEN} bg="#f0fdf4" trend={`${Math.round((totals.botMessages||0)*2/60)}hrs saved`} type="bot"/>
-            <KpiCard icon="🔥" val={hot} label="Hot Leads" sub={`${growth.conversionRate||0}% conversion`} color="#ef4444" bg="#fef2f2" trend="High intent" type="hot"/>
-            <KpiCard icon="✅" val={done} label="Bookings Closed" sub={`In ${datePreset==="7d"?"last 7 days":datePreset==="30d"?"last 30 days":datePreset==="90d"?"last 90 days":"period"}`} color="#22c55e" bg="#f0fdf4" trend={`${contacts.filter(c=>(c.pipelineStage||c.pipeline_stage)==="done"||c.booking_confirmed).length} total`} type="bookings"/>
+            <KpiCard icon="👥" val={total} label="Total Contacts" sub="All time pipeline" color="#2563eb" bg="#eff6ff" trend={`▲ ${growth.pct||0}%`} type="contacts"/>
+            <KpiCard icon="🤖" val={`${botRate}%`} label="Bot Automation" sub={`${totals.botMessages||0} msgs in period`} color={WA_GREEN} bg="#f0fdf4" trend={`${Math.round((totals.botMessages||0)*2/60)}hrs saved`} type="bot"/>
+            <KpiCard icon="🔥" val={hot} label="Hot Leads" sub="All time pipeline" color="#ef4444" bg="#fef2f2" trend={`${warm} warm`} type="hot"/>
+            <KpiCard icon="✅" val={done} label="Bookings" sub="In selected period" color="#22c55e" bg="#f0fdf4" trend="Date filtered" type="bookings"/>
             <KpiCard icon="📢" val={adSummary.count||0} label="Ad Sources" sub={`${adSummary.totalClicks||0} clicks`} color="#7c3aed" bg="#f5f3ff" trend={`${adSummary.totalBookings||0} booked`} type="ads"/>
           </div>
 
