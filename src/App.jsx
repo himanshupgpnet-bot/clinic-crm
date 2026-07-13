@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.283";
+const CRM_VERSION = "2.9.284";
 
 // Responsive hook
 function useWindowSize() {
@@ -194,6 +194,8 @@ export default function App() {
   const [appliedQAIds, setAppliedQAIds] = useState(new Set()); // persists across tab switches
   const [improverDays, setImproverDays] = useState(7);
   const [kbSubTab, setKbSubTab] = useState("kb"); // "kb" | "wizard"
+  const [kbSearch, setKbSearch] = useState("");
+  const [showAddQA, setShowAddQA] = useState(false);
   const [adSummary, setAdSummary] = useState({count:0,totalClicks:0,totalBookings:0});
   const [dateFrom, setDateFrom] = useState(daysAgo(29));
   const [dateTo, setDateTo] = useState(today());
@@ -3092,577 +3094,200 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
             </div>}
 
-            {(!isAdmin||kbClinic)&&<div style={{maxWidth:800,width:"100%"}}>
+            {(!isAdmin||kbClinic)&&<div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
 
-              {/* ── KB HEADER ── */}
-              <div style={{background:`linear-gradient(135deg,#0f172a,#1e3a5f)`,borderRadius:16,padding:"20px 24px",marginBottom:20,color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+              {/* PAGE HEADER — matches mockup */}
+              <div className="nx-page-header" style={{flexShrink:0}}>
+                <i className="ti ti-book" style={{fontSize:20,color:WA_GREEN}}/>
                 <div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,.5)",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Bot Knowledge Base</div>
-                  <div style={{fontSize:22,fontWeight:900}}>{qaData.length} Q&A Pairs</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,.5)",marginTop:4}}>
-                    {qaData.length===0?"⚠️ Empty — add knowledge so your bot can answer questions":qaData.length<10?"⚠️ Low — add more so bot answers accurately":qaData.length<25?"📈 Good — keep adding more":qaData.length<50?"✅ Strong KB":"🚀 Excellent KB"}
+                  <div className="nx-page-title">Knowledge Base</div>
+                  <div className="nx-page-sub">Train your AI bot with Q&A pairs · {qaData.length} entries</div>
+                </div>
+                <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
+                  <div className="nx-search" style={{width:200}}>
+                    <i className="ti ti-search" style={{fontSize:14,color:T.textFaint}}/>
+                    <input value={kbSearch||""} onChange={e=>setKbSearch(e.target.value)} placeholder="Search Q&A..."/>
                   </div>
-                </div>
-                <div style={{textAlign:"center",padding:"10px 20px",background:"rgba(255,255,255,.08)",borderRadius:12}}>
-                  <div style={{fontSize:28,fontWeight:900,color:"#86efac"}}>{Math.min(100,Math.round(qaData.length/50*100))}%</div>
-                  <div style={{fontSize:10,color:"rgba(255,255,255,.5)",marginTop:2}}>KB Coverage</div>
-                </div>
-              </div>
-
-              {/* ── SECTION 0: WELCOME MESSAGE ── */}
-              <div className="cc" style={{marginBottom:16}}>
-                <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf415",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>👋</div>
-                  <div>
-                    <div style={{fontWeight:800,fontSize:14}}>Welcome Message</div>
-                    <div style={{fontSize:11,color:T.textMuted,marginTop:2,lineHeight:1.6}}>
-                      This message is sent <strong>automatically</strong> when a customer messages for the <strong>very first time</strong>.
-                      Leave blank to skip. Example: "Hi! I'm [Bot Name] from [Company] 😊 How can I help you today?"
-                    </div>
-                  </div>
-                </div>
-                <textarea value={welcomeMessage} onChange={e=>setWelcomeMessage(e.target.value)} rows={3}
-                  placeholder={"Hi! I'm [Bot Name] from [Company] 😊 How can I help you today?"}
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
-                <button onClick={async()=>{
-                  const body = {welcome_message: welcomeMessage};
-                  const clinicId = kbClinic?.clinic_id || currentUser?.clinic_id;
-                  const saveUrl = isAdmin
-                    ? `${API}/api/admin/clients/${clinicId}/settings`
-                    : `${API}/api/settings`;
-                  await fetch(saveUrl,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(body)});
-                  const t=document.createElement("div");
-                  t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#fff;border-radius:20px;padding:28px 36px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border:2px solid #86efac";
-                  t.innerHTML="<div style='font-size:32px;margin-bottom:8px'>👋</div><div style='font-weight:800;font-size:16px;color:#166534'>Welcome Message Saved!</div>";
-                  document.body.appendChild(t);
-                  setTimeout(()=>t.remove(),2500);
-                }} style={{marginTop:10,padding:"8px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  💾 Save Welcome Message
-                </button>
-              </div>
-
-              {/* ── KB SUB-TAB SWITCHER ── */}
-              {(isAdmin||permissions?.can_prompt_wizard)&&<div style={{display:"flex",gap:6,marginBottom:16,background:T.card2,padding:4,borderRadius:12,border:`1px solid ${T.border}`}}>
-                {[
-                  {id:"kb",label:"📋 Knowledge Base"},
-                  {id:"wizard",label:"✨ Prompt Wizard"},
-                ].map(t=>(
-                  <button key={t.id} onClick={()=>setKbSubTab(t.id)}
-                    style={{flex:1,padding:"8px 12px",borderRadius:9,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",transition:"all .15s",
-                      background:kbSubTab===t.id?"linear-gradient(135deg,#6c63ff,#8b5cf6)":T.card,
-                      color:kbSubTab===t.id?"#fff":T.textMuted,
-                      boxShadow:kbSubTab===t.id?"0 2px 8px rgba(108,99,255,.3)":"none"}}>
-                    {t.label}
-                  </button>
-                ))}
-              </div>}
-
-              {/* ── PROMPT WIZARD TAB ── */}
-              {kbSubTab==="wizard"&&(isAdmin||permissions?.can_prompt_wizard)&&<PromptWizard
-                T={T} WA_GREEN={WA_GREEN} dark={dark}
-                API={API} authHeaders={authHeaders}
-                kbClinic={kbClinic}
-                systemPrompt={systemPrompt} setSystemPrompt={setSystemPrompt}
-                setConfirmModal={setConfirmModal}
-              />}
-
-              {kbSubTab==="kb"&&<>
-              {/* ── SECTION 1: BOT PERSONALITY ── */}
-              <div className="cc" style={{marginBottom:16}}>
-                <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>⚙️</div>
-                  <div>
-                    <div style={{fontWeight:800,fontSize:14}}>Bot Personality & Behaviour</div>
-                    <div style={{fontSize:11,color:T.textMuted,marginTop:2,lineHeight:1.6}}>
-                      This tells the bot <strong>who it is</strong>, <strong>how to talk</strong>, and <strong>what to do</strong>. 
-                      Example: "You are Sara, a friendly assistant for Evera Health. Always reply in the customer's language. 
-                      If someone asks to book, collect their name and preferred day."
-                    </div>
-                  </div>
-                </div>
-                <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={5}
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",minHeight:120,maxHeight:400}}/>
-                <div style={{display:"flex",justifyContent:"flex-end",marginTop:4}}>
-                  <button onClick={()=>{
-                    const modal = document.createElement("div");
-                    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)";
-                    const box = document.createElement("div");
-                    box.style.cssText = `background:${T.card};border-radius:16px;padding:24px;width:100%;max-width:860px;height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 60px rgba(0,0,0,.4)`;
-                    box.innerHTML = `
-                      <div style="display:flex;align-items:center;justify-content:space-between">
-                        <div style="font-weight:800;font-size:16px;color:${T.text}">⚙️ Bot Personality & Behaviour</div>
-                        <button id="close-prompt-modal" style="border:none;background:#ef444420;color:#ef4444;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:700">✕ Close</button>
-                      </div>
-                      <div style="font-size:11px;color:${T.textMuted}">Edit your full system prompt below. Changes are saved when you click Save Bot Personality.</div>
-                      <textarea id="expanded-prompt" style="flex:1;width:100%;background:${T.input};border:1px solid ${T.inputBorder};border-radius:10px;padding:14px;color:${T.text};font-size:13px;font-family:inherit;resize:none;line-height:1.6;box-sizing:border-box">${systemPrompt}</textarea>
-                      <div style="display:flex;gap:10px;justify-content:flex-end">
-                        <button id="save-prompt-modal" style="padding:10px 24px;border-radius:10px;border:none;background:${WA_GREEN};color:#fff;font-size:13px;font-weight:700;cursor:pointer">💾 Save Bot Personality</button>
-                      </div>
-                    `;
-                    modal.appendChild(box);
-                    document.body.appendChild(modal);
-                    document.getElementById("close-prompt-modal").onclick = () => document.body.removeChild(modal);
-                    modal.onclick = (e) => { if(e.target === modal) document.body.removeChild(modal); };
-                    document.getElementById("save-prompt-modal").onclick = async () => {
-                      const newPrompt = document.getElementById("expanded-prompt").value;
-                      setSystemPrompt(newPrompt);
-                      document.body.removeChild(modal);
-                    };
-                  }} style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
-                    ⛶ Expand
-                  </button>
-                </div>
-                <button onClick={()=>{
-                  setConfirmModal({
-                    title:"Save Bot Personality?",
-                    message:"This updates how the AI bot talks to ALL customers for this client. Changes apply immediately.",
-                    icon:"🤖",
-                    danger:false,
-                    confirmText:"Yes, Save",
-                    onConfirm:async()=>{
-                      const promptBody = {prompt:systemPrompt};
-                      if(kbClinic?.clinic_id) promptBody.clinic_id = kbClinic.clinic_id;
-                      await fetch(`${API}/api/knowledge/prompt`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(promptBody)});
-                      const t=document.createElement("div");
-                      t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#fff;border-radius:20px;padding:28px 36px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);border:2px solid #86efac";
-                      t.innerHTML="<div style='font-size:32px;margin-bottom:8px'>🤖</div><div style='font-weight:800;font-size:16px;color:#166534'>Bot Personality Saved!</div>";
-                      document.body.appendChild(t);
-                      setTimeout(()=>t.remove(),2500);
-                    }
-                  });
-                }} style={{marginTop:10,padding:"8px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  💾 Save Bot Personality
-                </button>
-              </div>
-
-              </>}{/* end kbSubTab===kb */}
-
-              {/* ── AI PROMPT IMPROVER ── */}
-              {(isAdmin||permissions?.can_prompt_improver)&&<AIPromptImprover
-                T={T} WA_GREEN={WA_GREEN} dark={dark}
-                API={API} authHeaders={authHeaders}
-                kbClinic={kbClinic}
-                systemPrompt={systemPrompt} setSystemPrompt={setSystemPrompt}
-                qaData={qaData} setQaData={setQaData}
-                fetchKnowledge={fetchKnowledge}
-                authToken={authToken}
-                isAdmin={isAdmin}
-                improverResult={improverResult} setImproverResult={setImproverResult}
-                appliedQAIds={appliedQAIds} setAppliedQAIds={setAppliedQAIds}
-                improverDays={improverDays} setImproverDays={setImproverDays}
-                onViewChat={(name)=>{
-                  setTab("crm");
-                  const c = contacts.find(x=>(x.name||"").toLowerCase().includes((name||"").toLowerCase()));
-                  if(c) selectContact(c);
-                }}
-              />}
-
-              {/* ── SECTION 2: ADD KNOWLEDGE ── */}
-              <div style={{fontWeight:800,fontSize:15,marginBottom:12,color:T.text}}>📥 Add Knowledge to Your Bot</div>
-              <div style={{fontSize:12,color:T.textMuted,marginBottom:16,lineHeight:1.6}}>
-                The more your bot knows, the better it answers. Add knowledge in 3 ways below.
-                Every Q&A you add = one more thing your bot can answer correctly without guessing.
-              </div>
-
-              {/* METHOD 1: From Website */}
-              <div className="cc" style={{marginBottom:12,border:`2px solid ${WA_GREEN}30`,background:`${WA_GREEN}04`}}>
-                <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🌐</div>
-                  <div>
-                    <div style={{fontWeight:800,fontSize:14}}>Method 1 — Import from Website</div>
-                    <div style={{fontSize:11,color:T.textMuted,marginTop:2,lineHeight:1.6}}>
-                      Paste your website URL. Our AI will read every page — services, about, FAQ, contact — 
-                      and automatically create Q&A pairs for your bot. Takes 20–60 seconds.
-                    </div>
-                  </div>
-                </div>
-                {/* Smart status — show existing KB count */}
-                {qaData.length>0&&<div style={{padding:"8px 12px",borderRadius:8,background:`${WA_GREEN}10`,border:`1px solid ${WA_GREEN}30`,fontSize:11,color:WA_GREEN,marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
-                  <span>✅</span>
-                  <span>Your bot already has <strong>{qaData.length} Q&A pairs</strong> from a previous import. Running again will only add NEW entries — duplicates are skipped automatically.</span>
-                </div>}
-                <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
-                  <input id="kb-url-input" placeholder="https://yourwebsite.com"
-                    style={{flex:1,minWidth:200,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit"}}/>
-                  <button onClick={async()=>{
-                    const urlEl = document.getElementById("kb-url-input");
-                    const urlVal = urlEl.value.trim();
-                    if(!urlVal||!urlVal.startsWith("http")) return showToast("Please enter a valid URL starting with https://","#ef4444");
-                    const clearEx = document.getElementById("kb-url-clear").checked;
-                    const res = document.getElementById("url-import-result");
-                    res.innerHTML = `<div style='background:#1e293b;border-radius:12px;padding:16px;color:#fff;text-align:center;margin-top:10px'>
-                      <div style='font-size:24px;margin-bottom:8px'>🤖</div>
-                      <div style='font-weight:700;font-size:14px;margin-bottom:4px'>Reading your website...</div>
-                      <div style='font-size:11px;color:rgba(255,255,255,.6)'>AI is crawling all pages and building Q&A pairs<br/>Please wait 20–60 seconds</div>
-                    </div>`;
-                    const clinicId = kbClinic?.clinic_id || null;
-                    const body = {url:urlVal, clear_existing:clearEx};
-                    if(clinicId) body.clinic_id = clinicId;
-                    try {
-                      const r = await fetch(`${API}/api/knowledge/build-from-url`,{method:"POST",headers:authHeaders(),body:JSON.stringify(body)});
-                      const d = await r.json();
-                      if(d.error){res.innerHTML=`<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px;margin-top:10px'>${d.error}</div>`;return;}
-                      urlEl.value="";
-                      document.getElementById("kb-url-clear").checked=false;
-
-                      // Poll for completion
-                      const jobId = d.job_id;
-                      const dots = [".", "..", "..."];
-                      let dotIdx = 0;
-                      const poll = setInterval(async()=>{
-                        dotIdx++;
-                        const msgs = [
-                          "🌐 Reading your website pages",
-                          "📄 Extracting service details",
-                          "🤖 AI building Q&A pairs",
-                          "📚 Saving to knowledge base",
-                          "⏳ Almost done"
-                        ];
-                        const msg = msgs[Math.min(Math.floor(dotIdx/3), msgs.length-1)];
-                        res.innerHTML = `<div style='background:#1e293b;border-radius:12px;padding:16px;color:#fff;text-align:center;margin-top:10px'>
-                          <div style='font-size:24px;margin-bottom:8px'>🤖</div>
-                          <div style='font-weight:700;font-size:14px;margin-bottom:4px'>${msg}${dots[dotIdx%3]}</div>
-                          <div style='font-size:11px;color:rgba(255,255,255,.6)'>This takes 30–90 seconds depending on site size</div>
-                          <div style='height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:12px;overflow:hidden'>
-                            <div style='height:3px;background:#25D366;border-radius:2px;width:${Math.min(95,dotIdx*5)}%;transition:width .5s'></div>
-                          </div>
-                        </div>`;
-                        try {
-                          const pr = await fetch(`${API}/api/knowledge/build-status/${jobId}`,{headers:authHeaders()});
-                          const pd = await pr.json();
-                          if(pd.status==="done"){
-                            clearInterval(poll);
-                            res.innerHTML = `<div style='background:#f0fdf4;border:2px solid #86efac;border-radius:12px;padding:16px;text-align:center;margin-top:10px'>
-                              <div style='font-size:24px;margin-bottom:6px'>🎉</div>
-                              <div style='font-size:18px;font-weight:900;color:#15803d'>${pd.built} Q&A Pairs Added!</div>
-                              <div style='font-size:11px;color:#374151;margin-top:4px'>Scroll down to see your new knowledge entries</div>
-                            </div>`;
-                            fetchKnowledge(kbClinic?.clinic_id||null);
-                          } else if(pd.status==="error"){
-                            clearInterval(poll);
-                            res.innerHTML = `<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px;margin-top:10px'>❌ ${pd.error||"Build failed"}</div>`;
-                          }
-                        } catch{}
-                      }, 3000);
-
-                      // Safety timeout after 3 mins
-                      setTimeout(()=>{
-                        clearInterval(poll);
-                        res.innerHTML += `<div style='font-size:11px;color:#6b7280;margin-top:8px;text-align:center'>Still running in background — refresh KB in a minute to see results</div>`;
-                        fetchKnowledge(kbClinic?.clinic_id||null);
-                      }, 180000);
-
-                    } catch(e) {
-                      res.innerHTML = `<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px;margin-top:10px'>Failed: ${e.message}</div>`;
-                    }
-                  }} style={{padding:"10px 18px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
-                    🌐 Build from Website
-                  </button>
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:T.textMuted}}>
-                  <input type="checkbox" id="kb-url-clear" style={{width:14,height:14,cursor:"pointer"}}/>
-                  <label htmlFor="kb-url-clear" style={{cursor:"pointer"}}>Clear existing Q&A before importing (fresh rebuild)</label>
-                </div>
-                <div id="url-import-result"/>
-              </div>
-
-              {/* METHOD 2: Paste Text or Upload Doc */}
-              <div className="cc" style={{marginBottom:12,border:`1.5px solid #6366f120`}}>
-                <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>📄</div>
-                  <div>
-                    <div style={{fontWeight:800,fontSize:14}}>Method 2 — Paste Text or Upload Document</div>
-                    <div style={{fontSize:11,color:T.textMuted,marginTop:2,lineHeight:1.6}}>
-                      Paste text directly <strong>or</strong> upload a PDF/Word document (brochure, price list, FAQ). 
-                      Tell the AI what to focus on and it will extract Q&A pairs automatically.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Upload doc OR paste text — tabs */}
-                {(()=>{
-                  const [m2tab, setM2tab] = window._m2state || (window._m2state = ["paste", ()=>{}]);
-                  return null;
-                })()}
-
-                <div style={{display:"flex",gap:6,marginBottom:12}}>
-                  {[{id:"paste",label:"✍️ Paste Text"},{id:"upload",label:"📎 Upload Document"}].map(t=>(
-                    <button key={t.id} id={`m2tab-${t.id}`} onClick={()=>{
-                      document.getElementById("m2-paste").style.display = t.id==="paste"?"block":"none";
-                      document.getElementById("m2-upload").style.display = t.id==="upload"?"block":"none";
-                      document.querySelectorAll("[id^=m2tab-]").forEach(b=>{
-                        b.style.background = b.id===`m2tab-${t.id}`?"#6366f1":"transparent";
-                        b.style.color = b.id===`m2tab-${t.id}`?"#fff":T.textMuted;
-                        b.style.border = b.id===`m2tab-${t.id}`?"1px solid #6366f1":`1px solid ${T.border}`;
-                      });
-                    }} style={{padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",
-                      background:t.id==="paste"?"#6366f1":"transparent",
-                      color:t.id==="paste"?"#fff":T.textMuted,
-                      border:t.id==="paste"?"1px solid #6366f1":`1px solid ${T.border}`}}>
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Paste text area */}
-                <div id="m2-paste">
-                  <textarea id="bulk-import-text" rows={4}
-                    placeholder="Paste your text here... e.g.&#10;Our clinic is open Tuesday to Sunday, 9AM to 6PM.&#10;Consultation fee is RM100 which includes blood test and HbA1C.&#10;We treat diabetes, kidney disease, and osteoarthritis..."
-                    style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:8}}/>
-                </div>
-
-                {/* Upload doc area */}
-                <div id="m2-upload" style={{display:"none"}}>
-                  <div style={{padding:"20px",borderRadius:10,border:`2px dashed ${T.border}`,background:T.card2,textAlign:"center",marginBottom:8}}>
-                    <div style={{fontSize:32,marginBottom:8}}>📎</div>
-                    <div style={{fontWeight:600,fontSize:13,marginBottom:4}}>Upload PDF or Word Document</div>
-                    <div style={{fontSize:11,color:T.textMuted,marginBottom:12}}>Brochure, price list, FAQ, treatment guide — any document</div>
-                    <label style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,border:`1px solid #6366f1`,background:"#6366f110",cursor:"pointer",fontSize:12,fontWeight:600,color:"#6366f1"}}>
-                      📂 Choose File (PDF or DOCX)
-                      <input type="file" accept=".pdf,.doc,.docx,.txt" style={{display:"none"}} onChange={async(e)=>{
-                        const file = e.target.files[0];
-                        if(!file) return;
-                        const statusEl = document.getElementById("m2-upload-status");
-                        statusEl.innerHTML = `<div style='color:#6366f1;font-size:12px;padding:6px'>⏳ Reading ${file.name}...</div>`;
-                        try {
-                          let text = "";
-                          if(file.name.endsWith(".txt")) {
-                            text = await file.text();
-                          } else if(file.name.endsWith(".pdf")) {
-                            // Use FileReader to get base64 then extract text
-                            const arrBuf = await file.arrayBuffer();
-                            const bytes = new Uint8Array(arrBuf);
-                            // Simple text extraction from PDF bytes
-                            const decoder = new TextDecoder("utf-8","ignore");
-                            const raw = decoder.decode(bytes);
-                            // Extract text between stream markers
-                            // Simple text extraction
-                            text = raw.replace(/[^\x20-\x7E\n]/g," ").replace(/  +/g," ").slice(0,8000);
-                          } else {
-                            // .docx — read as text, strip XML
-                            const arrBuf = await file.arrayBuffer();
-                            const decoder = new TextDecoder("utf-8","ignore");
-                            const raw = decoder.decode(new Uint8Array(arrBuf));
-                            text = raw.replace(/<[^>]+>/g," ").replace(/[^\x20-\x7E\n]/g," ").replace(/  +/g," ");
-                          }
-                          // Put text into paste area and switch to paste tab
-                          const pasteEl = document.getElementById("bulk-import-text");
-                          pasteEl.value = text.slice(0,8000);
-                          statusEl.innerHTML = `<div style='color:#166534;font-size:12px;padding:6px;background:#f0fdf4;border-radius:6px'>✅ ${file.name} loaded — ${text.length} characters extracted. You can review the text in the Paste tab, then click Extract.</div>`;
-                        } catch(err) {
-                          statusEl.innerHTML = `<div style='color:#ef4444;font-size:12px;padding:6px'>❌ Could not read file: ${err.message}</div>`;
-                        }
-                      }}/>
-                    </label>
-                    <div id="m2-upload-status" style={{marginTop:8}}/>
-                  </div>
-                </div>
-
-                {/* Instruction + Extract button — shared for both tabs */}
-                <input id="bulk-import-instruction" placeholder="Optional: Tell AI what to focus on — e.g. 'Focus on pricing and booking' or 'Extract treatment FAQs only'"
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"9px 14px",color:T.text,fontSize:12,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box"}}/>
-                <button onClick={async()=>{
-                  const textEl = document.getElementById("bulk-import-text");
-                  const instrEl = document.getElementById("bulk-import-instruction");
-                  const text = textEl.value.trim();
-                  if(!text) return showToast("Please paste some text or upload a document first","#ef4444");
-                  const instruction = instrEl.value.trim();
-                  const res = document.getElementById("bulk-result");
-                  res.innerHTML = "<div style='color:#6366f1;font-size:12px;padding:8px'>🤖 AI is reading your content and creating Q&A pairs...</div>";
-                  const r = await fetch(`${API}/api/knowledge/bulk-import`,{method:"POST",headers:authHeaders(),body:JSON.stringify({text, instruction})});
-                  const d = await r.json();
-                  if(d.error){res.innerHTML=`<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px'>${d.error}</div>`;return;}
-                  textEl.value=""; instrEl.value="";
-                  res.innerHTML = `<div style='background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px;margin-top:6px'>
-                    <div style='font-weight:700;color:#15803d;margin-bottom:8px'>✅ ${d.imported} Q&A pairs added!</div>
-                    ${(d.pairs||[]).slice(0,5).map(p=>`<div style='padding:6px 8px;background:#fff;border-radius:6px;margin-bottom:4px;font-size:11px'><strong style='color:#15803d'>Q:</strong> ${p.question}<br/><span style='color:#374151'>A: ${p.answer}</span></div>`).join("")}
-                    ${d.imported>5?`<div style='font-size:10px;color:#6b7280;margin-top:4px'>...and ${d.imported-5} more. Scroll down to see all.</div>`:""}
-                  </div>`;
-                  fetchKnowledge();
-                }} style={{padding:"9px 20px",borderRadius:10,border:"none",background:"#6366f1",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  🤖 Extract Q&A with AI
-                </button>
-                <div id="bulk-result" style={{marginTop:4}}/>
-              </div>
-
-              {/* METHOD 3: Manual Q&A */}
-              <div className="cc" style={{marginBottom:20}}>
-                <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:"#fffbeb",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✍️</div>
-                  <div>
-                    <div style={{fontWeight:800,fontSize:14}}>Method 3 — Add Manually</div>
-                    <div style={{fontSize:11,color:T.textMuted,marginTop:2,lineHeight:1.6}}>
-                      Type a specific question and answer directly. 
-                      Best for adding very specific info like pricing, a doctor's name, or a special offer.
-                    </div>
-                  </div>
-                </div>
-                <input value={newQ} onChange={e=>setNewQ(e.target.value)}
-                  placeholder="Question — e.g. How much is the diabetes consultation?"
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"9px 14px",color:T.text,fontSize:12,marginBottom:8,boxSizing:"border-box"}}/>
-                <textarea value={newA} onChange={e=>setNewA(e.target.value)}
-                  placeholder="Answer — e.g. Our diabetes consultation is RM100 and includes a full assessment, blood test, and HbA1C check."
-                  rows={2}
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"9px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:10,boxSizing:"border-box"}}/>
-                <button onClick={async()=>{
-                  if(!newQ.trim()||!newA.trim()) return showToast("Please fill in both question and answer","#ef4444");
-                  await fetch(`${API}/api/knowledge/qa`,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
-                  setNewQ(""); setNewA(""); fetchKnowledge();
-                }} style={{padding:"9px 20px",borderRadius:10,border:"none",background:"#f59e0b",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  ➕ Add Q&A
-                </button>
-              </div>
-
-              {/* ── SECTION 3: CURRENT KNOWLEDGE ── */}
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}}>
-                <div>
-                  <div style={{fontWeight:800,fontSize:15}}>📋 Current Knowledge ({qaData.length} entries)</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>These are all the things your bot currently knows.</div>
-                </div>
-                {qaData.length>0&&<div style={{display:"flex",alignItems:"center",gap:8}}>
-                  {/* Select All toggle */}
-                  <button onClick={()=>{
+                  {qaData.length>0&&<button onClick={()=>{
                     if(selectedQAs.size===qaData.length) setSelectedQAs(new Set());
                     else setSelectedQAs(new Set(qaData.map(q=>q.id)));
-                  }} style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                    {selectedQAs.size===qaData.length?"☐ Deselect All":"☑ Select All"}
-                  </button>
-                  {/* Delete selected */}
-                  {selectedQAs.size>0&&<button onClick={()=>{
-                    setConfirmModal({
-                      title:`Delete ${selectedQAs.size} Entries?`,
-                      message:`You are about to permanently delete ${selectedQAs.size} KB ${selectedQAs.size===1?"entry":"entries"}. Your bot will no longer be able to answer questions based on this knowledge. This cannot be undone.`,
-                      icon:"🗑️",
-                      danger:true,
-                      confirmText:`Yes, Delete ${selectedQAs.size} Entries`,
-                      onConfirm:async()=>{
-                        // Show progress overlay
-                        const ids = Array.from(selectedQAs);
-                        const overlay = document.createElement("div");
-                        overlay.id = "kb-delete-overlay";
-                        overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;";
-                        overlay.innerHTML = `<div style="background:#1e293b;border-radius:16px;padding:28px 36px;text-align:center;color:#fff;min-width:280px">
-                          <div style="font-size:32px;margin-bottom:12px">🗑️</div>
-                          <div style="font-weight:700;font-size:15px;margin-bottom:6px">Deleting entries...</div>
-                          <div id="kb-del-progress" style="font-size:12px;color:rgba(255,255,255,.6)">0 of ${ids.length}</div>
-                          <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:14px;overflow:hidden">
-                            <div id="kb-del-bar" style="height:4px;background:#25D366;border-radius:2px;width:0%;transition:width .3s"></div>
-                          </div>
-                        </div>`;
-                        document.body.appendChild(overlay);
-                        let done = 0;
-                        for(const id of ids){
-                          try {
-                            const r = await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()});
-                            if(r.ok) done++;
-                          } catch(e) { console.error("Delete failed for",id,e); }
-                          const pct = Math.round((done/ids.length)*100);
-                          const prog = document.getElementById("kb-del-progress");
-                          const bar = document.getElementById("kb-del-bar");
-                          if(prog) prog.textContent = `${done} of ${ids.length}`;
-                          if(bar) bar.style.width = pct + "%";
-                        }
-                        document.body.removeChild(overlay);
-                        setSelectedQAs(new Set());
-                        fetchKnowledge();
-                      }
-                    });
-                  }} style={{padding:"5px 14px",borderRadius:8,border:"1px solid #ef444440",background:"#ef444410",color:"#ef4444",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                    🗑️ Delete ({selectedQAs.size})
+                  }} className="nx-btn" style={{fontSize:11}}>
+                    {selectedQAs.size===qaData.length?"Deselect all":"Select all"}
                   </button>}
+                  {selectedQAs.size>0&&<button onClick={()=>setConfirmModal({
+                    title:`Delete ${selectedQAs.size} entries?`,
+                    message:`Permanently delete ${selectedQAs.size} KB entries? Your bot will no longer answer based on this knowledge.`,
+                    icon:"🗑️",danger:true,confirmText:`Delete ${selectedQAs.size} entries`,
+                    onConfirm:async()=>{
+                      const ids=Array.from(selectedQAs);
+                      for(const id of ids){await fetch(`${API}/api/kb/${id}`,{method:"DELETE",headers:authHeaders()});}
+                      setSelectedQAs(new Set());
+                      loadKbForClient(kbClinic||currentUser);
+                    }
+                  })} className="nx-btn danger" style={{fontSize:11}}>
+                    <i className="ti ti-trash" style={{fontSize:13}}/> Delete {selectedQAs.size}
+                  </button>}
+                  <button onClick={()=>setShowAddQA(p=>!p)} className="nx-btn primary">
+                    <i className="ti ti-plus" style={{fontSize:14}}/> Add Q&A
+                  </button>
+                </div>
+              </div>
+
+              {/* MAIN CONTENT — Q&A grid + right sidebar */}
+              <div style={{flex:1,overflow:"hidden",display:"flex",gap:0}}>
+
+                {/* Q&A GRID — main area like mockup */}
+                <div style={{flex:1,overflowY:"auto",padding:20}}>
+                  {/* Add Q&A inline form */}
+                  {showAddQA&&<div style={{background:T.card,borderRadius:12,border:`1px solid ${WA_GREEN}`,padding:16,marginBottom:16}}>
+                    <div style={{fontWeight:600,fontSize:13,color:T.text,marginBottom:12}}>Add Q&A pair</div>
+                    <div style={{marginBottom:8}}>
+                      <label className="nx-label">Question</label>
+                      <input className="nx-input" value={newQ||""} onChange={e=>setNewQ(e.target.value)} placeholder="e.g. What is your consultation fee?"/>
+                    </div>
+                    <div style={{marginBottom:12}}>
+                      <label className="nx-label">Answer</label>
+                      <textarea className="nx-input" value={newA||""} onChange={e=>setNewA(e.target.value)} placeholder="e.g. Our consultation fee is RM150..." rows={3}/>
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={async()=>{
+                        if(!newQ?.trim()||!newA?.trim()) return;
+                        const clinicId=kbClinic?.id||null;
+                        const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb`:`${API}/api/kb`;
+                        await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
+                        setNewQ("");setNewA("");setShowAddQA(false);
+                        loadKbForClient(kbClinic||currentUser);
+                      }} className="nx-btn primary" style={{fontSize:12}}>Save Q&A</button>
+                      <button onClick={()=>{setShowAddQA(false);setNewQ("");setNewA("");}} className="nx-btn" style={{fontSize:12}}>Cancel</button>
+                    </div>
+                  </div>}
+
+                  {/* Q&A grid — 2 columns like mockup */}
+                  {qaData.length===0?<div style={{textAlign:"center",padding:"60px 0",color:T.textMuted}}>
+                    <div style={{fontSize:40,marginBottom:12}}>📚</div>
+                    <div style={{fontWeight:600,fontSize:14,marginBottom:6}}>No knowledge yet</div>
+                    <div style={{fontSize:12}}>Add Q&A pairs so your bot can answer customer questions</div>
+                  </div>:
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                    {qaData.filter(q=>{
+                      if(!kbSearch) return true;
+                      const s=kbSearch.toLowerCase();
+                      return q.question?.toLowerCase().includes(s)||q.answer?.toLowerCase().includes(s);
+                    }).map((q,i)=>(
+                      <div key={q.id||i} onClick={()=>{
+                        setSelectedQAs(prev=>{const n=new Set(prev);n.has(q.id)?n.delete(q.id):n.add(q.id);return n;});
+                      }} style={{
+                        display:"flex",alignItems:"flex-start",gap:12,padding:14,
+                        border:`1px solid ${selectedQAs.has(q.id)?WA_GREEN:T.border}`,
+                        borderRadius:10,background:selectedQAs.has(q.id)?`${WA_GREEN}08`:T.card,
+                        cursor:"pointer",transition:"all .15s"
+                      }}
+                      onMouseEnter={e=>{if(!selectedQAs.has(q.id))e.currentTarget.style.borderColor=WA_GREEN;}}
+                      onMouseLeave={e=>{if(!selectedQAs.has(q.id))e.currentTarget.style.borderColor=T.border;}}>
+                        <div style={{width:36,height:36,borderRadius:8,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <i className="ti ti-message-2" style={{fontSize:16,color:WA_GREEN}}/>
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:600,fontSize:13,color:T.text,marginBottom:4,lineHeight:1.4}}>{q.question}</div>
+                          <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{q.answer}</div>
+                        </div>
+                        {selectedQAs.has(q.id)&&<i className="ti ti-check" style={{fontSize:14,color:WA_GREEN,flexShrink:0}}/>}
+                      </div>
+                    ))}
+                  </div>}
+                </div>
+
+                {/* RIGHT SIDEBAR — Bot settings */}
+                <div style={{width:280,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.card,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+                  {/* Tabs */}
+                  <div style={{display:"flex",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
+                    {[{id:"welcome",label:"Welcome"},{id:"personality",label:"Personality"},{id:"add",label:"Add"}].map(t=>(
+                      <button key={t.id} onClick={()=>setKbSubTab(t.id)}
+                        style={{flex:1,padding:"10px 4px",border:"none",background:"transparent",fontFamily:"inherit",
+                          fontSize:11,fontWeight:600,cursor:"pointer",
+                          color:kbSubTab===t.id?WA_GREEN:T.textMuted,
+                          borderBottom:kbSubTab===t.id?`2px solid ${WA_GREEN}`:"2px solid transparent"}}>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                            {/* RIGHT SIDEBAR — Bot Settings */}
+              <div style={{padding:16,flex:1}}>{/* Welcome tab */}
+                {kbSubTab==="welcome"&&<div>
+                  <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:12}}>Welcome Message</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginBottom:10,lineHeight:1.6}}>
+                    Sent automatically when a customer messages for the <strong>first time</strong>.
+                  </div>
+                  <textarea value={welcomeMsg} onChange={e=>setWelcomeMsg(e.target.value)} rows={6}
+                    placeholder={"Hi! I'm Katherine from Evera Health 😊 How can I help you today?"}
+                    className="nx-input" style={{resize:"vertical",marginBottom:10}}/>
+                  <button onClick={async()=>{
+                    const clinicId=kbClinic?.id||null;
+                    const url=clinicId?`${API}/api/admin/clients/${clinicId}/settings`:`${API}/api/settings`;
+                    await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({welcome_message:welcomeMsg})});
+                    const t=document.createElement("div");
+                    t.style.cssText="position:fixed;bottom:24px;right:24px;background:#25D366;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;";
+                    t.textContent="✅ Welcome message saved!";document.body.appendChild(t);
+                    setTimeout(()=>document.body.removeChild(t),2000);
+                  }} className="nx-btn primary" style={{width:"100%",justifyContent:"center"}}>
+                    <i className="ti ti-device-floppy" style={{fontSize:14}}/> Save
+                  </button>
+                </div>}
+
+                {kbSubTab==="personality"&&<div>
+                  <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:12}}>Bot Personality</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginBottom:10,lineHeight:1.6}}>
+                    The system prompt defines your bot's name, tone, and behaviour.
+                  </div>
+                  <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={12}
+                    placeholder={"You are Katherine, a helpful AI assistant for Evera Health..."}
+                    className="nx-input" style={{resize:"vertical",marginBottom:10,fontSize:11}}/>
+                  <button onClick={async()=>{
+                    const clinicId=kbClinic?.id||null;
+                    const url=clinicId?`${API}/api/admin/clients/${clinicId}/settings`:`${API}/api/settings`;
+                    await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({system_prompt:systemPrompt})});
+                    const t=document.createElement("div");
+                    t.style.cssText="position:fixed;bottom:24px;right:24px;background:#25D366;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;";
+                    t.textContent="✅ Bot personality saved!";document.body.appendChild(t);
+                    setTimeout(()=>document.body.removeChild(t),2000);
+                  }} className="nx-btn primary" style={{width:"100%",justifyContent:"center"}}>
+                    <i className="ti ti-device-floppy" style={{fontSize:14}}/> Save
+                  </button>
+                </div>}
+
+                {kbSubTab==="add"&&<div>
+                  <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:12}}>Add Knowledge</div>
+                  {/* Method 1 — Manual Q&A */}
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:8}}>Manual Q&A</div>
+                    <div style={{marginBottom:6}}>
+                      <label className="nx-label" style={{fontSize:10}}>Question</label>
+                      <input className="nx-input" style={{fontSize:11}} value={newQ} onChange={e=>setNewQ(e.target.value)} placeholder="e.g. What is your fee?"/>
+                    </div>
+                    <div style={{marginBottom:8}}>
+                      <label className="nx-label" style={{fontSize:10}}>Answer</label>
+                      <textarea className="nx-input" style={{fontSize:11,resize:"vertical"}} rows={4} value={newA} onChange={e=>setNewA(e.target.value)} placeholder="e.g. Our fee is RM150..."/>
+                    </div>
+                    <button onClick={async()=>{
+                      if(!newQ?.trim()||!newA?.trim()) return;
+                      const clinicId=kbClinic?.id||null;
+                      const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb`:`${API}/api/kb`;
+                      await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
+                      setNewQ("");setNewA("");loadKbForClient(kbClinic||currentUser);
+                    }} className="nx-btn primary" style={{width:"100%",justifyContent:"center",fontSize:11}}>
+                      <i className="ti ti-plus" style={{fontSize:13}}/> Add Q&A
+                    </button>
+                  </div>
                 </div>}
               </div>
+            </div>{/* end right sidebar */}
 
-              {qaData.length===0&&<div style={{textAlign:"center",padding:"32px 20px",background:T.card,borderRadius:14,border:`2px dashed ${T.border}`,color:T.textMuted}}>
-                <div style={{fontSize:32,marginBottom:8}}>📭</div>
-                <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>No knowledge yet</div>
-                <div style={{fontSize:12}}>Use one of the methods above to add knowledge to your bot</div>
-              </div>}
+            </div>{/* end main content flex */}
+            </div>}{/* end !isAdmin||kbClinic */}
 
-              <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {qaData.map((qa,i)=>{
-                  const isSelected = selectedQAs.has(qa.id);
-                  return (
-                    <div key={qa.id} className="cc" ref={el=>qaRefs.current[qa.id]=el}
-                      style={{padding:12,
-                        borderLeft:highlightedQA===qa.id?`3px solid ${WA_GREEN}`:isSelected?`3px solid #ef4444`:"3px solid transparent",
-                        background:isSelected?`#ef444408`:undefined,
-                        marginBottom:0}}>
-                      {editingId===qa.id
-                        ?<div>
-                          <input value={editQ} onChange={e=>setEditQ(e.target.value)}
-                            style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,marginBottom:6,boxSizing:"border-box"}}/>
-                          <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={2}
-                            style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8,boxSizing:"border-box"}}/>
-                          <div style={{display:"flex",gap:6}}>
-                            <button onClick={()=>saveEdit(qa.id)} style={{padding:"5px 14px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
-                            <button onClick={()=>setEditingId(null)} style={{padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-                          </div>
-                        </div>
-                        :<div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                          {/* Checkbox */}
-                          <div onClick={()=>{
-                            const next = new Set(selectedQAs);
-                            if(next.has(qa.id)) next.delete(qa.id); else next.add(qa.id);
-                            setSelectedQAs(next);
-                          }} style={{width:18,height:18,borderRadius:4,border:`2px solid ${isSelected?"#ef4444":T.border}`,
-                            background:isSelected?"#ef4444":"transparent",
-                            display:"flex",alignItems:"center",justifyContent:"center",
-                            cursor:"pointer",flexShrink:0,marginTop:2}}>
-                            {isSelected&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
-                          </div>
-                          <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{i+1}</div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                              <div style={{fontWeight:700,fontSize:12,color:T.text}}>{qa.question}</div>
-                              {qa.is_static&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#7c3aed",color:"#fff",fontWeight:700,flexShrink:0}}>STATIC</span>}
-                            </div>
-                            <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
-                          </div>
-                          <div style={{display:"flex",gap:3,flexShrink:0,alignItems:"center"}}>
-                            {/* Static toggle */}
-                            <div onClick={async(e)=>{
-                              e.stopPropagation();
-                              const newVal = !qa.is_static;
-                              // Optimistic update — update UI immediately
-                              setQaData(prev=>prev.map(q=>q.id===qa.id?{...q,is_static:newVal}:q));
-                              try {
-                                const r = await fetch(`${API}/api/knowledge/qa/${qa.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({is_static:newVal})});
-                                if(!r.ok) {
-                                  // Revert if failed
-                                  setQaData(prev=>prev.map(q=>q.id===qa.id?{...q,is_static:!newVal}:q));
-                                }
-                              } catch {
-                                setQaData(prev=>prev.map(q=>q.id===qa.id?{...q,is_static:!newVal}:q));
-                              }
-                            }} title={qa.is_static?"Static: exact answer sent":"Reference: AI uses as guide"}
-                              style={{width:32,height:18,borderRadius:9,cursor:"pointer",
-                                background:qa.is_static?"#7c3aed":"#cbd5e1",
-                                position:"relative",transition:"background .2s",flexShrink:0}}>
-                              <div style={{position:"absolute",top:2,left:qa.is_static?15:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-                            </div>
-                            <button onClick={()=>{setEditingId(qa.id);setEditQ(qa.question);setEditA(qa.answer);}} style={{padding:"3px 8px",borderRadius:7,border:`1px solid ${WA_GREEN}40`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
-                            <button onClick={()=>{
-                              setConfirmModal({
-                                title:"Delete this entry?",
-                                message:`"${qa.question.slice(0,80)}"\n\nYour bot will no longer know this. Cannot be undone.`,
-                                icon:"🗑️",danger:true,confirmText:"Yes, Delete",
-                                onConfirm:async()=>{ await fetch(`${API}/api/knowledge/qa/${qa.id}`,{method:"DELETE",headers:authHeaders()}); fetchKnowledge(); }
-                              });
-                            }} style={{padding:"3px 8px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444408",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
-                          </div>
-                        </div>}
-                    </div>
-                  );
-                })}
-              </div>
-
-            </div>}
-          </div>
+          </div>{/* end old kb content wrapper */}
         </div>}
-
-        {/* ══ SETTINGS ══ */}
-        {/* ══ INTEGRATIONS ══ */}
 
         {tab==="broadcast"&&<div style={{flex:1,display:"flex",overflow:"hidden",background:T.bg}}>
           {/* Left sidebar — client selector for admin */}
