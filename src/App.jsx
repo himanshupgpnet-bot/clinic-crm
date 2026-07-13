@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.263";
+const CRM_VERSION = "2.9.264";
 
 // Responsive hook
 function useWindowSize() {
@@ -3704,10 +3704,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
             {/* Left column — steps */}
             <div style={{flex:1,minWidth:0}}>
-            {/* Template selector — card stack */}
-            <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <div style={{fontWeight:700,fontSize:14,color:T.text}}>1. Select Template</div>
+            {/* Step 1 — Template */}
+            <div style={{background:T.card,borderRadius:12,marginBottom:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+              <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <span style={{fontSize:11,fontWeight:800,color:WA_GREEN}}>1</span>
+                  </div>
+                  <span style={{fontWeight:600,fontSize:13,color:T.text}}>Select Template</span>
+                  {selectedTemplate&&<span style={{fontSize:11,fontWeight:600,color:WA_GREEN,background:`${WA_GREEN}10`,padding:"2px 8px",borderRadius:20}}>✓ {selectedTemplate.template_name}</span>}
+                </div>
                 <button onClick={async()=>{
                   const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
                   const pending = templates.filter(t=>t.status==="pending");
@@ -3722,49 +3728,50 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   🔄 Refresh
                 </button>
               </div>
-              {templates.length===0&&<div style={{padding:"12px",background:T.card2,borderRadius:8,fontSize:12,color:T.textMuted,textAlign:"center"}}>
-                No templates yet. Go to 📝 Create Template to add one.
+              {templates.length===0&&<div style={{padding:"20px 16px",fontSize:12,color:T.textMuted,textAlign:"center"}}>
+                No templates yet — click <strong>Create Template</strong> to add one.
               </div>}
 
-              {/* Template cards — simple stack */}
-              {templates.length>0&&<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
-                {templates.map(t=>{
+              {/* Template list — clean rows like Linear */}
+              {templates.length>0&&<div style={{display:"flex",flexDirection:"column"}}>
+                {templates.map((t,i)=>{
                   const isSelected = selectedTemplate?.id===t.id;
                   const canSelect = t.status==="approved";
-                  const statusColor = t.status==="approved"?"#16a34a":t.status==="rejected"?"#ef4444":"#d97706";
-                  const statusLabel = t.status==="approved"?"✅":t.status==="rejected"?"❌":"⏳";
+                  const statusColor = t.status==="approved"?"#15803d":t.status==="rejected"?"#dc2626":"#b45309";
+                  const statusBg = t.status==="approved"?"#f0fdf4":t.status==="rejected"?"#fef2f2":"#fffbeb";
                   return <div key={t.id} onClick={()=>canSelect&&setSelectedTemplate(isSelected?null:t)}
-                    style={{borderRadius:12,border:`2px solid ${isSelected?WA_GREEN:T.border}`,
-                      background:isSelected?WA_GREEN+"08":canSelect?T.card2:"#f9f9f9",
-                      cursor:canSelect?"pointer":"default",transition:"all .15s",
-                      padding:"12px 14px",display:"flex",alignItems:"center",gap:12,
-                      opacity:canSelect?1:0.6}}>
-                    {/* Selection tick */}
-                    <div style={{width:22,height:22,borderRadius:"50%",border:`2px solid ${isSelected?WA_GREEN:T.border}`,
-                      background:isSelected?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      {isSelected&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>✓</span>}
+                    style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",
+                      borderBottom:i<templates.length-1?`1px solid ${T.border}`:"none",
+                      background:isSelected?`${WA_GREEN}08`:"transparent",
+                      cursor:canSelect?"pointer":"default",transition:"background .15s"}}
+                    onMouseEnter={e=>{if(!isSelected&&canSelect)e.currentTarget.style.background=T.card2}}
+                    onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background="transparent"}}>
+                    {/* Radio circle */}
+                    <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${isSelected?WA_GREEN:T.border}`,
+                      background:isSelected?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
+                      {isSelected&&<div style={{width:6,height:6,borderRadius:"50%",background:"#fff"}}/>}
                     </div>
-                    {/* Template info */}
+                    {/* Info */}
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:13,color:T.text}}>{t.template_name}</div>
-                      <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{t.category} · {t.language} · {t.header_type!=="none"?t.header_type:"No header"}</div>
-                      {t.body_text&&<div style={{fontSize:10,color:T.textFaint,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.body_text.slice(0,80)}</div>}
+                      <div style={{fontWeight:600,fontSize:13,color:T.text}}>{t.template_name}</div>
+                      {t.body_text&&<div style={{fontSize:11,color:T.textMuted,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.body_text.slice(0,70)}…</div>}
                     </div>
-                    {/* Status + delete */}
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0}}>
-                      <span style={{fontSize:11,fontWeight:700,color:statusColor}}>{statusLabel} {t.status}</span>
-                      <button onClick={async e=>{
-                        e.stopPropagation();
-                        const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                        const url = clinicId?`${API}/api/admin/clients/${clinicId}/templates/${t.id}`:`${API}/api/templates/${t.id}`;
-                        await fetch(url,{method:"DELETE",headers:authHeaders()});
-                        fetchTemplates(clinicId);
-                        if(selectedTemplate?.id===t.id) setSelectedTemplate(null);
-                      }} style={{padding:"3px 8px",borderRadius:6,border:`1px solid #ef4444`,background:"transparent",
-                        color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>
-                        🗑️
-                      </button>
-                    </div>
+                    {/* Status badge */}
+                    <span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:20,background:statusBg,color:statusColor,flexShrink:0}}>
+                      {t.status==="approved"?"✅ Approved":t.status==="rejected"?"❌ Rejected":"⏳ Pending"}
+                    </span>
+                    {/* Delete */}
+                    <button onClick={async e=>{
+                      e.stopPropagation();
+                      const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                      await fetch(`${API}/api/templates/${t.id}`,{method:"DELETE",headers:authHeaders()});
+                      fetchTemplates(clinicId);
+                      if(selectedTemplate?.id===t.id) setSelectedTemplate(null);
+                    }} style={{width:24,height:24,border:"none",background:"transparent",color:T.textFaint,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,flexShrink:0}}
+                    onMouseEnter={e=>e.currentTarget.style.color="#ef4444"}
+                    onMouseLeave={e=>e.currentTarget.style.color=T.textFaint}>
+                      <i className="ti ti-trash" style={{fontSize:13}}/>
+                    </button>
                   </div>;
                 })}
               </div>}
@@ -3836,23 +3843,23 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </button>
               </div>}
 
-            {/* Upload contacts */}
-            <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div style={{fontWeight:700,fontSize:14,color:T.text}}>2. Select Contacts <span style={{fontSize:11,color:T.textMuted,fontWeight:400}}>({contacts.length} total)</span></div>
-                <div style={{display:"flex",gap:6}}>
+            {/* Step 2 — Contacts */}
+            <div style={{background:T.card,borderRadius:12,marginBottom:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+              <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <span style={{fontSize:11,fontWeight:800,color:WA_GREEN}}>2</span>
+                  </div>
+                  <span style={{fontWeight:600,fontSize:13,color:T.text}}>Select Contacts</span>
+                  {broadcastContacts.length>0&&<span style={{fontSize:11,fontWeight:600,color:WA_GREEN,background:`${WA_GREEN}10`,padding:"2px 8px",borderRadius:20}}>✓ {broadcastContacts.length} selected</span>}
+                </div>
+                <div style={{display:"flex",gap:4}}>
                   <button onClick={()=>setBroadcastContacts(contacts.map(c=>({name:c.name||c.phone,phone:c.phone})))}
-                    style={{fontSize:11,padding:"4px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit"}}>
-                    Select all
-                  </button>
+                    className="nx-btn" style={{fontSize:11,padding:"4px 10px"}}>All</button>
                   <button onClick={()=>setBroadcastContacts([])}
-                    style={{fontSize:11,padding:"4px 10px",borderRadius:8,border:`1px solid #ef4444`,background:"transparent",color:"#ef4444",cursor:"pointer",fontFamily:"inherit"}}>
-                    Clear
-                  </button>
+                    className="nx-btn" style={{fontSize:11,padding:"4px 10px"}}>Clear</button>
                   <button onClick={()=>document.getElementById("broadcast-file-input").click()}
-                    style={{fontSize:11,padding:"4px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit"}}>
-                    📎 CSV
-                  </button>
+                    className="nx-btn" style={{fontSize:11,padding:"4px 10px"}}><i className="ti ti-paperclip" style={{fontSize:12}}/> CSV</button>
                 </div>
               </div>
               <input type="file" accept=".csv,.xlsx,.xls" onChange={e=>{
@@ -3867,10 +3874,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 reader.readAsText(file);
               }} style={{display:"none"}} id="broadcast-file-input"/>
               {/* Search */}
-              <input placeholder="Search by name or number..." value={broadcastSearch||""} onChange={e=>setBroadcastSearch(e.target.value)}
-                style={{width:"100%",padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box"}}/>
+              <div className="nx-search" style={{margin:"10px 14px 0"}}>
+                <i className="ti ti-search" style={{fontSize:14,color:T.textFaint}}/>
+                <input placeholder="Search by name or number..." value={broadcastSearch||""} onChange={e=>setBroadcastSearch(e.target.value)}/>
+                {broadcastSearch&&<i className="ti ti-x" onClick={()=>setBroadcastSearch("")} style={{fontSize:12,color:T.textMuted,cursor:"pointer"}}/>}
+              </div>
               {/* Contact list with checkboxes */}
-              <div style={{maxHeight:200,overflowY:"auto",border:`1px solid ${T.border}`,borderRadius:8}}>
+              <div style={{maxHeight:200,overflowY:"auto",margin:"10px 14px",border:`1px solid ${T.border}`,borderRadius:8}}>
                 {(()=>{
                   const q=(broadcastSearch||"").toLowerCase();
                   const filtered=contacts.filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q));
@@ -3912,27 +3922,30 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </>;
                 })()}
               </div>
-              {broadcastContacts.length>0&&<div style={{marginTop:6,fontSize:12,color:WA_GREEN,fontWeight:700}}>✅ {broadcastContacts.length} selected</div>}
+              {broadcastContacts.length>0&&<div style={{margin:"8px 14px",fontSize:12,color:WA_GREEN,fontWeight:600}}>✓ {broadcastContacts.length} contact{broadcastContacts.length!==1?"s":""} selected</div>}
             </div>
 
-            {/* Send */}
-            <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:16,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:T.text}}>3. Send Broadcast</div>
-
+            {/* Step 3 — Send */}
+            <div style={{background:T.card,borderRadius:12,marginBottom:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+              <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <span style={{fontSize:11,fontWeight:800,color:WA_GREEN}}>3</span>
+                </div>
+                <span style={{fontWeight:600,fontSize:13,color:T.text}}>Send</span>
+              </div>
+              <div style={{padding:"14px 16px"}}>
               {/* Send Now / Schedule toggle */}
-              <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <div style={{display:"flex",gap:6,marginBottom:14,background:T.card2,borderRadius:8,padding:4}}>
                 <button onClick={()=>setScheduleMode(false)}
-                  style={{flex:1,padding:"9px",borderRadius:8,border:`2px solid ${!scheduleMode?WA_GREEN:T.border}`,
-                    background:!scheduleMode?WA_GREEN+"15":"transparent",color:!scheduleMode?WA_GREEN:T.text,
-                    fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  📤 Send Now
-                </button>
+                  style={{flex:1,padding:"7px",borderRadius:6,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s",
+                    background:!scheduleMode?T.card:"transparent",color:!scheduleMode?T.text:T.textMuted,
+                    boxShadow:!scheduleMode?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
+                  <i className="ti ti-send" style={{fontSize:13,marginRight:4}}/>Send Now</button>
                 <button onClick={()=>setScheduleMode(true)}
-                  style={{flex:1,padding:"9px",borderRadius:8,border:`2px solid ${scheduleMode?WA_GREEN:T.border}`,
-                    background:scheduleMode?WA_GREEN+"15":"transparent",color:scheduleMode?WA_GREEN:T.text,
-                    fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  🕐 Schedule
-                </button>
+                  style={{flex:1,padding:"7px",borderRadius:6,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s",
+                    background:scheduleMode?T.card:"transparent",color:scheduleMode?T.text:T.textMuted,
+                    boxShadow:scheduleMode?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
+                  <i className="ti ti-clock" style={{fontSize:13,marginRight:4}}/>Schedule</button>
               </div>
 
               {/* Schedule date/time picker */}
@@ -4047,11 +4060,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   setBroadcastProgress({active:false,done,total:broadcastContacts.length,failed});
                 }
               }} disabled={!selectedTemplate||broadcastContacts.length===0||broadcastProgress?.active}
-                style={{width:"100%",padding:"12px",borderRadius:10,border:"none",
-                  background:(!selectedTemplate||broadcastContacts.length===0)?"#ccc":WA_GREEN,
-                  color:"#fff",fontSize:14,fontWeight:700,
-                  cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer",fontFamily:"inherit"}}>
-                {scheduleMode?`🕐 Schedule for ${broadcastContacts.length} Contacts`:`📤 Send to ${broadcastContacts.length} Contacts`}
+                className="nx-btn primary" style={{width:"100%",justifyContent:"center",padding:"11px",fontSize:13,fontWeight:700,
+                  opacity:(!selectedTemplate||broadcastContacts.length===0)?0.5:1,
+                  cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer"}}>
+                <i className={`ti ti-${scheduleMode?"calendar":"send"}`} style={{fontSize:15}}/>
+                {scheduleMode?`Schedule for ${broadcastContacts.length} contacts`:`Send to ${broadcastContacts.length} contacts`}
               </button>
 
               {broadcastProgress&&<div style={{marginTop:14,background:T.card2,borderRadius:10,padding:14}}>
@@ -4065,7 +4078,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {broadcastProgress.failed>0&&<div style={{fontSize:11,color:"#ef4444",marginTop:4}}>{broadcastProgress.failed} failed</div>}
                 {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
               </div>}
-            </div>
+              </div>{/* end padding */}
+            </div>{/* end Step 3 card */}
 
             </div>{/* end left column */}
 
