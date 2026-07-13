@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.274";
+const CRM_VERSION = "2.9.275";
 
 // Responsive hook
 function useWindowSize() {
@@ -1070,6 +1070,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   const pollRef = useRef(null);
   const socketRef = useRef(null);
+  const fetchConvRef = useRef(null);
+  useEffect(() => { fetchConvRef.current = fetchConversations; }, [fetchConversations]);
 
   // Fast health ping
   useEffect(() => {
@@ -1129,33 +1131,33 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           setBackendStatus("online");
           // Slow fallback poll when WS connected — just in case
           if(pollRef.current) clearInterval(pollRef.current);
-          pollRef.current = setInterval(fetchConversations, 30000);
+          pollRef.current = setInterval(()=>fetchConvRef.current?.(), 30000);
         });
         sock.on("new_message", () => {
-          fetchConversations(); // instant refresh on new message
+          fetchConvRef.current?.();
         });
         sock.on("contact_update", () => {
-          fetchConversations();
+          fetchConvRef.current?.();
         });
         sock.on("disconnect", () => {
           // Fall back to fast polling if WS drops
           if(pollRef.current) clearInterval(pollRef.current);
-          pollRef.current = setInterval(fetchConversations, 10000);
+          pollRef.current = setInterval(()=>fetchConvRef.current?.(), 10000);
         });
         sock.on("connect_error", () => {
           // WS failed — use polling
           if(pollRef.current) clearInterval(pollRef.current);
-          pollRef.current = setInterval(fetchConversations, 10000);
+          pollRef.current = setInterval(()=>fetchConvRef.current?.(), 10000);
         });
       } catch(e) {
         // Fallback to polling
         if(pollRef.current) clearInterval(pollRef.current);
-        pollRef.current = setInterval(fetchConversations, 10000);
+        pollRef.current = setInterval(()=>fetchConvRef.current?.(), 10000);
       }
     } else {
       // No socket.io — use polling
       if(pollRef.current) clearInterval(pollRef.current);
-      pollRef.current = setInterval(fetchConversations, 10000);
+      pollRef.current = setInterval(()=>fetchConvRef.current?.(), 10000);
     }
 
     return () => {
