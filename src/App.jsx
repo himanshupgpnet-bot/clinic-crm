@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.264";
+const CRM_VERSION = "2.9.265";
 
 // Responsive hook
 function useWindowSize() {
@@ -853,9 +853,9 @@ export default function App() {
       } catch {}
       if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(prev => ({...prev, botActive: u.botActive, status: u.status, lead: u.lead})); }
     } catch { 
-      // Only show offline after 2 consecutive failures — avoids flicker on slow response
+      // Only show offline after 3 consecutive failures — avoids flicker after deploy
       fetchConversations._failCount = (fetchConversations._failCount||0) + 1;
-      if(fetchConversations._failCount >= 2) setBackendStatus("offline");
+      if(fetchConversations._failCount >= 3) setBackendStatus("offline");
     }
     finally { setLoading(false); }
   }, [selected]);
@@ -1073,7 +1073,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    fetchConversations(); fetchKnowledge(); fetchSettings(); fetchClinicUsers(); refreshPermissions();
+    // Small delay on first load to avoid offline flash after Vercel deploy
+    const t = setTimeout(() => {
+      fetchConversations(); fetchKnowledge(); fetchSettings(); fetchClinicUsers(); refreshPermissions();
+    }, 1500);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -2175,8 +2179,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:12,fontWeight:600,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.username||"User"}</div>
                 <div style={{display:"flex",alignItems:"center",gap:4,marginTop:1}}>
-                  <div style={{width:5,height:5,borderRadius:"50%",background:backendStatus==="online"?WA_GREEN:"#ef4444",flexShrink:0}}/>
-                  <span style={{fontSize:10,color:T.textMuted}}>{backendStatus==="online"?"Live":"Offline"}</span>
+                  <div style={{width:5,height:5,borderRadius:"50%",background:backendStatus==="online"?WA_GREEN:backendStatus==="checking"?"#f59e0b":"#ef4444",flexShrink:0}}/>
+                  <span style={{fontSize:10,color:T.textMuted}}>{backendStatus==="online"?"Live":backendStatus==="checking"?"Connecting…":"Offline"}</span>
                 </div>
               </div>
               <button onClick={e=>{e.stopPropagation();setShowUserMenu(m=>!m);setShowChangelog(false);}}
