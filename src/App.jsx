@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.288";
+const CRM_VERSION = "2.9.290";
 
 // Responsive hook
 function useWindowSize() {
@@ -3120,7 +3120,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     icon:"🗑️",danger:true,confirmText:`Delete ${selectedQAs.size} entries`,
                     onConfirm:async()=>{
                       const ids=Array.from(selectedQAs);
-                      for(const id of ids){await fetch(`${API}/api/kb/${id}`,{method:"DELETE",headers:authHeaders()});}
+                      for(const id of ids){await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()});}
                       setSelectedQAs(new Set());
                       loadKbForClient(kbClinic||currentUser);
                     }
@@ -3153,7 +3153,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       <button onClick={async()=>{
                         if(!newQ?.trim()||!newA?.trim()) return;
                         const clinicId=kbClinic?.id||null;
-                        const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb`:`${API}/api/kb`;
+                        const url=clinicId?`${API}/api/admin/clients/${clinicId}/knowledge/qa`:`${API}/api/knowledge/qa`;
                         await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
                         setNewQ("");setNewA("");setShowAddQA(false);
                         loadKbForClient(kbClinic||currentUser);
@@ -3197,7 +3197,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                           <div onClick={async e=>{
                             e.stopPropagation();
                             const clinicId=kbClinic?.id||null;
-                            const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb/${q.id}`:`${API}/api/kb/${q.id}`;
+                            const url=clinicId?`${API}/api/admin/clients/${clinicId}/knowledge/qa/${q.id}`:`${API}/api/knowledge/qa/${q.id}`;
                             await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({is_static:!q.is_static})});
                             loadKbForClient(kbClinic||currentUser);
                           }} title={q.is_static?"Static — always used":"Click to pin as static"}
@@ -3241,13 +3241,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       <div style={{fontSize:11,color:T.textMuted,marginBottom:10,lineHeight:1.6}}>
                         Sent automatically when a customer messages for the <strong>first time</strong>.
                       </div>
-                      <textarea value={welcomeMsg||""} onChange={e=>setWelcomeMsg(e.target.value)} rows={6}
+                      <textarea value={welcomeMessage||""} onChange={e=>setWelcomeMessage(e.target.value)} rows={6}
                         placeholder={"Hi! I'm Katherine 😊 How can I help you today?"}
                         className="nx-input" style={{resize:"vertical",marginBottom:10}}/>
                       <button onClick={async()=>{
                         const clinicId=kbClinic?.id||null;
                         const url=clinicId?`${API}/api/admin/clients/${clinicId}/settings`:`${API}/api/settings`;
-                        await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({welcome_message:welcomeMsg})});
+                        await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({welcome_message:welcomeMessage})});
                         const t=document.createElement("div");
                         t.style.cssText="position:fixed;bottom:24px;right:24px;background:#25D366;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;";
                         t.textContent="✅ Saved!";document.body.appendChild(t);
@@ -3279,26 +3279,100 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       </button>
                     </div>}
 
-                    {/* Add tab */}
+                    {/* Add tab — all 3 methods */}
                     {kbSubTab==="add"&&<div>
-                      <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:10}}>Add Q&A</div>
-                      <div style={{marginBottom:8}}>
-                        <label className="nx-label" style={{fontSize:10}}>Question</label>
-                        <input className="nx-input" style={{fontSize:11}} value={newQ||""} onChange={e=>setNewQ(e.target.value)} placeholder="e.g. What is your fee?"/>
+                      <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:12}}>Add Knowledge</div>
+
+                      {/* Method 1 — Manual Q&A */}
+                      <div style={{background:T.card2,borderRadius:8,padding:12,border:`1px solid ${T.border}`,marginBottom:10}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+                          <i className="ti ti-pencil" style={{fontSize:14,color:WA_GREEN}}/>
+                          <span style={{fontSize:12,fontWeight:600,color:T.text}}>Manual Q&A</span>
+                        </div>
+                        <div style={{marginBottom:6}}>
+                          <label className="nx-label" style={{fontSize:10}}>Question</label>
+                          <input className="nx-input" style={{fontSize:11}} value={newQ||""} onChange={e=>setNewQ(e.target.value)} placeholder="e.g. What is your fee?"/>
+                        </div>
+                        <div style={{marginBottom:8}}>
+                          <label className="nx-label" style={{fontSize:10}}>Answer</label>
+                          <textarea className="nx-input" style={{fontSize:11,resize:"vertical"}} rows={3} value={newA||""} onChange={e=>setNewA(e.target.value)} placeholder="e.g. Our fee is RM150..."/>
+                        </div>
+                        <button onClick={async()=>{
+                          if(!newQ?.trim()||!newA?.trim()) return;
+                          const clinicId=kbClinic?.id||null;
+                          const url=clinicId?`${API}/api/admin/clients/${clinicId}/knowledge/qa`:`${API}/api/knowledge/qa`;
+                          await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
+                          setNewQ("");setNewA("");loadKbForClient(kbClinic||currentUser);
+                        }} className="nx-btn primary" style={{width:"100%",justifyContent:"center",fontSize:11}}>
+                          <i className="ti ti-plus" style={{fontSize:13}}/> Add Q&A
+                        </button>
                       </div>
-                      <div style={{marginBottom:10}}>
-                        <label className="nx-label" style={{fontSize:10}}>Answer</label>
-                        <textarea className="nx-input" style={{fontSize:11,resize:"vertical"}} rows={5} value={newA||""} onChange={e=>setNewA(e.target.value)} placeholder="e.g. Our fee is RM150..."/>
+
+                      {/* Method 2 — Paste Text / Upload Doc */}
+                      <div style={{background:T.card2,borderRadius:8,padding:12,border:`1px solid ${T.border}`,marginBottom:10}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                          <i className="ti ti-file-text" style={{fontSize:14,color:"#7c3aed"}}/>
+                          <span style={{fontSize:12,fontWeight:600,color:T.text}}>Paste Text / Upload Doc</span>
+                        </div>
+                        <div style={{fontSize:11,color:T.textMuted,marginBottom:8,lineHeight:1.5}}>
+                          Paste brochure text or upload a PDF/Word file — AI extracts Q&A pairs automatically.
+                        </div>
+                        <textarea className="nx-input" style={{fontSize:11,resize:"vertical",marginBottom:8}} rows={4}
+                          placeholder={"Paste your brochure, FAQ, or product description here..."}
+                          id="kb-paste-text"/>
+                        <div style={{display:"flex",gap:6}}>
+                          <button onClick={async()=>{
+                            const text=document.getElementById("kb-paste-text")?.value?.trim();
+                            if(!text) return;
+                            const clinicId=kbClinic?.id||null;
+                            const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb/extract`:`${API}/api/kb/extract`;
+                            const r=await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({text})});
+                            if(r.ok){document.getElementById("kb-paste-text").value="";loadKbForClient(kbClinic||currentUser);}
+                          }} className="nx-btn primary" style={{flex:1,justifyContent:"center",fontSize:11}}>
+                            <i className="ti ti-brain" style={{fontSize:13}}/> Extract Q&A
+                          </button>
+                          <button onClick={()=>document.getElementById("kb-doc-upload").click()}
+                            className="nx-btn" style={{fontSize:11}}>
+                            <i className="ti ti-upload" style={{fontSize:13}}/> Upload
+                          </button>
+                          <input type="file" id="kb-doc-upload" accept=".pdf,.doc,.docx,.txt" style={{display:"none"}} onChange={async e=>{
+                            const file=e.target.files[0]; if(!file) return;
+                            const fd=new FormData(); fd.append("file",file);
+                            const token=sessionStorage.getItem("crm_token")||authToken;
+                            const clinicId=kbClinic?.id||null;
+                            const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb/upload`:`${API}/api/kb/upload`;
+                            const xhr=new XMLHttpRequest();
+                            xhr.open("POST",url);
+                            xhr.setRequestHeader("Authorization","Bearer "+token);
+                            xhr.onload=()=>{loadKbForClient(kbClinic||currentUser);};
+                            xhr.send(fd);
+                            e.target.value="";
+                          }}/>
+                        </div>
                       </div>
-                      <button onClick={async()=>{
-                        if(!newQ?.trim()||!newA?.trim()) return;
-                        const clinicId=kbClinic?.id||null;
-                        const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb`:`${API}/api/kb`;
-                        await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
-                        setNewQ("");setNewA("");loadKbForClient(kbClinic||currentUser);
-                      }} className="nx-btn primary" style={{width:"100%",justifyContent:"center"}}>
-                        <i className="ti ti-plus" style={{fontSize:14}}/> Add Q&A
-                      </button>
+
+                      {/* Method 3 — URL */}
+                      <div style={{background:T.card2,borderRadius:8,padding:12,border:`1px solid ${T.border}`}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                          <i className="ti ti-world" style={{fontSize:14,color:"#0891b2"}}/>
+                          <span style={{fontSize:12,fontWeight:600,color:T.text}}>Import from URL</span>
+                        </div>
+                        <div style={{fontSize:11,color:T.textMuted,marginBottom:8}}>
+                          Paste a webpage URL — AI scrapes and extracts Q&A from the page.
+                        </div>
+                        <input className="nx-input" style={{fontSize:11,marginBottom:8}} id="kb-url-input"
+                          placeholder="https://yoursite.com/faq"/>
+                        <button onClick={async()=>{
+                          const url_val=document.getElementById("kb-url-input")?.value?.trim();
+                          if(!url_val) return;
+                          const clinicId=kbClinic?.id||null;
+                          const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb/url`:`${API}/api/kb/url`;
+                          const r=await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({url:url_val})});
+                          if(r.ok){document.getElementById("kb-url-input").value="";loadKbForClient(kbClinic||currentUser);}
+                        }} className="nx-btn" style={{width:"100%",justifyContent:"center",fontSize:11,borderColor:"#0891b2",color:"#0891b2"}}>
+                          <i className="ti ti-download" style={{fontSize:13}}/> Import from URL
+                        </button>
+                      </div>
                     </div>}
                     {kbSubTab==="wizard"&&(isAdmin||permissions?.can_prompt_wizard)&&<PromptWizard
                       T={T} WA_GREEN={WA_GREEN} dark={dark}
