@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.284";
+const CRM_VERSION = "2.9.286";
 
 // Responsive hook
 function useWindowSize() {
@@ -3199,90 +3199,96 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
                 {/* RIGHT SIDEBAR — Bot settings */}
                 <div style={{width:280,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.card,overflowY:"auto",display:"flex",flexDirection:"column"}}>
-                  {/* Tabs */}
-                  <div style={{display:"flex",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
-                    {[{id:"welcome",label:"Welcome"},{id:"personality",label:"Personality"},{id:"add",label:"Add"}].map(t=>(
-                      <button key={t.id} onClick={()=>setKbSubTab(t.id)}
-                        style={{flex:1,padding:"10px 4px",border:"none",background:"transparent",fontFamily:"inherit",
-                          fontSize:11,fontWeight:600,cursor:"pointer",
-                          color:kbSubTab===t.id?WA_GREEN:T.textMuted,
-                          borderBottom:kbSubTab===t.id?`2px solid ${WA_GREEN}`:"2px solid transparent"}}>
-                        {t.label}
+                  {/* Pill tabs */}
+                  <div style={{padding:"10px 10px 0",flexShrink:0}}>
+                    <div style={{display:"flex",background:T.card2,borderRadius:8,padding:3,gap:2}}>
+                      {[{id:"welcome",label:"Welcome"},{id:"personality",label:"Personality"},{id:"add",label:"Add KB"},{id:"wizard",label:"✨ Wizard"}].map(t=>(
+                        <button key={t.id} onClick={()=>setKbSubTab(t.id)}
+                          style={{flex:1,padding:"6px 4px",border:"none",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer",borderRadius:6,
+                            background:kbSubTab===t.id?T.card:"transparent",
+                            color:kbSubTab===t.id?T.text:T.textMuted,
+                            boxShadow:kbSubTab===t.id?"0 1px 3px rgba(0,0,0,.08)":"none",transition:"all .15s"}}>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{padding:14,flex:1}}>
+                    {/* Welcome tab */}
+                    {kbSubTab==="welcome"&&<div>
+                      <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:10}}>Welcome Message</div>
+                      <div style={{fontSize:11,color:T.textMuted,marginBottom:10,lineHeight:1.6}}>
+                        Sent automatically when a customer messages for the <strong>first time</strong>.
+                      </div>
+                      <textarea value={welcomeMsg||""} onChange={e=>setWelcomeMsg(e.target.value)} rows={6}
+                        placeholder={"Hi! I'm Katherine 😊 How can I help you today?"}
+                        className="nx-input" style={{resize:"vertical",marginBottom:10}}/>
+                      <button onClick={async()=>{
+                        const clinicId=kbClinic?.id||null;
+                        const url=clinicId?`${API}/api/admin/clients/${clinicId}/settings`:`${API}/api/settings`;
+                        await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({welcome_message:welcomeMsg})});
+                        const t=document.createElement("div");
+                        t.style.cssText="position:fixed;bottom:24px;right:24px;background:#25D366;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;";
+                        t.textContent="✅ Saved!";document.body.appendChild(t);
+                        setTimeout(()=>document.body.removeChild(t),2000);
+                      }} className="nx-btn primary" style={{width:"100%",justifyContent:"center"}}>
+                        <i className="ti ti-device-floppy" style={{fontSize:14}}/> Save
                       </button>
-                    ))}
-                  </div>
+                    </div>}
 
-                            {/* RIGHT SIDEBAR — Bot Settings */}
-              <div style={{padding:16,flex:1}}>{/* Welcome tab */}
-                {kbSubTab==="welcome"&&<div>
-                  <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:12}}>Welcome Message</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginBottom:10,lineHeight:1.6}}>
-                    Sent automatically when a customer messages for the <strong>first time</strong>.
-                  </div>
-                  <textarea value={welcomeMsg} onChange={e=>setWelcomeMsg(e.target.value)} rows={6}
-                    placeholder={"Hi! I'm Katherine from Evera Health 😊 How can I help you today?"}
-                    className="nx-input" style={{resize:"vertical",marginBottom:10}}/>
-                  <button onClick={async()=>{
-                    const clinicId=kbClinic?.id||null;
-                    const url=clinicId?`${API}/api/admin/clients/${clinicId}/settings`:`${API}/api/settings`;
-                    await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({welcome_message:welcomeMsg})});
-                    const t=document.createElement("div");
-                    t.style.cssText="position:fixed;bottom:24px;right:24px;background:#25D366;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;";
-                    t.textContent="✅ Welcome message saved!";document.body.appendChild(t);
-                    setTimeout(()=>document.body.removeChild(t),2000);
-                  }} className="nx-btn primary" style={{width:"100%",justifyContent:"center"}}>
-                    <i className="ti ti-device-floppy" style={{fontSize:14}}/> Save
-                  </button>
-                </div>}
+                    {/* Personality tab */}
+                    {kbSubTab==="personality"&&<div>
+                      <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:10}}>Bot Personality</div>
+                      <div style={{fontSize:11,color:T.textMuted,marginBottom:10,lineHeight:1.6}}>
+                        Defines your bot's name, tone and behaviour.
+                      </div>
+                      <textarea value={systemPrompt||""} onChange={e=>setSystemPrompt(e.target.value)} rows={14}
+                        placeholder={"You are Katherine, a helpful AI assistant..."}
+                        className="nx-input" style={{resize:"vertical",marginBottom:10,fontSize:11}}/>
+                      <button onClick={async()=>{
+                        const clinicId=kbClinic?.id||null;
+                        const url=clinicId?`${API}/api/admin/clients/${clinicId}/settings`:`${API}/api/settings`;
+                        await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({system_prompt:systemPrompt})});
+                        const t=document.createElement("div");
+                        t.style.cssText="position:fixed;bottom:24px;right:24px;background:#25D366;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;";
+                        t.textContent="✅ Saved!";document.body.appendChild(t);
+                        setTimeout(()=>document.body.removeChild(t),2000);
+                      }} className="nx-btn primary" style={{width:"100%",justifyContent:"center"}}>
+                        <i className="ti ti-device-floppy" style={{fontSize:14}}/> Save
+                      </button>
+                    </div>}
 
-                {kbSubTab==="personality"&&<div>
-                  <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:12}}>Bot Personality</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginBottom:10,lineHeight:1.6}}>
-                    The system prompt defines your bot's name, tone, and behaviour.
+                    {/* Add tab */}
+                    {kbSubTab==="add"&&<div>
+                      <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:10}}>Add Q&A</div>
+                      <div style={{marginBottom:8}}>
+                        <label className="nx-label" style={{fontSize:10}}>Question</label>
+                        <input className="nx-input" style={{fontSize:11}} value={newQ||""} onChange={e=>setNewQ(e.target.value)} placeholder="e.g. What is your fee?"/>
+                      </div>
+                      <div style={{marginBottom:10}}>
+                        <label className="nx-label" style={{fontSize:10}}>Answer</label>
+                        <textarea className="nx-input" style={{fontSize:11,resize:"vertical"}} rows={5} value={newA||""} onChange={e=>setNewA(e.target.value)} placeholder="e.g. Our fee is RM150..."/>
+                      </div>
+                      <button onClick={async()=>{
+                        if(!newQ?.trim()||!newA?.trim()) return;
+                        const clinicId=kbClinic?.id||null;
+                        const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb`:`${API}/api/kb`;
+                        await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
+                        setNewQ("");setNewA("");loadKbForClient(kbClinic||currentUser);
+                      }} className="nx-btn primary" style={{width:"100%",justifyContent:"center"}}>
+                        <i className="ti ti-plus" style={{fontSize:14}}/> Add Q&A
+                      </button>
+                    </div>}
+                    {kbSubTab==="wizard"&&(isAdmin||permissions?.can_prompt_wizard)&&<PromptWizard
+                      T={T} WA_GREEN={WA_GREEN} dark={dark}
+                      API={API} authHeaders={authHeaders}
+                      kbClinic={kbClinic}
+                      systemPrompt={systemPrompt} setSystemPrompt={setSystemPrompt}
+                      setConfirmModal={setConfirmModal}
+                    />}
                   </div>
-                  <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={12}
-                    placeholder={"You are Katherine, a helpful AI assistant for Evera Health..."}
-                    className="nx-input" style={{resize:"vertical",marginBottom:10,fontSize:11}}/>
-                  <button onClick={async()=>{
-                    const clinicId=kbClinic?.id||null;
-                    const url=clinicId?`${API}/api/admin/clients/${clinicId}/settings`:`${API}/api/settings`;
-                    await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({system_prompt:systemPrompt})});
-                    const t=document.createElement("div");
-                    t.style.cssText="position:fixed;bottom:24px;right:24px;background:#25D366;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;";
-                    t.textContent="✅ Bot personality saved!";document.body.appendChild(t);
-                    setTimeout(()=>document.body.removeChild(t),2000);
-                  }} className="nx-btn primary" style={{width:"100%",justifyContent:"center"}}>
-                    <i className="ti ti-device-floppy" style={{fontSize:14}}/> Save
-                  </button>
-                </div>}
-
-                {kbSubTab==="add"&&<div>
-                  <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:12}}>Add Knowledge</div>
-                  {/* Method 1 — Manual Q&A */}
-                  <div style={{marginBottom:16}}>
-                    <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:8}}>Manual Q&A</div>
-                    <div style={{marginBottom:6}}>
-                      <label className="nx-label" style={{fontSize:10}}>Question</label>
-                      <input className="nx-input" style={{fontSize:11}} value={newQ} onChange={e=>setNewQ(e.target.value)} placeholder="e.g. What is your fee?"/>
-                    </div>
-                    <div style={{marginBottom:8}}>
-                      <label className="nx-label" style={{fontSize:10}}>Answer</label>
-                      <textarea className="nx-input" style={{fontSize:11,resize:"vertical"}} rows={4} value={newA} onChange={e=>setNewA(e.target.value)} placeholder="e.g. Our fee is RM150..."/>
-                    </div>
-                    <button onClick={async()=>{
-                      if(!newQ?.trim()||!newA?.trim()) return;
-                      const clinicId=kbClinic?.id||null;
-                      const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb`:`${API}/api/kb`;
-                      await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({question:newQ.trim(),answer:newA.trim()})});
-                      setNewQ("");setNewA("");loadKbForClient(kbClinic||currentUser);
-                    }} className="nx-btn primary" style={{width:"100%",justifyContent:"center",fontSize:11}}>
-                      <i className="ti ti-plus" style={{fontSize:13}}/> Add Q&A
-                    </button>
-                  </div>
-                </div>}
-              </div>
-            </div>{/* end right sidebar */}
-
+                </div>{/* end right sidebar */}
             </div>{/* end main content flex */}
             </div>}{/* end !isAdmin||kbClinic */}
 
