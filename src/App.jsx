@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.276";
+const CRM_VERSION = "2.9.277";
 
 // Responsive hook
 function useWindowSize() {
@@ -3666,7 +3666,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {tab==="broadcast"&&<div style={{flex:1,display:"flex",overflow:"hidden",background:T.bg}}>
           {/* Left sidebar — client selector for admin */}
-          {isAdmin&&<div style={{width:240,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.sidebar,padding:"14px 10px"}}>
+          {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.sidebar,padding:"14px 10px"}}>
             <div style={{fontWeight:700,fontSize:11,color:T.textFaint,letterSpacing:1,textTransform:"uppercase",marginBottom:10,paddingLeft:6}}>Select Client</div>
             {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>{
               const isActive = c.active !== false;
@@ -3702,7 +3702,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>}
 
           {/* Main content — mockup style */}
-          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
             {(!isAdmin||(isAdmin&&broadcastClinic))&&<>
 
             {/* Page header — matches mockup */}
@@ -3730,460 +3730,346 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
 
             {/* ── SEND BROADCAST — two column layout like mockup ── */}
-            {broadcastSubTab==="send"&&<div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
-            <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
-            {/* Left column — steps */}
-            <div style={{flex:1,minWidth:0}}>
-            {/* Step 1 — Template */}
-            <div style={{background:T.card,borderRadius:12,marginBottom:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
-              <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    <span style={{fontSize:11,fontWeight:800,color:WA_GREEN}}>1</span>
+            {broadcastSubTab==="send"&&<div style={{flex:1,overflowY:"auto",padding:"20px"}}><div style={{display:"flex",gap:16,alignItems:"flex-start",height:"100%"}}>
+
+            {/* LEFT COLUMN — Steps */}
+            <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:12}}>
+
+              {/* STEP 1 — Template */}
+              <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+                <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <i className="ti ti-template" style={{fontSize:16,color:WA_GREEN}}/>
+                    <span style={{fontWeight:600,fontSize:13,color:T.text}}>1. Select Template</span>
+                    {selectedTemplate&&<span style={{fontSize:11,background:`${WA_GREEN}15`,color:WA_GREEN,padding:"2px 8px",borderRadius:20,fontWeight:600}}>✓ {selectedTemplate.template_name}</span>}
                   </div>
-                  <span style={{fontWeight:600,fontSize:13,color:T.text}}>Select Template</span>
-                  {selectedTemplate&&<span style={{fontSize:11,fontWeight:600,color:WA_GREEN,background:`${WA_GREEN}10`,padding:"2px 8px",borderRadius:20}}>✓ {selectedTemplate.template_name}</span>}
+                  <button onClick={async()=>{
+                    const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                    const pending=templates.filter(t=>t.status==="pending");
+                    for(const t of pending){try{await fetch(clinicId?`${API}/api/admin/clients/${clinicId}/templates/status?name=${t.template_name}`:`${API}/api/templates/status?name=${t.template_name}`,{headers:authHeaders()});}catch(e){}}
+                    fetchTemplates(clinicId);
+                  }} className="nx-btn" style={{padding:"4px 10px",fontSize:11}}>
+                    <i className="ti ti-refresh" style={{fontSize:12}}/> Refresh
+                  </button>
                 </div>
-                <button onClick={async()=>{
-                  const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                  const pending = templates.filter(t=>t.status==="pending");
-                  for(const t of pending){
-                    try {
-                      const url = clinicId?`${API}/api/admin/clients/${clinicId}/templates/status?name=${t.template_name}`:`${API}/api/templates/status?name=${t.template_name}`;
-                      await fetch(url,{headers:authHeaders()});
-                    } catch(e){}
-                  }
-                  fetchTemplates(clinicId);
-                }} style={{fontSize:10,padding:"3px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                  🔄 Refresh
-                </button>
-              </div>
-              {templates.length===0&&<div style={{padding:"20px 16px",fontSize:12,color:T.textMuted,textAlign:"center"}}>
-                No templates yet — click <strong>Create Template</strong> to add one.
-              </div>}
-
-              {/* Template list — clean rows like Linear */}
-              {templates.length>0&&<div style={{display:"flex",flexDirection:"column"}}>
-                {templates.map((t,i)=>{
-                  const isSelected = selectedTemplate?.id===t.id;
-                  const canSelect = t.status==="approved";
-                  const statusColor = t.status==="approved"?"#15803d":t.status==="rejected"?"#dc2626":"#b45309";
-                  const statusBg = t.status==="approved"?"#f0fdf4":t.status==="rejected"?"#fef2f2":"#fffbeb";
-                  return <div key={t.id} onClick={()=>canSelect&&setSelectedTemplate(isSelected?null:t)}
-                    style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",
-                      borderBottom:i<templates.length-1?`1px solid ${T.border}`:"none",
-                      background:isSelected?`${WA_GREEN}08`:"transparent",
-                      cursor:canSelect?"pointer":"default",transition:"background .15s"}}
-                    onMouseEnter={e=>{if(!isSelected&&canSelect)e.currentTarget.style.background=T.card2}}
-                    onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background="transparent"}}>
-                    {/* Radio circle */}
-                    <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${isSelected?WA_GREEN:T.border}`,
-                      background:isSelected?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
-                      {isSelected&&<div style={{width:6,height:6,borderRadius:"50%",background:"#fff"}}/>}
-                    </div>
-                    {/* Info */}
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,fontSize:13,color:T.text}}>{t.template_name}</div>
-                      {t.body_text&&<div style={{fontSize:11,color:T.textMuted,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.body_text.slice(0,70)}…</div>}
-                    </div>
-                    {/* Status badge */}
-                    <span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:20,background:statusBg,color:statusColor,flexShrink:0}}>
-                      {t.status==="approved"?"✅ Approved":t.status==="rejected"?"❌ Rejected":"⏳ Pending"}
-                    </span>
-                    {/* Delete */}
-                    <button onClick={async e=>{
-                      e.stopPropagation();
-                      const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                      await fetch(`${API}/api/templates/${t.id}`,{method:"DELETE",headers:authHeaders()});
-                      fetchTemplates(clinicId);
-                      if(selectedTemplate?.id===t.id) setSelectedTemplate(null);
-                    }} style={{width:24,height:24,border:"none",background:"transparent",color:T.textFaint,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,flexShrink:0}}
-                    onMouseEnter={e=>e.currentTarget.style.color="#ef4444"}
-                    onMouseLeave={e=>e.currentTarget.style.color=T.textFaint}>
-                      <i className="ti ti-trash" style={{fontSize:13}}/>
-                    </button>
-                  </div>;
-                })}
-              </div>}
-
-
-
-              {/* Add template form — simple */}
-              {showTemplateForm&&<div style={{marginTop:14,borderTop:`1px solid ${T.border}`,paddingTop:14}}> 
-                <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Add Template</div>
-                <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>Enter the exact template name as registered in Meta WhatsApp Manager.</div>
-                <div style={{marginBottom:10}}>
-                  <input value={newTemplate.template_name||""} onChange={e=>setNewTemplate(p=>({...p,template_name:e.target.value}))}
-                    placeholder="e.g. eecp_promo_with_image"
-                    style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
-                </div>
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:6}}>Message Body <span style={{fontWeight:400,color:T.textFaint}}>(the text content of your template — bot uses this to answer questions)</span></div>
-                  <textarea value={newTemplate.body_text||""} onChange={e=>setNewTemplate(p=>({...p,body_text:e.target.value}))}
-                    placeholder="e.g. Hello {name}! We're celebrating our 1-Year Anniversary! Package includes 100 Million Stem Cells, Free Blood Test, NAD+ Therapy. Price: RM35,054"
-                    rows={4}
-                    style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
-                  <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>This text is saved so the bot can answer customer questions about this broadcast</div>
-                </div>
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:6}}>Header Image <span style={{fontWeight:400,color:T.textFaint}}>(if template has image header)</span></div>
-                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                    <div>
-                      <input type="file" accept="image/*" id="tmpl-img-simple" style={{display:"none"}} onChange={async e=>{
-                        const file=e.target.files[0];if(!file)return;
-                        const fd=new FormData();fd.append("file",file);
-                        const r=await fetch(`${API}/api/upload/media`,{method:"POST",headers:{"Authorization":`Bearer ${authToken}`},body:fd});
-                        if(r.ok){const d=await r.json();setNewTemplate(p=>({...p,header_value:d.url||d.media_url||"",header_type:"image"}));}
-                      }}/>
-                      <button onClick={()=>document.getElementById("tmpl-img-simple").click()}
-                        style={{padding:"8px 14px",borderRadius:8,border:`1.5px dashed ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
-                        🖼️ Upload Image
+                {templates.length===0?
+                  <div style={{padding:"20px",textAlign:"center",color:T.textMuted,fontSize:12}}>No templates yet — click <strong>Create Template</strong> to add one.</div>:
+                  <div>{templates.map((t,i)=>{
+                    const isSelected=selectedTemplate?.id===t.id;
+                    const canSelect=t.status==="approved";
+                    const statusColor=t.status==="approved"?"#15803d":t.status==="rejected"?"#dc2626":"#b45309";
+                    const statusBg=t.status==="approved"?"#f0fdf4":t.status==="rejected"?"#fef2f2":"#fffbeb";
+                    return <div key={t.id} onClick={()=>canSelect&&setSelectedTemplate(isSelected?null:t)}
+                      style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",
+                        borderBottom:i<templates.length-1?`1px solid ${T.border}`:"none",
+                        background:isSelected?`${WA_GREEN}08`:"transparent",cursor:canSelect?"pointer":"default",transition:"background .15s"}}
+                      onMouseEnter={e=>{if(!isSelected&&canSelect)e.currentTarget.style.background=T.card2}}
+                      onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background=isSelected?`${WA_GREEN}08`:"transparent"}}>
+                      <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${isSelected?WA_GREEN:T.border}`,
+                        background:isSelected?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        {isSelected&&<div style={{width:6,height:6,borderRadius:"50%",background:"#fff"}}/>}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:600,fontSize:13,color:T.text}}>{t.template_name}</div>
+                        {t.body_text&&<div style={{fontSize:11,color:T.textMuted,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.body_text.slice(0,80)}</div>}
+                      </div>
+                      <span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:20,background:statusBg,color:statusColor,flexShrink:0}}>
+                        {t.status==="approved"?"✅ Approved":t.status==="rejected"?"❌ Rejected":"⏳ Pending"}
+                      </span>
+                      <button onClick={async e=>{e.stopPropagation();
+                        const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                        await fetch(`${API}/api/templates/${t.id}`,{method:"DELETE",headers:authHeaders()});
+                        fetchTemplates(clinicId);if(selectedTemplate?.id===t.id)setSelectedTemplate(null);
+                      }} style={{width:24,height:24,border:"none",background:"transparent",color:T.textFaint,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,flexShrink:0}}
+                      onMouseEnter={e=>e.currentTarget.style.color="#ef4444"}
+                      onMouseLeave={e=>e.currentTarget.style.color=T.textFaint}>
+                        <i className="ti ti-trash" style={{fontSize:13}}/>
                       </button>
-                    </div>
-                    <input value={newTemplate.header_value||""} onChange={e=>setNewTemplate(p=>({...p,header_value:e.target.value,header_type:e.target.value?"image":"none"}))}
-                      placeholder="or paste image URL here"
-                      style={{flex:1,background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+                    </div>;
+                  })}</div>
+                }
+              </div>
+
+              {/* STEP 2 — Contacts */}
+              <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+                <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <i className="ti ti-users" style={{fontSize:16,color:WA_GREEN}}/>
+                    <span style={{fontWeight:600,fontSize:13,color:T.text}}>2. Select Contacts</span>
+                    <span style={{fontSize:11,color:T.textMuted}}>({contacts.length} total)</span>
                   </div>
-                  {newTemplate.header_value&&<div style={{marginTop:8}}>
-                    <img src={newTemplate.header_value} alt="preview"
-                      style={{width:"100%",maxHeight:120,objectFit:"contain",borderRadius:8,border:`1px solid ${T.border}`}}
-                      onError={e=>e.target.style.display="none"}/>
-                    <div style={{fontSize:10,color:WA_GREEN,marginTop:4}}>✅ {newTemplate.header_value.split("/").pop()}</div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>setBroadcastContacts(contacts.map(c=>({name:c.name||c.phone,phone:c.phone})))} className="nx-btn" style={{padding:"4px 10px",fontSize:11}}>All</button>
+                    <button onClick={()=>setBroadcastContacts([])} className="nx-btn" style={{padding:"4px 10px",fontSize:11}}>Clear</button>
+                    <button onClick={()=>document.getElementById("broadcast-file-input").click()} className="nx-btn" style={{padding:"4px 10px",fontSize:11}}><i className="ti ti-paperclip" style={{fontSize:12}}/></button>
+                  </div>
+                </div>
+                <input type="file" accept=".csv,.txt" id="broadcast-file-input" style={{display:"none"}} onChange={e=>{
+                  const file=e.target.files[0]; if(!file) return;
+                  const reader=new FileReader();
+                  reader.onload=ev=>{
+                    const lines=ev.target.result.split("\n").filter(Boolean);
+                    const newContacts=[];
+                    lines.forEach(line=>{
+                      const parts=line.split(",");
+                      const phone=(parts[1]||parts[0]||"").trim().replace(/[^0-9+]/g,"");
+                      const name=(parts[0]||"").trim().replace(/"/g,"");
+                      if(phone.length>=7) newContacts.push({name:name||phone,phone});
+                    });
+                    setBroadcastContacts(prev=>{
+                      const existing=new Set(prev.map(x=>x.phone));
+                      return [...prev,...newContacts.filter(x=>!existing.has(x.phone))];
+                    });
+                  };
+                  reader.readAsText(file);
+                }}/>
+                <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.border}`}}>
+                  <div className="nx-search">
+                    <i className="ti ti-search" style={{fontSize:14,color:T.textFaint}}/>
+                    <input value={broadcastSearch||""} onChange={e=>setBroadcastSearch(e.target.value)} placeholder="Search by name or number..."/>
+                    {broadcastSearch&&<i className="ti ti-x" onClick={()=>setBroadcastSearch("")} style={{fontSize:12,color:T.textMuted,cursor:"pointer"}}/>}
+                  </div>
+                </div>
+                <div style={{maxHeight:220,overflowY:"auto"}}>
+                  {(()=>{
+                    const q=(broadcastSearch||"").toLowerCase();
+                    const filtered=contacts.filter(c=>(c.name||"").toLowerCase().includes(q)||c.phone?.includes(q));
+                    const phoneMatch=/^[0-9+\s\-()]{7,}$/.test(broadcastSearch||"");
+                    const exactMatch=contacts.some(c=>c.phone===broadcastSearch||c.phone==="+"+broadcastSearch);
+                    return <>
+                      {filtered.map((c,i,arr)=>{
+                        const isChecked=broadcastContacts.some(x=>x.phone===c.phone);
+                        const initials=(c.name||c.phone||"?").slice(0,2).toUpperCase();
+                        return <div key={c.phone||i} onClick={()=>{
+                          if(isChecked) setBroadcastContacts(p=>p.filter(x=>x.phone!==c.phone));
+                          else setBroadcastContacts(p=>[...p,{name:c.name||c.phone,phone:c.phone}]);
+                        }} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",cursor:"pointer",
+                          background:isChecked?`${WA_GREEN}08`:"transparent",
+                          borderBottom:i<arr.length-1?`1px solid ${T.border}`:"none",transition:"background .1s"}}
+                        onMouseEnter={e=>{if(!isChecked)e.currentTarget.style.background=T.card2}}
+                        onMouseLeave={e=>{if(!isChecked)e.currentTarget.style.background="transparent"}}>
+                          <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${isChecked?WA_GREEN:T.border}`,
+                            background:isChecked?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            {isChecked&&<i className="ti ti-check" style={{fontSize:10,color:"#fff"}}/>}
+                          </div>
+                          <div style={{width:32,height:32,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>{initials}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:13,fontWeight:600,color:T.text}}>{c.name||c.phone}</div>
+                            <div style={{fontSize:11,color:T.textMuted}}>{c.phone}</div>
+                          </div>
+                          {c.lead==="hot"&&<span style={{fontSize:9,background:"#fef2f2",color:"#dc2626",padding:"2px 6px",borderRadius:10,fontWeight:600}}>🔥</span>}
+                        </div>;
+                      })}
+                      {phoneMatch&&!exactMatch&&<div onClick={()=>{setBroadcastContacts(p=>[...p,{name:broadcastSearch,phone:broadcastSearch}]);setBroadcastSearch("");}}
+                        style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",cursor:"pointer",background:`${WA_GREEN}08`}}>
+                        <div style={{width:32,height:32,borderRadius:"50%",background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <i className="ti ti-plus" style={{fontSize:14,color:WA_GREEN}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:600,color:WA_GREEN}}>Add "{broadcastSearch}"</div>
+                          <div style={{fontSize:10,color:T.textMuted}}>Send to this number</div>
+                        </div>
+                      </div>}
+                      {filtered.length===0&&!phoneMatch&&<div style={{padding:"16px",fontSize:12,color:T.textMuted,textAlign:"center"}}>No contacts found</div>}
+                    </>;
+                  })()}
+                </div>
+                {broadcastContacts.length>0&&<div style={{padding:"8px 14px",borderTop:`1px solid ${T.border}`,fontSize:12,color:WA_GREEN,fontWeight:600}}>
+                  <i className="ti ti-check" style={{fontSize:12,marginRight:4}}/>{broadcastContacts.length} contact{broadcastContacts.length!==1?"s":""} selected
+                </div>}
+              </div>
+
+              {/* STEP 3 — Send */}
+              <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+                <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
+                  <i className="ti ti-send" style={{fontSize:16,color:WA_GREEN}}/>
+                  <span style={{fontWeight:600,fontSize:13,color:T.text}}>3. Send</span>
+                </div>
+                <div style={{padding:"14px 16px"}}>
+                  {/* Send Now / Schedule toggle */}
+                  <div style={{display:"flex",gap:4,background:T.card2,borderRadius:8,padding:3,marginBottom:14}}>
+                    <button onClick={()=>setScheduleMode(false)}
+                      style={{flex:1,padding:"7px",borderRadius:6,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s",
+                        background:!scheduleMode?T.card:"transparent",color:!scheduleMode?T.text:T.textMuted,
+                        boxShadow:!scheduleMode?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
+                      <i className="ti ti-send" style={{fontSize:12,marginRight:4}}/>Send Now
+                    </button>
+                    <button onClick={()=>setScheduleMode(true)}
+                      style={{flex:1,padding:"7px",borderRadius:6,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s",
+                        background:scheduleMode?T.card:"transparent",color:scheduleMode?T.text:T.textMuted,
+                        boxShadow:scheduleMode?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
+                      <i className="ti ti-clock" style={{fontSize:12,marginRight:4}}/>Schedule
+                    </button>
+                  </div>
+
+                  {/* Schedule date/time picker */}
+                  {scheduleMode&&<div style={{marginBottom:14,display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <div style={{flex:1,minWidth:120}}>
+                      <label style={{fontSize:11,fontWeight:600,color:T.textMuted,display:"block",marginBottom:4}}>Date</label>
+                      <input type="date" value={scheduleAt.split("T")[0]||""} min={new Date().toISOString().split("T")[0]}
+                        onChange={e=>setScheduleAt(prev=>`${e.target.value}T${prev.split("T")[1]||"09:00"}`)}
+                        style={{width:"100%",padding:"8px 10px",border:`1px solid ${T.border}`,borderRadius:8,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+                    </div>
+                    <div style={{flex:1,minWidth:80}}>
+                      <label style={{fontSize:11,fontWeight:600,color:T.textMuted,display:"block",marginBottom:4}}>Hour</label>
+                      <select value={scheduleAt.split("T")[1]?.split(":")[0]||"9"}
+                        onChange={e=>setScheduleAt(prev=>`${prev.split("T")[0]||new Date().toISOString().split("T")[0]}T${e.target.value.padStart(2,"0")}:${prev.split("T")[1]?.split(":")[1]||"00"}`)}
+                        style={{width:"100%",padding:"8px 10px",border:`1px solid ${T.border}`,borderRadius:8,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+                        {Array.from({length:24},(_,h)=><option key={h} value={h}>{String(h).padStart(2,"0")}:00</option>)}
+                      </select>
+                    </div>
+                    <div style={{flex:1,minWidth:80}}>
+                      <label style={{fontSize:11,fontWeight:600,color:T.textMuted,display:"block",marginBottom:4}}>Minute</label>
+                      <select value={scheduleAt.split("T")[1]?.split(":")[1]||"0"}
+                        onChange={e=>setScheduleAt(prev=>`${prev.split("T")[0]||new Date().toISOString().split("T")[0]}T${prev.split("T")[1]?.split(":")[0]||"09"}:${e.target.value}`)}
+                        style={{width:"100%",padding:"8px 10px",border:`1px solid ${T.border}`,borderRadius:8,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+                        {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m=><option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                  </div>}
+
+                  {/* Send button */}
+                  <button onClick={async()=>{
+                    if(!selectedTemplate||broadcastContacts.length===0) return;
+                    if(scheduleMode){
+                      if(!scheduleAt||!scheduleAt.includes("T")) return alert("Please select a date and time.");
+                      const localDate=new Date(scheduleAt);
+                      if(isNaN(localDate.getTime())) return alert("Invalid date/time.");
+                      const utcStr=localDate.toISOString();
+                      const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                      const url=clinicId?`${API}/api/admin/clients/${clinicId}/scheduled-broadcasts`:`${API}/api/scheduled-broadcasts`;
+                      const r=await fetch(url,{method:"POST",headers:authHeaders(),body:JSON.stringify({
+                        template_name:selectedTemplate.template_name,
+                        language:selectedTemplate.language||"en",
+                        header_value:selectedTemplate.header_value||"",
+                        header_type:selectedTemplate.header_type||"none",
+                        contacts:broadcastContacts,
+                        scheduled_at:utcStr,
+                      })});
+                      if(r.ok){fetchScheduledBroadcasts(clinicId);setBroadcastContacts([]);setScheduleMode(false);setScheduleAt("");}
+                      else alert("Failed to schedule.");
+                      return;
+                    }
+                    setBroadcastProgress({active:true,done:0,total:broadcastContacts.length,failed:0});
+                    let done=0,failed=0;
+                    const token=sessionStorage.getItem("crm_token")||authToken;
+                    const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                    const url=clinicId?`${API}/api/admin/clients/${clinicId}/broadcast/send`:`${API}/api/broadcast/send`;
+                    for(const contact of broadcastContacts){
+                      try{
+                        await new Promise((resolve)=>{
+                          const xhr=new XMLHttpRequest();
+                          xhr.open("POST",url);
+                          xhr.setRequestHeader("Content-Type","application/json");
+                          xhr.setRequestHeader("Authorization","Bearer "+token);
+                          xhr.onload=()=>{try{const d=JSON.parse(xhr.responseText);if(d.success||d.message_id)done++;else failed++;}catch{failed++;}resolve();};
+                          xhr.onerror=()=>{failed++;resolve();};
+                          xhr.send(JSON.stringify({
+                            phone:contact.phone,name:contact.name||contact.phone,
+                            template_name:selectedTemplate.template_name,
+                            language:selectedTemplate.language||"en",
+                            header_value:selectedTemplate.header_value||"",
+                            header_type:selectedTemplate.header_type||"none"
+                          }));
+                        });
+                      }catch{failed++;}
+                      setBroadcastProgress({active:true,done:done+failed,total:broadcastContacts.length,failed});
+                    }
+                    setBroadcastProgress({active:false,done,total:broadcastContacts.length,failed});
+                  }} disabled={!selectedTemplate||broadcastContacts.length===0||broadcastProgress?.active}
+                    className="nx-btn primary" style={{width:"100%",justifyContent:"center",padding:"11px",fontSize:13,fontWeight:600,
+                      opacity:(!selectedTemplate||broadcastContacts.length===0)?0.5:1,
+                      cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer"}}>
+                    <i className={`ti ti-${scheduleMode?"calendar":"send"}`} style={{fontSize:15}}/>
+                    {scheduleMode?`Schedule for ${broadcastContacts.length} contacts`:`Send to ${broadcastContacts.length} contacts`}
+                  </button>
+
+                  {broadcastProgress&&<div style={{marginTop:12,background:T.card2,borderRadius:8,padding:12,border:`1px solid ${T.border}`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                      <span style={{fontSize:12,fontWeight:600,color:T.text}}>{broadcastProgress.active?"Sending…":"Done!"}</span>
+                      <span style={{fontSize:12,color:T.textMuted}}>{broadcastProgress.done}/{broadcastProgress.total}</span>
+                    </div>
+                    <div style={{height:5,borderRadius:3,background:T.border,overflow:"hidden"}}>
+                      <div style={{height:5,borderRadius:3,background:WA_GREEN,width:`${(broadcastProgress.done/broadcastProgress.total)*100}%`,transition:"width .3s"}}/>
+                    </div>
+                    {broadcastProgress.failed>0&&<div style={{fontSize:11,color:"#ef4444",marginTop:4}}>{broadcastProgress.failed} failed</div>}
+                    {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
                   </div>}
                 </div>
-
-                <button onClick={async()=>{
-                  if(!newTemplate.template_name?.trim()) return showToast("Template name required","#ef4444");
-                  const isEdit=!!newTemplate.id;
-                  const payload={template_name:newTemplate.template_name.trim(),language:newTemplate.language||"en",
-                    category:"MARKETING",header_type:newTemplate.header_value?"image":"none",
-                    header_value:newTemplate.header_value||"",body_text:newTemplate.body_text||newTemplate.template_name.trim(),
-                    footer_text:"",variables:[],status:newTemplate.status||"approved"};
-                  const url=isEdit?`${API}/api/templates/${newTemplate.id}`:(isAdmin&&broadcastClinic?`${API}/api/admin/clients/${broadcastClinic.clinic_id}/templates`:`${API}/api/templates`);
-                  const r=await fetch(url,{method:isEdit?"PATCH":"POST",headers:authHeaders(),body:JSON.stringify(payload)});
-                  if(r.ok){
-                    const saved=isEdit?{...newTemplate,...payload}:await r.json();
-                    if(isEdit)setTemplates(p=>p.map(t=>t.id===newTemplate.id?saved:t));
-                    else{setTemplates(p=>[saved,...p]);setSelectedTemplate(saved);}
-                    setShowTemplateForm(false);
-                    setNewTemplate({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"approved"});
-                  }
-                }} style={{width:"100%",padding:"11px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  💾 Save Template
-                </button>
-              </div>}
-
-            {/* Step 2 — Contacts */}
-            <div style={{background:T.card,borderRadius:12,marginBottom:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
-              <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    <span style={{fontSize:11,fontWeight:800,color:WA_GREEN}}>2</span>
-                  </div>
-                  <span style={{fontWeight:600,fontSize:13,color:T.text}}>Select Contacts</span>
-                  {broadcastContacts.length>0&&<span style={{fontSize:11,fontWeight:600,color:WA_GREEN,background:`${WA_GREEN}10`,padding:"2px 8px",borderRadius:20}}>✓ {broadcastContacts.length} selected</span>}
-                </div>
-                <div style={{display:"flex",gap:4}}>
-                  <button onClick={()=>setBroadcastContacts(contacts.map(c=>({name:c.name||c.phone,phone:c.phone})))}
-                    className="nx-btn" style={{fontSize:11,padding:"4px 10px"}}>All</button>
-                  <button onClick={()=>setBroadcastContacts([])}
-                    className="nx-btn" style={{fontSize:11,padding:"4px 10px"}}>Clear</button>
-                  <button onClick={()=>document.getElementById("broadcast-file-input").click()}
-                    className="nx-btn" style={{fontSize:11,padding:"4px 10px"}}><i className="ti ti-paperclip" style={{fontSize:12}}/> CSV</button>
-                </div>
               </div>
-              <input type="file" accept=".csv,.xlsx,.xls" onChange={e=>{
-                const file=e.target.files[0]; if(!file) return;
-                const reader=new FileReader();
-                reader.onload=ev=>{
-                  const text=ev.target.result;
-                  const rows=text.split("\n").filter(Boolean);
-                  const parsed=rows.slice(1).map(l=>{const p=l.split(",");return{name:(p[0]||"").trim().replace(/"/g,""),phone:(p[1]||p[0]||"").trim().replace(/"/g,"").replace(/\s/g,"")};}).filter(c=>c.phone);
-                  setBroadcastContacts(parsed);
-                };
-                reader.readAsText(file);
-              }} style={{display:"none"}} id="broadcast-file-input"/>
-              {/* Search */}
-              <div className="nx-search" style={{margin:"10px 14px 0"}}>
-                <i className="ti ti-search" style={{fontSize:14,color:T.textFaint}}/>
-                <input placeholder="Search by name or number..." value={broadcastSearch||""} onChange={e=>setBroadcastSearch(e.target.value)}/>
-                {broadcastSearch&&<i className="ti ti-x" onClick={()=>setBroadcastSearch("")} style={{fontSize:12,color:T.textMuted,cursor:"pointer"}}/>}
-              </div>
-              {/* Contact list with checkboxes */}
-              <div style={{maxHeight:200,overflowY:"auto",margin:"10px 14px",border:`1px solid ${T.border}`,borderRadius:8}}>
-                {(()=>{
-                  const q=(broadcastSearch||"").toLowerCase();
-                  const filtered=contacts.filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q));
-                  const phoneMatch=broadcastSearch&&broadcastSearch.replace(/\D/g,"").length>=7;
-                  const exactMatch=contacts.some(c=>c.phone===broadcastSearch||c.phone==="+"+broadcastSearch||c.phone.replace(/\D/g,"")===broadcastSearch.replace(/\D/g,""));
-                  return <>
-                    {filtered.map((c,i,arr)=>{
-                      const isChecked = broadcastContacts.some(x=>x.phone===c.phone);
-                      return <div key={c.phone||i} onClick={()=>{
-                        if(isChecked) setBroadcastContacts(p=>p.filter(x=>x.phone!==c.phone));
-                        else setBroadcastContacts(p=>[...p,{name:c.name||c.phone,phone:c.phone}]);
-                      }} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer",
-                        background:isChecked?`${WA_GREEN}10`:"transparent",
-                        borderBottom:i<arr.length-1?`1px solid ${T.border}`:"none"}}>
-                        <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${isChecked?WA_GREEN:T.border}`,background:isChecked?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                          {isChecked&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
-                        </div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,fontWeight:600,color:T.text}}>{c.name||c.phone}</div>
-                          <div style={{fontSize:10,color:T.textMuted}}>{c.phone}</div>
-                        </div>
-                      </div>;
-                    })}
-                    {phoneMatch&&!exactMatch&&<div onClick={()=>{
-                      const newContact={name:broadcastSearch,phone:broadcastSearch};
-                      setBroadcastContacts(p=>[...p,newContact]);
-                      setBroadcastSearch("");
-                    }} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer",
-                      background:WA_GREEN+"08",borderTop:filtered.length>0?`1px solid ${T.border}`:"none"}}>
-                      <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${WA_GREEN}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        <span style={{color:WA_GREEN,fontSize:14,fontWeight:700}}>+</span>
-                      </div>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:12,fontWeight:600,color:WA_GREEN}}>Add "{broadcastSearch}"</div>
-                        <div style={{fontSize:10,color:T.textMuted}}>Send to this number directly</div>
-                      </div>
-                    </div>}
-                    {filtered.length===0&&!phoneMatch&&<div style={{padding:"12px",fontSize:12,color:T.textMuted,textAlign:"center"}}>No contacts found</div>}
-                  </>;
-                })()}
-              </div>
-              {broadcastContacts.length>0&&<div style={{margin:"8px 14px",fontSize:12,color:WA_GREEN,fontWeight:600}}>✓ {broadcastContacts.length} contact{broadcastContacts.length!==1?"s":""} selected</div>}
-            </div>
-
-            {/* Step 3 — Send */}
-            <div style={{background:T.card,borderRadius:12,marginBottom:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
-              <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:22,height:22,borderRadius:6,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <span style={{fontSize:11,fontWeight:800,color:WA_GREEN}}>3</span>
-                </div>
-                <span style={{fontWeight:600,fontSize:13,color:T.text}}>Send</span>
-              </div>
-              <div style={{padding:"14px 16px"}}>
-              {/* Send Now / Schedule toggle */}
-              <div style={{display:"flex",gap:6,marginBottom:14,background:T.card2,borderRadius:8,padding:4}}>
-                <button onClick={()=>setScheduleMode(false)}
-                  style={{flex:1,padding:"7px",borderRadius:6,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s",
-                    background:!scheduleMode?T.card:"transparent",color:!scheduleMode?T.text:T.textMuted,
-                    boxShadow:!scheduleMode?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
-                  <i className="ti ti-send" style={{fontSize:13,marginRight:4}}/>Send Now</button>
-                <button onClick={()=>setScheduleMode(true)}
-                  style={{flex:1,padding:"7px",borderRadius:6,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s",
-                    background:scheduleMode?T.card:"transparent",color:scheduleMode?T.text:T.textMuted,
-                    boxShadow:scheduleMode?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
-                  <i className="ti ti-clock" style={{fontSize:13,marginRight:4}}/>Schedule</button>
-              </div>
-
-              {/* Schedule date/time picker */}
-              {scheduleMode&&<div style={{marginBottom:14}}>
-                <label style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:6,display:"block"}}>Select date & time</label>
-                <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:8}}>
-                  {/* Date */}
-                  <input type="date" value={(scheduleAt||"").slice(0,10)}
-                    min={new Date(Date.now()+60000).toISOString().slice(0,10)}
-                    onChange={e=>{
-                      const d=e.target.value;
-                      const time=(scheduleAt||"").slice(11)||"09:00";
-                      setScheduleAt(d+"T"+time);
-                    }}
-                    style={{padding:"9px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}/>
-                  {/* Hour 00-23 */}
-                  <select value={(scheduleAt||"T09:00").split("T")[1]?.split(":")[0]||"09"}
-                    onChange={e=>{
-                      const parts=(scheduleAt||new Date().toISOString().slice(0,10)+"T09:00").split("T");
-                      const min=(parts[1]||"09:00").split(":")[1]||"00";
-                      setScheduleAt(parts[0]+"T"+e.target.value+":"+min);
-                    }}
-                    style={{padding:"9px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                    {Array.from({length:24},(_,i)=>String(i).padStart(2,"0")).map(h=><option key={h} value={h}>{h}:00</option>)}
-                  </select>
-                  {/* Minute */}
-                  <select value={(scheduleAt||"T09:00").split("T")[1]?.split(":")[1]||"00"}
-                    onChange={e=>{
-                      const parts=(scheduleAt||new Date().toISOString().slice(0,10)+"T09:00").split("T");
-                      const hr=(parts[1]||"09:00").split(":")[0]||"09";
-                      setScheduleAt(parts[0]+"T"+hr+":"+e.target.value);
-                    }}
-                    style={{padding:"9px 8px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                    {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m=><option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-                {scheduleAt&&<div style={{marginTop:8,fontSize:11,color:WA_GREEN,fontWeight:600,textAlign:"center"}}>
-                  📅 {new Date(scheduleAt).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})}
-                </div>}
-              </div>}
-
-              {/* Send / Schedule button */}
-              <button onClick={async()=>{
-                if(!selectedTemplate) return showToast("Select a template first","#ef4444");
-                if(broadcastContacts.length===0) return showToast("Select contacts first","#ef4444");
-                const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-
-                if(scheduleMode) {
-                  // Schedule broadcast
-                  if(!scheduleAt) return showToast("Select a date and time","#ef4444");
-                  const scheduledUtc = new Date(scheduleAt).toISOString();
-                  const url = clinicId ? `${API}/api/admin/clients/${clinicId}/scheduled-broadcasts` : `${API}/api/scheduled-broadcasts`;
-                  const token = sessionStorage.getItem("crm_token");
-                  const xhr = new XMLHttpRequest();
-                  xhr.open("POST", url);
-                  xhr.setRequestHeader("Authorization","Bearer "+token);
-                  xhr.setRequestHeader("Content-Type","application/json");
-                  xhr.onload = () => {
-                    if(xhr.status===200||xhr.status===201) {
-                      const t=document.createElement("div");
-                      t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#22c55e;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;font-family:inherit;box-shadow:0 4px 20px rgba(0,0,0,.2);";
-                      t.textContent="✅ Scheduled for "+new Date(scheduleAt).toLocaleString();
-                      document.body.appendChild(t);
-                      setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>document.body.removeChild(t),300);},3000);
-                      setScheduleAt("");
-                      setScheduleMode(false);
-                      fetchScheduledBroadcasts(clinicId);
-                    } else {
-                      const t=document.createElement("div");
-                      t.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;background:#ef4444;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;font-family:inherit;box-shadow:0 4px 20px rgba(0,0,0,.2);";
-                      t.textContent="❌ Failed to schedule";
-                      document.body.appendChild(t);
-                      setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>document.body.removeChild(t),300);},3000);
-                    }
-                  };
-                  xhr.send(JSON.stringify({
-                    template_name:selectedTemplate.template_name,
-                    language:selectedTemplate.language||"en",
-                    header_value:selectedTemplate.header_value||"",
-                    header_type:selectedTemplate.header_type||"none",
-                    contacts:broadcastContacts,
-                    scheduled_at:scheduledUtc
-                  }));
-                } else {
-                  // Send now
-                  setBroadcastProgress({active:true,done:0,total:broadcastContacts.length,failed:0});
-                  let done=0,failed=0;
-                  for(const contact of broadcastContacts){
-                    try{
-                      const url=clinicId?`${API}/api/admin/clients/${clinicId}/broadcast`:`${API}/api/broadcast/send`;
-                      const token=sessionStorage.getItem("crm_token");
-                      const result = await new Promise((resolve)=>{
-                        const xhr=new XMLHttpRequest();
-                        xhr.open("POST",url);
-                        xhr.setRequestHeader("Authorization","Bearer "+token);
-                        xhr.setRequestHeader("Content-Type","application/json");
-                        xhr.onload=()=>resolve(xhr.status>=200&&xhr.status<300);
-                        xhr.onerror=()=>resolve(false);
-                        xhr.send(JSON.stringify({
-                          template_name:selectedTemplate.template_name,
-                          language:selectedTemplate.language||"en",
-                          phone:contact.phone,
-                          name:contact.name||contact.phone,
-                          header_value:selectedTemplate.header_value||"",
-                          header_type:selectedTemplate.header_type||"none"
-                        }));
-                      });
-                      if(result) done++; else failed++;
-                    }catch{failed++;}
-                    setBroadcastProgress({active:true,done:done+failed,total:broadcastContacts.length,failed});
-                  }
-                  setBroadcastProgress({active:false,done,total:broadcastContacts.length,failed});
-                }
-              }} disabled={!selectedTemplate||broadcastContacts.length===0||broadcastProgress?.active}
-                className="nx-btn primary" style={{width:"100%",justifyContent:"center",padding:"11px",fontSize:13,fontWeight:700,
-                  opacity:(!selectedTemplate||broadcastContacts.length===0)?0.5:1,
-                  cursor:(!selectedTemplate||broadcastContacts.length===0)?"not-allowed":"pointer"}}>
-                <i className={`ti ti-${scheduleMode?"calendar":"send"}`} style={{fontSize:15}}/>
-                {scheduleMode?`Schedule for ${broadcastContacts.length} contacts`:`Send to ${broadcastContacts.length} contacts`}
-              </button>
-
-              {broadcastProgress&&<div style={{marginTop:14,background:T.card2,borderRadius:10,padding:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                  <span style={{fontSize:12,fontWeight:600,color:T.text}}>{broadcastProgress.active?"Sending...":"Done!"}</span>
-                  <span style={{fontSize:12,color:T.textMuted}}>{broadcastProgress.done}/{broadcastProgress.total}</span>
-                </div>
-                <div style={{height:6,borderRadius:3,background:T.border,overflow:"hidden"}}>
-                  <div style={{height:6,borderRadius:3,background:WA_GREEN,width:`${(broadcastProgress.done/broadcastProgress.total)*100}%`,transition:"width .3s"}}/>
-                </div>
-                {broadcastProgress.failed>0&&<div style={{fontSize:11,color:"#ef4444",marginTop:4}}>{broadcastProgress.failed} failed</div>}
-                {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
-              </div>}
-              </div>{/* end padding */}
-            </div>{/* end Step 3 card */}
 
             </div>{/* end left column */}
 
-            {/* Right column — phone preview + scheduled */}
-            <div style={{width:260,flexShrink:0}}>
-              {/* Phone preview card */}
-              <div className="nx-card" style={{marginBottom:16}}>
-                <div className="nx-card-title">
-                  <i className="ti ti-device-mobile" style={{fontSize:16,color:WA_GREEN}}/>
-                  Preview
+            {/* RIGHT COLUMN — Preview + Scheduled */}
+            <div style={{width:240,flexShrink:0,display:"flex",flexDirection:"column",gap:12}}>
+              {/* Phone preview */}
+              <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+                <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:6}}>
+                  <i className="ti ti-device-mobile" style={{fontSize:14,color:WA_GREEN}}/>
+                  <span style={{fontWeight:600,fontSize:12,color:T.text}}>Preview</span>
                 </div>
-                {selectedTemplate?<div style={{background:"#1a1a1a",borderRadius:28,padding:"10px 6px",boxShadow:"0 6px 24px rgba(0,0,0,.4)"}}>
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
-                    <div style={{width:36,height:4,borderRadius:2,background:"#333"}}/>
-                  </div>
-                  <div style={{background:"#e5ddd5",borderRadius:20,overflow:"hidden"}}>
-                    <div style={{background:"#075e54",padding:"8px 10px",display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{width:24,height:24,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:700}}>
-                        {selectedTemplate.template_name[0]?.toUpperCase()}
-                      </div>
-                      <div style={{fontSize:10,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selectedTemplate.template_name}</div>
+                <div style={{padding:12}}>
+                  {selectedTemplate?<div style={{background:"#1a1a1a",borderRadius:24,padding:"8px 5px",boxShadow:"0 4px 20px rgba(0,0,0,.3)"}}>
+                    <div style={{display:"flex",justifyContent:"center",marginBottom:5}}>
+                      <div style={{width:30,height:3,borderRadius:2,background:"#333"}}/>
                     </div>
-                    <div style={{padding:"8px 6px"}}>
-                      <div style={{background:"#fff",borderRadius:"0 8px 8px 8px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
-                        {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
-                          <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:110,objectFit:"cover",display:"block"}}/>}
-                        {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="VIDEO"&&
-                          <video src={selectedTemplate.header_value} controls style={{width:"100%",maxHeight:110,display:"block"}}/>}
-                        {selectedTemplate.body_text&&<div style={{padding:"7px 9px",fontSize:10,color:"#1a1a1a",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{selectedTemplate.body_text}</div>}
-                        {selectedTemplate.footer_text&&<div style={{padding:"0 9px 5px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
-                        <div style={{padding:"0 9px 5px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+                    <div style={{background:"#e5ddd5",borderRadius:18,overflow:"hidden"}}>
+                      <div style={{background:"#075e54",padding:"7px 9px",display:"flex",alignItems:"center",gap:7}}>
+                        <div style={{width:22,height:22,borderRadius:"50%",background:"#128c7e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"#fff",fontWeight:700}}>
+                          {selectedTemplate.template_name[0]?.toUpperCase()}
+                        </div>
+                        <div style={{fontSize:10,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selectedTemplate.template_name}</div>
+                      </div>
+                      <div style={{padding:"6px 5px"}}>
+                        <div style={{background:"#fff",borderRadius:"0 7px 7px 7px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
+                          {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
+                            <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:80,objectFit:"cover",display:"block"}}/>}
+                          {selectedTemplate.body_text&&<div style={{padding:"6px 8px",fontSize:10,color:"#1a1a1a",lineHeight:1.4,whiteSpace:"pre-wrap"}}>{selectedTemplate.body_text.slice(0,120)}</div>}
+                          {selectedTemplate.footer_text&&<div style={{padding:"0 8px 4px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
+                          <div style={{padding:"0 8px 4px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"center",marginTop:6}}>
-                    <div style={{width:28,height:4,borderRadius:2,background:"#333"}}/>
-                  </div>
-                </div>:<div style={{textAlign:"center",padding:"24px 0",color:T.textFaint,fontSize:12}}>Select a template to preview</div>}
+                    <div style={{display:"flex",justifyContent:"center",marginTop:5}}>
+                      <div style={{width:24,height:3,borderRadius:2,background:"#333"}}/>
+                    </div>
+                  </div>:<div style={{textAlign:"center",padding:"20px 0",color:T.textFaint,fontSize:11}}>Select a template to preview</div>}
+                </div>
               </div>
 
-              {/* Scheduled card */}
-              <div className="nx-card">
-                <div className="nx-card-title">
-                  <i className="ti ti-calendar" style={{fontSize:16,color:WA_GREEN}}/>
-                  Scheduled
+              {/* Scheduled */}
+              <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+                <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:6}}>
+                  <i className="ti ti-calendar" style={{fontSize:14,color:WA_GREEN}}/>
+                  <span style={{fontWeight:600,fontSize:12,color:T.text}}>Scheduled</span>
                 </div>
-                {scheduledBroadcasts.length===0?
-                  <div style={{textAlign:"center",padding:"16px 0",color:T.textFaint,fontSize:12}}>No scheduled broadcasts</div>:
-                  scheduledBroadcasts.slice(0,5).map(s=>{
-                    const contactCount=(Array.isArray(s.contacts)?s.contacts:(typeof s.contacts==="string"?JSON.parse(s.contacts||"[]"):[])).length;
-                    const isPending=s.status==="pending";
-                    const isSent=s.status==="sent";
-                    const statusColor=isPending?"#b45309":isSent?WA_GREEN:"#ef4444";
-                    const statusLabel=isPending?"⏳ Pending":isSent?"✅ Sent":"❌ Failed";
-                    return <div key={s.id} style={{padding:"10px",background:T.card2,borderRadius:8,marginBottom:8,border:`1px solid ${T.border}`}}>
-                      <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>{s.template_name}</div>
-                      <div style={{fontSize:10,color:T.textMuted}}>{new Date(s.scheduled_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})} · {contactCount} contacts</div>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:4}}>
-                        <span style={{fontSize:10,fontWeight:700,color:statusColor}}>{statusLabel}</span>
-                        {isPending&&<button onClick={async()=>{
-                          const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                          await fetch(`${API}/api/scheduled-broadcasts/${s.id}`,{method:"DELETE",headers:authHeaders()});
-                          fetchScheduledBroadcasts(clinicId);
-                        }} style={{fontSize:10,color:"#ef4444",border:"none",background:"none",cursor:"pointer",padding:0}}>Cancel</button>}
-                      </div>
-                    </div>;
-                  })
-                }
+                <div style={{padding:10}}>
+                  {scheduledBroadcasts.length===0?
+                    <div style={{textAlign:"center",padding:"12px 0",color:T.textFaint,fontSize:11}}>No scheduled broadcasts</div>:
+                    scheduledBroadcasts.map(s=>{
+                      const contactCount=(Array.isArray(s.contacts)?s.contacts:(typeof s.contacts==="string"?JSON.parse(s.contacts||"[]"):[])).length;
+                      const isPending=s.status==="pending";
+                      const statusColor=isPending?"#b45309":s.status==="sent"?WA_GREEN:"#ef4444";
+                      const statusLabel=isPending?"⏳ Pending":s.status==="sent"?"✅ Sent":"❌ Failed";
+                      return <div key={s.id} style={{padding:"9px 10px",background:T.card2,borderRadius:8,marginBottom:6,border:`1px solid ${T.border}`}}>
+                        <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>{s.template_name}</div>
+                        <div style={{fontSize:10,color:T.textMuted}}>{new Date(s.scheduled_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})} · {contactCount} contacts</div>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:4}}>
+                          <span style={{fontSize:10,fontWeight:700,color:statusColor}}>{statusLabel}</span>
+                          {isPending&&<button onClick={async()=>{
+                            const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                            await fetch(`${API}/api/scheduled-broadcasts/${s.id}`,{method:"DELETE",headers:authHeaders()});
+                            fetchScheduledBroadcasts(clinicId);
+                          }} style={{fontSize:10,color:"#ef4444",border:"none",background:"none",cursor:"pointer"}}>Cancel</button>}
+                        </div>
+                      </div>;
+                    })
+                  }
+                </div>
               </div>
-            </div>{/* end scheduled nx-card */}
             </div>{/* end right column */}
 
-            </div>{/* end two-column flex */}
-            </div>}{/* end send tab */}
+            </div></div>}{/* end send tab */}
 
             {broadcastSubTab==="create"&&<CreateTemplatePanel
               T={T} WA_GREEN={WA_GREEN} dark={dark}
@@ -8317,7 +8203,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   const stepLabels = ["1. Set up","2. Edit template","3. Submit"];
 
   return (
-    <div style={{padding:"0 20px 20px"}}>
+    <div style={{flex:1,overflowY:"auto",padding:"0 20px 20px"}}>
       <div style={{padding:"16px 0 14px",borderBottom:`1px solid ${T.border}`,marginBottom:20,display:"flex",alignItems:"center",gap:10}}>
         <i className="ti ti-template" style={{fontSize:18,color:WA_GREEN}}/>
         <div>
