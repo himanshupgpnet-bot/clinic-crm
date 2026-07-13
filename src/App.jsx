@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.286";
+const CRM_VERSION = "2.9.288";
 
 // Responsive hook
 function useWindowSize() {
@@ -3180,7 +3180,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         display:"flex",alignItems:"flex-start",gap:12,padding:14,
                         border:`1px solid ${selectedQAs.has(q.id)?WA_GREEN:T.border}`,
                         borderRadius:10,background:selectedQAs.has(q.id)?`${WA_GREEN}08`:T.card,
-                        cursor:"pointer",transition:"all .15s"
+                        cursor:"pointer",transition:"all .15s",position:"relative"
                       }}
                       onMouseEnter={e=>{if(!selectedQAs.has(q.id))e.currentTarget.style.borderColor=WA_GREEN;}}
                       onMouseLeave={e=>{if(!selectedQAs.has(q.id))e.currentTarget.style.borderColor=T.border;}}>
@@ -3191,27 +3191,47 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                           <div style={{fontWeight:600,fontSize:13,color:T.text,marginBottom:4,lineHeight:1.4}}>{q.question}</div>
                           <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{q.answer}</div>
                         </div>
-                        {selectedQAs.has(q.id)&&<i className="ti ti-check" style={{fontSize:14,color:WA_GREEN,flexShrink:0}}/>}
+                        <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",flexShrink:0}}>
+                          {selectedQAs.has(q.id)&&<i className="ti ti-check" style={{fontSize:14,color:WA_GREEN}}/>}
+                          {/* Static toggle */}
+                          <div onClick={async e=>{
+                            e.stopPropagation();
+                            const clinicId=kbClinic?.id||null;
+                            const url=clinicId?`${API}/api/admin/clients/${clinicId}/kb/${q.id}`:`${API}/api/kb/${q.id}`;
+                            await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({is_static:!q.is_static})});
+                            loadKbForClient(kbClinic||currentUser);
+                          }} title={q.is_static?"Static — always used":"Click to pin as static"}
+                            style={{fontSize:10,padding:"2px 6px",borderRadius:6,cursor:"pointer",fontWeight:600,
+                              background:q.is_static?`${WA_GREEN}15`:"transparent",
+                              color:q.is_static?WA_GREEN:T.textFaint,
+                              border:`1px solid ${q.is_static?WA_GREEN:T.border}`}}>
+                            {q.is_static?"📌 Static":"Pin"}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>}
                 </div>
 
                 {/* RIGHT SIDEBAR — Bot settings */}
-                <div style={{width:280,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.card,overflowY:"auto",display:"flex",flexDirection:"column"}}>
-                  {/* Pill tabs */}
-                  <div style={{padding:"10px 10px 0",flexShrink:0}}>
-                    <div style={{display:"flex",background:T.card2,borderRadius:8,padding:3,gap:2}}>
-                      {[{id:"welcome",label:"Welcome"},{id:"personality",label:"Personality"},{id:"add",label:"Add KB"},{id:"wizard",label:"✨ Wizard"}].map(t=>(
-                        <button key={t.id} onClick={()=>setKbSubTab(t.id)}
-                          style={{flex:1,padding:"6px 4px",border:"none",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer",borderRadius:6,
-                            background:kbSubTab===t.id?T.card:"transparent",
-                            color:kbSubTab===t.id?T.text:T.textMuted,
-                            boxShadow:kbSubTab===t.id?"0 1px 3px rgba(0,0,0,.08)":"none",transition:"all .15s"}}>
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
+                <div style={{width:260,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.sidebar,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+                  {/* Sidebar nav */}
+                  <div style={{padding:"10px 8px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
+                    <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:6,paddingLeft:4}}>Bot Settings</div>
+                    {[{id:"welcome",icon:"ti ti-message-2",label:"Welcome Message"},
+                      {id:"personality",icon:"ti ti-robot",label:"Bot Personality"},
+                      {id:"add",icon:"ti ti-plus",label:"Add Knowledge"},
+                      ...(isAdmin||permissions?.can_prompt_wizard?[{id:"wizard",icon:"ti ti-wand",label:"✨ AI Wizard"}]:[])
+                    ].map(t=>(
+                      <button key={t.id} onClick={()=>setKbSubTab(t.id)}
+                        style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"8px 10px",borderRadius:8,border:"none",
+                          fontFamily:"inherit",fontSize:12,fontWeight:kbSubTab===t.id?600:400,cursor:"pointer",textAlign:"left",
+                          background:kbSubTab===t.id?`${WA_GREEN}12`:"transparent",
+                          color:kbSubTab===t.id?WA_GREEN:T.textMuted,transition:"all .15s"}}>
+                        <i className={t.icon} style={{fontSize:15,flexShrink:0}}/>
+                        {t.label}
+                      </button>
+                    ))}
                   </div>
 
                   <div style={{padding:14,flex:1}}>
