@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.275";
+const CRM_VERSION = "2.9.276";
 
 // Responsive hook
 function useWindowSize() {
@@ -8367,9 +8367,9 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
       </div>}
 
       {/* STEP 2 — Edit template */}
-      {step===2&&<div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:20,alignItems:"start"}}>
+      {step===2&&<div style={{display:"flex",gap:20,alignItems:"flex-start"}}>
         {/* Left — Form */}
-        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:14}}>
 
           {/* Name + Language */}
           <div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
@@ -8686,21 +8686,20 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
 
           {/* Actions */}
           <div style={{display:"flex",gap:10}}>
-            <button onClick={()=>setStep(1)}
-              style={{flex:1,padding:"11px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+            <button onClick={()=>setStep(1)} className="nx-btn" style={{flex:1,justifyContent:"center",padding:"11px"}}>
               ← Back
             </button>
             <button onClick={handleSubmit} disabled={submitting||!name||!bodyText}
-              style={{flex:2,padding:"11px",borderRadius:10,border:"none",
-                background:submitting||!name||!bodyText?"#ccc":WA_GREEN,
-                color:"#fff",fontSize:13,fontWeight:700,cursor:submitting||!name||!bodyText?"not-allowed":"pointer",fontFamily:"inherit"}}>
-              {submitting?"⏳ "+(uploadingMedia?"Uploading file...":"Submitting to Meta..."):"🚀 Submit for Review →"}
+              className="nx-btn primary" style={{flex:2,justifyContent:"center",padding:"11px",
+                opacity:submitting||!name||!bodyText?0.5:1,
+                cursor:submitting||!name||!bodyText?"not-allowed":"pointer"}}>
+              {submitting?(uploadingMedia?"⏳ Uploading...":"⏳ Submitting..."):"🚀 Submit for Review →"}
             </button>
           </div>
         </div>
 
         {/* Right — Live Preview (Phone) */}
-        <div style={{position:"sticky",top:0}}>
+        <div style={{width:240,flexShrink:0,position:"sticky",top:0}}>
           <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:T.text}}>📱 Preview</div>
           {/* Phone frame */}
           <div style={{width:260,margin:"0 auto",background:"#1a1a1a",borderRadius:36,padding:"12px 8px",boxShadow:"0 8px 32px rgba(0,0,0,.4)"}}>
