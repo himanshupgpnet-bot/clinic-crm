@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.272";
+const CRM_VERSION = "2.9.273";
 
 // Responsive hook
 function useWindowSize() {
@@ -1071,7 +1071,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   const pollRef = useRef(null);
   const socketRef = useRef(null);
 
-  // Fast health ping — independent of conversations load
+  // Fast health ping
   useEffect(() => {
     let failCount = 0;
     const ping = async () => {
@@ -1084,21 +1084,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         else { failCount++; if(failCount >= 2) setBackendStatus("offline"); }
       } catch(e) {
         clearTimeout(timer);
-        if(e.name !== "AbortError") {
-          failCount++;
-          if(failCount >= 2) setBackendStatus("offline");
-        }
+        if(e.name !== "AbortError") { failCount++; if(failCount >= 2) setBackendStatus("offline"); }
       }
     };
-    ping().then(()=>{
-      fetchConversations();
-      fetchKnowledge();
-      fetchSettings();
-      fetchClinicUsers();
-      refreshPermissions();
-    });
+    ping();
     const t = setInterval(ping, 30000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    fetchConversations();
+    fetchKnowledge();
+    fetchSettings();
+    fetchClinicUsers();
+    refreshPermissions();
   }, []);
 
   useEffect(() => {
