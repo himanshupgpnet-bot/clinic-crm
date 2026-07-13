@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.273";
+const CRM_VERSION = "2.9.274";
 
 // Responsive hook
 function useWindowSize() {
@@ -857,7 +857,7 @@ export default function App() {
       fetchConversations._failCount = (fetchConversations._failCount||0) + 1;
     }
     finally { setLoading(false); }
-  }, [selected]);
+  }, [selected, inboxClinic]);
 
 const fetchTemplates = useCallback(async (clinicId=null) => {
     try {
@@ -1099,6 +1099,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     fetchClinicUsers();
     refreshPermissions();
   }, []);
+
+  // Refetch when admin switches clinic
+  useEffect(() => {
+    if(inboxClinic) fetchConversations();
+  }, [inboxClinic]);
 
   useEffect(() => {
     fetch(`${API}/api/ai-status`).then(r=>r.json()).then(setAiStatus).catch(()=>{});
