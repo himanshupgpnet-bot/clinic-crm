@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.269";
+const CRM_VERSION = "2.9.271";
 
 // Responsive hook
 function useWindowSize() {
@@ -123,7 +123,7 @@ export default function App() {
   const [contacts, setContacts] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [backendStatus, setBackendStatus] = useState("checking");
+  const [backendStatus, setBackendStatus] = useState("online");
   const [backendVersion, setBackendVersion] = useState("");
   const [reply, setReply] = useState("");
   const [filter, setFilter] = useState("all");
@@ -1073,35 +1073,35 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   // Fast health ping — independent of conversations load
   useEffect(() => {
+    let failCount = 0;
     const ping = async () => {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 8000);
       try {
         const r = await fetch(`${API}/health`, {signal: controller.signal});
         clearTimeout(timer);
-        console.log("[Health] status:", r.status, r.ok);
-        if(r.ok) setBackendStatus("online");
+        if(r.ok) { setBackendStatus("online"); failCount = 0; }
+        else { failCount++; if(failCount >= 2) setBackendStatus("offline"); }
       } catch(e) {
         clearTimeout(timer);
-        console.log("[Health] error:", e.name, e.message);
-        if(e.name !== "AbortError") setBackendStatus("offline");
+        if(e.name !== "AbortError") {
+          failCount++;
+          if(failCount >= 2) setBackendStatus("offline");
+        }
       }
     };
-    ping();
+    ping().then(()=>{
+      fetchConversations();
+      fetchKnowledge();
+      fetchSettings();
+      fetchClinicUsers();
+      refreshPermissions();
+    });
     const t = setInterval(ping, 30000);
     return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
-    // Small delay on first load to avoid offline flash after Vercel deploy
-    const t = setTimeout(() => {
-      fetchConversations(); fetchKnowledge(); fetchSettings(); fetchClinicUsers(); refreshPermissions();
-    }, 1500);
-    return () => clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    fetchConversations();
     fetch(`${API}/api/ai-status`).then(r=>r.json()).then(setAiStatus).catch(()=>{});
 
     // ── WebSocket real-time connection ──
@@ -2340,7 +2340,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {loading&&<div style={{padding:20,textAlign:"center",color:T.textMuted,fontSize:12}}>Loading...</div>}
               {!loading&&filtered.length===0&&<div style={{padding:24,textAlign:"center",color:T.textMuted,fontSize:12}}>
                 <div style={{fontSize:32,marginBottom:8}}>💬</div>
-                {backendStatus==="offline"?"⚠️ Backend offline":"No conversations"}
+                {backendStatus==="offline"?"⚠️ Cannot reach server — check your connection":"No conversations yet"}
               </div>}
 
               {filtered.map(c=>(
