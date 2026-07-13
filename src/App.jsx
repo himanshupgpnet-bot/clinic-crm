@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.279";
+const CRM_VERSION = "2.9.280";
 
 // Responsive hook
 function useWindowSize() {
@@ -6796,9 +6796,15 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
   function setPreset(p) {
     setDatePreset(p);
     const t = today();
-    if(p==="7d")  { setDateFrom(daysAgo(6));  setDateTo(t); }
-    if(p==="30d") { setDateFrom(daysAgo(29)); setDateTo(t); }
-    if(p==="90d") { setDateFrom(daysAgo(89)); setDateTo(t); }
+    let from, to = t;
+    if(p==="7d")  from = daysAgo(6);
+    if(p==="30d") from = daysAgo(29);
+    if(p==="90d") from = daysAgo(89);
+    if(from) {
+      setDateFrom(from);
+      setDateTo(to);
+      fetchAnalytics(from, to, selectedClinic?.clinic_id||null);
+    }
   }
 
   const a = analytics;
@@ -6811,6 +6817,8 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
   const total = totals.contacts||0;
   const cold = Math.max(0, total-hot-warm);
   const done = totals.done||0;
+  // Total bookings from all contacts regardless of date range
+  const totalBookings = contacts.filter(c=>(c.pipelineStage||c.pipeline_stage)==="done"||c.booking_confirmed).length;
 
   // Filtered contacts for drilldown
   const hotContacts = contacts.filter(c=>c.lead==="hot"&&(c.pipelineStage||"new")!=="done");
@@ -7235,9 +7243,6 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
             <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:8,padding:"5px 8px",color:T.text,fontSize:12,outline:"none"}}/>
             <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} className="nx-btn primary" style={{fontSize:12}}>Apply</button>
           </>}
-          <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.clinic_id||null)} className="nx-btn" style={{padding:"6px 10px"}}>
-            <i className="ti ti-refresh" style={{fontSize:14}}/>
-          </button>
         </div>
       </div>
 
@@ -7323,7 +7328,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
             <KpiCard icon="👥" val={total} label="Total Contacts" sub="All conversations" color="#2563eb" bg="#eff6ff" trend={`▲ ${growth.pct||0}%`} type="contacts"/>
             <KpiCard icon="🤖" val={`${botRate}%`} label="Bot Automation" sub={`${totals.botMessages||0} msgs handled`} color={WA_GREEN} bg="#f0fdf4" trend={`${Math.round((totals.botMessages||0)*2/60)}hrs saved`} type="bot"/>
             <KpiCard icon="🔥" val={hot} label="Hot Leads" sub={`${growth.conversionRate||0}% conversion`} color="#ef4444" bg="#fef2f2" trend="High intent" type="hot"/>
-            <KpiCard icon="✅" val={done} label="Bookings Closed" sub="Confirmed" color="#22c55e" bg="#f0fdf4" trend="Converted" type="bookings"/>
+            <KpiCard icon="✅" val={totalBookings} label="Total Bookings" sub="All time confirmed" color="#22c55e" bg="#f0fdf4" trend={done>0?`+${done} this period`:"Confirmed"} type="bookings"/>
             <KpiCard icon="📢" val={adSummary.count||0} label="Ad Sources" sub={`${adSummary.totalClicks||0} clicks`} color="#7c3aed" bg="#f5f3ff" trend={`${adSummary.totalBookings||0} booked`} type="ads"/>
           </div>
 
