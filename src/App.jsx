@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.268";
+const CRM_VERSION = "2.9.269";
 
 // Responsive hook
 function useWindowSize() {
@@ -853,9 +853,8 @@ export default function App() {
       } catch {}
       if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(prev => ({...prev, botActive: u.botActive, status: u.status, lead: u.lead})); }
     } catch { 
-      // Only show offline after 3 consecutive failures — avoids flicker after deploy
+      // Don't set offline here — health ping handles status independently
       fetchConversations._failCount = (fetchConversations._failCount||0) + 1;
-      if(fetchConversations._failCount >= 3) setBackendStatus("offline");
     }
     finally { setLoading(false); }
   }, [selected]);
@@ -1080,10 +1079,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       try {
         const r = await fetch(`${API}/health`, {signal: controller.signal});
         clearTimeout(timer);
+        console.log("[Health] status:", r.status, r.ok);
         if(r.ok) setBackendStatus("online");
       } catch(e) {
         clearTimeout(timer);
-        // Only set offline if it's not an abort — aborts are timeouts, not real offline
+        console.log("[Health] error:", e.name, e.message);
         if(e.name !== "AbortError") setBackendStatus("offline");
       }
     };
