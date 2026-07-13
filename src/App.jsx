@@ -21,7 +21,17 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const CRM_VERSION = "2.9.271";
+
+// Unregister service worker immediately at module load — before React renders
+// This prevents SW from caching/intercepting API calls
+if("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => reg.unregister());
+  });
+  // Also claim control immediately if a SW is active
+  navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
+}
+const CRM_VERSION = "2.9.272";
 
 // Responsive hook
 function useWindowSize() {
@@ -684,16 +694,6 @@ export default function App() {
   const chatContainerRef = useRef(null);
 
   // Only scroll to bottom when switching to a new chat
-  // Unregister service worker to prevent it from blocking cross-origin API calls
-  useEffect(() => {
-    if("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(reg => {
-          reg.unregister().then(()=>console.log("SW unregistered"));
-        });
-      });
-    }
-  }, []);
 
   useEffect(() => {
     if(!selected?.id) return;
