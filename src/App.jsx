@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.285";
+const CRM_VERSION = "2.9.286";
 
 // Responsive hook
 function useWindowSize() {
@@ -2710,14 +2710,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
           {/* Leads content - New Lead-based Kanban */}
           <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
-            {isAdmin&&leadsClinic&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:`1px solid ${T.border}`,background:T.card,flexShrink:0}}>
-              <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                {leadsClinic.logo_url?<img src={leadsClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:14}}>🏢</span>}
-              </div>
-              <div style={{fontWeight:700,fontSize:13,color:T.text}}>{leadsClinic.company_name||leadsClinic.username}</div>
-              <button onClick={()=>setLeadsClinic(null)} className="nx-btn" style={{marginLeft:"auto",fontSize:11,padding:"4px 10px"}}>← All</button>
-            </div>}
-
             {/* Page header — matches mockup */}
             <div className="nx-page-header" style={{flexShrink:0}}>
               <i className="ti ti-target" style={{fontSize:20,color:WA_GREEN}}/>
@@ -3712,14 +3704,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div className="nx-page-title">Broadcast</div>
                 <div className="nx-page-sub">{broadcastClinic?broadcastClinic.company_name||broadcastClinic.name:"Send WhatsApp templates to multiple contacts"}</div>
               </div>
-              {isAdmin&&broadcastClinic&&<div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:20,background:`${WA_GREEN}15`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer",flexShrink:0}}
-                onClick={()=>{setBroadcastClinic(null);setTemplates([]);setSelectedTemplate(null);setBroadcastContacts([]);setBroadcastProgress(null);}}>
-                <div style={{width:18,height:18,borderRadius:4,overflow:"hidden",background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {broadcastClinic.logo_url?<img src={broadcastClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:10}}>🏢</span>}
-                </div>
-                <span style={{fontSize:11,fontWeight:700,color:WA_GREEN}}>{broadcastClinic.company_name||broadcastClinic.name}</span>
-                <span style={{fontSize:10,color:WA_GREEN,opacity:.7}}>✕</span>
-              </div>}
+
               <div style={{marginLeft:"auto",display:"flex",gap:8}}>
                 <button onClick={()=>{setBroadcastSubTab("send");setCreateTemplateStep(1);setCreateTemplateResult(null);}}
                   className={`nx-btn${broadcastSubTab==="send"?" primary":""}`}>
@@ -7205,14 +7190,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           <div className="nx-page-title">Analytics</div>
           <div className="nx-page-sub">{selectedClinic?selectedClinic.company_name||selectedClinic.username:dateFrom+" → "+dateTo}</div>
         </div>
-        {selectedClinic&&<div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:20,background:`${WA_GREEN}15`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer",flexShrink:0}}
-          onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);}}>
-          <div style={{width:18,height:18,borderRadius:4,overflow:"hidden",background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            {selectedClinic.logo_url?<img src={selectedClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:10}}>🏢</span>}
-          </div>
-          <span style={{fontSize:11,fontWeight:700,color:WA_GREEN}}>{selectedClinic.company_name||selectedClinic.username}</span>
-          <span style={{fontSize:10,color:WA_GREEN,opacity:.7}}>✕</span>
-        </div>}
+
         <div style={{marginLeft:"auto",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           {[{id:"7d",label:"7 days"},{id:"30d",label:"30 days"},{id:"90d",label:"90 days"},{id:"custom",label:"Custom"}].map(p=>(
             <button key={p.id} onClick={()=>setPreset(p.id)}
@@ -7270,14 +7248,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
       {(!isAdmin||selectedClinic)&&<>
 
         {/* Selected client header */}
-        {isAdmin&&selectedClinic&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",marginBottom:12}}>
-          <div style={{width:24,height:24,borderRadius:6,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            {selectedClinic.logo_url?<img src={selectedClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
-          </div>
-          <span style={{fontSize:12,fontWeight:700,color:T.text}}>{selectedClinic.company_name||selectedClinic.username}</span>
-          <button onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);}}
-            style={{padding:"3px 10px",borderRadius:20,border:`1px solid ${T.border}`,background:"transparent",color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✕ All Clients</button>
-        </div>}
+
 
         {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:T.textFaint}}>
           <div style={{width:36,height:36,borderRadius:"50%",border:`3px solid ${WA_GREEN}20`,borderTop:`3px solid ${WA_GREEN}`,animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/>
