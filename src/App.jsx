@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.286";
+const CRM_VERSION = "2.9.287";
 
 // Responsive hook
 function useWindowSize() {
@@ -5430,81 +5430,73 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
 // ── INTEGRATIONS TAB ──────────────────────────────────────────────────────────
 function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, permissions, API}) {
   const authHeaders = () => ({"Content-Type":"application/json","Authorization":`Bearer ${authToken}`});
-  const [selClinicId, setSelClinicId] = React.useState(null);
   const [editConn, setEditConn] = React.useState(null);
   const [connForm, setConnForm] = React.useState({});
   const [saving, setSaving] = React.useState(false);
   const [connData, setConnData] = React.useState({});
+  const [selClinicId, setSelClinicId] = React.useState(null);
   const [clientList, setClientList] = React.useState([]);
 
-  // Load clients list
   React.useEffect(()=>{
     if(!authToken) return;
     if(isAdmin) {
       fetch(`${API}/api/admin/clients`,{headers:authHeaders()})
         .then(r=>r.ok?r.json():[]).then(d=>{
-          if(Array.isArray(d)&&d.length>0) {
-            setClientList(d);
-            setSelClinicId(d[0].id); // auto-select first client
-          }
+          if(Array.isArray(d)&&d.length>0){setClientList(d);setSelClinicId(d[0].id);}
         }).catch(()=>{});
     } else {
-      setClientList([{id:currentUser?.clinic_id,name:currentUser?.company_name||"Your Clinic",logo_url:currentUser?.logo_url}]);
       setSelClinicId(currentUser?.clinic_id);
     }
   },[authToken]);
 
-  // Load connector data when client selected - clear first
   React.useEffect(()=>{
     if(!selClinicId) return;
-    setConnData({}); // clear previous client data
-    const url = isAdmin
-      ? `${API}/api/admin/clients/${selClinicId}/settings`
-      : `${API}/api/settings`;
-    fetch(url,{headers:authHeaders()})
-      .then(r=>r.ok?r.json():null)
-      .then(d=>{if(d) setConnData(d);})
-      .catch(()=>{});
+    setConnData({});
+    const url = isAdmin ? `${API}/api/admin/clients/${selClinicId}/settings` : `${API}/api/settings`;
+    fetch(url,{headers:authHeaders()}).then(r=>r.ok?r.json():null).then(d=>{if(d)setConnData(d);}).catch(()=>{});
   },[selClinicId]);
 
-  const myClient = clientList.find(c=>String(c.id)===String(selClinicId));
-
-  // All connectors with enabled flag (admin can toggle)
   const ALL_CONNECTORS = [
-    {id:"whatsapp",  label:"WhatsApp",  color:"#25D366", permKey:"integration_whatsapp",
-     desc:"Receive and reply to WhatsApp messages with AI",
+    {id:"whatsapp",  label:"WhatsApp Business", color:"#25D366", bg:"#25D36615",
+     desc:"Meta WhatsApp Business API — send and receive messages",
      isConnected:(d)=>!!(d.wa_phone_number_id||d.phone_number_id||d.whatsapp_number),
      statusText:(d)=>d.wa_phone_number||d.whatsapp_number||"",
      fields:[{key:"wa_phone_number_id",label:"Phone Number ID",ph:"985068241357564"},
              {key:"wa_phone_number",label:"WhatsApp Number",ph:"+60 11 1050 7200"},
              {key:"wa_token",label:"Access Token",ph:"EAAxxxxxxxx",pwd:true}],
-     logo:"📱"},
-    {id:"telegram",  label:"Telegram",  color:"#229ED9", permKey:"integration_telegram",
-     desc:"Get instant lead alerts and notifications",
+     logo:"📱", permKey:"integration_whatsapp"},
+    {id:"telegram",  label:"Telegram Alerts", color:"#229ED9", bg:"#eff6ff",
+     desc:"Get instant lead alerts and notifications in Telegram",
      isConnected:(d)=>!!(d.telegram_token&&d.telegram_token.length>5&&d.telegram_chat_id),
      statusText:(d)=>d.telegram_chat_id?"Chat: "+d.telegram_chat_id:"",
      fields:[{key:"telegram_token",label:"Bot Token",ph:"8664616537:AAGE9wn...",pwd:true},
              {key:"telegram_chat_id",label:"Group Chat ID",ph:"-5277820778"}],
-     logo:"✈️"},
-    {id:"instagram", label:"Instagram", color:"#E1306C", permKey:"integration_instagram",
-     desc:"Automate Instagram DM replies", isConnected:()=>false, statusText:()=>"",
-     fields:[], logo:"📸"},
-    {id:"tiktok",    label:"TikTok",    color:"#010101", permKey:"integration_tiktok",
-     desc:"Automate TikTok comment replies", isConnected:()=>false, statusText:()=>"",
-     fields:[], logo:"🎵"},
-    {id:"messenger", label:"Messenger", color:"#0084FF", permKey:"integration_messenger",
-     desc:"Facebook Messenger automation", isConnected:()=>false, statusText:()=>"",
-     fields:[], logo:"💬"},
-    {id:"gcal",      label:"Google Calendar", color:"#4285F4", permKey:"integration_calendar",
-     desc:"Auto-create appointments", isConnected:()=>false, statusText:()=>"",
-     fields:[], logo:"📅"},
+     logo:"✈️", permKey:"integration_telegram"},
+    {id:"claude",    label:"Claude AI (Anthropic)", color:"#7c3aed", bg:"#f5f3ff",
+     desc:"Powers your AI bot conversations and responses",
+     isConnected:(d)=>!!(d.anthropic_key||d.ai_api_key),
+     statusText:(d)=>d.ai_model||"claude-haiku-4-5",
+     fields:[{key:"anthropic_key",label:"API Key",ph:"sk-ant-api03-...",pwd:true}],
+     logo:"🤖", permKey:null},
+    {id:"email",     label:"Email Notifications", color:"#ef4444", bg:"#fef2f2",
+     desc:"Get notified when hot leads come in or bot needs help",
+     isConnected:()=>false, statusText:()=>"", fields:[], logo:"📧", permKey:null},
+    {id:"sheets",    label:"Google Sheets", color:"#16a34a", bg:"#f0fdf4",
+     desc:"Export leads and conversations to Google Sheets automatically",
+     isConnected:()=>false, statusText:()=>"", fields:[], logo:"📊", permKey:null},
+    {id:"slack",     label:"Slack Notifications", color:"#7c3aed", bg:"#fdf4ff",
+     desc:"Send hot lead alerts directly to your Slack channel",
+     isConnected:()=>false, statusText:()=>"", fields:[], logo:"🔔", permKey:null},
+    {id:"calendly",  label:"Calendly", color:"#d97706", bg:"#fff7ed",
+     desc:"Let the bot book consultations directly into your calendar",
+     isConnected:()=>false, statusText:()=>"", fields:[], logo:"📅", permKey:null},
   ];
 
-  // Admin sees all, client sees only what admin enabled
   const visibleConnectors = isAdmin ? ALL_CONNECTORS : ALL_CONNECTORS.filter(c=>{
+    if(!c.permKey) return true;
     if(permissions==="all"||!permissions) return true;
-    const hasAny = ALL_CONNECTORS.some(x=>permissions[x.permKey]);
-    if(!hasAny) return true; // show all if none set yet
+    const hasAny = ALL_CONNECTORS.filter(x=>x.permKey).some(x=>permissions[x.permKey]);
+    if(!hasAny) return true;
     return permissions[c.permKey];
   });
 
@@ -5514,150 +5506,136 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
     try {
       const url = isAdmin ? `${API}/api/admin/clients/${selClinicId}/settings` : `${API}/api/settings`;
       const r = await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(connForm)});
-      if(r.ok) {
-        setConnData(p=>({...p,...connForm}));
-        setEditConn(null); setConnForm({});
-      }
-    } catch(e){ showToast("Save failed: "+e.message,"#ef4444"); }
+      if(r.ok){setConnData(p=>({...p,...connForm}));setEditConn(null);setConnForm({});}
+    } catch(e){}
     setSaving(false);
   };
 
   return (
-    <div style={{flex:1,background:T.bg,overflowY:"auto",paddingBottom:80}}>
-      <div style={{maxWidth:800,margin:"0 auto",padding:"20px 16px 40px"}}>
-        <div style={{marginBottom:20}}>
-          <div style={{fontWeight:900,fontSize:22,marginBottom:4}}>🔌 Integrations</div>
-          <div style={{fontSize:13,color:T.textMuted}}>
-            {isAdmin?"Connect channels for each client — toggle to enable/disable":"Your connected channels"}
-          </div>
+    <div style={{flex:1,display:"flex",flexDirection:"column",background:T.bg,overflow:"hidden"}}>
+
+      {/* Page header */}
+      <div className="nx-page-header" style={{flexShrink:0}}>
+        <i className="ti ti-plug" style={{fontSize:20,color:WA_GREEN}}/>
+        <div>
+          <div className="nx-page-title">Integrations</div>
+          <div className="nx-page-sub">Connect your tools and services</div>
         </div>
-
         {/* Admin client selector */}
-        {isAdmin&&<div style={{marginBottom:20}}>
-          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Client</div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {clientList.map(c=>{
-              const sel = String(c.id)===String(selClinicId);
-              return <div key={c.id} onClick={()=>setSelClinicId(c.id)}
-                style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderRadius:12,cursor:"pointer",
-                  border:`2px solid ${sel?WA_GREEN:T.border}`,background:sel?`${WA_GREEN}10`:T.card}}>
-                <div style={{width:26,height:26,borderRadius:7,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:13}}>🏢</span>}
-                </div>
-                <span style={{fontWeight:700,fontSize:13,color:sel?WA_GREEN:T.text}}>{c.name||c.company_name}</span>
-                {sel&&<span style={{fontSize:11,color:WA_GREEN}}>✓</span>}
-              </div>;
-            })}
-          </div>
-          {!selClinicId&&<div style={{marginTop:12,padding:20,textAlign:"center",color:T.textMuted,fontSize:13,background:T.card,borderRadius:12,border:`1px dashed ${T.border}`}}>
-            Select a client above
-          </div>}
+        {isAdmin&&clientList.length>0&&<div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
+          {clientList.map(c=>{
+            const sel = String(c.id)===String(selClinicId);
+            return <div key={c.id} onClick={()=>setSelClinicId(c.id)}
+              style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:20,cursor:"pointer",
+                border:`1px solid ${sel?WA_GREEN:T.border}`,
+                background:sel?`${WA_GREEN}15`:T.card}}>
+              <div style={{width:16,height:16,borderRadius:4,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:10}}>🏢</span>}
+              </div>
+              <span style={{fontSize:11,fontWeight:700,color:sel?WA_GREEN:T.text}}>{c.name||c.company_name}</span>
+            </div>;
+          })}
         </div>}
+      </div>
 
-        {/* Connectors grid */}
-        {selClinicId&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:14}}>
+      {/* Integration list — matches mockup flat list style */}
+      <div style={{flex:1,overflowY:"auto",padding:"16px 24px"}}>
+        <div style={{maxWidth:680,width:"100%"}}>
           {visibleConnectors.map(conn=>{
             const connected = conn.isConnected(connData);
-            const isEnabled = isAdmin ? true : (permissions==="all"||!permissions||permissions[conn.permKey]);
-            const canConnect = true; // both admin and client can connect their own integrations
-            // notYetBuilt only applies to non-admin users
-            const notYetBuilt = !isAdmin && !conn.fields.length && !connected;
-
+            const hasFields = conn.fields.length > 0;
             return (
-              <div key={conn.id} style={{background:T.card,borderRadius:16,padding:20,textAlign:"center",
-                border:`2px solid ${connected?conn.color+"50":T.border}`,
-                position:"relative",transition:"all .2s"}}>
-                {/* Connected dot */}
-                {connected&&<div style={{position:"absolute",top:10,right:10,width:9,height:9,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 0 2px #fff"}}/>}
-
-                {/* Logo */}
-                <div style={{width:54,height:54,borderRadius:14,background:`${conn.color}15`,
+              <div key={conn.id} style={{
+                display:"flex",alignItems:"center",gap:14,
+                padding:16,border:`1px solid ${T.border}`,borderRadius:10,
+                marginBottom:10,background:T.card,transition:"border-color .15s"}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor=connected?conn.color:WA_GREEN}
+                onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
+                {/* Icon */}
+                <div style={{width:44,height:44,borderRadius:10,background:conn.bg,
                   display:"flex",alignItems:"center",justifyContent:"center",
-                  margin:"0 auto 12px",fontSize:26}}>
+                  fontSize:22,flexShrink:0}}>
                   {conn.logo}
                 </div>
-
-                <div style={{fontWeight:800,fontSize:14,marginBottom:4}}>{conn.label}</div>
-                <div style={{fontSize:11,color:T.textMuted,marginBottom:14,lineHeight:1.5}}>{conn.desc}</div>
-
-                {connected?(
-                  <div>
-                    <div style={{fontSize:10,padding:"2px 10px",borderRadius:10,background:"#dcfce7",color:"#166534",fontWeight:700,display:"inline-block",marginBottom:8}}>
-                      ✅ Connected
-                    </div>
-                    {conn.statusText(connData)&&<div style={{fontSize:10,color:T.textMuted,marginBottom:8}}>{conn.statusText(connData)}</div>}
-                    {canConnect&&<button onClick={()=>{
+                {/* Name + desc */}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:700,color:T.text}}>{conn.label}</div>
+                  <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{conn.desc}</div>
+                </div>
+                {/* Status / button */}
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0}}>
+                  {connected?(
+                    <>
+                      <span style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:20,
+                        background:"#f0fdf4",color:"#15803d",border:"1px solid #bbf7d0"}}>
+                        ✅ Connected
+                      </span>
+                      {conn.statusText(connData)&&<div style={{fontSize:10,color:T.textMuted}}>{conn.statusText(connData)}</div>}
+                      {hasFields&&<button onClick={()=>{
+                        const init={};conn.fields.forEach(f=>{init[f.key]=connData[f.key]||"";});
+                        setConnForm(init);setEditConn(conn);
+                      }} style={{fontSize:11,fontWeight:600,padding:"4px 12px",borderRadius:8,
+                        border:`1px solid ${T.border}`,background:"transparent",cursor:"pointer",color:T.text,fontFamily:"inherit"}}>
+                        Edit
+                      </button>}
+                    </>
+                  ):hasFields?(
+                    <button onClick={()=>{
                       const init={};conn.fields.forEach(f=>{init[f.key]=connData[f.key]||"";});
                       setConnForm(init);setEditConn(conn);
-                    }} style={{fontSize:11,padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
-                      ✏️ Edit
-                    </button>}
-                  </div>
-                ):notYetBuilt?(
-                  <span style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>
-                    {isAdmin?"🔧 Coming soon":"Coming soon"}
-                  </span>
-                ):canConnect?(
-                  <button onClick={()=>{
-                    if(!conn.fields.length){
-                      showToast(conn.label+" — coming soon!",T.text);
-                      return;
-                    }
-                    const init={};conn.fields.forEach(f=>{init[f.key]=connData[f.key]||"";});
-                    setConnForm(init);setEditConn(conn);
-                  }} style={{fontSize:12,padding:"8px 20px",borderRadius:10,border:"none",
-                    background:conn.color,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>
-                    {conn.fields.length?"🔧 Connect":"Coming Soon"}
-                  </button>
-                ):(
-                  <span style={{fontSize:11,color:"#94a3b8"}}>Not configured</span>
-                )}
+                    }} style={{fontSize:11,fontWeight:600,padding:"5px 12px",borderRadius:8,
+                      border:`1px solid ${T.border}`,background:"transparent",cursor:"pointer",
+                      color:T.text,fontFamily:"inherit",transition:"all .15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor=WA_GREEN;e.currentTarget.style.color=WA_GREEN;}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.text;}}>
+                      Connect
+                    </button>
+                  ):(
+                    <span style={{fontSize:10,color:T.textFaint,fontWeight:500}}>Coming soon</span>
+                  )}
+                </div>
               </div>
             );
           })}
-        </div>}
-
-        {/* Connect/Edit modal */}
-        {editConn&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center"}}
-          onClick={e=>{if(e.target===e.currentTarget){setEditConn(null);setConnForm({});}}}>
-          <div style={{background:T.card,borderRadius:20,padding:28,width:380,maxWidth:"90vw",boxShadow:"0 20px 60px rgba(0,0,0,.25)"}}>
-            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-              <div style={{width:44,height:44,borderRadius:12,background:`${editConn.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
-                {editConn.logo}
-              </div>
-              <div>
-                <div style={{fontWeight:800,fontSize:16}}>Connect {editConn.label}</div>
-                <div style={{fontSize:11,color:T.textMuted}}>{myClient?.name||myClient?.company_name||""}</div>
-              </div>
-            </div>
-            {editConn.fields.map(f=>(
-              <div key={f.key} style={{marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>{f.label}</div>
-                <input type={f.pwd?"password":"text"} value={connForm[f.key]||""}
-                  onChange={e=>setConnForm(p=>({...p,[f.key]:e.target.value}))}
-                  placeholder={f.ph}
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,
-                    padding:"9px 12px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
-              </div>
-            ))}
-            <div style={{display:"flex",gap:8,marginTop:20}}>
-              <button onClick={()=>{setEditConn(null);setConnForm({});}}
-                style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
-                Cancel
-              </button>
-              <button onClick={saveConnector} disabled={saving}
-                style={{flex:2,padding:"10px",borderRadius:10,border:"none",background:editConn.color,
-                  color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:saving?.7:1}}>
-                {saving?"Saving...":"💾 Save & Connect"}
-              </button>
-            </div>
-          </div>
-        </div>}
-
-        <div style={{marginTop:20,padding:"14px 18px",borderRadius:12,background:T.card2,border:`1px dashed ${T.border}`,fontSize:12,color:T.textMuted,textAlign:"center"}}>
-          🚀 More coming soon — Google Calendar, Calendly, Stripe, Zapier
         </div>
       </div>
+
+      {/* Edit/Connect modal */}
+      {editConn&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center"}}
+        onClick={e=>{if(e.target===e.currentTarget){setEditConn(null);setConnForm({});}}}>
+        <div style={{background:T.card,borderRadius:20,padding:28,width:380,maxWidth:"90vw",boxShadow:"0 20px 60px rgba(0,0,0,.25)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+            <div style={{width:44,height:44,borderRadius:12,background:editConn.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+              {editConn.logo}
+            </div>
+            <div>
+              <div style={{fontWeight:800,fontSize:16}}>Connect {editConn.label}</div>
+            </div>
+            <button onClick={()=>{setEditConn(null);setConnForm({});}} style={{marginLeft:"auto",border:"none",background:"none",cursor:"pointer",fontSize:20,color:T.textMuted}}>✕</button>
+          </div>
+          {editConn.fields.map(f=>(
+            <div key={f.key} style={{marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>{f.label}</div>
+              <input type={f.pwd?"password":"text"} value={connForm[f.key]||""}
+                onChange={e=>setConnForm(p=>({...p,[f.key]:e.target.value}))}
+                placeholder={f.ph}
+                style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,
+                  padding:"9px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}/>
+            </div>
+          ))}
+          <div style={{display:"flex",gap:8,marginTop:20}}>
+            <button onClick={()=>{setEditConn(null);setConnForm({});}}
+              style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+              Cancel
+            </button>
+            <button onClick={saveConnector} disabled={saving}
+              style={{flex:2,padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,
+                color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:saving?.7:1}}>
+              {saving?"Saving...":"💾 Save & Connect"}
+            </button>
+          </div>
+        </div>
+      </div>}
     </div>
   );
 }
