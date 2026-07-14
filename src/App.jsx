@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.288";
+const CRM_VERSION = "2.9.289";
 
 // Responsive hook
 function useWindowSize() {
@@ -2686,27 +2686,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {tab==="leads"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
 
-          {/* Admin sidebar — client picker */}
-          {isAdmin&&!isMobile&&<div style={{width:isTablet?180:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
-            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Clients</div>
-            <div onClick={()=>setLeadsClinic(null)}
-              style={{padding:"10px 14px",cursor:"pointer",background:!leadsClinic?`${WA_GREEN}15`:"transparent",borderLeft:!leadsClinic?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:28,height:28,borderRadius:8,background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🌐</div>
-              <div style={{fontSize:12,fontWeight:700,color:!leadsClinic?WA_GREEN:T.text}}>All Clients</div>
-            </div>
-            {adminOverview.map(c=>(
-              <div key={c.id} onClick={()=>setLeadsClinic(c)}
-                style={{padding:"10px 14px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,background:leadsClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:leadsClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
-                <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:700,color:leadsClinic?.id===c.id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
-                  <div style={{fontSize:10,color:T.textMuted}}>{c.hot_leads||0} hot · {c.warm_leads||0} warm</div>
-                </div>
-              </div>
-            ))}
-          </div>}
+
 
           {/* Leads content - New Lead-based Kanban */}
           <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
@@ -2717,7 +2697,25 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div className="nx-page-title">Leads</div>
                 <div className="nx-page-sub">{leadsClinic?leadsClinic.company_name||leadsClinic.username:"AI-classified · Track your pipeline"}</div>
               </div>
-              <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              {isAdmin&&<div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+                <button onClick={()=>setLeadsClinic(null)}
+                  style={{padding:"3px 10px",borderRadius:20,border:`1px solid ${!leadsClinic?WA_GREEN:T.border}`,background:!leadsClinic?`${WA_GREEN}15`:"transparent",color:!leadsClinic?WA_GREEN:T.textMuted,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  All
+                </button>
+                {adminOverview.map(c=>{
+                  const sel = leadsClinic?.id===c.id;
+                  return <div key={c.id} onClick={()=>setLeadsClinic(sel?null:c)}
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:20,cursor:"pointer",
+                      border:`1px solid ${sel?WA_GREEN:T.border}`,background:sel?`${WA_GREEN}15`:"transparent",
+                      opacity:(c.active===false||c.active===0)?0.5:1}}>
+                    <div style={{width:14,height:14,borderRadius:3,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:9}}>🏢</span>}
+                    </div>
+                    <span style={{fontSize:11,fontWeight:700,color:sel?WA_GREEN:T.text}}>{c.company_name||c.username}</span>
+                  </div>;
+                })}
+              </div>}
+              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                 {/* Search */}
                 <div className="nx-search" style={{width:180}}>
                   <i className="ti ti-search" style={{fontSize:14,color:T.textFaint}}/>
@@ -2990,30 +2988,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             // Analytics drilldown state — defined inline to avoid hook rules
             return null;
           })()}
-
-          {/* Admin sidebar */}
-          {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
-            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Clients</div>
-            <div onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);fetchAdminOverview();}}
-              style={{padding:"10px 14px",cursor:"pointer",background:!selectedClinic?`${WA_GREEN}15`:"transparent",borderLeft:!selectedClinic?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:28,height:28,borderRadius:8,background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🌐</div>
-              <div style={{fontSize:12,fontWeight:700,color:!selectedClinic?WA_GREEN:T.text}}>All Clients</div>
-            </div>
-            {overviewLoading&&<div style={{padding:16,textAlign:"center",fontSize:12,color:T.textMuted}}>Loading...</div>}
-            {adminOverview.map(c=>(
-              <div key={c.id} onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.id||c.clinic_id);}}
-                style={{padding:"10px 14px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,background:selectedClinic?.clinic_id===c.clinic_id||selectedClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:selectedClinic?.clinic_id===c.clinic_id||selectedClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
-                <div style={{width:28,height:28,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:12}}>🏢</span>}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:700,color:selectedClinic?.clinic_id===c.clinic_id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
-                  <div style={{fontSize:10,color:T.textMuted}}>{c.total_contacts||0} contacts</div>
-                </div>
-                <div style={{width:6,height:6,borderRadius:"50%",background:c.active?"#22c55e":"#ef4444",flexShrink:0}}/>
-              </div>
-            ))}
-          </div>}
 
           {/* Main analytics content */}
           <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:80,position:"relative"}}>
@@ -3657,41 +3631,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {/* ══ INTEGRATIONS ══ */}
 
         {tab==="broadcast"&&<div style={{flex:1,display:"flex",overflow:"hidden",background:T.bg}}>
-          {/* Left sidebar — client selector for admin */}
-          {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.sidebar,padding:"14px 10px"}}>
-            <div style={{fontWeight:700,fontSize:11,color:T.textFaint,letterSpacing:1,textTransform:"uppercase",marginBottom:10,paddingLeft:6}}>Select Client</div>
-            {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>{
-              const isActive = c.active !== false;
-              const isSelected = broadcastClinic?.clinic_id === c.clinic_id;
-              return (
-                <div key={c.clinic_id} onClick={()=>{
-                  setBroadcastClinic(c);
-                  setTemplates([]);setSelectedTemplate(null);
-                  setBroadcastContacts([]);setBroadcastProgress(null);
-                  fetchTemplates(c.clinic_id);
-                }} style={{
-                  display:"flex",alignItems:"center",gap:10,padding:"10px 8px",
-                  borderRadius:10,cursor:"pointer",
-                  background:isSelected?`${WA_GREEN}15`:"transparent",
-                  borderLeft:isSelected?`3px solid ${WA_GREEN}`:"3px solid transparent",
-                  opacity:isActive?1:0.65,marginBottom:4,transition:"all .15s"
-                }}>
-                  <div style={{width:36,height:36,borderRadius:8,overflow:"hidden",flexShrink:0,
-                    background:c.logo_url?"transparent":`linear-gradient(135deg,${WA_GREEN},#128C7E)`,
-                    display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    {c.logo_url
-                      ?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="logo"/>
-                      :<span style={{color:"#fff",fontWeight:700,fontSize:13}}>{(c.company_name||c.name||"?")[0]}</span>}
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.name}</div>
-                    <div style={{fontSize:10,color:T.textMuted}}>{c.industry||"Client"}</div>
-                  </div>
-                  {!isActive&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:10,background:"#fee2e2",color:"#ef4444",fontWeight:700}}>OFF</span>}
-                </div>
-              );
-            })}
-          </div>}
 
           {/* Main content — mockup style */}
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
@@ -3704,6 +3643,22 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div className="nx-page-title">Broadcast</div>
                 <div className="nx-page-sub">{broadcastClinic?broadcastClinic.company_name||broadcastClinic.name:"Send WhatsApp templates to multiple contacts"}</div>
               </div>
+              {isAdmin&&adminOverview.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center",marginLeft:12}}>
+                {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>{
+                  const sel = broadcastClinic?.clinic_id===c.clinic_id;
+                  return <div key={c.clinic_id} onClick={()=>{
+                    if(sel){setBroadcastClinic(null);setTemplates([]);setSelectedTemplate(null);setBroadcastContacts([]);setBroadcastProgress(null);}
+                    else{setBroadcastClinic(c);setTemplates([]);setSelectedTemplate(null);setBroadcastContacts([]);setBroadcastProgress(null);fetchTemplates(c.clinic_id);}
+                  }} style={{display:"flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:20,cursor:"pointer",
+                    border:`1px solid ${sel?WA_GREEN:T.border}`,background:sel?`${WA_GREEN}15`:"transparent",
+                    opacity:(c.active===false||c.active===0)?0.5:1}}>
+                    <div style={{width:14,height:14,borderRadius:3,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:9}}>🏢</span>}
+                    </div>
+                    <span style={{fontSize:11,fontWeight:700,color:sel?WA_GREEN:T.text}}>{c.company_name||c.username}</span>
+                  </div>;
+                })}
+              </div>}
 
               <div style={{marginLeft:"auto",display:"flex",gap:8}}>
                 <button onClick={()=>{setBroadcastSubTab("send");setCreateTemplateStep(1);setCreateTemplateResult(null);}}
@@ -4077,11 +4032,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </>}
 
           {isAdmin&&!broadcastClinic&&<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",color:T.textMuted}}>
-            <div style={{fontSize:48,marginBottom:12}}>👈</div>
-            <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client</div>
-            <div style={{fontSize:13}}>Choose from the sidebar to send broadcasts</div>
+            <div style={{fontSize:48,marginBottom:12}}>👆</div>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client above</div>
+            <div style={{fontSize:13}}>Click a client pill in the header to get started</div>
           </div>}
-          </div>
+        </div>
         </div>}
 
         {tab==="notes"&&<NotesTab
@@ -5110,22 +5065,34 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
 
   // Admin client picker
   if(isAdmin && !notesClinic) return (
-    <div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
-      <div style={{width:240,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
-        <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1}}>Select Client</div>
-        {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>(
-          <div key={c.clinic_id} onClick={()=>setNotesClinic(c)}
-            style={{padding:"12px 16px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${T.border}40`}}>
-            <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
+    <div style={{flex:1,display:"flex",flexDirection:"column",background:T.bg,overflow:"hidden"}}>
+      {/* Page header with client pills */}
+      <div className="nx-page-header" style={{flexShrink:0}}>
+        <i className="ti ti-notes" style={{fontSize:20,color:WA_GREEN}}/>
+        <div>
+          <div className="nx-page-title">Notes</div>
+          <div className="nx-page-sub">Select a client to view notes</div>
+        </div>
+        <div style={{marginLeft:"auto",display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+          {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>(
+            <div key={c.clinic_id} onClick={()=>setNotesClinic(c)}
+              style={{display:"flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:20,cursor:"pointer",
+                border:`1px solid ${T.border}`,background:"transparent",
+                opacity:(c.active===false||c.active===0)?0.5:1,transition:"all .15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=WA_GREEN;e.currentTarget.style.background=`${WA_GREEN}10`;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background="transparent";}}>
+              <div style={{width:14,height:14,borderRadius:3,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:9}}>🏢</span>}
+              </div>
+              <span style={{fontSize:11,fontWeight:700,color:T.text}}>{c.company_name||c.username}</span>
             </div>
-            <div><div style={{fontWeight:700,fontSize:13,color:T.text}}>{c.company_name||c.username}</div></div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,color:T.textMuted}}>
-        <div style={{fontSize:48}}>👈</div>
-        <div style={{fontWeight:700,fontSize:16}}>Select a client</div>
+        <div style={{fontSize:40,marginBottom:8}}>📝</div>
+        <div style={{fontWeight:700,fontSize:16}}>Select a client above</div>
+        <div style={{fontSize:13}}>Click a client pill to view their notes</div>
       </div>
     </div>
   );
@@ -5246,10 +5213,19 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
           <div className="nx-page-title">Notes</div>
           <div className="nx-page-sub">Internal team notes · {activeNotes.length} active · {doneNotes.length} done</div>
         </div>
-        {isAdmin&&<div onClick={()=>{setNotesClinic(null);setNotes([]);}}
-          style={{display:"flex",alignItems:"center",gap:6,padding:"5px 12px",borderRadius:20,background:`${WA_GREEN}15`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer",flexShrink:0}}>
-          <span style={{fontSize:11,fontWeight:700,color:WA_GREEN}}>🏢 {notesClinic?.company_name||notesClinic?.username}</span>
-          <span style={{fontSize:10,color:WA_GREEN,opacity:.7}}>✕</span>
+        {isAdmin&&<div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+          {adminOverview.filter((c,i,a)=>a.findIndex(x=>x.clinic_id===c.clinic_id)===i).map(c=>{
+            const sel = notesClinic?.clinic_id===c.clinic_id;
+            return <div key={c.clinic_id} onClick={()=>setNotesClinic(sel?null:c)}
+              style={{display:"flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:20,cursor:"pointer",
+                border:`1px solid ${sel?WA_GREEN:T.border}`,background:sel?`${WA_GREEN}15`:"transparent",
+                opacity:(c.active===false||c.active===0)?0.5:1}}>
+              <div style={{width:14,height:14,borderRadius:3,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:9}}>🏢</span>}
+              </div>
+              <span style={{fontSize:11,fontWeight:700,color:sel?WA_GREEN:T.text}}>{c.company_name||c.username}</span>
+            </div>;
+          })}
         </div>}
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           <button onClick={openAddModal} className="nx-btn primary">
@@ -7168,6 +7144,24 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           <div className="nx-page-title">Analytics</div>
           <div className="nx-page-sub">{selectedClinic?selectedClinic.company_name||selectedClinic.username:dateFrom+" → "+dateTo}</div>
         </div>
+        {isAdmin&&adminOverview.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center",marginLeft:12}}>
+          <button onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);fetchAdminOverview();}}
+            style={{padding:"3px 10px",borderRadius:20,border:`1px solid ${!selectedClinic?WA_GREEN:T.border}`,background:!selectedClinic?`${WA_GREEN}15`:"transparent",color:!selectedClinic?WA_GREEN:T.textMuted,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            All
+          </button>
+          {adminOverview.map(c=>{
+            const sel = selectedClinic?.clinic_id===c.clinic_id||selectedClinic?.id===c.id;
+            return <div key={c.id} onClick={()=>{setSelectedClinicWithRef(c);fetchAnalytics(dateFrom,dateTo,c.id||c.clinic_id);}}
+              style={{display:"flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:20,cursor:"pointer",
+                border:`1px solid ${sel?WA_GREEN:T.border}`,background:sel?`${WA_GREEN}15`:"transparent",
+                opacity:(c.active===false||c.active===0)?0.5:1}}>
+              <div style={{width:14,height:14,borderRadius:3,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:9}}>🏢</span>}
+              </div>
+              <span style={{fontSize:11,fontWeight:700,color:sel?WA_GREEN:T.text}}>{c.company_name||c.username}</span>
+            </div>;
+          })}
+        </div>}
 
         <div style={{marginLeft:"auto",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           {[{id:"7d",label:"7 days"},{id:"30d",label:"30 days"},{id:"90d",label:"90 days"},{id:"custom",label:"Custom"}].map(p=>(
