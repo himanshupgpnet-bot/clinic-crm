@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.300";
+const CRM_VERSION = "2.9.301";
 
 // Responsive hook
 function useWindowSize() {
@@ -4182,8 +4182,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Haiku is recommended for most use cases</div>
                       </div>
 
-                      {/* Timezone — admin only, affects follow-up scheduling and analytics */}
-                      {isAdmin&&<div style={{marginBottom:14}}>
+                      {/* Timezone — affects follow-up scheduling and analytics */}
+                      <div style={{marginBottom:14}}>
                         <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:4}}>Timezone</label>
                         <div style={{fontSize:10,color:T.textMuted,marginBottom:6}}>Used for follow-up scheduling and analytics date grouping</div>
                         <select value={appSettings.timezone||"Asia/Kuala_Lumpur"}
@@ -4219,7 +4219,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                           <option value="Australia/Sydney">🇦🇺 Australia East (UTC+10/+11)</option>
                           <option value="Pacific/Auckland">🇳🇿 New Zealand (UTC+12/+13)</option>
                         </select>
-                      </div>}
+                      </div>
                     </div>
 
                     {/* Bot Behaviour */}
