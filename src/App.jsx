@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.291";
+const CRM_VERSION = "2.9.292";
 
 // Responsive hook
 function useWindowSize() {
@@ -201,6 +201,7 @@ export default function App() {
   const [archiveConfirm, setArchiveConfirm] = useState(null);
   const [archivedContacts, setArchivedContacts] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [settingsNav, setSettingsNav] = useState("ai");
   const [bulkBotModal, setBulkBotModal] = useState(null);
   const [exportModal, setExportModal] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -4056,7 +4057,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {tab==="settings"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
           {(()=>{
-            const [settingsNav, setSettingsNav] = window._settingsNav || (window._settingsNav = React.useState("ai"));
             const NAV = [
               {id:"ai",      icon:"ti ti-robot",          label:"AI & Bot"},
               {id:"whatsapp",icon:"ti ti-brand-whatsapp", label:"WhatsApp"},
@@ -4410,7 +4410,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </>}
 
               </div>
-            </>;
+            </>
           })()}
         </div>}
         {/* ══ ADMIN TAB ══ */}
