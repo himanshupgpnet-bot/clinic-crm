@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.292";
+const CRM_VERSION = "2.9.294";
 
 // Responsive hook
 function useWindowSize() {
@@ -4055,39 +4055,44 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           permissions={permissions} API={API}/>}
 
 
-        {tab==="settings"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
+        {tab==="settings"&&<div style={{flex:1,display:"flex",flexDirection:"column",background:T.bg,overflow:"hidden"}}>
+          {/* Page header with client pills */}
+          <div className="nx-page-header" style={{flexShrink:0}}>
+            <i className="ti ti-settings" style={{fontSize:20,color:WA_GREEN}}/>
+            <div>
+              <div className="nx-page-title">Settings</div>
+              <div className="nx-page-sub">{settingsClinic?settingsClinic.company_name||settingsClinic.username:"Configure your bot and account"}</div>
+            </div>
+            {isAdmin&&adminOverview.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center",marginLeft:12}}>
+              {adminOverview.map(c=>{
+                const sel = settingsClinic?.id===c.id;
+                return <div key={c.id} onClick={()=>sel?null:loadClientSettings(c)}
+                  style={{display:"flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:20,cursor:"pointer",
+                    border:`1px solid ${sel?WA_GREEN:T.border}`,background:sel?`${WA_GREEN}15`:"transparent",
+                    opacity:(c.active===false||c.active===0)?0.5:1,transition:"all .15s"}}
+                  onMouseEnter={e=>{if(!sel){e.currentTarget.style.borderColor=WA_GREEN;e.currentTarget.style.background=`${WA_GREEN}10`;}}}
+                  onMouseLeave={e=>{if(!sel){e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background="transparent";}}}>
+                  <div style={{width:14,height:14,borderRadius:3,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:9}}>🏢</span>}
+                  </div>
+                  <span style={{fontSize:11,fontWeight:700,color:sel?WA_GREEN:T.text}}>{c.company_name||c.username}</span>
+                </div>;
+              })}
+            </div>}
+          </div>
+
+          {/* Body — left nav + right content */}
+          <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {(()=>{
             const NAV = [
               {id:"ai",      icon:"ti ti-robot",          label:"AI & Bot"},
-              {id:"whatsapp",icon:"ti ti-brand-whatsapp", label:"WhatsApp"},
               {id:"keywords",icon:"ti ti-target",          label:"Lead Keywords"},
               {id:"followup",icon:"ti ti-clock",           label:"Follow-up"},
               {id:"telegram",icon:"ti ti-send",            label:"Notifications"},
-              {id:"security",icon:"ti ti-shield",          label:"Security"},
             ];
             return <>
               {/* ── LEFT SETTINGS NAV ── */}
-              <div style={{width:200,borderRight:`1px solid ${T.border}`,padding:"16px 8px",flexShrink:0,background:T.card,overflowY:"auto"}}>
-                {/* Admin client pills */}
-                {isAdmin&&<div style={{marginBottom:12}}>
-                  <div style={{fontSize:10,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6,padding:"0 8px",marginBottom:6}}>Client</div>
-                  {adminOverview.map(c=>(
-                    <div key={c.id} onClick={()=>loadClientSettings(c)}
-                      style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:8,cursor:"pointer",marginBottom:2,
-                        background:settingsClinic?.id===c.id?`${WA_GREEN}12`:"transparent",
-                        border:settingsClinic?.id===c.id?`1px solid ${WA_GREEN}30`:"1px solid transparent",
-                        opacity:(c.active===false||c.active===0)?0.5:1,transition:"all .15s"}}
-                      onMouseEnter={e=>{if(settingsClinic?.id!==c.id)e.currentTarget.style.background=T.card2;}}
-                      onMouseLeave={e=>{if(settingsClinic?.id!==c.id)e.currentTarget.style.background="transparent";}}>
-                      <div style={{width:22,height:22,borderRadius:6,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:11}}>🏢</span>}
-                      </div>
-                      <span style={{fontSize:11,fontWeight:700,color:settingsClinic?.id===c.id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</span>
-                    </div>
-                  ))}
-                  <div style={{height:1,background:T.border,margin:"10px 4px"}}/>
-                </div>}
-
+              <div style={{width:180,borderRight:`1px solid ${T.border}`,padding:"12px 8px",flexShrink:0,background:T.card,overflowY:"auto"}}>
                 {NAV.map(n=>(
                   <div key={n.id} onClick={()=>setSettingsNav(n.id)}
                     style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,
@@ -4241,30 +4246,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </>}
                 </>}
 
-                {/* ── WHATSAPP ── */}
-                {settingsNav==="whatsapp"&&(!isAdmin||settingsClinic)&&<>
-                  <div style={{marginBottom:24}}>
-                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>WhatsApp Configuration</div>
-                    {[
-                      {key:"wa_phone_number",label:"WhatsApp Number",ph:"+60 11 1050 7200"},
-                      {key:"wa_phone_number_id",label:"Phone Number ID",ph:"985068241357564"},
-                      {key:"wa_token",label:"Access Token",ph:"EAAxxxxxxxx",pwd:true},
-                    ].map(f=>(
-                      <div key={f.key} style={{marginBottom:14}}>
-                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>{f.label}</label>
-                        <input type={f.pwd?"password":"text"} value={appSettings[f.key]||""}
-                          onChange={e=>{setAppSettings(s=>({...s,[f.key]:e.target.value}));setSettingsDirtyWithRef(true);}}
-                          placeholder={f.ph}
-                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-                      </div>
-                    ))}
-                  </div>
-                  <button onClick={saveSettings}
-                    style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                    💾 Save Settings
-                  </button>
-                </>}
-
                 {/* ── LEAD KEYWORDS ── */}
                 {settingsNav==="keywords"&&(!isAdmin||settingsClinic)&&<>
                   <div style={{marginBottom:24}}>
@@ -4391,27 +4372,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </div>
                 </>}
 
-                {/* ── SECURITY ── */}
-                {settingsNav==="security"&&<>
-                  <div style={{marginBottom:24}}>
-                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Security</div>
-                    <div style={{marginBottom:14}}>
-                      <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>Session timeout (minutes)</label>
-                      <input type="number" min="5" max="480" value={appSettings.session_timeout_mins||30}
-                        onChange={e=>{setAppSettings(s=>({...s,session_timeout_mins:e.target.value}));setSettingsDirtyWithRef(true);}}
-                        style={{width:120,padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
-                      <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Auto-logout after inactivity. 30 mins recommended.</div>
-                    </div>
-                  </div>
-                  <button onClick={saveSettings}
-                    style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                    💾 Save Settings
-                  </button>
-                </>}
-
               </div>
             </>
           })()}
+          </div>{/* end body flex */}
         </div>}
         {/* ══ ADMIN TAB ══ */}
         {tab==="admin"&&isAdmin&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal} adminOverview={adminOverview}/></div>}
