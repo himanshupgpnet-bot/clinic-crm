@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.299";
+const CRM_VERSION = "2.9.300";
 
 // Responsive hook
 function useWindowSize() {
@@ -4189,14 +4189,35 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         <select value={appSettings.timezone||"Asia/Kuala_Lumpur"}
                           onChange={e=>{setAppSettings(s=>({...s,timezone:e.target.value}));setSettingsDirtyWithRef(true);}}
                           style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
-                          <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia (KL)</option>
-                          <option value="Asia/Singapore">🇸🇬 Singapore</option>
-                          <option value="Asia/Jakarta">🇮🇩 Indonesia (WIB)</option>
-                          <option value="Asia/Kolkata">🇮🇳 India (IST)</option>
-                          <option value="Asia/Bangkok">🇹🇭 Thailand</option>
-                          <option value="Asia/Dubai">🇦🇪 UAE (Dubai)</option>
-                          <option value="Europe/London">🇬🇧 UK</option>
-                          <option value="America/New_York">🇺🇸 US East</option>
+                          <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia (UTC+8)</option>
+                          <option value="Asia/Singapore">🇸🇬 Singapore (UTC+8)</option>
+                          <option value="Asia/Jakarta">🇮🇩 Indonesia WIB (UTC+7)</option>
+                          <option value="Asia/Makassar">🇮🇩 Indonesia WITA (UTC+8)</option>
+                          <option value="Asia/Jayapura">🇮🇩 Indonesia WIT (UTC+9)</option>
+                          <option value="Asia/Kolkata">🇮🇳 India (UTC+5:30)</option>
+                          <option value="Asia/Colombo">🇱🇰 Sri Lanka (UTC+5:30)</option>
+                          <option value="Asia/Karachi">🇵🇰 Pakistan (UTC+5)</option>
+                          <option value="Asia/Dhaka">🇧🇩 Bangladesh (UTC+6)</option>
+                          <option value="Asia/Bangkok">🇹🇭 Thailand (UTC+7)</option>
+                          <option value="Asia/Ho_Chi_Minh">🇻🇳 Vietnam (UTC+7)</option>
+                          <option value="Asia/Manila">🇵🇭 Philippines (UTC+8)</option>
+                          <option value="Asia/Taipei">🇹🇼 Taiwan (UTC+8)</option>
+                          <option value="Asia/Shanghai">🇨🇳 China (UTC+8)</option>
+                          <option value="Asia/Seoul">🇰🇷 South Korea (UTC+9)</option>
+                          <option value="Asia/Tokyo">🇯🇵 Japan (UTC+9)</option>
+                          <option value="Asia/Dubai">🇦🇪 UAE (UTC+4)</option>
+                          <option value="Asia/Riyadh">🇸🇦 Saudi Arabia (UTC+3)</option>
+                          <option value="Asia/Kuwait">🇰🇼 Kuwait (UTC+3)</option>
+                          <option value="Asia/Qatar">🇶🇦 Qatar (UTC+3)</option>
+                          <option value="Africa/Nairobi">🇰🇪 Kenya (UTC+3)</option>
+                          <option value="Europe/London">🇬🇧 UK (UTC+0/+1)</option>
+                          <option value="Europe/Paris">🇫🇷 France (UTC+1/+2)</option>
+                          <option value="Europe/Berlin">🇩🇪 Germany (UTC+1/+2)</option>
+                          <option value="America/New_York">🇺🇸 US East (UTC-5/-4)</option>
+                          <option value="America/Chicago">🇺🇸 US Central (UTC-6/-5)</option>
+                          <option value="America/Los_Angeles">🇺🇸 US West (UTC-8/-7)</option>
+                          <option value="Australia/Sydney">🇦🇺 Australia East (UTC+10/+11)</option>
+                          <option value="Pacific/Auckland">🇳🇿 New Zealand (UTC+12/+13)</option>
                         </select>
                       </div>}
                     </div>
