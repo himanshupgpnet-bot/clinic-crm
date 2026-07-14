@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.283";
+const CRM_VERSION = "2.9.284";
 
 // Responsive hook
 function useWindowSize() {
@@ -5246,38 +5246,37 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
         </div>
       </>}
 
-      {/* Header */}
-      <div style={{background:T.nav,borderBottom:`1px solid ${T.border}`,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,flexShrink:0,flexWrap:"wrap"}}>
+      {/* PAGE HEADER — matches mockup */}
+      <div className="nx-page-header" style={{flexShrink:0}}>
+        <i className="ti ti-notes" style={{fontSize:20,color:WA_GREEN}}/>
+        <div>
+          <div className="nx-page-title">Notes</div>
+          <div className="nx-page-sub">Internal team notes · {activeNotes.length} active · {doneNotes.length} done</div>
+        </div>
         {isAdmin&&<div onClick={()=>{setNotesClinic(null);setNotes([]);}}
-          style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderRadius:20,background:`${WA_GREEN}15`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer"}}>
+          style={{display:"flex",alignItems:"center",gap:6,padding:"5px 12px",borderRadius:20,background:`${WA_GREEN}15`,border:`1px solid ${WA_GREEN}30`,cursor:"pointer",flexShrink:0}}>
           <span style={{fontSize:11,fontWeight:700,color:WA_GREEN}}>🏢 {notesClinic?.company_name||notesClinic?.username}</span>
           <span style={{fontSize:10,color:WA_GREEN,opacity:.7}}>✕</span>
         </div>}
-        <div style={{flex:1}}>
-          <div style={{fontWeight:800,fontSize:16}}>📝 Contact Notes</div>
-          <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>
-            {activeNotes.length} active · {doneNotes.length} done
-            <span style={{marginLeft:8,color:T.textFaint}}>· 🤖 Auto-generated every 5 mins</span>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={openAddModal}
-            style={{padding:"8px 16px",borderRadius:10,border:"none",background:`linear-gradient(135deg,#6c63ff,#5a52e0)`,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 2px 10px rgba(108,99,255,.25)"}}>
-            ✏️ Add Note
+        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          <button onClick={openAddModal} className="nx-btn primary">
+            <i className="ti ti-plus" style={{fontSize:14}}/> New note
           </button>
-          <button onClick={()=>loadNotes(clinicId)}
-            style={{padding:"8px 12px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>🔄</button>
+          <button onClick={()=>loadNotes(clinicId)} className="nx-btn">
+            <i className="ti ti-refresh" style={{fontSize:14}}/>
+          </button>
         </div>
       </div>
 
-      {/* Generate Notes Panel */}
-      <div style={{background:dark?"#1a1f2e":"#f5f3ff",borderBottom:`1px solid ${T.border}`,padding:"14px 20px",flexShrink:0}}>
+      {/* Generate Notes Panel — compact */}
+      <div style={{background:dark?"#1a1f2e":"#f5f3ff",borderBottom:`1px solid ${T.border}`,padding:"10px 20px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:700,fontSize:13,color:T.text}}>🤖 Generate Notes from Conversations</div>
-            <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>AI reads warm/hot chats in date range and creates notes for interested-but-not-ready customers</div>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <i className="ti ti-robot" style={{fontSize:14,color:"#7c3aed"}}/>
+            <span style={{fontWeight:600,fontSize:12,color:T.text}}>AI Generate</span>
+            <span style={{fontSize:11,color:T.textMuted}}>— reads warm/hot chats and creates notes</span>
           </div>
-          <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+          <div style={{marginLeft:"auto",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
             {/* Presets */}
             {[{l:"Today",d:0},{l:"Yesterday",d:1},{l:"7 days",d:7},{l:"30 days",d:30}].map(p=>(
               <button key={p.l} onClick={()=>{
@@ -5351,94 +5350,64 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
           </button>
         </div>}
 
-        {/* Active notes */}
+        {/* Active notes — 3-column sticky card grid like mockup */}
         {activeNotes.length>0&&<>
-          <div style={{fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>📌 Active ({activeNotes.length})</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12,marginBottom:24}}>
+          <div style={{fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>Active ({activeNotes.length})</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:24}}>
             {activeNotes.map(n=>{
-              const isHot = n.lead==="hot";
-              const isWarm = n.lead==="warm" || !n.lead;
               const isAI = n.agent_name==="🤖 Auto-Note";
               const isHighlighted = highlightNoteId===n.id;
-              const stripeColor = isAI?"linear-gradient(90deg,#7c3aed,#8b5cf6)":isHot?"linear-gradient(90deg,#e11d48,#f43f5e)":"linear-gradient(90deg,#d97706,#f59e0b)";
-              const borderColor = isHighlighted?WA_GREEN:isHot?"rgba(225,29,72,.2)":"rgba(217,119,6,.15)";
-              const bgColor = isAI?"linear-gradient(160deg,#fff,#faf5ff)":"#ffffff";
               return (
-              <div key={n.id} id={"note-card-"+n.id}
-                style={{background:bgColor,border:`1.5px solid ${borderColor}`,borderRadius:16,overflow:"hidden",
-                  boxShadow:isHighlighted?"0 0 0 3px rgba(108,99,255,.25),0 4px 20px rgba(0,0,0,.1)":"0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)",
-                  transition:"all .2s",position:"relative"}}
-                onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 4px 24px rgba(0,0,0,.1)";}}
-                onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=isHighlighted?"0 0 0 3px rgba(108,99,255,.25),0 4px 20px rgba(0,0,0,.1)":"0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)";}}>
-                {/* Top color stripe */}
-                <div style={{height:3,background:stripeColor}}/>
-                {/* AI Badge */}
-                {isAI&&<span style={{position:"absolute",top:10,right:10,fontSize:9,padding:"2px 7px",borderRadius:20,background:"linear-gradient(135deg,#7c3aed,#6d28d9)",color:"#fff",fontWeight:700,display:"flex",alignItems:"center",gap:3}}>🤖 AI</span>}
-                <div style={{padding:14}}>
-                  {/* Contact row */}
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,paddingRight:isAI?44:0}}>
-                    <div style={{width:36,height:36,borderRadius:"50%",background:isHot?"linear-gradient(135deg,#e11d48,#f43f5e)":isAI?"linear-gradient(135deg,#7c3aed,#8b5cf6)":"linear-gradient(135deg,#d97706,#f59e0b)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,.1)"}}>
-                      {(n.contact_name||"?")[0]?.toUpperCase()}
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
-                        style={{fontWeight:700,fontSize:13,color:T.text,background:"none",border:"none",cursor:"pointer",padding:0,textAlign:"left",fontFamily:"inherit",transition:"color .15s"}}
-                        onMouseEnter={e=>e.target.style.color=WA_GREEN} onMouseLeave={e=>e.target.style.color=T.text}>
-                        {n.contact_name||n.contact_id}
-                      </button>
-                      <div style={{fontSize:10,color:T.textFaint,marginTop:1}}>{n.contact_id}</div>
-                    </div>
+                <div key={n.id} id={"note-card-"+n.id}
+                  style={{background:dark?"#2a2500":"#fffef0",border:`1px solid ${isHighlighted?"#f59e0b":"#fde68a"}`,
+                    borderRadius:10,padding:14,transition:"all .15s",position:"relative",
+                    boxShadow:isHighlighted?"0 0 0 3px rgba(245,158,11,.3)":"0 1px 3px rgba(0,0,0,.04)"}}
+                  onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,.08)"}
+                  onMouseLeave={e=>e.currentTarget.style.boxShadow=isHighlighted?"0 0 0 3px rgba(245,158,11,.3)":"0 1px 3px rgba(0,0,0,.04)"}>
+                  {isAI&&<div style={{position:"absolute",top:10,right:10,fontSize:9,padding:"1px 6px",borderRadius:10,background:"#7c3aed",color:"#fff",fontWeight:700}}>AI</div>}
+                  {/* Title */}
+                  <div style={{fontSize:12,fontWeight:700,color:dark?"#fbbf24":"#92400e",marginBottom:6,paddingRight:isAI?28:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {n.contact_name||n.contact_id}
                   </div>
-                  {/* Action buttons row — separate, below contact */}
-                  <div style={{display:"flex",gap:6,marginBottom:10}}>
-                    <button onClick={()=>markDone(n.id,true)}
-                      style={{flex:1,padding:"5px 0",borderRadius:8,border:"1px solid #bbf7d0",background:"#f0fdf4",color:"#16a34a",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all .15s"}}
-                      onMouseEnter={e=>{e.currentTarget.style.background="#dcfce7"}} onMouseLeave={e=>{e.currentTarget.style.background="#f0fdf4"}}>✓ Done</button>
-                    <button onClick={()=>{setEditingNoteId(n.id);setEditingNoteText(n.note_text);}}
-                      style={{flex:1,padding:"5px 0",borderRadius:8,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all .15s"}}
-                      onMouseEnter={e=>{e.currentTarget.style.background="#dbeafe"}} onMouseLeave={e=>{e.currentTarget.style.background="#eff6ff"}}>✏️ Edit</button>
-                    <button onClick={()=>deleteNote(n.id)}
-                      style={{flex:1,padding:"5px 0",borderRadius:8,border:"1px solid #fecdd3",background:"#fff1f3",color:"#e11d48",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all .15s"}}
-                      onMouseEnter={e=>{e.currentTarget.style.background="#ffe4e6"}} onMouseLeave={e=>{e.currentTarget.style.background="#fff1f3"}}>✕ Delete</button>
-                  </div>
-                  {/* Note text or edit form */}
-                  {editingNoteId===n.id ? (
-                    <div style={{marginBottom:10}}>
-                      <textarea value={editingNoteText} onChange={e=>setEditingNoteText(e.target.value)} rows={3}
-                        style={{width:"100%",background:"#fffde7",border:"1.5px solid #f59e0b",borderRadius:8,padding:"8px 10px",color:"#78350f",fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
-                      <div style={{display:"flex",gap:6,marginTop:6}}>
-                        <button onClick={()=>saveEditNote(n.id)} style={{padding:"5px 14px",borderRadius:7,border:"none",background:"#f59e0b",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>💾 Save</button>
-                        <button onClick={()=>{setEditingNoteId(null);setEditingNoteText("");}} style={{padding:"5px 10px",borderRadius:7,border:"1px solid #fde68a",background:"transparent",color:"#92400e",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                  {/* Body */}
+                  {editingNoteId===n.id?(
+                    <div>
+                      <textarea value={editingNoteText} onChange={e=>setEditingNoteText(e.target.value)} rows={3} autoFocus
+                        style={{width:"100%",fontSize:11,color:dark?"#fef3c7":"#78350f",background:"transparent",border:"1px solid #fcd34d",borderRadius:6,padding:"6px 8px",fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}}/>
+                      <div style={{display:"flex",gap:5,marginTop:6}}>
+                        <button onClick={()=>saveEditNote(n.id)} style={{padding:"3px 10px",borderRadius:6,border:"none",background:"#d97706",color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+                        <button onClick={()=>{setEditingNoteId(null);setEditingNoteText("");}} style={{padding:"3px 8px",borderRadius:6,border:"1px solid #fde68a",background:"transparent",color:"#92400e",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
                       </div>
                     </div>
-                  ) : (
-                    <div style={{fontSize:12,color:"#374151",lineHeight:1.65,marginBottom:10,padding:"10px 12px",
-                      background:isAI?"#f5f3ff":isHot?"#fff1f3":"#fffbeb",
-                      borderRadius:8,borderLeft:`3px solid ${isAI?"#7c3aed":isHot?"#e11d48":"#d97706"}`}}>
+                  ):(
+                    <div style={{fontSize:11,color:dark?"#fef3c7":"#78350f",lineHeight:1.6,marginBottom:10,display:"-webkit-box",WebkitLineClamp:4,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
                       {n.note_text}
                     </div>
                   )}
-                  {/* Meta */}
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:10,color:T.textFaint,marginBottom:10}}>
-                    <span>by {n.agent_name||"Agent"}</span>
-                    <span>{fmt(n.created_at)}</span>
+                  {/* Date */}
+                  <div style={{fontSize:10,color:"#b45309",marginBottom:8}}>
+                    {new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})} · {new Date(n.created_at).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",hour12:true})}
                   </div>
-                  {/* Jump button */}
-                  <button onClick={()=>onJumpToChat(n.contact_id, n.contact_name)}
-                    style={{width:"100%",padding:"7px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,transition:"all .15s"}}
-                    onMouseEnter={e=>{e.currentTarget.style.background=`${WA_GREEN}10`;e.currentTarget.style.color=WA_GREEN;e.currentTarget.style.borderColor=`${WA_GREEN}30`;}}
-                    onMouseLeave={e=>{e.currentTarget.style.background=T.card2;e.currentTarget.style.color=T.textMuted;e.currentTarget.style.borderColor="#e8eaef";}}>
-                    💬 Jump to Chat
-                  </button>
+                  {/* Actions */}
+                  <div style={{display:"flex",gap:5,borderTop:"1px solid #fde68a",paddingTop:8}}>
+                    <button onClick={()=>onJumpToChat(n.contact_id,n.contact_name)}
+                      style={{flex:1,padding:"4px",borderRadius:6,border:"1px solid #fde68a",background:"transparent",color:"#92400e",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>💬 Chat</button>
+                    <button onClick={()=>{setEditingNoteId(n.id);setEditingNoteText(n.note_text);}}
+                      style={{flex:1,padding:"4px",borderRadius:6,border:"1px solid #fde68a",background:"transparent",color:"#92400e",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✏️ Edit</button>
+                    <button onClick={()=>markDone(n.id,true)}
+                      style={{flex:1,padding:"4px",borderRadius:6,border:"none",background:"#d97706",color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✓ Done</button>
+                    <button onClick={()=>deleteNote(n.id)}
+                      style={{padding:"4px 6px",borderRadius:6,border:"1px solid #fde68a",background:"transparent",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                  </div>
                 </div>
-              </div>
-            );})}
+              );
+            })}
           </div>
         </>}
 
-        {/* Done notes */}
+        {/* Done notes — compact rows */}
         {doneNotes.length>0&&<>
-          <div style={{fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>✅ Done ({doneNotes.length})</div>
+          <div style={{fontWeight:700,fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Done ({doneNotes.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {doneNotes.map(n=>(
               <div key={n.id} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:12,opacity:.6}}>
