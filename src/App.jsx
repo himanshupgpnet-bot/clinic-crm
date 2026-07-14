@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.289";
+const CRM_VERSION = "2.9.290";
 
 // Responsive hook
 function useWindowSize() {
@@ -3634,9 +3634,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
           {/* Main content — mockup style */}
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
-            {(!isAdmin||(isAdmin&&broadcastClinic))&&<>
 
-            {/* Page header — matches mockup */}
+            {/* Page header — always visible, pills let admin select client */}
             <div className="nx-page-header" style={{flexShrink:0}}>
               <i className="ti ti-speakerphone" style={{fontSize:20,color:WA_GREEN}}/>
               <div>
@@ -3659,23 +3658,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </div>;
                 })}
               </div>}
-
               <div style={{marginLeft:"auto",display:"flex",gap:8}}>
                 <button onClick={()=>{setBroadcastSubTab("send");setCreateTemplateStep(1);setCreateTemplateResult(null);}}
                   className={`nx-btn${broadcastSubTab==="send"?" primary":""}`}>
                   <i className="ti ti-send" style={{fontSize:14}}/> Send Broadcast
                 </button>
-                <button onClick={()=>{
-                  const missing=[];
-                  const token=appSettings?.whatsapp_token||appSettings?.wa_token||appSettings?.anthropic_key;
-                  if(!token) missing.push({field:"WhatsApp Token",desc:"Add it in Integrations → WhatsApp."});
-                  if(missing.length>0){setSetupMissing(missing);setShowSetupModal(true);return;}
-                  setBroadcastSubTab("create");setCreateTemplateStep(1);setCreateTemplateResult(null);
-                }} className={`nx-btn${broadcastSubTab==="create"?" primary":""}`}>
+                <button onClick={()=>{setBroadcastSubTab("create");setCreateTemplateStep(1);setCreateTemplateResult(null);}}
+                  className={`nx-btn${broadcastSubTab==="create"?" primary":""}`}>
                   <i className="ti ti-plus" style={{fontSize:14}}/> Create Template
                 </button>
               </div>
             </div>
+
+            {(!isAdmin||(isAdmin&&broadcastClinic))&&<>
 
             {/* ── SEND BROADCAST — two column layout like mockup ── */}
             {broadcastSubTab==="send"&&<div style={{flex:1,overflowY:"auto",padding:"20px"}}><div style={{display:"flex",gap:16,alignItems:"flex-start",height:"100%"}}>
