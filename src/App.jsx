@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.290";
+const CRM_VERSION = "2.9.291";
 
 // Responsive hook
 function useWindowSize() {
@@ -4055,438 +4055,364 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
 
         {tab==="settings"&&<div style={{flex:1,display:"flex",background:T.bg,overflow:"hidden"}}>
-
-          {/* Admin sidebar */}
-          {isAdmin&&<div style={{width:220,borderRight:`1px solid ${T.border}`,overflowY:"auto",flexShrink:0,background:T.card}}>
-            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,fontWeight:700,fontSize:11,color:T.textMuted,letterSpacing:1,textTransform:"uppercase"}}>Settings For</div>
-            {adminOverview.map(c=>(
-              <div key={c.id} onClick={()=>loadClientSettings(c)}
-                style={{padding:"11px 14px",cursor:"pointer",opacity:(c.active===false||c.active===0||c.active==='false'||c.active===null)?0.45:1,background:settingsClinic?.id===c.id?`${WA_GREEN}15`:"transparent",borderLeft:settingsClinic?.id===c.id?`3px solid ${WA_GREEN}`:"3px solid transparent",display:"flex",alignItems:"center",gap:8}}>
-                <div style={{width:32,height:32,borderRadius:9,overflow:"hidden",background:`${WA_GREEN}12`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:15}}>🏢</span>}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:700,color:settingsClinic?.id===c.id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</div>
-                  <div style={{fontSize:10,color:T.textMuted,marginTop:1}}>{c.industry||"Client"}</div>
-                </div>
-              </div>
-            ))}
-            {adminOverview.length===0&&<div style={{padding:20,fontSize:12,color:T.textMuted,textAlign:"center"}}>No clients yet</div>}
-          </div>}
-
-          {/* Main settings area */}
-          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:80}}>
-
-            {/* Admin must pick client */}
-            {isAdmin&&!settingsClinic&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",color:T.textMuted}}>
-              <div style={{fontSize:48,marginBottom:12}}>👈</div>
-              <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Select a client</div>
-              <div style={{fontSize:13}}>Choose from the sidebar to edit their settings</div>
-            </div>}
-            {isAdmin&&settingsClinic&&settingsLoading&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:16}}>
-              <div style={{width:44,height:44,borderRadius:"50%",border:`4px solid ${WA_GREEN}20`,borderTop:`4px solid ${WA_GREEN}`,animation:"spin 0.8s linear infinite"}}/>
-              <div style={{fontWeight:600,fontSize:14,color:T.textMuted}}>Loading {settingsClinic.company_name||"client"} settings...</div>
-            </div>}
-
-            {(!isAdmin||settingsClinic)&&!settingsLoading&&<div style={{maxWidth:720,margin:"0 auto",width:"100%"}}>
-
-              {/* ── STICKY SAVE BAR ── */}
-              <div style={{position:"sticky",top:0,zIndex:10,background:T.bg,paddingBottom:10,paddingTop:2,marginBottom:14}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderRadius:14,
-                  background:settingsDirty?`${WA_GREEN}10`:T.card,
-                  border:`2px solid ${settingsDirty?WA_GREEN:T.border}`,
-                  boxShadow:settingsDirty?"0 4px 20px rgba(37,211,102,.15)":"0 1px 4px rgba(0,0,0,.05)",
-                  transition:"all .3s"}}>
-                  <div>
-                    <div style={{fontWeight:800,fontSize:15}}>⚙️ Settings</div>
-                    {settingsDirty
-                      ?<div style={{fontSize:11,color:WA_GREEN,marginTop:2,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
-                          <div style={{width:6,height:6,borderRadius:"50%",background:WA_GREEN,animation:"pulse 1.5s infinite"}}/>
-                          Unsaved changes — click Save All
-                        </div>
-                      :<div style={{fontSize:11,color:T.textMuted,marginTop:2}}>✅ All settings saved</div>}
-                  </div>
-                  <button onClick={saveSettings}
-                    style={{padding:"10px 28px",borderRadius:12,border:"none",
-                      background:settingsDirty?WA_GREEN:"#94a3b8",
-                      color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
-                      fontFamily:"inherit",
-                      boxShadow:settingsDirty?"0 4px 14px rgba(37,211,102,.4)":"none",
-                      transform:settingsDirty?"scale(1.02)":"scale(1)",
-                      transition:"all .3s"}}>
-                    💾 Save All
-                  </button>
-                </div>
-              </div>
-
-              {/* Client header bar */}
-              {isAdmin&&settingsClinic&&<div style={{padding:"12px 16px",background:`${WA_GREEN}10`,borderRadius:12,border:`1px solid ${WA_GREEN}30`,marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {settingsClinic.logo_url?<img src={settingsClinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:16}}>🏢</span>}
-                </div>
-                <div style={{fontWeight:700,fontSize:14,color:WA_GREEN}}>{settingsClinic.company_name||settingsClinic.username}</div>
-                <div style={{fontSize:11,color:T.textMuted,marginLeft:4}}>Changes save to their account only</div>
-              </div>}
-
-              {/* ── TELEGRAM NOTIFICATIONS ── */}
-              <div className="cc" style={{marginBottom:16}}>
-                <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:16}}>
-                  <div style={{width:40,height:40,borderRadius:12,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📱</div>
-                  <div>
-                    <div style={{display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{fontWeight:800,fontSize:15}}>Telegram Notifications</div>
-                      
-                    </div>
-                    <div style={{fontSize:11,color:T.textMuted,lineHeight:1.6}}>
-                      Get instant alerts on Telegram when hot leads appear, customers want to book, or a human is needed.
-                      Works with any Telegram group or personal chat.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Connection status - read only, configured in Integrations tab */}
-                {(appSettings.telegram_token||"").length>5&&(appSettings.telegram_chat_id||"").length>3
-                  ?<div style={{padding:"8px 12px",borderRadius:8,background:"#f0fdf4",border:"1px solid #86efac",fontSize:11,color:"#166534",fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
-                    ✅ Telegram connected — alerts will be sent to your group
-                  </div>
-                  :<div style={{padding:"8px 12px",borderRadius:8,background:"#fffbeb",border:"1px solid #fcd34d",fontSize:11,color:"#92400e",marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
-                    ⚠️ Not connected — go to <strong style={{marginLeft:4}}>🔌 Integrations</strong> tab to connect Telegram
-                  </div>}
-
-                {/* Notify triggers */}
-                <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Notify me when:</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
-                  {[
-                    {key:"telegram_notify_hot",    label:"🔥 Hot Lead detected",      def:"true",  desc:"High intent customer"},
-                    {key:"telegram_notify_warm",   label:"🟡 Warm Lead detected",     def:"false", desc:"Interested customer"},
-                    {key:"telegram_notify_human",  label:"🚨 Human needed",           def:"true",  desc:"Complex medical question"},
-                    {key:"telegram_notify_booking",label:"📅 Booking intent detected", def:"true",  desc:"Customer wants appointment"},
-                  ].map(t=>(
-                    <div key={t.key} onClick={()=>{setAppSettings(p=>({...p,[t.key]:p[t.key]==="false"?"true":"false"}));setSettingsDirtyWithRef(true);}}
-                      style={{padding:"10px 12px",borderRadius:10,border:`1px solid ${(appSettings[t.key]||t.def)!=="false"?WA_GREEN:T.border}`,
-                        background:(appSettings[t.key]||t.def)!=="false"?`${WA_GREEN}08`:T.card2,
-                        cursor:"pointer",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}>
-                      <div style={{width:36,height:20,borderRadius:10,
-                        background:(appSettings[t.key]||t.def)!=="false"?WA_GREEN:"#94a3b8",
-                        position:"relative",transition:"background .2s",flexShrink:0}}>
-                        <div style={{position:"absolute",top:2,left:(appSettings[t.key]||t.def)!=="false"?18:2,
-                          width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+          {(()=>{
+            const [settingsNav, setSettingsNav] = window._settingsNav || (window._settingsNav = React.useState("ai"));
+            const NAV = [
+              {id:"ai",      icon:"ti ti-robot",          label:"AI & Bot"},
+              {id:"whatsapp",icon:"ti ti-brand-whatsapp", label:"WhatsApp"},
+              {id:"keywords",icon:"ti ti-target",          label:"Lead Keywords"},
+              {id:"followup",icon:"ti ti-clock",           label:"Follow-up"},
+              {id:"telegram",icon:"ti ti-send",            label:"Notifications"},
+              {id:"security",icon:"ti ti-shield",          label:"Security"},
+            ];
+            return <>
+              {/* ── LEFT SETTINGS NAV ── */}
+              <div style={{width:200,borderRight:`1px solid ${T.border}`,padding:"16px 8px",flexShrink:0,background:T.card,overflowY:"auto"}}>
+                {/* Admin client pills */}
+                {isAdmin&&<div style={{marginBottom:12}}>
+                  <div style={{fontSize:10,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6,padding:"0 8px",marginBottom:6}}>Client</div>
+                  {adminOverview.map(c=>(
+                    <div key={c.id} onClick={()=>loadClientSettings(c)}
+                      style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:8,cursor:"pointer",marginBottom:2,
+                        background:settingsClinic?.id===c.id?`${WA_GREEN}12`:"transparent",
+                        border:settingsClinic?.id===c.id?`1px solid ${WA_GREEN}30`:"1px solid transparent",
+                        opacity:(c.active===false||c.active===0)?0.5:1,transition:"all .15s"}}
+                      onMouseEnter={e=>{if(settingsClinic?.id!==c.id)e.currentTarget.style.background=T.card2;}}
+                      onMouseLeave={e=>{if(settingsClinic?.id!==c.id)e.currentTarget.style.background="transparent";}}>
+                      <div style={{width:22,height:22,borderRadius:6,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        {c.logo_url?<img src={c.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>:<span style={{fontSize:11}}>🏢</span>}
                       </div>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:600,color:T.text}}>{t.label}</div>
-                        <div style={{fontSize:10,color:T.textMuted}}>{t.desc}</div>
-                      </div>
+                      <span style={{fontSize:11,fontWeight:700,color:settingsClinic?.id===c.id?WA_GREEN:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.company_name||c.username}</span>
                     </div>
                   ))}
-                </div>
+                  <div style={{height:1,background:T.border,margin:"10px 4px"}}/>
+                </div>}
 
-                {/* Test button */}
-<button
-                  onClick={async()=>{
-                    // Get values from DOM in case not saved to state yet
-                    const tokenEl = document.getElementById("tg-token-input");
-                    const chatEl = document.getElementById("tg-chat-input");
-                    const token = tokenEl?.value || appSettings.telegram_token;
-                    const chatId = chatEl?.value || appSettings.telegram_chat_id;
-                    if(!token||!chatId) return showToast("Please enter Bot Token and Chat ID first","#ef4444");
-                    // Save first
-                    await fetch(`${API}/api/settings`,{method:"PATCH",headers:authHeaders(),
-                      body:JSON.stringify({...appSettings,telegram_token:token,telegram_chat_id:chatId})});
-                    setSettingsDirtyWithRef(false);
-                    // Then test
-                    const r = await fetch(`${API}/api/settings/test-telegram`,{method:"POST",headers:authHeaders()});
-                    const d = await r.json();
-                    if(d.ok) {
-                      setConfirmModal({
-                        title:"Test Sent! ✅",
-                        message:"Check your Telegram group — you should see a message from your bot right now.",
-                        icon:"📨",
-                        danger:false,
-                        confirmText:"Got it!",
-                        onConfirm:()=>{}
-                      });
-                    } else {
-                      setConfirmModal({
-                        title:"Failed to Send ❌",
-                        message:"Could not send to Telegram. Please check: Bot Token is correct, Chat ID starts with -, Bot is added to group as Admin, and Settings are saved.",
-                        icon:"⚠️",
-                        danger:true,
-                        confirmText:"OK, I'll check",
-                        onConfirm:()=>{}
-                      });
-                    }
-                  }}
-                  style={{padding:"8px 18px",borderRadius:10,border:"none",background:"#0088cc",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
-                  📨 Send Test Message
-                </button>
-              </div>
-
-              {/* API Key status */}
-              {isAdmin&&settingsClinic&&(()=>{
-                const activeKey = appSettings.anthropic_key||appSettings.openai_key||appSettings.groq_key||"";
-                return <div style={{background:activeKey?"#f0fdf4":"#fef9c3",border:`1px solid ${activeKey?"#86efac":"#fde68a"}`,borderRadius:12,padding:"12px 16px",marginBottom:16}}>
-                  {activeKey
-                    ?<div style={{fontSize:13,color:"#166534",fontWeight:600}}>✅ API Key set for {settingsClinic.company_name||settingsClinic.username}</div>
-                    :<div style={{fontSize:13,color:"#854d0e",fontWeight:600}}>⚠️ No API key set — add one in AI Provider section below and save</div>}
-                </div>;
-              })()}
-
-              {/* AI Bot section */}
-              <div className="cc" style={{marginBottom:14}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <div>
-                      <div style={{fontWeight:700,fontSize:15}}>🤖 AI Bot</div>
-                      <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{appSettings.ai_enabled!=="false"?"Active — bot replies automatically":"Disabled — manual replies only"}</div>
-                    </div>
-                    
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:13,fontWeight:700,color:appSettings.ai_enabled!=="false"?WA_GREEN:"#ef4444"}}>{appSettings.ai_enabled!=="false"?"ON":"OFF"}</span>
-                    <div onClick={()=>{setAppSettings(p=>({...p,ai_enabled:p.ai_enabled==="false"?"true":"false"}));setSettingsDirtyWithRef(true);}}
-                      style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.ai_enabled!=="false"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
-                      <div style={{position:"absolute",top:3,left:appSettings.ai_enabled!=="false"?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
-                    </div>
-                  </div>
-                </div>
-
-                {/* AI Provider cards — per provider key */}
-                <AIProviderCards
-                  appSettings={appSettings}
-                  setAppSettings={setAppSettings}
-                  setSettingsDirtyWithRef={setSettingsDirtyWithRef}
-                  T={T}
-                />
-              </div>
-
-              {/* Lead Keywords */}
-              <div className="cc" style={{marginBottom:14}}>
-                <div style={{fontWeight:700,fontSize:14,marginBottom:14}}>🎯 Lead Scoring Keywords</div>
-                {[
-                  {key:"hot_keywords", label:"🔥 Hot Keywords", color:"#ef4444", bg:"#fef2f2", border:"#fca5a5", hint:"Type keywords separated by commas — e.g. book, appointment, price, how much", ph:"book, appointment, price, cost, how much, register"},
-                  {key:"warm_keywords", label:"🟡 Warm Keywords", color:"#f59e0b", bg:"#fffbeb", border:"#fcd34d", hint:"Keywords showing interest but not ready to book yet", ph:"interested, tell me more, what services, diabetes, treatment"},
-                  {key:"cold_keywords", label:"🔵 Cold Keywords", color:"#3b82f6", bg:"#eff6ff", border:"#93c5fd", hint:"Keywords from people just browsing", ph:"just looking, maybe later, not sure, just curious"},
-                ].map(kw=>(
-                  <div key={kw.key} style={{marginBottom:16}}>
-                    <div style={{fontWeight:700,fontSize:12,color:T.text,marginBottom:4}}>{kw.label}</div>
-                    <div style={{fontSize:11,color:T.textFaint,marginBottom:6}}>{kw.hint}</div>
-                    <textarea
-                      value={appSettings[kw.key]||""}
-                      onChange={e=>{setAppSettings(p=>({...p,[kw.key]:e.target.value}));setSettingsDirtyWithRef(true);}}
-                      placeholder={kw.ph}
-                      rows={3}
-                      style={{width:"100%",background:T.input,border:`2px solid ${kw.border}`,borderRadius:10,
-                        padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",
-                        resize:"vertical",boxSizing:"border-box",lineHeight:1.6,
-                        outline:"none",transition:"border-color .2s"}}
-                      onFocus={e=>e.target.style.borderColor=kw.color}
-                      onBlur={e=>e.target.style.borderColor=kw.border}
-                    />
-                    {/* Show keyword chips preview */}
-                    {(appSettings[kw.key]||"").trim()&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>
-                      {(appSettings[kw.key]||"").split(",").map(k=>k.trim()).filter(k=>k).map((k,i)=>(
-                        <span key={i} style={{fontSize:11,padding:"2px 8px",borderRadius:20,
-                          background:kw.bg,color:kw.color,border:`1px solid ${kw.border}`,fontWeight:600}}>
-                          {k}
-                        </span>
-                      ))}
-                    </div>}
+                {NAV.map(n=>(
+                  <div key={n.id} onClick={()=>setSettingsNav(n.id)}
+                    style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,
+                      fontSize:12,fontWeight:500,cursor:"pointer",marginBottom:2,transition:"all .15s",
+                      background:settingsNav===n.id?`${WA_GREEN}15`:"transparent",
+                      color:settingsNav===n.id?WA_GREEN:T.textMuted}}>
+                    <i className={n.icon} style={{fontSize:16}}/>
+                    {n.label}
                   </div>
                 ))}
               </div>
 
-              {/* Follow-up */}
-              <div className="cc" style={{marginBottom:14}}>
-                {/* Header + toggle */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <div>
-                      <div style={{fontWeight:700,fontSize:15}}>⏰ Smart Auto Follow-up</div>
-                      <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{appSettings.followup_enabled==="true"?"Active — sends automatically when customer goes silent":"Disabled — only manual follow-ups"}</div>
+              {/* ── RIGHT SETTINGS CONTENT ── */}
+              <div style={{flex:1,overflowY:"auto",padding:"24px 28px",maxWidth:640}}>
+
+                {/* Sticky save bar */}
+                {settingsDirty&&<div style={{position:"sticky",top:0,zIndex:10,marginBottom:20,background:T.bg,paddingBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderRadius:12,
+                    background:`${WA_GREEN}10`,border:`2px solid ${WA_GREEN}`,boxShadow:`0 4px 16px ${WA_GREEN}25`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,fontWeight:600,color:WA_GREEN}}>
+                      <div style={{width:6,height:6,borderRadius:"50%",background:WA_GREEN}}/>
+                      Unsaved changes
                     </div>
-                    {/* Timezone selector */}
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{fontSize:11,color:T.textMuted}}>🌍 Timezone:</div>
-                      <select value={appSettings.timezone||"Asia/Kuala_Lumpur"}
-                        onChange={e=>{setAppSettings(p=>({...p,timezone:e.target.value}));setSettingsDirtyWithRef(true);}}
-                        style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"4px 8px",color:T.text,fontSize:11,fontFamily:"inherit"}}>
-                        <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia (KL)</option>
-                        <option value="Asia/Kolkata">🇮🇳 India (IST)</option>
-                        <option value="Asia/Singapore">🇸🇬 Singapore</option>
-                        <option value="Asia/Jakarta">🇮🇩 Indonesia (WIB)</option>
-                        <option value="Asia/Bangkok">🇹🇭 Thailand</option>
-                        <option value="Asia/Dubai">🇦🇪 UAE (Dubai)</option>
-                        <option value="Asia/Riyadh">🇸🇦 Saudi Arabia</option>
-                        <option value="Europe/London">🇬🇧 UK (London)</option>
-                        <option value="Europe/Paris">🇫🇷 Europe (Paris)</option>
-                        <option value="America/New_York">🇺🇸 US East</option>
-                        <option value="America/Los_Angeles">🇺🇸 US West</option>
-                        <option value="Australia/Sydney">🇦🇺 Australia (Sydney)</option>
-                        <option value="Pacific/Auckland">🇳🇿 New Zealand</option>
-                      </select>
-                    </div>
-                    
+                    <button onClick={saveSettings}
+                      style={{padding:"7px 20px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      💾 Save Settings
+                    </button>
                   </div>
-                  <div onClick={()=>{setAppSettings(p=>({...p,followup_enabled:p.followup_enabled==="true"?"false":"true"}));setSettingsDirtyWithRef(true);}}
-                    style={{width:48,height:26,borderRadius:13,cursor:"pointer",background:appSettings.followup_enabled==="true"?WA_GREEN:"#ef4444",position:"relative",transition:"background .2s",flexShrink:0}}>
-                    <div style={{position:"absolute",top:3,left:appSettings.followup_enabled==="true"?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+                </div>}
+
+                {/* ── AI & BOT ── */}
+                {settingsNav==="ai"&&<>
+                  {isAdmin&&!settingsClinic&&<div style={{padding:"40px 20px",textAlign:"center",color:T.textMuted}}>
+                    <div style={{fontSize:40,marginBottom:12}}>👈</div>
+                    <div style={{fontWeight:700,fontSize:15}}>Select a client</div>
+                    <div style={{fontSize:12,marginTop:4}}>Choose from the list on the left</div>
+                  </div>}
+                  {(!isAdmin||settingsClinic)&&settingsLoading&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>
+                    <div style={{width:32,height:32,borderRadius:"50%",border:`3px solid ${WA_GREEN}20`,borderTop:`3px solid ${WA_GREEN}`,animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/>
+                    Loading...
+                  </div>}
+                  {(!isAdmin||settingsClinic)&&!settingsLoading&&<>
+                    <div style={{marginBottom:24}}>
+                      <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>AI Configuration</div>
+
+                      {/* AI Provider */}
+                      <div style={{marginBottom:14}}>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>AI Provider</label>
+                        <div style={{display:"flex",gap:6}}>
+                          {[{id:"anthropic",label:"Claude",color:"#7c3aed"},{id:"openai",label:"GPT-4o",color:"#10b981"},{id:"groq",label:"Groq (Free)",color:"#f59e0b"}].map(p=>(
+                            <div key={p.id} onClick={()=>{setAppSettings(s=>({...s,ai_provider:p.id}));setSettingsDirtyWithRef(true);}}
+                              style={{flex:1,padding:"8px",borderRadius:8,border:`1.5px solid ${appSettings.ai_provider===p.id?p.color:T.border}`,
+                                background:appSettings.ai_provider===p.id?p.color+"10":"transparent",cursor:"pointer",textAlign:"center",transition:"all .15s"}}>
+                              <div style={{fontSize:11,fontWeight:700,color:appSettings.ai_provider===p.id?p.color:T.textMuted}}>{p.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* API Key */}
+                      <div style={{marginBottom:14}}>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>
+                          API Key <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>({appSettings.ai_provider==="anthropic"?"Anthropic":appSettings.ai_provider==="openai"?"OpenAI":"Groq"})</span>
+                        </label>
+                        <input type="password"
+                          value={appSettings.ai_provider==="anthropic"?appSettings.anthropic_key||"":appSettings.ai_provider==="openai"?appSettings.openai_key||"":appSettings.groq_key||""}
+                          onChange={e=>{
+                            const key = appSettings.ai_provider==="anthropic"?"anthropic_key":appSettings.ai_provider==="openai"?"openai_key":"groq_key";
+                            setAppSettings(s=>({...s,[key]:e.target.value}));setSettingsDirtyWithRef(true);
+                          }}
+                          placeholder={appSettings.ai_provider==="anthropic"?"sk-ant-api03-...":appSettings.ai_provider==="openai"?"sk-...":"gsk_..."}
+                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                      </div>
+
+                      {/* AI Model */}
+                      <div style={{marginBottom:14}}>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>AI Model</label>
+                        <select value={appSettings.ai_model||"claude-haiku-4-5-20251001"}
+                          onChange={e=>{setAppSettings(s=>({...s,ai_model:e.target.value}));setSettingsDirtyWithRef(true);}}
+                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+                          <option value="claude-haiku-4-5-20251001">claude-haiku-4-5 (Fast, economical)</option>
+                          <option value="claude-sonnet-4-6">claude-sonnet-4-6 (Balanced)</option>
+                          <option value="gpt-4o-mini">gpt-4o-mini (Fast)</option>
+                          <option value="gpt-4o">gpt-4o (Powerful)</option>
+                          <option value="llama-3.3-70b-versatile">llama-3.3-70b (Groq Free)</option>
+                        </select>
+                        <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Haiku is recommended for most use cases</div>
+                      </div>
+
+                      {/* System Prompt */}
+                      <div style={{marginBottom:14}}>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>System prompt</label>
+                        <textarea value={appSettings.system_prompt||""} rows={5}
+                          onChange={e=>{setAppSettings(s=>({...s,system_prompt:e.target.value}));setSettingsDirtyWithRef(true);}}
+                          placeholder="You are an AI assistant..."
+                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+                      </div>
+
+                      {/* Timezone */}
+                      <div style={{marginBottom:14}}>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>Timezone</label>
+                        <select value={appSettings.timezone||"Asia/Kuala_Lumpur"}
+                          onChange={e=>{setAppSettings(s=>({...s,timezone:e.target.value}));setSettingsDirtyWithRef(true);}}
+                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+                          <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia (KL)</option>
+                          <option value="Asia/Singapore">🇸🇬 Singapore</option>
+                          <option value="Asia/Jakarta">🇮🇩 Indonesia (WIB)</option>
+                          <option value="Asia/Kolkata">🇮🇳 India (IST)</option>
+                          <option value="Asia/Bangkok">🇹🇭 Thailand</option>
+                          <option value="Asia/Dubai">🇦🇪 UAE (Dubai)</option>
+                          <option value="Europe/London">🇬🇧 UK</option>
+                          <option value="America/New_York">🇺🇸 US East</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Bot Behaviour */}
+                    <div style={{marginBottom:24}}>
+                      <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Bot Behaviour</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        {[
+                          {key:"ai_enabled",    label:"Enable AI bot globally",    hint:"Bot replies automatically to all messages", invert:true},
+                          {key:"followup_enabled",label:"Auto follow-up",          hint:"Send follow-up messages when customers go silent"},
+                          {key:"followup_1_enabled",label:"Send welcome message",  hint:"Auto-send welcome when new customer messages"},
+                        ].map(t=>{
+                          const val = t.invert ? appSettings[t.key]!=="false" : appSettings[t.key]==="true";
+                          return <div key={t.key}
+                            style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",
+                              background:T.card2,borderRadius:8,border:`1px solid ${T.border}`}}>
+                            <div>
+                              <div style={{fontSize:12,fontWeight:600,color:T.text}}>{t.label}</div>
+                              <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{t.hint}</div>
+                            </div>
+                            <div onClick={()=>{
+                              const newVal = t.invert ? (val?"false":"true") : (val?"false":"true");
+                              setAppSettings(s=>({...s,[t.key]:newVal}));setSettingsDirtyWithRef(true);
+                            }} style={{width:36,height:20,borderRadius:10,cursor:"pointer",flexShrink:0,
+                              background:val?WA_GREEN:"#d1d5db",position:"relative",transition:"background .2s"}}>
+                              <div style={{position:"absolute",top:2,left:val?18:2,width:16,height:16,borderRadius:"50%",
+                                background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                            </div>
+                          </div>;
+                        })}
+                      </div>
+                    </div>
+
+                    <button onClick={saveSettings}
+                      style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      💾 Save Settings
+                    </button>
+                  </>}
+                </>}
+
+                {/* ── WHATSAPP ── */}
+                {settingsNav==="whatsapp"&&(!isAdmin||settingsClinic)&&<>
+                  <div style={{marginBottom:24}}>
+                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>WhatsApp Configuration</div>
+                    {[
+                      {key:"wa_phone_number",label:"WhatsApp Number",ph:"+60 11 1050 7200"},
+                      {key:"wa_phone_number_id",label:"Phone Number ID",ph:"985068241357564"},
+                      {key:"wa_token",label:"Access Token",ph:"EAAxxxxxxxx",pwd:true},
+                    ].map(f=>(
+                      <div key={f.key} style={{marginBottom:14}}>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>{f.label}</label>
+                        <input type={f.pwd?"password":"text"} value={appSettings[f.key]||""}
+                          onChange={e=>{setAppSettings(s=>({...s,[f.key]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                          placeholder={f.ph}
+                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                  <button onClick={saveSettings}
+                    style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    💾 Save Settings
+                  </button>
+                </>}
 
-                {/* How it works info */}
-                <div style={{background:`${WA_GREEN}08`,border:`1px solid ${WA_GREEN}25`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:11,color:T.textMuted,lineHeight:1.6}}>
-                  🤖 <strong style={{color:T.text}}>How it works:</strong> AI reads the full conversation → decides if follow-up is needed → writes personalized message in customer's language.<br/>
-                  ⏸️ <strong style={{color:T.text}}>Auto-stops</strong> if customer said thanks/bye/confirmed/booked.<br/>
-                  📋 <strong style={{color:T.text}}>Fallback messages</strong> below are only sent if AI API fails.
-                </div>
-
-                <div style={{opacity:appSettings.followup_enabled==="true"?1:.5,pointerEvents:appSettings.followup_enabled==="true"?"auto":"none"}}>
-
-                  {/* Follow-up 1 */}
-                  <div style={{background:T.card2,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${appSettings.followup_1_enabled!=="false"?WA_GREEN:T.border}`}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                      <div style={{fontWeight:700,fontSize:13,color:appSettings.followup_1_enabled!=="false"?WA_GREEN:T.textMuted}}>
-                        📨 Follow-up 1 {appSettings.followup_1_enabled!=="false"?"✅ Enabled":"⏸️ Disabled"}
+                {/* ── LEAD KEYWORDS ── */}
+                {settingsNav==="keywords"&&(!isAdmin||settingsClinic)&&<>
+                  <div style={{marginBottom:24}}>
+                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Lead Scoring Keywords</div>
+                    {[
+                      {key:"hot_keywords",  label:"🔥 Hot keywords",  color:"#ef4444", border:"#fca5a5", hint:"e.g. book, appointment, price, how much"},
+                      {key:"warm_keywords", label:"🟡 Warm keywords", color:"#f59e0b", border:"#fcd34d", hint:"e.g. interested, tell me more, what services"},
+                      {key:"cold_keywords", label:"🔵 Cold keywords", color:"#3b82f6", border:"#93c5fd", hint:"e.g. just looking, maybe later"},
+                    ].map(kw=>(
+                      <div key={kw.key} style={{marginBottom:16}}>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:4}}>{kw.label}</label>
+                        <div style={{fontSize:10,color:T.textMuted,marginBottom:6}}>{kw.hint}</div>
+                        <textarea value={appSettings[kw.key]||""} rows={2}
+                          onChange={e=>{setAppSettings(s=>({...s,[kw.key]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${kw.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+                        {(appSettings[kw.key]||"").trim()&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:5}}>
+                          {(appSettings[kw.key]||"").split(",").map(k=>k.trim()).filter(Boolean).map((k,i)=>(
+                            <span key={i} style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:kw.color+"12",color:kw.color,border:`1px solid ${kw.border}`,fontWeight:600}}>{k}</span>
+                          ))}
+                        </div>}
                       </div>
-                      <div onClick={()=>{setAppSettings(p=>({...p,followup_1_enabled:p.followup_1_enabled==="false"?"true":"false"}));setSettingsDirtyWithRef(true);}}
-                        style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:appSettings.followup_1_enabled!=="false"?WA_GREEN:"#94a3b8",position:"relative",transition:"background .2s",flexShrink:0}}>
-                        <div style={{position:"absolute",top:2,left:appSettings.followup_1_enabled!=="false"?22:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
-                      </div>
-                    </div>
-                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
-                      <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
-                      <input type="number" value={appSettings.followup_1_delay||"2"} onChange={e=>{setAppSettings(p=>({...p,followup_1_delay:e.target.value}));setSettingsDirtyWithRef(true);}}
-                        style={{width:70,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,textAlign:"center"}}/>
-                      <select value={appSettings.followup_1_delay_unit||"hours"} onChange={e=>{setAppSettings(p=>({...p,followup_1_delay_unit:e.target.value}));setSettingsDirtyWithRef(true);}}
-                        style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
-                        <option value="mins">Minutes</option>
-                        <option value="hours">Hours</option>
-                        <option value="days">Days</option>
-                      </select>
-                      <div style={{fontSize:11,color:T.textMuted}}>of silence</div>
-                    </div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>FALLBACK MESSAGE (if AI fails)</div>
-                    <textarea value={appSettings.followup_1_message||""} rows={2}
-                      onChange={e=>setAppSettings(p=>({...p,followup_1_message:e.target.value}))}
-                      placeholder="Hi {name}! Just checking in..."
-                      style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
-                    <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Use {"{name}"} for customer name</div>
+                    ))}
                   </div>
+                  <button onClick={saveSettings}
+                    style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    💾 Save Settings
+                  </button>
+                </>}
 
-                  {/* Follow-up 2 */}
-                  <div style={{background:T.card2,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${appSettings.followup_2_enabled==="true"?"#f59e0b":T.border}`}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                      <div style={{fontWeight:700,fontSize:13,color:appSettings.followup_2_enabled==="true"?"#f59e0b":T.textMuted}}>
-                        📨 Follow-up 2 {appSettings.followup_2_enabled==="true"?"✅ Enabled":"⏸️ Disabled"}
-                      </div>
-                      <div onClick={()=>{setAppSettings(p=>({...p,followup_2_enabled:p.followup_2_enabled==="true"?"false":"true"}));setSettingsDirtyWithRef(true);}}
-                        style={{width:44,height:24,borderRadius:12,cursor:"pointer",background:appSettings.followup_2_enabled==="true"?"#f59e0b":"#94a3b8",position:"relative",transition:"background .2s",flexShrink:0}}>
-                        <div style={{position:"absolute",top:2,left:appSettings.followup_2_enabled==="true"?22:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
-                      </div>
+                {/* ── FOLLOW-UP ── */}
+                {settingsNav==="followup"&&(!isAdmin||settingsClinic)&&<>
+                  <div style={{marginBottom:24}}>
+                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Auto Follow-up</div>
+                    <div style={{padding:"10px 12px",borderRadius:8,background:`${WA_GREEN}08`,border:`1px solid ${WA_GREEN}25`,fontSize:11,color:T.textMuted,marginBottom:16,lineHeight:1.6}}>
+                      🤖 AI reads the full conversation and writes a personalised follow-up message. Fallback messages below are only used if AI fails.
                     </div>
-                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
-                      <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</div>
-                      <input type="number" value={appSettings.followup_2_delay||"24"} onChange={e=>{setAppSettings(p=>({...p,followup_2_delay:e.target.value}));setSettingsDirtyWithRef(true);}}
-                        style={{width:70,background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,textAlign:"center"}}/>
-                      <select value={appSettings.followup_2_delay_unit||"hours"} onChange={e=>{setAppSettings(p=>({...p,followup_2_delay_unit:e.target.value}));setSettingsDirtyWithRef(true);}}
-                        style={{background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:13,fontFamily:"inherit"}}>
-                        <option value="mins">Minutes</option>
-                        <option value="hours">Hours</option>
-                        <option value="days">Days</option>
-                      </select>
-                      <div style={{fontSize:11,color:T.textMuted}}>after follow-up 1</div>
-                    </div>
-                    <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>FALLBACK MESSAGE (if AI fails)</div>
-                    <textarea value={appSettings.followup_2_message||""} rows={2}
-                      onChange={e=>setAppSettings(p=>({...p,followup_2_message:e.target.value}))}
-                      placeholder="Hello {name}! We still have slots available..."
-                      style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
-                    <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Use {"{name}"} for customer name</div>
+                    {/* Follow-up 1 */}
+                    {[{n:1,key:"followup_1",delayKey:"followup_1_delay",unitKey:"followup_1_delay_unit",msgKey:"followup_1_message",enableKey:"followup_1_enabled",color:WA_GREEN},
+                      {n:2,key:"followup_2",delayKey:"followup_2_delay",unitKey:"followup_2_delay_unit",msgKey:"followup_2_message",enableKey:"followup_2_enabled",color:"#f59e0b"}].map(fu=>{
+                      const enabled = appSettings[fu.enableKey]!=="false";
+                      return <div key={fu.n} style={{background:T.card2,borderRadius:10,padding:14,marginBottom:10,border:`1px solid ${enabled?fu.color:T.border}`}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                          <span style={{fontSize:12,fontWeight:700,color:enabled?fu.color:T.textMuted}}>Follow-up {fu.n} {enabled?"✅ Enabled":"⏸️ Disabled"}</span>
+                          <div onClick={()=>{setAppSettings(s=>({...s,[fu.enableKey]:enabled?"false":"true"}));setSettingsDirtyWithRef(true);}}
+                            style={{width:36,height:20,borderRadius:10,cursor:"pointer",background:enabled?fu.color:"#d1d5db",position:"relative",flexShrink:0,transition:"background .2s"}}>
+                            <div style={{position:"absolute",top:2,left:enabled?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                          </div>
+                        </div>
+                        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
+                          <span style={{fontSize:11,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</span>
+                          <input type="number" value={appSettings[fu.delayKey]||"2"}
+                            onChange={e=>{setAppSettings(s=>({...s,[fu.delayKey]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                            style={{width:60,padding:"5px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,textAlign:"center"}}/>
+                          <select value={appSettings[fu.unitKey]||"hours"}
+                            onChange={e=>{setAppSettings(s=>({...s,[fu.unitKey]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                            style={{padding:"5px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
+                            <option value="mins">Minutes</option>
+                            <option value="hours">Hours</option>
+                            <option value="days">Days</option>
+                          </select>
+                          <span style={{fontSize:11,color:T.textMuted}}>of silence</span>
+                        </div>
+                        <label style={{display:"block",fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:4}}>Fallback message</label>
+                        <textarea value={appSettings[fu.msgKey]||""} rows={2}
+                          onChange={e=>{setAppSettings(s=>({...s,[fu.msgKey]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                          placeholder="Hi {name}! Just checking in..."
+                          style={{width:"100%",padding:"7px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                      </div>;
+                    })}
                   </div>
+                  <button onClick={saveSettings}
+                    style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    💾 Save Settings
+                  </button>
+                </>}
 
+                {/* ── NOTIFICATIONS (Telegram) ── */}
+                {settingsNav==="telegram"&&(!isAdmin||settingsClinic)&&<>
+                  <div style={{marginBottom:24}}>
+                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Telegram Notifications</div>
+                    <div style={{padding:"10px 12px",borderRadius:8,background:"#eff6ff",border:"1px solid #bfdbfe",fontSize:11,color:"#1d4ed8",marginBottom:14,lineHeight:1.6}}>
+                      📌 Get instant alerts on Telegram when hot leads appear, bookings confirmed or human needed.
+                    </div>
+                    {[{key:"telegram_token",label:"Bot Token",ph:"8664616537:AAGE9wn...",pwd:true},{key:"telegram_chat_id",label:"Group Chat ID",ph:"-5277820778"}].map(f=>(
+                      <div key={f.key} style={{marginBottom:14}}>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>{f.label}</label>
+                        <input type={f.pwd?"password":"text"} value={appSettings[f.key]||""}
+                          onChange={e=>{setAppSettings(s=>({...s,[f.key]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                          placeholder={f.ph}
+                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                      </div>
+                    ))}
+                    <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:8}}>Notify me when:</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
+                      {[
+                        {key:"telegram_notify_hot",    label:"🔥 Hot lead detected",      def:"true"},
+                        {key:"telegram_notify_warm",   label:"🟡 Warm lead detected",     def:"false"},
+                        {key:"telegram_notify_human",  label:"🚨 Human agent needed",     def:"true"},
+                        {key:"telegram_notify_booking",label:"📅 Booking intent detected",def:"true"},
+                      ].map(t=>{
+                        const on = (appSettings[t.key]||t.def)!=="false";
+                        return <div key={t.key}
+                          style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",
+                            background:T.card2,borderRadius:8,border:`1px solid ${T.border}`,cursor:"pointer"}}
+                          onClick={()=>{setAppSettings(s=>({...s,[t.key]:on?"false":"true"}));setSettingsDirtyWithRef(true);}}>
+                          <span style={{fontSize:12,fontWeight:600,color:T.text}}>{t.label}</span>
+                          <div style={{width:36,height:20,borderRadius:10,background:on?WA_GREEN:"#d1d5db",position:"relative",flexShrink:0,transition:"background .2s"}}>
+                            <div style={{position:"absolute",top:2,left:on?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                          </div>
+                        </div>;
+                      })}
+                    </div>
+                    <button onClick={saveSettings}
+                      style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginRight:8}}>
+                      💾 Save
+                    </button>
+                    <button onClick={async()=>{
+                      const r=await fetch(`${API}/api/settings/test-telegram`,{method:"POST",headers:authHeaders()});
+                      const d=await r.json();
+                      setConfirmModal({title:d.ok?"Test Sent! ✅":"Failed ❌",message:d.ok?"Check your Telegram group for a test message.":"Could not send. Check Bot Token and Chat ID.",icon:d.ok?"📨":"⚠️",danger:!d.ok,confirmText:"OK",onConfirm:()=>{}});
+                    }} style={{padding:"9px 16px",borderRadius:8,border:"none",background:"#0088cc",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      📨 Test
+                    </button>
+                  </div>
+                </>}
 
+                {/* ── SECURITY ── */}
+                {settingsNav==="security"&&<>
+                  <div style={{marginBottom:24}}>
+                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Security</div>
+                    <div style={{marginBottom:14}}>
+                      <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>Session timeout (minutes)</label>
+                      <input type="number" min="5" max="480" value={appSettings.session_timeout_mins||30}
+                        onChange={e=>{setAppSettings(s=>({...s,session_timeout_mins:e.target.value}));setSettingsDirtyWithRef(true);}}
+                        style={{width:120,padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+                      <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Auto-logout after inactivity. 30 mins recommended.</div>
+                    </div>
+                  </div>
+                  <button onClick={saveSettings}
+                    style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    💾 Save Settings
+                  </button>
+                </>}
 
-                </div>
               </div>
-
-            </div>}
-          </div>
+            </>;
+          })()}
         </div>}
-
-        {/* ══ CONFIRM MODAL ══ */}
-        {/* Setup Missing Modal */}
-        {showSetupModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:T.card,borderRadius:20,padding:28,maxWidth:440,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-            <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>⚠️</div>
-            <div style={{fontWeight:800,fontSize:18,color:T.text,marginBottom:8,textAlign:"center"}}>Setup Required</div>
-            <div style={{fontSize:13,color:T.textMuted,marginBottom:20,textAlign:"center"}}>
-              To create templates, the following need to be configured in Settings first:
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
-              {setupMissing.map((m,i)=>(
-                <div key={i} style={{background:T.card2,borderRadius:12,padding:"12px 14px",border:`1px solid ${T.border}`}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#ef4444",marginBottom:4}}>❌ {m.field}</div>
-                  <div style={{fontSize:11,color:T.textMuted}}>{m.desc}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>setShowSetupModal(false)}
-                style={{flex:1,padding:"10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                Close
-              </button>
-              <button onClick={()=>{setShowSetupModal(false);setTab("settings");}}
-                style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                Go to Settings →
-              </button>
-            </div>
-          </div>
-        </div>}
-
-        <ConfirmModal modal={confirmModal} onClose={()=>setConfirmModal(null)} T={T} WA_GREEN={WA_GREEN}/>
-
-        {/* ══ IDLE WARNING MODAL ══ */}
-        {idleWarning&&<IdleWarningModal
-          countdown={idleCountdown}
-          setCountdown={setIdleCountdown}
-          onContinue={()=>{setIdleWarning(false);setIdleCountdown(30);idleWarningRef.current=false;}}
-          onLogout={()=>{
-  sessionStorage.removeItem("crm_token");
-  sessionStorage.removeItem("crm_user");
-  sessionStorage.removeItem("crm_perms");
-  sessionStorage.removeItem("crm_timeout");
-  window.location.href = window.location.href.split("?")[0] + "?logout=" + Date.now();
-}}
-          T={T} WA_GREEN={WA_GREEN}
-        />}
-
-        {/* ══ UNSAVED SETTINGS MODAL ══ */}
-        {showUnsavedModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:380,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
-            <div style={{fontSize:24,marginBottom:12,textAlign:"center"}}>⚠️</div>
-            <div style={{fontWeight:800,fontSize:17,marginBottom:8,textAlign:"center"}}>Unsaved Changes</div>
-            <div style={{fontSize:13,color:T.textMuted,marginBottom:24,textAlign:"center",lineHeight:1.6}}>
-              You have unsaved settings changes.<br/>Do you want to save before leaving?
-            </div>
-            <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>{
-                setShowUnsavedModal(false);
-                setSettingsDirtyWithRef(false);
-                setTab(pendingTab);
-                setPendingTab(null);
-                fetchSettings(null, true); // Force reload from DB
-              }}
-                style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
-                Discard
-              </button>
-              <button onClick={async()=>{await saveSettings();setShowUnsavedModal(false);setTab(pendingTab);setPendingTab(null);}}
-                style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                💾 Save & Continue
-              </button>
-            </div>
-          </div>
-        </div>}
-
         {/* ══ ADMIN TAB ══ */}
         {tab==="admin"&&isAdmin&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal} adminOverview={adminOverview}/></div>}
 
