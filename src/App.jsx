@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.296";
+const CRM_VERSION = "2.9.299";
 
 // Responsive hook
 function useWindowSize() {
@@ -1002,7 +1002,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           ...prev,
           ai_provider:          d.ai_provider||"anthropic",
           ai_model:             d.ai_model||"claude-haiku-4-5-20251001",
-          timezone:             d.timezone||"Asia/Kuala_Lumpur",
+          timezone:             d.timezone||"",
           ai_enabled:           d.bot_enabled===false?"false":"true",
           hot_keywords:         d.lead_keywords||d.hot_keywords||"",
           warm_keywords:        d.warm_keywords||"",
@@ -4182,9 +4182,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Haiku is recommended for most use cases</div>
                       </div>
 
-                      {/* Timezone */}
-                      <div style={{marginBottom:14}}>
-                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>Timezone</label>
+                      {/* Timezone — admin only, affects follow-up scheduling and analytics */}
+                      {isAdmin&&<div style={{marginBottom:14}}>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:4}}>Timezone</label>
+                        <div style={{fontSize:10,color:T.textMuted,marginBottom:6}}>Used for follow-up scheduling and analytics date grouping</div>
                         <select value={appSettings.timezone||"Asia/Kuala_Lumpur"}
                           onChange={e=>{setAppSettings(s=>({...s,timezone:e.target.value}));setSettingsDirtyWithRef(true);}}
                           style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
@@ -4197,7 +4198,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                           <option value="Europe/London">🇬🇧 UK</option>
                           <option value="America/New_York">🇺🇸 US East</option>
                         </select>
-                      </div>
+                      </div>}
                     </div>
 
                     {/* Bot Behaviour */}
