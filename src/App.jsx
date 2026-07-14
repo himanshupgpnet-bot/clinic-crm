@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.294";
+const CRM_VERSION = "2.9.296";
 
 // Responsive hook
 function useWindowSize() {
@@ -4182,15 +4182,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Haiku is recommended for most use cases</div>
                       </div>
 
-                      {/* System Prompt */}
-                      <div style={{marginBottom:14}}>
-                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>System prompt</label>
-                        <textarea value={appSettings.system_prompt||""} rows={5}
-                          onChange={e=>{setAppSettings(s=>({...s,system_prompt:e.target.value}));setSettingsDirtyWithRef(true);}}
-                          placeholder="You are an AI assistant..."
-                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
-                      </div>
-
                       {/* Timezone */}
                       <div style={{marginBottom:14}}>
                         <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>Timezone</label>
@@ -4214,9 +4205,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Bot Behaviour</div>
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {[
-                          {key:"ai_enabled",    label:"Enable AI bot globally",    hint:"Bot replies automatically to all messages", invert:true},
-                          {key:"followup_enabled",label:"Auto follow-up",          hint:"Send follow-up messages when customers go silent"},
-                          {key:"followup_1_enabled",label:"Send welcome message",  hint:"Auto-send welcome when new customer messages"},
+                          {key:"ai_enabled", label:"Enable AI bot globally", hint:"Bot replies automatically to all incoming messages", invert:true},
                         ].map(t=>{
                           const val = t.invert ? appSettings[t.key]!=="false" : appSettings[t.key]==="true";
                           return <div key={t.key}
@@ -4279,8 +4268,23 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {settingsNav==="followup"&&(!isAdmin||settingsClinic)&&<>
                   <div style={{marginBottom:24}}>
                     <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Auto Follow-up</div>
+
+                    {/* Master on/off */}
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",
+                      background:T.card2,borderRadius:8,border:`1px solid ${T.border}`,marginBottom:16,cursor:"pointer"}}
+                      onClick={()=>{setAppSettings(s=>({...s,followup_enabled:s.followup_enabled==="true"?"false":"true"}));setSettingsDirtyWithRef(true);}}>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:600,color:T.text}}>Enable auto follow-up</div>
+                        <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>When OFF, no follow-ups are sent regardless of settings below</div>
+                      </div>
+                      <div style={{width:36,height:20,borderRadius:10,cursor:"pointer",flexShrink:0,
+                        background:appSettings.followup_enabled==="true"?WA_GREEN:"#d1d5db",position:"relative",transition:"background .2s"}}>
+                        <div style={{position:"absolute",top:2,left:appSettings.followup_enabled==="true"?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                      </div>
+                    </div>
+
                     <div style={{padding:"10px 12px",borderRadius:8,background:`${WA_GREEN}08`,border:`1px solid ${WA_GREEN}25`,fontSize:11,color:T.textMuted,marginBottom:16,lineHeight:1.6}}>
-                      🤖 AI reads the full conversation and writes a personalised follow-up message. Fallback messages below are only used if AI fails.
+                      🤖 AI reads the full conversation and writes a personalised follow-up. Fallback messages below are only used if AI fails.
                     </div>
                     {/* Follow-up 1 */}
                     {[{n:1,key:"followup_1",delayKey:"followup_1_delay",unitKey:"followup_1_delay_unit",msgKey:"followup_1_message",enableKey:"followup_1_enabled",color:WA_GREEN},
