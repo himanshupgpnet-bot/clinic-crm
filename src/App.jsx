@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.287";
+const CRM_VERSION = "2.9.288";
 
 // Responsive hook
 function useWindowSize() {
@@ -1604,7 +1604,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
     // ── MOBILE CHAT VIEW ──
     if (mobileChat) {
-      const msgs = messages[mobileChat.phone]||messages[mobileChat.id]||[];
+      const msgs = selected?.messages||mobileChat.messages||[];
       return (
         <div style={{height:"100vh",display:"flex",flexDirection:"column",background:WA_BG_MOBILE,fontFamily:"'Helvetica Neue',Arial,sans-serif"}}>
           {/* Header */}
@@ -1690,7 +1690,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             const color = colors[i%colors.length];
             const initials = (c.name||c.phone||"?").slice(0,2).toUpperCase();
             return (
-              <div key={c.id||c.phone} onClick={()=>setMobileChat({...c,color})}
+              <div key={c.id||c.phone} onClick={()=>{selectContact({...c,color});setMobileChat({...c,color});}}
                 style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:"0.5px solid #f0f2f5",cursor:"pointer",active:{background:"#f5f5f5"}}}>
                 <div style={{width:48,height:48,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:"#fff",flexShrink:0}}>
                   {initials}
