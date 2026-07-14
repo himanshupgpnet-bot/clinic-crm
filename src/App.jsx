@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.301";
+const CRM_VERSION = "2.9.302";
 
 // Responsive hook
 function useWindowSize() {
@@ -1004,6 +1004,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           ai_model:             d.ai_model||"claude-haiku-4-5-20251001",
           timezone:             d.timezone||"",
           ai_enabled:           d.bot_enabled===false?"false":"true",
+          usd_conversion:       d.usd_conversion||false,
           hot_keywords:         d.lead_keywords||d.hot_keywords||"",
           warm_keywords:        d.warm_keywords||"",
           cold_keywords:        d.cold_keywords||"",
@@ -1373,6 +1374,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             openai_key:           appSettings.openai_key||"",
             groq_key:             appSettings.groq_key||"",
             bot_enabled:          appSettings.ai_enabled!=="false",
+            usd_conversion:       appSettings.usd_conversion===true||appSettings.usd_conversion==="true",
             system_prompt:        appSettings.system_prompt||"",
             hot_keywords:         appSettings.hot_keywords||"",
             warm_keywords:        appSettings.warm_keywords||"",
@@ -4228,8 +4230,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {[
                           {key:"ai_enabled", label:"Enable AI bot globally", hint:"Bot replies automatically to all incoming messages", invert:true},
+                          {key:"usd_conversion", label:"International USD conversion", hint:"Auto-convert MYR prices to USD for non-Malaysian numbers", invert:false},
                         ].map(t=>{
-                          const val = t.invert ? appSettings[t.key]!=="false" : appSettings[t.key]==="true";
+                          const val = t.invert
+                            ? appSettings[t.key]!=="false"
+                            : appSettings[t.key]===true||appSettings[t.key]==="true";
                           return <div key={t.key}
                             style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",
                               background:T.card2,borderRadius:8,border:`1px solid ${T.border}`}}>
@@ -4238,7 +4243,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                               <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{t.hint}</div>
                             </div>
                             <div onClick={()=>{
-                              const newVal = t.invert ? (val?"false":"true") : (val?"false":"true");
+                              const newVal = t.invert ? (val?"false":"true") : !val;
                               setAppSettings(s=>({...s,[t.key]:newVal}));setSettingsDirtyWithRef(true);
                             }} style={{width:36,height:20,borderRadius:10,cursor:"pointer",flexShrink:0,
                               background:val?WA_GREEN:"#d1d5db",position:"relative",transition:"background .2s"}}>
