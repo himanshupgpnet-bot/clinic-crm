@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.305";
+const CRM_VERSION = "2.9.307";
 
 // Responsive hook
 function useWindowSize() {
@@ -5513,8 +5513,8 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
       </div>
 
       {/* Integration list — matches mockup flat list style */}
-      <div style={{flex:1,overflowY:"auto",padding:"16px 24px"}}>
-        <div style={{maxWidth:680,width:"100%"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"24px 40px",display:"flex",justifyContent:"center"}}>
+        <div style={{maxWidth:560,width:"100%"}}>
           {visibleConnectors.map(conn=>{
             const connected = conn.isConnected(connData);
             const hasFields = conn.fields.length > 0;
@@ -6368,298 +6368,226 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
   );
 
   // ── MAIN CLIENTS LIST ───────────────────────────────────────────────────────
+  const [selectedClinicRow, setSelectedClinicRow] = React.useState(null);
+
   return (
-    <div style={{maxWidth:860,margin:"0 auto",padding:"0 4px"}}>
-      {msg&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:10,padding:"10px 16px",marginBottom:12,fontSize:13,fontWeight:600,color:"#166534"}}>{msg}</div>}
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
 
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:10}}>
+      {/* Page header */}
+      <div className="nx-page-header" style={{flexShrink:0}}>
+        <i className="ti ti-crown" style={{fontSize:20,color:"#f59e0b"}}/>
         <div>
-          <div style={{fontWeight:900,fontSize:20,letterSpacing:"-0.4px",color:T.text}}>🏢 Client Management</div>
-          <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{clinics.length} clients · {users.length} staff members</div>
+          <div className="nx-page-title">Admin Panel</div>
+          <div className="nx-page-sub">Manage all clients and users</div>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>{setEditUser(emptyUser());setView("user_form");}}
-            style={{padding:"9px 16px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:5}}>
-            👤 New User
+        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          <button onClick={()=>{setEditUser(emptyUser());setView("user_form");}} className="nx-btn">
+            <i className="ti ti-user-plus" style={{fontSize:14}}/> New User
           </button>
-          <button onClick={()=>{setEditClinic({...emptyClinic});setView("clinic_form");}}
-            style={{padding:"9px 18px",borderRadius:10,border:"none",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 10px ${WA_GREEN}40`,display:"flex",alignItems:"center",gap:5}}>
-            ➕ Onboard Client
+          <button onClick={()=>{setEditClinic({...emptyClinic});setView("clinic_form");}} className="nx-btn primary">
+            <i className="ti ti-plus" style={{fontSize:14}}/> Add Client
           </button>
         </div>
       </div>
 
-      {/* Global summary — all clients combined */}
-      {clinics.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:20}}>
-        {[
-          {icon:"🏢",v:clinics.length,l:"Total Clients",sub:clinics.filter(c=>c.active!==false).length+" Active · "+clinics.filter(c=>c.active===false).length+" Disabled",c:WA_GREEN,bg:`${WA_GREEN}10`},
-          {icon:"👥",v:adminOverview.length>0?adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0):"…",l:"Total Contacts",sub:"Across all clients",c:"#2563eb",bg:"#eff6ff"},
-          {icon:"👤",v:users.filter(u=>u.role!=="admin").length,l:"Total Staff",sub:users.filter(u=>u.role!=="admin"&&u.active).length+" Active · "+users.filter(u=>u.role!=="admin"&&!u.active).length+" Deactivated",c:"#d97706",bg:"#fffbeb"},
-          {icon:"🔥",v:adminOverview.length>0?adminOverview.reduce((s,c)=>s+(c.hot_leads||0),0):"…",l:"Hot Leads",sub:"All clients combined",c:"#e11d48",bg:"#fff1f3"},
-          {icon:"🤖",v:adminOverview.length>0?(()=>{const active=adminOverview.filter(c=>c.active!==false);return active.length>0?Math.round(active.reduce((s,c)=>s+(c.bot_performance||0),0)/active.length):0})()+"% avg":"…",l:"Bot Automation",sub:"Active clients only",c:"#16a34a",bg:"#f0fdf4"},
-        ].map(s=>(
-          <div key={s.l} style={{background:T.card,borderRadius:14,padding:"14px 16px",border:`1px solid ${T.border}`,boxShadow:"0 1px 3px rgba(0,0,0,.06)",display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:40,height:40,borderRadius:11,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{s.icon}</div>
-            <div>
-              <div style={{fontSize:22,fontWeight:900,color:s.c,lineHeight:1,marginBottom:2}}>{s.v}</div>
-              <div style={{fontSize:11,color:T.text,fontWeight:600}}>{s.l}</div>
-              <div style={{fontSize:10,color:T.textMuted,marginTop:1}}>{s.sub}</div>
-            </div>
-          </div>
-        ))}
-      </div>}
+      <div style={{flex:1,overflowY:"auto",padding:"16px 24px",paddingBottom:40}}>
 
-      {/* ── GLOBAL SETTINGS CARD ── */}
-      <div style={{background:T.card,borderRadius:16,border:"1px solid "+T.border,padding:"16px 20px",marginBottom:16,boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-          <div>
-            <div style={{fontWeight:800,fontSize:14,color:T.text}}>⚙️ Global Settings</div>
-            <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Settings that apply across all clients</div>
-          </div>
-        </div>
-        {/* Fallback API Key Toggle */}
-        <div style={{background:T.card2,borderRadius:12,padding:"12px 14px",border:"1px solid "+T.border}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-            <div>
-              <div style={{fontWeight:700,fontSize:13,color:T.text}}>🔑 Fallback API Key</div>
-              <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Use this key for clients without their own API key (Prompt Wizard, AI Improver)</div>
+        {msg&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:10,padding:"10px 16px",marginBottom:14,fontSize:13,fontWeight:600,color:"#166534"}}>{msg}</div>}
+
+        {/* ── 4 STAT CARDS ── */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+          {[
+            {label:"Active Clients",   val:clinics.filter(c=>c.active!==false).length,          color:"#f59e0b", bg:"#fffbeb", icon:"ti ti-building"},
+            {label:"Total Contacts",   val:adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0), color:"#2563eb", bg:"#eff6ff", icon:"ti ti-users"},
+            {label:"Avg Bot Performance", val:(()=>{const a=adminOverview.filter(c=>c.active!==false);return a.length>0?Math.round(a.reduce((s,c)=>s+(c.bot_performance||0),0)/a.length):0})()+"%", color:WA_GREEN, bg:"#f0fdf4", icon:"ti ti-robot"},
+            {label:"Total Staff",      val:users.filter(u=>u.role!=="admin").length,              color:"#7c3aed", bg:"#f5f3ff", icon:"ti ti-user"},
+          ].map(s=>(
+            <div key={s.label} className="nx-stat" style={{display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:42,height:42,borderRadius:10,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <i className={s.icon} style={{fontSize:20,color:s.color}}/>
+              </div>
+              <div>
+                <div className="nx-stat-label">{s.label}</div>
+                <div className="nx-stat-val" style={{color:s.color}}>{s.val}</div>
+              </div>
             </div>
-            {/* Toggle */}
+          ))}
+        </div>
+
+        {/* ── GLOBAL SETTINGS ── */}
+        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:"14px 18px",marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:globalSettings.fallback_enabled==="true"?12:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <i className="ti ti-key" style={{fontSize:16,color:"#f59e0b"}}/>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:T.text}}>Fallback API Key</div>
+                <div style={{fontSize:11,color:T.textMuted}}>Used for clients without their own API key</div>
+              </div>
+            </div>
             <div onClick={()=>saveGlobalSettings({fallback_enabled:globalSettings.fallback_enabled==="true"?"false":"true"})}
-              style={{width:44,height:24,borderRadius:12,background:globalSettings.fallback_enabled==="true"?"#22c55e":"#d1d5db",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
-              <div style={{position:"absolute",top:2,left:globalSettings.fallback_enabled==="true"?20:2,width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 3px rgba(0,0,0,.2)",transition:"left .2s"}}/>
+              style={{width:44,height:24,borderRadius:12,background:globalSettings.fallback_enabled==="true"?WA_GREEN:"#d1d5db",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+              <div style={{position:"absolute",top:2,left:globalSettings.fallback_enabled==="true"?21:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
             </div>
           </div>
-          {globalSettings.fallback_enabled==="true"&&<>
-            <div style={{display:"flex",gap:8,marginBottom:8}}>
-              <select value={globalSettings.fallback_provider||"anthropic"}
-                onChange={e=>setGlobalSettings(p=>({...p,fallback_provider:e.target.value}))}
-                style={{padding:"6px 10px",borderRadius:8,border:"1px solid "+T.border,background:T.card,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
-                <option value="anthropic">Claude (Anthropic)</option>
-                <option value="openai">OpenAI (GPT-4o)</option>
-              </select>
-            </div>
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <input type="password" value={globalSettings.fallback_api_key||""}
-                onChange={e=>setGlobalSettings(p=>({...p,fallback_api_key:e.target.value}))}
-                placeholder="sk-ant-... or sk-..."
-                style={{flex:1,padding:"7px 10px",borderRadius:8,border:"1px solid "+T.border,background:T.card,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
-              <button onClick={()=>saveGlobalSettings(globalSettings)} disabled={savingGlobal}
-                style={{padding:"7px 14px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:savingGlobal?0.6:1}}>
-                {savingGlobal?"Saving...":"💾 Save"}
-              </button>
-            </div>
-            <div style={{marginTop:8,fontSize:10,color:"#d97706",background:"#fffbeb",borderRadius:6,padding:"4px 8px",border:"1px solid #fde68a"}}>
-              ⚠️ API calls from clients without their own key will be billed to this key
-            </div>
-          </>}
+          {globalSettings.fallback_enabled==="true"&&<div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <select value={globalSettings.fallback_provider||"anthropic"}
+              onChange={e=>setGlobalSettings(p=>({...p,fallback_provider:e.target.value}))}
+              style={{padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+              <option value="anthropic">Claude (Anthropic)</option>
+              <option value="openai">OpenAI (GPT-4o)</option>
+            </select>
+            <input type="password" value={globalSettings.fallback_api_key||""}
+              onChange={e=>setGlobalSettings(p=>({...p,fallback_api_key:e.target.value}))}
+              placeholder="sk-ant-... or sk-..."
+              style={{flex:1,padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontFamily:"monospace",outline:"none"}}/>
+            <button onClick={()=>saveGlobalSettings(globalSettings)} disabled={savingGlobal} className="nx-btn primary" style={{padding:"7px 14px",fontSize:12}}>
+              {savingGlobal?"Saving...":"💾 Save"}
+            </button>
+          </div>}
         </div>
-      </div>
 
-      {loading&&clinics.length===0&&<div style={{padding:40,textAlign:"center",color:T.textMuted}}>
-        <div style={{width:32,height:32,borderRadius:"50%",border:"3px solid #e8eaef",borderTop:"3px solid #6c63ff",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/>
-        Loading clients...
-      </div>}
-
-      {!loading&&clinics.filter(c=>c.active!==false).length===0&&
-        <div className="cc" style={{padding:40,textAlign:"center",color:T.textMuted}}>
-          <div style={{fontSize:40,marginBottom:8}}>🏢</div>
-          <div style={{fontWeight:600,marginBottom:4}}>No clients yet</div>
-          <div style={{fontSize:12}}>Click "+ Onboard Client" to get started</div>
+        {/* ── CLIENTS TABLE ── */}
+        {loading&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>
+          <div style={{width:32,height:32,borderRadius:"50%",border:`3px solid ${WA_GREEN}20`,borderTop:`3px solid ${WA_GREEN}`,animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/>
+          Loading clients...
         </div>}
 
-      {clinics.map(clinic=>{
-        const clinicUsers = users.filter(u=>u.clinic_id===clinic.id);
-        const hasOnline = clinicUsers.some(u=>u.active_session);
-        const usedSeats = clinicUsers.filter(u=>u.active).length;
-        const hotLeads = 0; // could add later
-        return (
-          <div key={clinic.id} style={{marginBottom:16,opacity:clinic.active===false?0.75:1,transition:"opacity .2s"}}>
-
-            {/* ── CLINIC CARD (top of hierarchy) ── */}
-            <div style={{
-              background:T.card,
-              border:`1px solid ${T.border}`,borderRadius:20,overflow:"hidden",
-              boxShadow:"0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)",transition:"box-shadow .2s"}}>
-
-              {/* Header */}
-              <div style={{padding:"18px 20px 14px",background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:14}}>
-                {/* Logo */}
-                <div style={{width:54,height:54,borderRadius:13,overflow:"hidden",
-                  background:T.card2,
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  flexShrink:0,border:`1px solid ${T.border}`}}>
-                  {clinic.logo_url
-                    ?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
-                    :<span style={{fontSize:26}}>🏢</span>}
-                </div>
-
-                {/* Info */}
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{fontWeight:900,fontSize:17,color:T.text}}>{clinic.name}</div>
-                      {clinic.active===false&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#fee2e2",color:"#ef4444",fontWeight:700}}>DISABLED</span>}
-                    </div>
-                    {hasOnline&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#dcfce7",color:"#166534",fontWeight:700,border:"1px solid #86efac"}}>🟢 Online</span>}
-                    {!clinic.active&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"#fef2f2",color:"#dc2626",fontWeight:700}}>Inactive</span>}
-                  </div>
-                  <div style={{fontSize:12,color:T.textMuted,marginBottom:6}}>
-                    {clinic.industry||"—"}{clinic.client_domain?` · ${clinic.client_domain}`:""} · {usedSeats} of {clinic.max_seats||1} seats used
-                    {clinic.contact_phone&&` · ${clinic.contact_phone}`}
-                  </div>
-                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                    <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:700,border:`1px solid ${WA_GREEN}25`}}>
-                      🤖 {PROVIDERS.find(p=>p.id===clinic.ai_provider)?.label||"Anthropic"}
-                    </span>
-                    {clinic.ai_api_key&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:700,border:`1px solid ${WA_GREEN}25`}}>🔑 API Key Set</span>}
-                    {clinic.phone_number_id&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#eff6ff",color:"#3b82f6",fontWeight:700,border:"1px solid #bfdbfe"}}>📱 WhatsApp Connected</span>}
-                    {clinic.website_url&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"#faf5ff",color:"#7c3aed",fontWeight:700,border:"1px solid #e9d5ff"}}>🌐 Website Set</span>}
-                  </div>
-                </div>
-
-              </div>{/* end header */}
-
-              {/* ── ACTION BUTTONS ── */}
-              <div style={{padding:"10px 20px",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",borderBottom:`1px solid ${T.border}`,background:T.card2}}>
-                <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
-                  style={{padding:"6px 14px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${WA_GREEN},#1da851)`,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  👤 Add User
-                </button>
-                <button onClick={()=>{setEditClinic({...clinic,website:clinic.website_url||clinic.contact_email||""});setView("clinic_form");}}
-                  style={{padding:"6px 12px",borderRadius:9,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                  ✏️ Edit
-                </button>
-                <button onClick={()=>setConfirmModal({title:"Reset "+clinic.name+"?",message:"This will permanently delete all contacts, chats and analytics for this client.",icon:"🗑️",danger:true,confirmText:"Yes, Reset Everything",
-                  onConfirm:async()=>{const r=await fetch(API+"/api/admin/clients/"+clinic.id+"/reset",{method:"DELETE",headers:authHeaders()});if(r.ok){const d=await r.json();flash("✅ Reset — "+d.deleted_contacts+" contacts deleted");load();}else flash("❌ Reset failed");}})}
-                  style={{padding:"6px 10px",borderRadius:9,border:"1px solid #ef444430",background:"#ef444408",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                  🗑️ Reset
-                </button>
-                <button onClick={()=>{
-                  const isActive = clinic.active!==false;
-                  const action = isActive?"Disable":"Enable";
-                  setConfirmModal({title:action+" "+clinic.name+"?",
-                    message:isActive?"Disabling will prevent all users of this client from logging in.":"Enabling will allow users of this client to log in again.",
-                    icon:isActive?"🔴":"🟢",danger:isActive,confirmText:"Yes, "+action+" Client",
-                    onConfirm:async()=>{const r=await fetch(API+"/api/admin/clients/"+clinic.id,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!isActive})});if(r.ok){flash("✅ "+clinic.name+" "+action+"d");load();}else flash("❌ "+action+" failed");}});
-                }} style={{padding:"6px 10px",borderRadius:9,fontSize:11,cursor:"pointer",fontFamily:"inherit",
-                  border:clinic.active!==false?"1px solid #ef444430":"1px solid #22c55e30",
-                  background:clinic.active!==false?"#ef444408":"#22c55e08",
-                  color:clinic.active!==false?"#ef4444":"#22c55e"}}>
-                  {clinic.active!==false?"🔴 Disable":"🟢 Enable"}
-                </button>
-              </div>
-
-              {/* ── PER-CLIENT STATS STRIP ── */}
-              {(()=>{
+        {!loading&&<div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden",marginBottom:20}}>
+          <table className="nx-table" style={{width:"100%"}}>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>WhatsApp</th>
+                <th>Bot</th>
+                <th>Contacts</th>
+                <th>Messages</th>
+                <th>Performance</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clinics.length===0&&<tr><td colSpan={7} style={{textAlign:"center",padding:32,color:T.textMuted}}>
+                No clients yet — click "Add Client" to get started
+              </td></tr>}
+              {clinics.map(clinic=>{
                 const ov = adminOverview.find(o=>o.clinic_id===clinic.id||o.id===clinic.id)||null;
                 const botRate = ov&&ov.total_messages>0?Math.round((ov.bot_messages||0)/ov.total_messages*100):0;
-                return <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,borderTop:`1px solid ${T.border}`,borderBottom:`1px solid ${T.border}`,background:T.card2}}>
-                  {[
-                    {v:ov?ov.total_contacts||0:"—",l:"Contacts",c:"#2563eb"},
-                    {v:ov?ov.hot_leads||0:"—",l:"🔥 Hot Leads",c:"#e11d48"},
-                    {v:ov?(ov.hot_leads||0)+(ov.warm_leads||0):"—",l:"🟡 Warm+Hot",c:"#d97706"},
-                    {v:ov?botRate+"%":"—",l:"🤖 Bot Rate",c:"#16a34a"},
-                    {v:ov?ov.active_convos||0:"—",l:"💬 Active",c:WA_GREEN},
-                  ].map((s,i)=>(
-                    <div key={s.l} style={{textAlign:"center",padding:"12px 8px",borderRight:i<4?`1px solid ${T.border}`:"none"}}>
-                      <div style={{fontSize:s.v==="—"?22:18,fontWeight:900,color:s.v==="—"?T.textFaint:s.c,lineHeight:1,marginBottom:3}}>{s.v}</div>
-                      <div style={{fontSize:9,color:T.textFaint,fontWeight:600}}>{s.l}</div>
-                    </div>
-                  ))}
-                </div>;
-              })()}
-
-              {/* ── STAFF HIERARCHY ── */}
-              <div style={{padding:"14px 20px"}}>
-                {/* Connector line */}
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-                  <div style={{width:2,height:16,background:`${T.border}`,borderRadius:1,marginLeft:26}}/>
-                  <div style={{fontSize:10,color:T.textMuted,fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>
-                    Staff Members ({clinicUsers.length})
-                  </div>
-                </div>
-
-                {clinicUsers.length===0&&<div style={{
-                  padding:"16px 20px",borderRadius:12,border:`2px dashed ${T.border}`,
-                  textAlign:"center",color:T.textMuted,fontSize:12}}>
-                  No staff yet — click "👤 Add User" to add team members
-                </div>}
-
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {clinicUsers.map((u,i)=>{
-                    const session = sessions.find(s=>s.user_id===u.id);
-                    const isOnline = !!session;
-                    const perms = PERM_TABS.filter(p=>u[p.key]);
-                    return (
-                      <div key={u.id} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                        {/* Tree connector */}
-                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:28,flexShrink:0,paddingTop:4}}>
-                          <div style={{width:2,height:i===0?12:24,background:`${WA_GREEN}25`,borderRadius:1}}/>
-                          <div style={{width:16,height:2,background:`${WA_GREEN}25`,borderRadius:1,marginBottom:4}}/>
-                          {i<clinicUsers.length-1&&<div style={{width:2,flex:1,minHeight:8,background:`${WA_GREEN}25`,borderRadius:1}}/>}
+                const clinicUsers = users.filter(u=>u.clinic_id===clinic.id);
+                const isExpanded = selectedClinicRow===clinic.id;
+                return (
+                  <React.Fragment key={clinic.id}>
+                    <tr style={{opacity:clinic.active===false?0.5:1,cursor:"pointer"}}
+                      onClick={()=>setSelectedClinicRow(isExpanded?null:clinic.id)}
+                      onMouseEnter={e=>e.currentTarget.style.background=T.card2}
+                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      {/* Client */}
+                      <td>
+                        <div style={{display:"flex",alignItems:"center",gap:10}}>
+                          <div style={{width:34,height:34,borderRadius:9,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            {clinic.logo_url?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
+                              :<span style={{fontSize:12,fontWeight:700,color:WA_GREEN}}>{clinic.name?.slice(0,2).toUpperCase()}</span>}
+                          </div>
+                          <div>
+                            <div style={{fontSize:13,fontWeight:700,color:T.text}}>{clinic.name}</div>
+                            <div style={{fontSize:10,color:T.textMuted}}>ID: {clinic.id} · {clinic.industry||"—"}</div>
+                          </div>
+                          {clinic.active===false&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:10,background:"#fee2e2",color:"#dc2626",fontWeight:700}}>OFF</span>}
                         </div>
+                      </td>
+                      {/* WhatsApp */}
+                      <td style={{fontSize:12,color:T.textMuted}}>{clinic.whatsapp_number||"—"}</td>
+                      {/* Bot */}
+                      <td>
+                        <div style={{display:"flex",alignItems:"center",gap:5}}>
+                          <div style={{width:7,height:7,borderRadius:"50%",background:clinic.bot_enabled!==false?WA_GREEN:"#e11d48"}}/>
+                          <span style={{fontSize:12,fontWeight:600,color:clinic.bot_enabled!==false?WA_GREEN:"#e11d48"}}>
+                            {clinic.bot_enabled!==false?"ON":"OFF"}
+                          </span>
+                        </div>
+                      </td>
+                      {/* Contacts */}
+                      <td style={{fontSize:13,fontWeight:600,color:T.text}}>{ov?.total_contacts||0}</td>
+                      {/* Messages */}
+                      <td style={{fontSize:13,fontWeight:600,color:T.text}}>{ov?.total_messages||0}</td>
+                      {/* Performance */}
+                      <td>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{width:60,height:5,borderRadius:3,background:T.border,overflow:"hidden",flexShrink:0}}>
+                            <div style={{height:5,borderRadius:3,width:`${botRate}%`,background:botRate>=70?WA_GREEN:botRate>=40?"#f59e0b":"#ef4444",transition:"width .5s"}}/>
+                          </div>
+                          <span style={{fontSize:12,fontWeight:600,color:T.text}}>{botRate}%</span>
+                        </div>
+                      </td>
+                      {/* Actions */}
+                      <td onClick={e=>e.stopPropagation()}>
+                        <div style={{display:"flex",gap:5}}>
+                          <button onClick={()=>{setEditClinic({...clinic});setView("clinic_form");}}
+                            className="nx-btn" style={{padding:"4px 10px",fontSize:11}}>✏️ Edit</button>
+                          <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
+                            className="nx-btn" style={{padding:"4px 10px",fontSize:11}}>👤 Add User</button>
+                          <button onClick={()=>{
+                            const isActive = clinic.active!==false;
+                            setConfirmModal({title:(isActive?"Disable":"Enable")+" "+clinic.name+"?",
+                              message:isActive?"Users won't be able to login.":"Users can login again.",
+                              icon:isActive?"🔴":"🟢",danger:isActive,confirmText:"Yes, "+(isActive?"Disable":"Enable"),
+                              onConfirm:async()=>{await fetch(API+"/api/admin/clients/"+clinic.id,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!isActive})});flash("✅ Done");load();}});
+                          }} style={{padding:"4px 8px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:"inherit",border:"none",
+                            background:clinic.active!==false?"#fef2f2":"#f0fdf4",
+                            color:clinic.active!==false?"#dc2626":"#16a34a"}}>
+                            {clinic.active!==false?"🔴":"🟢"}
+                          </button>
+                          <button onClick={()=>setConfirmModal({title:"Reset "+clinic.name+"?",message:"Permanently delete all contacts and chats.",icon:"🗑️",danger:true,confirmText:"Yes, Reset",
+                            onConfirm:async()=>{const r=await fetch(API+"/api/admin/clients/"+clinic.id+"/reset",{method:"DELETE",headers:authHeaders()});if(r.ok){const d=await r.json();flash("✅ Reset — "+d.deleted_contacts+" contacts deleted");}load();}})}
+                            style={{padding:"4px 8px",borderRadius:7,border:"1px solid #ef444430",background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
 
-                        {/* User card */}
-                        <div style={{flex:1,background:T.card2,borderRadius:12,padding:"10px 14px",
-                          border:`1px solid ${isOnline?"#bbf7d0":T.border}`,
-                          transition:"all .15s"}}>
-                          <div style={{display:"flex",alignItems:"center",gap:10}}>
-                            {/* Avatar */}
-                            <div style={{width:36,height:36,borderRadius:"50%",
-                              background:(()=>{const cols=["linear-gradient(135deg,#6c63ff,#8b5cf6)","linear-gradient(135deg,#3b82f6,#2563eb)","linear-gradient(135deg,#10b981,#059669)","linear-gradient(135deg,#f59e0b,#d97706)","linear-gradient(135deg,#e11d48,#be123c)","linear-gradient(135deg,#8b5cf6,#7c3aed)","linear-gradient(135deg,#0891b2,#0e7490)"];return cols[(u.username?.charCodeAt(0)||72)%cols.length];})(),
-                              display:"flex",alignItems:"center",justifyContent:"center",
-                              fontSize:13,fontWeight:700,color:"#fff",flexShrink:0,position:"relative",boxShadow:"0 2px 6px rgba(0,0,0,.1)"}}>
-                              {u.username?.charAt(0)?.toUpperCase()||"?"}
-                              {/* Online dot */}
-                              <div style={{position:"absolute",bottom:-2,right:-2,width:10,height:10,borderRadius:"50%",
-                                background:isOnline?"#22c55e":u.active?"#94a3b8":"#ef4444",
-                                border:"2px solid",borderColor:T.card}}/>
-                            </div>
-
-                            <div style={{flex:1,minWidth:0}}>
-                              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                                <span style={{fontWeight:700,fontSize:13}}>@{u.username}</span>
-                                {!u.active&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#fef2f2",color:"#dc2626",fontWeight:700}}>Deactivated</span>}
-                                {u.active&&clinic.active===false&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#fff7ed",color:"#c2410c",fontWeight:700}}>Client Disabled</span>}
-                                {isOnline&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:6,background:"#dcfce7",color:"#166534",fontWeight:700}}>🟢 Active Now</span>}
-                              </div>
-                              {/* Permissions */}
-                              <div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:4}}>
-                                {perms.length===0
-                                  ?<span style={{fontSize:9,color:T.textFaint,fontStyle:"italic"}}>No permissions set</span>
-                                  :perms.map(p=>(
-                                    <span key={p.key} style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:`${WA_GREEN}10`,color:WA_GREEN,fontWeight:600,border:"1px solid rgba(108,99,255,.2)"}}>{p.label}</span>
-                                  ))}
-                              </div>
-                              {/* Session info */}
-                              {session&&<div style={{fontSize:10,color:T.textMuted,marginTop:4,display:"flex",gap:8,flexWrap:"wrap"}}>
-                                {session.device_info&&<span>📱 {(session.device_info||"").split(" | ")[0]}</span>}
-                                {(session.location||session.country)&&<span>📍 {[session.location,session.country].filter(Boolean).join(", ")}</span>}
-                              </div>}
-                            </div>
-
-                            {/* User actions */}
-                            <div style={{display:"flex",gap:4,flexShrink:0}}>
-                              {session&&<button onClick={()=>forceLogout(u.id,u.username)}
-                                style={{padding:"4px 8px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
-                                title="Force logout">🔴</button>}
-                              <button onClick={()=>{setEditUser({...u,newPassword:""});setView("user_form");}}
-                                style={{padding:"4px 8px",borderRadius:7,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
-                              <button onClick={()=>deleteUser(u.id)}
-                                style={{padding:"4px 8px",borderRadius:7,border:"1px solid #ef444430",background:"#ef444410",color:"#ef4444",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
-                            </div>
+                    {/* Expanded row — staff list */}
+                    {isExpanded&&<tr>
+                      <td colSpan={7} style={{padding:0,background:T.card2,borderBottom:`1px solid ${T.border}`}}>
+                        <div style={{padding:"12px 20px"}}>
+                          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6,marginBottom:10}}>
+                            Staff ({clinicUsers.length}) · Seats used: {clinicUsers.filter(u=>u.active).length}/{clinic.max_seats||1}
+                          </div>
+                          {clinicUsers.length===0&&<div style={{fontSize:12,color:T.textFaint,fontStyle:"italic"}}>No staff yet</div>}
+                          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                            {clinicUsers.map(u=>{
+                              const session = sessions.find(s=>s.user_id===u.id);
+                              return <div key={u.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",
+                                borderRadius:10,background:T.card,border:`1px solid ${T.border}`,minWidth:180}}>
+                                <div style={{width:30,height:30,borderRadius:"50%",background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",position:"relative",flexShrink:0}}>
+                                  {u.username?.[0]?.toUpperCase()||"?"}
+                                  <div style={{position:"absolute",bottom:-1,right:-1,width:9,height:9,borderRadius:"50%",
+                                    background:session?"#22c55e":u.active?"#94a3b8":"#ef4444",
+                                    border:"2px solid "+T.card}}/>
+                                </div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:12,fontWeight:700,color:T.text}}>@{u.username}</div>
+                                  <div style={{fontSize:10,color:T.textMuted}}>{session?"🟢 Online":"Offline"}{!u.active?" · Deactivated":""}</div>
+                                </div>
+                                <div style={{display:"flex",gap:4}}>
+                                  <button onClick={()=>{setEditUser({...u,newPassword:""});setView("user_form");}}
+                                    style={{padding:"3px 7px",borderRadius:6,border:`1px solid ${T.border}`,background:"transparent",color:T.text,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                                  {session&&<button onClick={()=>forceLogout(u.id,u.username)}
+                                    style={{padding:"3px 7px",borderRadius:6,border:"1px solid #fca5a5",background:"transparent",color:"#dc2626",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>🔴</button>}
+                                </div>
+                              </div>;
+                            })}
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+                      </td>
+                    </tr>}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>}
+
+      </div>
     </div>
   );
 }
