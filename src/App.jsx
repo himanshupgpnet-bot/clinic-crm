@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.307";
+const CRM_VERSION = "2.9.309";
 
 // Responsive hook
 function useWindowSize() {
@@ -4491,7 +4491,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>{/* end body flex */}
         </div>}
         {/* ══ ADMIN TAB ══ */}
-        {tab==="admin"&&isAdmin&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal} adminOverview={adminOverview}/></div>}
+        {tab==="admin"&&isAdmin&&<div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}><AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal} adminOverview={adminOverview}/></div>}
 
       </div>
     </div>
@@ -6055,7 +6055,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
   const labelStyle = {display:"block",fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:6,letterSpacing:0.3};
 
   if(view==="clinic_form") return (
-    <div style={{width:"100%",height:"100%",overflowY:"auto",overflowX:"hidden",paddingBottom:80}}>
+    <div style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:80}}>
     <div style={{maxWidth:560,margin:"0 auto",padding:"16px 16px 40px"}}>
       {/* KB Building overlay */}
       {kbBuilding&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
@@ -6270,7 +6270,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
   // ── USER FORM ───────────────────────────────────────────────────────────────
   // ── USER FORM ───────────────────────────────────────────────────────────────
   if(view==="user_form") return (
-    <div style={{width:"100%",height:"100%",overflowY:"auto",overflowX:"hidden"}}>
+    <div style={{flex:1,overflowY:"auto",overflowX:"hidden"}}>
     <div style={{maxWidth:480,margin:"0 auto",padding:"16px 16px 40px"}}>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
         <button onClick={()=>{setView("clients");setEditUser(null);}} style={{border:"none",background:"none",cursor:"pointer",fontSize:22,color:T.textMuted,padding:0}}>←</button>
@@ -6400,7 +6400,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
             {label:"Active Clients",   val:clinics.filter(c=>c.active!==false).length,          color:"#f59e0b", bg:"#fffbeb", icon:"ti ti-building"},
             {label:"Total Contacts",   val:adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0), color:"#2563eb", bg:"#eff6ff", icon:"ti ti-users"},
             {label:"Avg Bot Performance", val:(()=>{const a=adminOverview.filter(c=>c.active!==false);return a.length>0?Math.round(a.reduce((s,c)=>s+(c.bot_performance||0),0)/a.length):0})()+"%", color:WA_GREEN, bg:"#f0fdf4", icon:"ti ti-robot"},
-            {label:"Total Staff",      val:users.filter(u=>u.role!=="admin").length,              color:"#7c3aed", bg:"#f5f3ff", icon:"ti ti-user"},
+            {label:"Online Now",       val:sessions.length,                                        color:"#16a34a", bg:"#f0fdf4", icon:"ti ti-wifi"},
           ].map(s=>(
             <div key={s.label} className="nx-stat" style={{display:"flex",alignItems:"center",gap:14}}>
               <div style={{width:42,height:42,borderRadius:10,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -6566,13 +6566,27 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                                 </div>
                                 <div style={{flex:1,minWidth:0}}>
                                   <div style={{fontSize:12,fontWeight:700,color:T.text}}>@{u.username}</div>
-                                  <div style={{fontSize:10,color:T.textMuted}}>{session?"🟢 Online":"Offline"}{!u.active?" · Deactivated":""}</div>
+                                  <div style={{fontSize:10,color:T.textMuted}}>{session?"🟢 Online":"Offline"}{!u.active?" · Deactivated":""}
+                                  {session?.location&&<span> · 📍{session.location}</span>}
+                                  {session?.device_info&&<div style={{fontSize:9,color:T.textFaint,marginTop:1}}>{session.device_info.split(" | ")[0]}</div>}
+                                </div>
                                 </div>
                                 <div style={{display:"flex",gap:4}}>
                                   <button onClick={()=>{setEditUser({...u,newPassword:""});setView("user_form");}}
                                     style={{padding:"3px 7px",borderRadius:6,border:`1px solid ${T.border}`,background:"transparent",color:T.text,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                                  <button onClick={async()=>{
+                                    await fetch(`${API}/api/admin/users/${u.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!u.active})});
+                                    flash(`✅ @${u.username} ${u.active?"deactivated":"activated"}`);load();
+                                  }} style={{padding:"3px 7px",borderRadius:6,fontSize:10,cursor:"pointer",fontFamily:"inherit",
+                                    border:u.active?"1px solid #fca5a5":"1px solid #86efac",
+                                    background:"transparent",color:u.active?"#dc2626":"#16a34a"}}>
+                                    {u.active?"🔴":"🟢"}
+                                  </button>
                                   {session&&<button onClick={()=>forceLogout(u.id,u.username)}
-                                    style={{padding:"3px 7px",borderRadius:6,border:"1px solid #fca5a5",background:"transparent",color:"#dc2626",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>🔴</button>}
+                                    style={{padding:"3px 7px",borderRadius:6,border:"1px solid #fca5a5",background:"transparent",color:"#dc2626",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>⏏️</button>}
+                                  <button onClick={()=>setConfirmModal({title:"Delete @"+u.username+"?",message:"This permanently deletes the user account.",icon:"🗑️",danger:true,confirmText:"Yes, Delete",
+                                    onConfirm:()=>deleteUser(u.id)})}
+                                    style={{padding:"3px 7px",borderRadius:6,border:"1px solid #fca5a5",background:"transparent",color:"#dc2626",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
                                 </div>
                               </div>;
                             })}
