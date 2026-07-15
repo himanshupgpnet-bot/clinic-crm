@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.303";
+const CRM_VERSION = "2.9.304";
 
 // Responsive hook
 function useWindowSize() {
@@ -4108,7 +4108,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
 
               {/* ── RIGHT SETTINGS CONTENT ── */}
-              <div style={{flex:1,overflowY:"auto",padding:"24px 28px",maxWidth:660}}>
+              <div style={{flex:1,overflowY:"auto",padding:"24px 28px"}}>
+              <div style={{maxWidth:600,width:"100%"}}>
 
                 {/* Sticky save bar */}
                 {settingsDirty&&<div style={{position:"sticky",top:0,zIndex:10,marginBottom:20,background:T.bg,paddingBottom:8}}>
@@ -4483,7 +4484,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </div>
                 </>}
 
-              </div>
+              </div>{/* end content wrapper */}
+              </div>{/* end right panel */}
             </>
           })()}
           </div>{/* end body flex */}
