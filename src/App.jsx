@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.302";
+const CRM_VERSION = "2.9.303";
 
 // Responsive hook
 function useWindowSize() {
@@ -4108,18 +4108,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
 
               {/* ── RIGHT SETTINGS CONTENT ── */}
-              <div style={{flex:1,overflowY:"auto",padding:"24px 28px",maxWidth:640}}>
+              <div style={{flex:1,overflowY:"auto",padding:"24px 28px",maxWidth:660}}>
 
                 {/* Sticky save bar */}
                 {settingsDirty&&<div style={{position:"sticky",top:0,zIndex:10,marginBottom:20,background:T.bg,paddingBottom:8}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderRadius:12,
-                    background:`${WA_GREEN}10`,border:`2px solid ${WA_GREEN}`,boxShadow:`0 4px 16px ${WA_GREEN}25`}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,fontWeight:600,color:WA_GREEN}}>
-                      <div style={{width:6,height:6,borderRadius:"50%",background:WA_GREEN}}/>
-                      Unsaved changes
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 18px",borderRadius:12,
+                    background:`${WA_GREEN}10`,border:`2px solid ${WA_GREEN}`,boxShadow:`0 4px 20px ${WA_GREEN}20`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:8,height:8,borderRadius:"50%",background:WA_GREEN,animation:"pulse 1.5s infinite"}}/>
+                      <span style={{fontSize:13,fontWeight:600,color:WA_GREEN}}>Unsaved changes</span>
                     </div>
-                    <button onClick={saveSettings}
-                      style={{padding:"7px 20px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    <button onClick={saveSettings} className="nx-btn primary" style={{padding:"8px 22px",fontSize:13}}>
                       💾 Save Settings
                     </button>
                   </div>
@@ -4127,136 +4126,149 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
                 {/* ── AI & BOT ── */}
                 {settingsNav==="ai"&&<>
-                  {isAdmin&&!settingsClinic&&<div style={{padding:"40px 20px",textAlign:"center",color:T.textMuted}}>
-                    <div style={{fontSize:40,marginBottom:12}}>👈</div>
-                    <div style={{fontWeight:700,fontSize:15}}>Select a client</div>
-                    <div style={{fontSize:12,marginTop:4}}>Choose from the list on the left</div>
+                  {isAdmin&&!settingsClinic&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",color:T.textMuted}}>
+                    <i className="ti ti-building" style={{fontSize:48,marginBottom:12,opacity:.3}}/>
+                    <div style={{fontWeight:700,fontSize:15,marginBottom:6}}>Select a client</div>
+                    <div style={{fontSize:12}}>Choose from the pills above to edit their settings</div>
                   </div>}
                   {(!isAdmin||settingsClinic)&&settingsLoading&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>
                     <div style={{width:32,height:32,borderRadius:"50%",border:`3px solid ${WA_GREEN}20`,borderTop:`3px solid ${WA_GREEN}`,animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/>
                     Loading...
                   </div>}
                   {(!isAdmin||settingsClinic)&&!settingsLoading&&<>
-                    <div style={{marginBottom:24}}>
-                      <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>AI Configuration</div>
 
-                      {/* AI Provider */}
-                      <div style={{marginBottom:14}}>
-                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>AI Provider</label>
-                        <div style={{display:"flex",gap:6}}>
-                          {[{id:"anthropic",label:"Claude",color:"#7c3aed"},{id:"openai",label:"GPT-4o",color:"#10b981"},{id:"groq",label:"Groq (Free)",color:"#f59e0b"}].map(p=>(
-                            <div key={p.id} onClick={()=>{setAppSettings(s=>({...s,ai_provider:p.id}));setSettingsDirtyWithRef(true);}}
-                              style={{flex:1,padding:"8px",borderRadius:8,border:`1.5px solid ${appSettings.ai_provider===p.id?p.color:T.border}`,
-                                background:appSettings.ai_provider===p.id?p.color+"10":"transparent",cursor:"pointer",textAlign:"center",transition:"all .15s"}}>
-                              <div style={{fontSize:11,fontWeight:700,color:appSettings.ai_provider===p.id?p.color:T.textMuted}}>{p.label}</div>
-                            </div>
-                          ))}
+                    {/* AI Provider Card */}
+                    <div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:"20px 22px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                        <div style={{width:36,height:36,borderRadius:10,background:"#f5f3ff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <i className="ti ti-robot" style={{fontSize:18,color:"#7c3aed"}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:700,color:T.text}}>AI Provider</div>
+                          <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>Choose which AI powers your bot</div>
                         </div>
                       </div>
-
-                      {/* API Key */}
-                      <div style={{marginBottom:14}}>
-                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>
-                          API Key <span style={{fontSize:10,color:T.textFaint,fontWeight:400}}>({appSettings.ai_provider==="anthropic"?"Anthropic":appSettings.ai_provider==="openai"?"OpenAI":"Groq"})</span>
-                        </label>
-                        <input type="password"
-                          value={appSettings.ai_provider==="anthropic"?appSettings.anthropic_key||"":appSettings.ai_provider==="openai"?appSettings.openai_key||"":appSettings.groq_key||""}
-                          onChange={e=>{
-                            const key = appSettings.ai_provider==="anthropic"?"anthropic_key":appSettings.ai_provider==="openai"?"openai_key":"groq_key";
-                            setAppSettings(s=>({...s,[key]:e.target.value}));setSettingsDirtyWithRef(true);
-                          }}
-                          placeholder={appSettings.ai_provider==="anthropic"?"sk-ant-api03-...":appSettings.ai_provider==="openai"?"sk-...":"gsk_..."}
-                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
+                        {[{id:"anthropic",label:"Claude",sub:"Anthropic",color:"#7c3aed",icon:"🟣"},
+                          {id:"openai",label:"GPT-4o",sub:"OpenAI",color:"#10b981",icon:"🟢"},
+                          {id:"groq",label:"Llama 3",sub:"Groq · Free",color:"#f59e0b",icon:"🟡"}].map(p=>(
+                          <div key={p.id} onClick={()=>{setAppSettings(s=>({...s,ai_provider:p.id}));setSettingsDirtyWithRef(true);}}
+                            style={{padding:"12px 10px",borderRadius:10,border:`2px solid ${appSettings.ai_provider===p.id?p.color:T.border}`,
+                              background:appSettings.ai_provider===p.id?p.color+"0d":"transparent",
+                              cursor:"pointer",textAlign:"center",transition:"all .15s"}}>
+                            <div style={{fontSize:20,marginBottom:4}}>{p.icon}</div>
+                            <div style={{fontSize:13,fontWeight:700,color:appSettings.ai_provider===p.id?p.color:T.text}}>{p.label}</div>
+                            <div style={{fontSize:10,color:T.textMuted,marginTop:1}}>{p.sub}</div>
+                            {appSettings.ai_provider===p.id&&<div style={{marginTop:6,fontSize:9,fontWeight:700,color:p.color,background:p.color+"15",borderRadius:20,padding:"2px 8px",display:"inline-block"}}>ACTIVE</div>}
+                          </div>
+                        ))}
                       </div>
-
-                      {/* AI Model */}
                       <div style={{marginBottom:14}}>
-                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>AI Model</label>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:6,letterSpacing:.3}}>API KEY</label>
+                        <div style={{position:"relative"}}>
+                          <input type="password"
+                            value={appSettings.ai_provider==="anthropic"?appSettings.anthropic_key||"":appSettings.ai_provider==="openai"?appSettings.openai_key||"":appSettings.groq_key||""}
+                            onChange={e=>{
+                              const key = appSettings.ai_provider==="anthropic"?"anthropic_key":appSettings.ai_provider==="openai"?"openai_key":"groq_key";
+                              setAppSettings(s=>({...s,[key]:e.target.value}));setSettingsDirtyWithRef(true);
+                            }}
+                            placeholder={appSettings.ai_provider==="anthropic"?"sk-ant-api03-...":appSettings.ai_provider==="openai"?"sk-...":"gsk_..."}
+                            style={{width:"100%",padding:"10px 14px",borderRadius:8,border:`1.5px solid ${T.border}`,
+                              background:T.card2,color:T.text,fontSize:13,fontFamily:"monospace",outline:"none",
+                              boxSizing:"border-box",transition:"border-color .15s"}}
+                            onFocus={e=>e.target.style.borderColor=WA_GREEN}
+                            onBlur={e=>e.target.style.borderColor=T.border}/>
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:6,letterSpacing:.3}}>MODEL</label>
                         <select value={appSettings.ai_model||"claude-haiku-4-5-20251001"}
                           onChange={e=>{setAppSettings(s=>({...s,ai_model:e.target.value}));setSettingsDirtyWithRef(true);}}
-                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
-                          <option value="claude-haiku-4-5-20251001">claude-haiku-4-5 (Fast, economical)</option>
-                          <option value="claude-sonnet-4-6">claude-sonnet-4-6 (Balanced)</option>
-                          <option value="gpt-4o-mini">gpt-4o-mini (Fast)</option>
-                          <option value="gpt-4o">gpt-4o (Powerful)</option>
-                          <option value="llama-3.3-70b-versatile">llama-3.3-70b (Groq Free)</option>
+                          style={{width:"100%",padding:"10px 14px",borderRadius:8,border:`1.5px solid ${T.border}`,
+                            background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",
+                            cursor:"pointer",transition:"border-color .15s"}}
+                          onFocus={e=>e.target.style.borderColor=WA_GREEN}
+                          onBlur={e=>e.target.style.borderColor=T.border}>
+                          <option value="claude-haiku-4-5-20251001">claude-haiku-4-5 — Fast & economical ⚡</option>
+                          <option value="claude-sonnet-4-6">claude-sonnet-4-6 — Balanced 🎯</option>
+                          <option value="gpt-4o-mini">gpt-4o-mini — Fast & cheap ⚡</option>
+                          <option value="gpt-4o">gpt-4o — Most powerful 💪</option>
+                          <option value="llama-3.3-70b-versatile">llama-3.3-70b — Free via Groq 🆓</option>
                         </select>
-                        <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>Haiku is recommended for most use cases</div>
-                      </div>
-
-                      {/* Timezone — affects follow-up scheduling and analytics */}
-                      <div style={{marginBottom:14}}>
-                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:4}}>Timezone</label>
-                        <div style={{fontSize:10,color:T.textMuted,marginBottom:6}}>Used for follow-up scheduling and analytics date grouping</div>
-                        <select value={appSettings.timezone||"Asia/Kuala_Lumpur"}
-                          onChange={e=>{setAppSettings(s=>({...s,timezone:e.target.value}));setSettingsDirtyWithRef(true);}}
-                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
-                          <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia (UTC+8)</option>
-                          <option value="Asia/Singapore">🇸🇬 Singapore (UTC+8)</option>
-                          <option value="Asia/Jakarta">🇮🇩 Indonesia WIB (UTC+7)</option>
-                          <option value="Asia/Makassar">🇮🇩 Indonesia WITA (UTC+8)</option>
-                          <option value="Asia/Jayapura">🇮🇩 Indonesia WIT (UTC+9)</option>
-                          <option value="Asia/Kolkata">🇮🇳 India (UTC+5:30)</option>
-                          <option value="Asia/Colombo">🇱🇰 Sri Lanka (UTC+5:30)</option>
-                          <option value="Asia/Karachi">🇵🇰 Pakistan (UTC+5)</option>
-                          <option value="Asia/Dhaka">🇧🇩 Bangladesh (UTC+6)</option>
-                          <option value="Asia/Bangkok">🇹🇭 Thailand (UTC+7)</option>
-                          <option value="Asia/Ho_Chi_Minh">🇻🇳 Vietnam (UTC+7)</option>
-                          <option value="Asia/Manila">🇵🇭 Philippines (UTC+8)</option>
-                          <option value="Asia/Taipei">🇹🇼 Taiwan (UTC+8)</option>
-                          <option value="Asia/Shanghai">🇨🇳 China (UTC+8)</option>
-                          <option value="Asia/Seoul">🇰🇷 South Korea (UTC+9)</option>
-                          <option value="Asia/Tokyo">🇯🇵 Japan (UTC+9)</option>
-                          <option value="Asia/Dubai">🇦🇪 UAE (UTC+4)</option>
-                          <option value="Asia/Riyadh">🇸🇦 Saudi Arabia (UTC+3)</option>
-                          <option value="Asia/Kuwait">🇰🇼 Kuwait (UTC+3)</option>
-                          <option value="Asia/Qatar">🇶🇦 Qatar (UTC+3)</option>
-                          <option value="Africa/Nairobi">🇰🇪 Kenya (UTC+3)</option>
-                          <option value="Europe/London">🇬🇧 UK (UTC+0/+1)</option>
-                          <option value="Europe/Paris">🇫🇷 France (UTC+1/+2)</option>
-                          <option value="Europe/Berlin">🇩🇪 Germany (UTC+1/+2)</option>
-                          <option value="America/New_York">🇺🇸 US East (UTC-5/-4)</option>
-                          <option value="America/Chicago">🇺🇸 US Central (UTC-6/-5)</option>
-                          <option value="America/Los_Angeles">🇺🇸 US West (UTC-8/-7)</option>
-                          <option value="Australia/Sydney">🇦🇺 Australia East (UTC+10/+11)</option>
-                          <option value="Pacific/Auckland">🇳🇿 New Zealand (UTC+12/+13)</option>
-                        </select>
+                        <div style={{fontSize:10,color:T.textMuted,marginTop:5}}>💡 Haiku recommended — same quality, 5x cheaper</div>
                       </div>
                     </div>
 
-                    {/* Bot Behaviour */}
-                    <div style={{marginBottom:24}}>
-                      <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Bot Behaviour</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {/* Timezone Card */}
+                    <div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:"20px 22px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                        <div style={{width:36,height:36,borderRadius:10,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <i className="ti ti-clock" style={{fontSize:18,color:"#2563eb"}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:700,color:T.text}}>Timezone</div>
+                          <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>Affects follow-up timing and analytics</div>
+                        </div>
+                      </div>
+                      <select value={appSettings.timezone||"Asia/Kuala_Lumpur"}
+                        onChange={e=>{setAppSettings(s=>({...s,timezone:e.target.value}));setSettingsDirtyWithRef(true);}}
+                        style={{width:"100%",padding:"10px 14px",borderRadius:8,border:`1.5px solid ${T.border}`,
+                          background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",cursor:"pointer"}}>
+                        <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia (UTC+8)</option>
+                        <option value="Asia/Singapore">🇸🇬 Singapore (UTC+8)</option>
+                        <option value="Asia/Jakarta">🇮🇩 Indonesia WIB (UTC+7)</option>
+                        <option value="Asia/Kolkata">🇮🇳 India (UTC+5:30)</option>
+                        <option value="Asia/Bangkok">🇹🇭 Thailand (UTC+7)</option>
+                        <option value="Asia/Dubai">🇦🇪 UAE (UTC+4)</option>
+                        <option value="Asia/Riyadh">🇸🇦 Saudi Arabia (UTC+3)</option>
+                        <option value="Europe/London">🇬🇧 UK (UTC+0/+1)</option>
+                        <option value="America/New_York">🇺🇸 US East (UTC-5/-4)</option>
+                        <option value="America/Los_Angeles">🇺🇸 US West (UTC-8/-7)</option>
+                        <option value="Australia/Sydney">🇦🇺 Australia (UTC+10/+11)</option>
+                      </select>
+                    </div>
+
+                    {/* Bot Behaviour Card */}
+                    <div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:"20px 22px",marginBottom:20,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                        <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <i className="ti ti-settings-2" style={{fontSize:18,color:WA_GREEN}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:700,color:T.text}}>Bot Behaviour</div>
+                          <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>Control how the bot responds</div>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
                         {[
-                          {key:"ai_enabled", label:"Enable AI bot globally", hint:"Bot replies automatically to all incoming messages", invert:true},
-                          {key:"usd_conversion", label:"International USD conversion", hint:"Auto-convert MYR prices to USD for non-Malaysian numbers", invert:false},
+                          {key:"ai_enabled",     label:"Enable AI bot globally",        hint:"Bot auto-replies to all incoming messages",            invert:true,  color:WA_GREEN},
+                          {key:"usd_conversion", label:"International USD conversion",  hint:"Show MYR + USD for non-Malaysian phone numbers",        invert:false, color:"#f59e0b"},
                         ].map(t=>{
-                          const val = t.invert
-                            ? appSettings[t.key]!=="false"
-                            : appSettings[t.key]===true||appSettings[t.key]==="true";
+                          const val = t.invert ? appSettings[t.key]!=="false" : appSettings[t.key]===true||appSettings[t.key]==="true";
                           return <div key={t.key}
-                            style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",
-                              background:T.card2,borderRadius:8,border:`1px solid ${T.border}`}}>
-                            <div>
-                              <div style={{fontSize:12,fontWeight:600,color:T.text}}>{t.label}</div>
-                              <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{t.hint}</div>
-                            </div>
-                            <div onClick={()=>{
+                            style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                              padding:"12px 14px",borderRadius:10,cursor:"pointer",transition:"all .15s",
+                              background:val?t.color+"0a":T.card2,
+                              border:`1.5px solid ${val?t.color+"40":T.border}`}}
+                            onClick={()=>{
                               const newVal = t.invert ? (val?"false":"true") : !val;
                               setAppSettings(s=>({...s,[t.key]:newVal}));setSettingsDirtyWithRef(true);
-                            }} style={{width:36,height:20,borderRadius:10,cursor:"pointer",flexShrink:0,
-                              background:val?WA_GREEN:"#d1d5db",position:"relative",transition:"background .2s"}}>
-                              <div style={{position:"absolute",top:2,left:val?18:2,width:16,height:16,borderRadius:"50%",
-                                background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                            }}>
+                            <div>
+                              <div style={{fontSize:13,fontWeight:600,color:T.text}}>{t.label}</div>
+                              <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{t.hint}</div>
+                            </div>
+                            <div style={{width:42,height:24,borderRadius:12,flexShrink:0,
+                              background:val?t.color:"#d1d5db",position:"relative",transition:"background .2s"}}>
+                              <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",
+                                background:"#fff",transition:"left .2s",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}/>
                             </div>
                           </div>;
                         })}
                       </div>
                     </div>
 
-                    <button onClick={saveSettings}
-                      style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    <button onClick={saveSettings} className="nx-btn primary" style={{padding:"10px 28px",fontSize:13}}>
                       💾 Save Settings
                     </button>
                   </>}
@@ -4264,141 +4276,209 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
                 {/* ── LEAD KEYWORDS ── */}
                 {settingsNav==="keywords"&&(!isAdmin||settingsClinic)&&<>
-                  <div style={{marginBottom:24}}>
-                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Lead Scoring Keywords</div>
+                  <div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:"20px 22px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                      <div style={{width:36,height:36,borderRadius:10,background:"#fef2f2",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        <i className="ti ti-target" style={{fontSize:18,color:"#ef4444"}}/>
+                      </div>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:700,color:T.text}}>Lead Scoring Keywords</div>
+                        <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>AI classifies leads based on these words. Separate with commas.</div>
+                      </div>
+                    </div>
+                    <div style={{padding:"8px 12px",borderRadius:8,background:"#fffbeb",border:"1px solid #fde68a",fontSize:11,color:"#92400e",marginBottom:16,lineHeight:1.6}}>
+                      💡 Keywords are case-insensitive. Add as many as you want separated by commas.
+                    </div>
                     {[
-                      {key:"hot_keywords",  label:"🔥 Hot keywords",  color:"#ef4444", border:"#fca5a5", hint:"e.g. book, appointment, price, how much"},
-                      {key:"warm_keywords", label:"🟡 Warm keywords", color:"#f59e0b", border:"#fcd34d", hint:"e.g. interested, tell me more, what services"},
-                      {key:"cold_keywords", label:"🔵 Cold keywords", color:"#3b82f6", border:"#93c5fd", hint:"e.g. just looking, maybe later"},
+                      {key:"hot_keywords",  label:"🔥 Hot — High Intent",   color:"#ef4444", light:"#fef2f2", border:"#fca5a5", hint:"book, appointment, price, how much, register, deposit"},
+                      {key:"warm_keywords", label:"🟡 Warm — Interested",   color:"#f59e0b", light:"#fffbeb", border:"#fcd34d", hint:"interested, tell me more, what services, details, options"},
+                      {key:"cold_keywords", label:"🔵 Cold — Just Browsing", color:"#3b82f6", light:"#eff6ff", border:"#93c5fd", hint:"just looking, maybe later, not sure, curious"},
                     ].map(kw=>(
-                      <div key={kw.key} style={{marginBottom:16}}>
-                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:4}}>{kw.label}</label>
+                      <div key={kw.key} style={{marginBottom:18}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                          <label style={{fontSize:13,fontWeight:600,color:T.text}}>{kw.label}</label>
+                          <span style={{fontSize:10,color:T.textFaint}}>{(appSettings[kw.key]||"").split(",").filter(k=>k.trim()).length} keywords</span>
+                        </div>
                         <div style={{fontSize:10,color:T.textMuted,marginBottom:6}}>{kw.hint}</div>
                         <textarea value={appSettings[kw.key]||""} rows={2}
                           onChange={e=>{setAppSettings(s=>({...s,[kw.key]:e.target.value}));setSettingsDirtyWithRef(true);}}
-                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${kw.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
-                        {(appSettings[kw.key]||"").trim()&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:5}}>
+                          style={{width:"100%",padding:"10px 14px",borderRadius:8,border:`1.5px solid ${kw.border}`,
+                            background:kw.light,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",
+                            resize:"vertical",boxSizing:"border-box",lineHeight:1.6,transition:"border-color .15s"}}
+                          onFocus={e=>e.target.style.borderColor=kw.color}
+                          onBlur={e=>e.target.style.borderColor=kw.border}/>
+                        {(appSettings[kw.key]||"").trim()&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:7}}>
                           {(appSettings[kw.key]||"").split(",").map(k=>k.trim()).filter(Boolean).map((k,i)=>(
-                            <span key={i} style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:kw.color+"12",color:kw.color,border:`1px solid ${kw.border}`,fontWeight:600}}>{k}</span>
+                            <span key={i} style={{fontSize:11,padding:"3px 10px",borderRadius:20,
+                              background:kw.color+"15",color:kw.color,border:`1px solid ${kw.border}`,fontWeight:600}}>
+                              {k}
+                            </span>
                           ))}
                         </div>}
                       </div>
                     ))}
                   </div>
-                  <button onClick={saveSettings}
-                    style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  <button onClick={saveSettings} className="nx-btn primary" style={{padding:"10px 28px",fontSize:13}}>
                     💾 Save Settings
                   </button>
                 </>}
 
                 {/* ── FOLLOW-UP ── */}
                 {settingsNav==="followup"&&(!isAdmin||settingsClinic)&&<>
-                  <div style={{marginBottom:24}}>
-                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Auto Follow-up</div>
-
-                    {/* Master on/off */}
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",
-                      background:T.card2,borderRadius:8,border:`1px solid ${T.border}`,marginBottom:16,cursor:"pointer"}}
-                      onClick={()=>{setAppSettings(s=>({...s,followup_enabled:s.followup_enabled==="true"?"false":"true"}));setSettingsDirtyWithRef(true);}}>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:600,color:T.text}}>Enable auto follow-up</div>
-                        <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>When OFF, no follow-ups are sent regardless of settings below</div>
-                      </div>
-                      <div style={{width:36,height:20,borderRadius:10,cursor:"pointer",flexShrink:0,
-                        background:appSettings.followup_enabled==="true"?WA_GREEN:"#d1d5db",position:"relative",transition:"background .2s"}}>
-                        <div style={{position:"absolute",top:2,left:appSettings.followup_enabled==="true"?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-                      </div>
-                    </div>
-
-                    <div style={{padding:"10px 12px",borderRadius:8,background:`${WA_GREEN}08`,border:`1px solid ${WA_GREEN}25`,fontSize:11,color:T.textMuted,marginBottom:16,lineHeight:1.6}}>
-                      🤖 AI reads the full conversation and writes a personalised follow-up. Fallback messages below are only used if AI fails.
-                    </div>
-                    {/* Follow-up 1 */}
-                    {[{n:1,key:"followup_1",delayKey:"followup_1_delay",unitKey:"followup_1_delay_unit",msgKey:"followup_1_message",enableKey:"followup_1_enabled",color:WA_GREEN},
-                      {n:2,key:"followup_2",delayKey:"followup_2_delay",unitKey:"followup_2_delay_unit",msgKey:"followup_2_message",enableKey:"followup_2_enabled",color:"#f59e0b"}].map(fu=>{
-                      const enabled = appSettings[fu.enableKey]!=="false";
-                      return <div key={fu.n} style={{background:T.card2,borderRadius:10,padding:14,marginBottom:10,border:`1px solid ${enabled?fu.color:T.border}`}}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                          <span style={{fontSize:12,fontWeight:700,color:enabled?fu.color:T.textMuted}}>Follow-up {fu.n} {enabled?"✅ Enabled":"⏸️ Disabled"}</span>
-                          <div onClick={()=>{setAppSettings(s=>({...s,[fu.enableKey]:enabled?"false":"true"}));setSettingsDirtyWithRef(true);}}
-                            style={{width:36,height:20,borderRadius:10,cursor:"pointer",background:enabled?fu.color:"#d1d5db",position:"relative",flexShrink:0,transition:"background .2s"}}>
-                            <div style={{position:"absolute",top:2,left:enabled?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                  {/* Master toggle card */}
+                  <div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:"20px 22px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <i className="ti ti-clock" style={{fontSize:18,color:WA_GREEN}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:700,color:T.text}}>Auto Follow-up</div>
+                          <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>
+                            {appSettings.followup_enabled==="true"?"✅ Active — sends when customer goes silent":"⏸️ Disabled — no follow-ups sent"}
                           </div>
                         </div>
-                        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
-                          <span style={{fontSize:11,color:T.textMuted,whiteSpace:"nowrap"}}>Send after</span>
-                          <input type="number" value={appSettings[fu.delayKey]||"2"}
-                            onChange={e=>{setAppSettings(s=>({...s,[fu.delayKey]:e.target.value}));setSettingsDirtyWithRef(true);}}
-                            style={{width:60,padding:"5px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,textAlign:"center"}}/>
-                          <select value={appSettings[fu.unitKey]||"hours"}
-                            onChange={e=>{setAppSettings(s=>({...s,[fu.unitKey]:e.target.value}));setSettingsDirtyWithRef(true);}}
-                            style={{padding:"5px 8px",borderRadius:6,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit"}}>
-                            <option value="mins">Minutes</option>
-                            <option value="hours">Hours</option>
-                            <option value="days">Days</option>
-                          </select>
-                          <span style={{fontSize:11,color:T.textMuted}}>of silence</span>
-                        </div>
-                        <label style={{display:"block",fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:4}}>Fallback message</label>
-                        <textarea value={appSettings[fu.msgKey]||""} rows={2}
-                          onChange={e=>{setAppSettings(s=>({...s,[fu.msgKey]:e.target.value}));setSettingsDirtyWithRef(true);}}
-                          placeholder="Hi {name}! Just checking in..."
-                          style={{width:"100%",padding:"7px 10px",borderRadius:6,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
-                      </div>;
-                    })}
+                      </div>
+                      <div onClick={()=>{setAppSettings(s=>({...s,followup_enabled:s.followup_enabled==="true"?"false":"true"}));setSettingsDirtyWithRef(true);}}
+                        style={{width:48,height:26,borderRadius:13,cursor:"pointer",flexShrink:0,
+                          background:appSettings.followup_enabled==="true"?WA_GREEN:"#d1d5db",position:"relative",transition:"background .25s"}}>
+                        <div style={{position:"absolute",top:3,left:appSettings.followup_enabled==="true"?24:3,width:20,height:20,
+                          borderRadius:"50%",background:"#fff",transition:"left .25s",boxShadow:"0 2px 5px rgba(0,0,0,.2)"}}/>
+                      </div>
+                    </div>
+                    <div style={{marginTop:12,padding:"8px 12px",borderRadius:8,background:`${WA_GREEN}08`,border:`1px solid ${WA_GREEN}20`,fontSize:11,color:T.textMuted,lineHeight:1.6}}>
+                      🤖 AI reads the full conversation and writes a personalised message. The fallback text below is only used if AI fails.
+                    </div>
                   </div>
-                  <button onClick={saveSettings}
-                    style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+
+                  {/* Follow-up 1 & 2 */}
+                  {[{n:1,delayKey:"followup_1_delay",unitKey:"followup_1_delay_unit",msgKey:"followup_1_message",enableKey:"followup_1_enabled",color:WA_GREEN,label:"First Follow-up"},
+                    {n:2,delayKey:"followup_2_delay",unitKey:"followup_2_delay_unit",msgKey:"followup_2_message",enableKey:"followup_2_enabled",color:"#f59e0b",label:"Second Follow-up"}].map(fu=>{
+                    const enabled = appSettings[fu.enableKey]!=="false";
+                    return <div key={fu.n} style={{background:T.card,borderRadius:14,border:`1.5px solid ${enabled?fu.color+"50":T.border}`,
+                      padding:"20px 22px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,.04)",
+                      opacity:appSettings.followup_enabled==="true"?1:0.5,transition:"all .2s"}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:700,color:enabled?fu.color:T.textMuted}}>{fu.label}</div>
+                          <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>{fu.n===1?"Sent first when customer goes silent":"Sent if customer still doesn't reply"}</div>
+                        </div>
+                        <div onClick={()=>{setAppSettings(s=>({...s,[fu.enableKey]:enabled?"false":"true"}));setSettingsDirtyWithRef(true);}}
+                          style={{width:42,height:24,borderRadius:12,cursor:"pointer",
+                            background:enabled?fu.color:"#d1d5db",position:"relative",flexShrink:0,transition:"background .2s"}}>
+                          <div style={{position:"absolute",top:3,left:enabled?21:3,width:18,height:18,borderRadius:"50%",
+                            background:"#fff",transition:"left .2s",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}/>
+                        </div>
+                      </div>
+                      <label style={{display:"block",fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:8,letterSpacing:.3}}>SEND AFTER</label>
+                      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14}}>
+                        <input type="number" value={appSettings[fu.delayKey]||"2"}
+                          onChange={e=>{setAppSettings(s=>({...s,[fu.delayKey]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                          style={{width:80,padding:"9px 12px",borderRadius:8,border:`1.5px solid ${T.border}`,
+                            background:T.card2,color:T.text,fontSize:15,fontWeight:700,textAlign:"center",outline:"none",
+                            transition:"border-color .15s"}}
+                          onFocus={e=>e.target.style.borderColor=fu.color}
+                          onBlur={e=>e.target.style.borderColor=T.border}/>
+                        <select value={appSettings[fu.unitKey]||"hours"}
+                          onChange={e=>{setAppSettings(s=>({...s,[fu.unitKey]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                          style={{padding:"9px 14px",borderRadius:8,border:`1.5px solid ${T.border}`,
+                            background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",cursor:"pointer"}}>
+                          <option value="mins">Minutes</option>
+                          <option value="hours">Hours</option>
+                          <option value="days">Days</option>
+                        </select>
+                        <span style={{fontSize:12,color:T.textMuted}}>of customer silence</span>
+                      </div>
+                      <label style={{display:"block",fontSize:12,fontWeight:600,color:T.textMuted,marginBottom:6,letterSpacing:.3}}>FALLBACK MESSAGE <span style={{fontSize:10,fontWeight:400}}>(if AI unavailable)</span></label>
+                      <textarea value={appSettings[fu.msgKey]||""} rows={3}
+                        onChange={e=>{setAppSettings(s=>({...s,[fu.msgKey]:e.target.value}));setSettingsDirtyWithRef(true);}}
+                        placeholder={`Hi {name}! ${fu.n===1?"Just checking in — can I help you with anything?":"We'd love to hear from you. Is there anything I can assist with?"}`}
+                        style={{width:"100%",padding:"10px 14px",borderRadius:8,border:`1.5px solid ${T.border}`,
+                          background:T.card2,color:T.text,fontSize:13,fontFamily:"inherit",outline:"none",
+                          resize:"vertical",boxSizing:"border-box",lineHeight:1.6,transition:"border-color .15s"}}
+                        onFocus={e=>e.target.style.borderColor=fu.color}
+                        onBlur={e=>e.target.style.borderColor=T.border}/>
+                      <div style={{fontSize:10,color:T.textFaint,marginTop:4}}>Use {"{name}"} to include the customer's name</div>
+                    </div>;
+                  })}
+                  <button onClick={saveSettings} className="nx-btn primary" style={{padding:"10px 28px",fontSize:13}}>
                     💾 Save Settings
                   </button>
                 </>}
 
                 {/* ── NOTIFICATIONS (Telegram) ── */}
                 {settingsNav==="telegram"&&(!isAdmin||settingsClinic)&&<>
-                  <div style={{marginBottom:24}}>
-                    <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${T.border}`}}>Telegram Notifications</div>
-                    <div style={{padding:"10px 12px",borderRadius:8,background:"#eff6ff",border:"1px solid #bfdbfe",fontSize:11,color:"#1d4ed8",marginBottom:14,lineHeight:1.6}}>
-                      📌 Get instant alerts on Telegram when hot leads appear, bookings confirmed or human needed.
+                  <div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:"20px 22px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                      <div style={{width:36,height:36,borderRadius:10,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        <i className="ti ti-brand-telegram" style={{fontSize:18,color:"#0088cc"}}/>
+                      </div>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:700,color:T.text}}>Telegram Notifications</div>
+                        <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>Get instant alerts in your Telegram group</div>
+                      </div>
+                      {(appSettings.telegram_token||"").length>5&&(appSettings.telegram_chat_id||"").length>3&&
+                        <span style={{marginLeft:"auto",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,background:"#f0fdf4",color:"#15803d",border:"1px solid #bbf7d0"}}>
+                          ✅ Connected
+                        </span>}
                     </div>
-                    {[{key:"telegram_token",label:"Bot Token",ph:"8664616537:AAGE9wn...",pwd:true},{key:"telegram_chat_id",label:"Group Chat ID",ph:"-5277820778"}].map(f=>(
+                    {[{key:"telegram_token",label:"BOT TOKEN",ph:"8664616537:AAGE9wn...",pwd:true},
+                      {key:"telegram_chat_id",label:"GROUP CHAT ID",ph:"-5277820778"}].map(f=>(
                       <div key={f.key} style={{marginBottom:14}}>
-                        <label style={{display:"block",fontSize:12,fontWeight:600,color:T.text,marginBottom:6}}>{f.label}</label>
+                        <label style={{display:"block",fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:6,letterSpacing:.5}}>{f.label}</label>
                         <input type={f.pwd?"password":"text"} value={appSettings[f.key]||""}
                           onChange={e=>{setAppSettings(s=>({...s,[f.key]:e.target.value}));setSettingsDirtyWithRef(true);}}
                           placeholder={f.ph}
-                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.input,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                          style={{width:"100%",padding:"10px 14px",borderRadius:8,border:`1.5px solid ${T.border}`,
+                            background:T.card2,color:T.text,fontSize:13,fontFamily:"monospace",outline:"none",
+                            boxSizing:"border-box",transition:"border-color .15s"}}
+                          onFocus={e=>e.target.style.borderColor="#0088cc"}
+                          onBlur={e=>e.target.style.borderColor=T.border}/>
                       </div>
                     ))}
-                    <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:8}}>Notify me when:</div>
-                    <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
+                  </div>
+
+                  <div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:"20px 22px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
+                    <div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:12}}>Alert me when:</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       {[
-                        {key:"telegram_notify_hot",    label:"🔥 Hot lead detected",      def:"true"},
-                        {key:"telegram_notify_warm",   label:"🟡 Warm lead detected",     def:"false"},
-                        {key:"telegram_notify_human",  label:"🚨 Human agent needed",     def:"true"},
-                        {key:"telegram_notify_booking",label:"📅 Booking intent detected",def:"true"},
+                        {key:"telegram_notify_hot",    label:"🔥 Hot lead detected",       hint:"Customer shows strong booking intent",     def:"true"},
+                        {key:"telegram_notify_warm",   label:"🟡 Warm lead detected",      hint:"Customer shows interest but not ready",    def:"false"},
+                        {key:"telegram_notify_human",  label:"🚨 Human agent needed",      hint:"Bot can't handle the question",            def:"true"},
+                        {key:"telegram_notify_booking",label:"📅 Booking confirmed",       hint:"Customer committed to an appointment",     def:"true"},
                       ].map(t=>{
                         const on = (appSettings[t.key]||t.def)!=="false";
                         return <div key={t.key}
-                          style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",
-                            background:T.card2,borderRadius:8,border:`1px solid ${T.border}`,cursor:"pointer"}}
+                          style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                            padding:"12px 14px",borderRadius:10,cursor:"pointer",transition:"all .15s",
+                            background:on?"#eff6ff":T.card2,border:`1.5px solid ${on?"#bfdbfe":T.border}`}}
                           onClick={()=>{setAppSettings(s=>({...s,[t.key]:on?"false":"true"}));setSettingsDirtyWithRef(true);}}>
-                          <span style={{fontSize:12,fontWeight:600,color:T.text}}>{t.label}</span>
-                          <div style={{width:36,height:20,borderRadius:10,background:on?WA_GREEN:"#d1d5db",position:"relative",flexShrink:0,transition:"background .2s"}}>
-                            <div style={{position:"absolute",top:2,left:on?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                          <div>
+                            <div style={{fontSize:13,fontWeight:600,color:T.text}}>{t.label}</div>
+                            <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>{t.hint}</div>
+                          </div>
+                          <div style={{width:42,height:24,borderRadius:12,background:on?"#0088cc":"#d1d5db",position:"relative",flexShrink:0,transition:"background .2s"}}>
+                            <div style={{position:"absolute",top:3,left:on?21:3,width:18,height:18,borderRadius:"50%",
+                              background:"#fff",transition:"left .2s",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}/>
                           </div>
                         </div>;
                       })}
                     </div>
-                    <button onClick={saveSettings}
-                      style={{padding:"9px 24px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginRight:8}}>
-                      💾 Save
+                  </div>
+
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={saveSettings} className="nx-btn primary" style={{padding:"10px 28px",fontSize:13}}>
+                      💾 Save Settings
                     </button>
                     <button onClick={async()=>{
                       const r=await fetch(`${API}/api/settings/test-telegram`,{method:"POST",headers:authHeaders()});
                       const d=await r.json();
-                      setConfirmModal({title:d.ok?"Test Sent! ✅":"Failed ❌",message:d.ok?"Check your Telegram group for a test message.":"Could not send. Check Bot Token and Chat ID.",icon:d.ok?"📨":"⚠️",danger:!d.ok,confirmText:"OK",onConfirm:()=>{}});
-                    }} style={{padding:"9px 16px",borderRadius:8,border:"none",background:"#0088cc",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                      📨 Test
+                      setConfirmModal({title:d.ok?"Test Sent! ✅":"Failed ❌",
+                        message:d.ok?"Check your Telegram group — you should see a test message.":"Could not send. Check your Bot Token and Chat ID.",
+                        icon:d.ok?"📨":"⚠️",danger:!d.ok,confirmText:"OK",onConfirm:()=>{}});
+                    }} style={{padding:"10px 18px",borderRadius:8,border:"none",background:"#0088cc",color:"#fff",
+                      fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+                      <i className="ti ti-send" style={{fontSize:14}}/> Send Test
                     </button>
                   </div>
                 </>}
