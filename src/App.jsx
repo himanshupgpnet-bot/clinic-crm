@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.316";
+const CRM_VERSION = "2.9.317";
 
 // Responsive hook
 function useWindowSize() {
@@ -6588,109 +6588,151 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                       <div style={{display:"flex",gap:5,alignItems:"center"}}>
                         <button onClick={()=>{setEditClinic({...clinic});setClinicStep(0);setView("clinic_form");}}
                           style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",
-                            color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>
+                            color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                           Edit
                         </button>
-                        <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
-                          style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",
-                            color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>
-                          + User
-                        </button>
-                        <button onClick={()=>{
-                          const isActive = !inactive;
-                          setConfirmModal({title:(isActive?"Disable":"Enable")+" "+clinic.name+"?",
-                            message:isActive?"Users won't be able to login.":"Users can login again.",
-                            icon:isActive?"🔴":"🟢",danger:isActive,
-                            confirmText:"Yes, "+(isActive?"Disable":"Enable"),
-                            onConfirm:async()=>{
-                              await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!isActive})});
-                              flash("✅ Done");load();
-                            }});
-                        }} style={{padding:"5px 10px",borderRadius:8,fontSize:13,cursor:"pointer",
-                          border:`1px solid ${inactive?"#bbf7d0":"#fca5a5"}`,background:"transparent",
-                          color:inactive?"#16a34a":"#ef4444"}}>
-                          {inactive?"🟢":"🔴"}
-                        </button>
-                        <button onClick={()=>setConfirmModal({title:"Reset "+clinic.name+"?",
-                          message:"Permanently delete all contacts and conversations.",
-                          icon:"🗑️",danger:true,confirmText:"Yes, Reset",
-                          onConfirm:async()=>{
-                            const r=await fetch(`${API}/api/admin/clients/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
-                            if(r.ok){const d=await r.json();flash("✅ Reset — "+d.deleted_contacts+" contacts deleted");}
-                            load();
-                          }})}
-                          style={{padding:"5px 10px",borderRadius:8,border:`1px solid #fca5a5`,
-                            background:"transparent",color:"#ef4444",fontSize:13,cursor:"pointer"}}>
-                          🗑️
+                        <button onClick={()=>setSelectedClinicRow(isExpanded?null:clinic.id)}
+                          style={{padding:"5px 12px",borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit",
+                            border:`1px solid ${isExpanded?WA_GREEN:T.border}`,
+                            background:isExpanded?`${WA_GREEN}10`:"transparent",
+                            color:isExpanded?WA_GREEN:T.textMuted}}>
+                          {isExpanded?"▲ Close":"▼ Manage"}
                         </button>
                       </div>
                     </td>
                   </tr>
 
-                  {/* Expanded staff row */}
+                  {/* Expanded panel — client toggle + staff list */}
                   {isExpanded&&<tr style={{borderBottom:`1px solid ${T.border}`}}>
                     <td colSpan={7} style={{padding:0}}>
-                      <div style={{padding:"16px 20px",background:T.card2}}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                      <div style={{background:T.card2}}>
+
+                        {/* Client enable/disable toggle row */}
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                          padding:"12px 20px",borderBottom:`1px solid ${T.border}`}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10}}>
+                            <div style={{width:8,height:8,borderRadius:"50%",background:inactive?"#ef4444":WA_GREEN,flexShrink:0}}/>
+                            <div>
+                              <div style={{fontSize:13,fontWeight:600,color:T.text}}>
+                                {clinic.name} — {inactive?"Disabled":"Active"}
+                              </div>
+                              <div style={{fontSize:11,color:T.textMuted}}>
+                                {inactive?"Users cannot login":"All users can login and use the system"}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:10}}>
+                            <span style={{fontSize:11,color:T.textMuted}}>{inactive?"Enable":"Disable"}</span>
+                            <div onClick={()=>setConfirmModal({
+                              title:(inactive?"Enable":"Disable")+" "+clinic.name+"?",
+                              message:inactive?"Users will be able to login again.":"Users won't be able to login.",
+                              icon:inactive?"🟢":"🔴",danger:!inactive,
+                              confirmText:"Yes, "+(inactive?"Enable":"Disable"),
+                              onConfirm:async()=>{
+                                await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!!inactive})});
+                                flash("✅ Done");load();
+                              }})}
+                              style={{width:44,height:24,borderRadius:12,cursor:"pointer",flexShrink:0,
+                                background:inactive?"#d1d5db":WA_GREEN,position:"relative",transition:"background .25s"}}>
+                              <div style={{position:"absolute",top:3,left:inactive?3:22,width:18,height:18,
+                                borderRadius:"50%",background:"#fff",transition:"left .25s",
+                                boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}/>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Staff header */}
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                          padding:"10px 20px 8px",borderBottom:`1px solid ${T.border}`}}>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <span style={{fontSize:13,fontWeight:700,color:T.text}}>Staff</span>
-                            <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,
+                            <span style={{fontSize:12,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5}}>Staff</span>
+                            <span style={{fontSize:11,padding:"1px 7px",borderRadius:20,
                               background:T.card,border:`1px solid ${T.border}`,color:T.textMuted}}>
-                              {clinicUsers.length} / {clinic.max_seats||1} seats
+                              {clinicUsers.length}/{clinic.max_seats||1} seats
                             </span>
                           </div>
                           <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
-                            className="nx-btn" style={{padding:"4px 12px",fontSize:12}}>
+                            style={{fontSize:12,fontWeight:600,color:WA_GREEN,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
                             + Add User
                           </button>
                         </div>
+
+                        {/* Staff vertical list */}
                         {clinicUsers.length===0
-                          ?<div style={{fontSize:12,color:T.textFaint,fontStyle:"italic"}}>No staff yet</div>
-                          :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:8}}>
-                            {clinicUsers.map(u=>{
-                              const sess = sessions.find(s=>s.user_id===u.id);
-                              const online = !!sess;
-                              return <div key={u.id} style={{display:"flex",alignItems:"center",gap:10,
-                                padding:"10px 12px",borderRadius:10,background:T.card,
-                                border:`1px solid ${online?WA_GREEN+"40":T.border}`,opacity:u.active?1:.6}}>
-                                <div style={{width:34,height:34,borderRadius:"50%",flexShrink:0,
-                                  background:online?WA_GREEN:"#94a3b8",
-                                  display:"flex",alignItems:"center",justifyContent:"center",
-                                  fontSize:13,fontWeight:700,color:"#fff",position:"relative"}}>
-                                  {(u.username||"?")[0].toUpperCase()}
-                                  <div style={{position:"absolute",bottom:0,right:0,width:10,height:10,
-                                    borderRadius:"50%",border:"2px solid "+T.card,
-                                    background:online?"#22c55e":u.active?"#94a3b8":"#ef4444"}}/>
+                          ?<div style={{padding:"14px 20px",fontSize:12,color:T.textFaint,fontStyle:"italic"}}>No staff yet</div>
+                          :clinicUsers.map((u,idx)=>{
+                            const sess = sessions.find(s=>s.user_id===u.id);
+                            const online = !!sess;
+                            return <div key={u.id} style={{
+                              display:"flex",alignItems:"center",gap:12,
+                              padding:"10px 20px",
+                              borderBottom:idx<clinicUsers.length-1?`1px solid ${T.border}40`:"none",
+                              background:"transparent",transition:"background .1s"}}
+                              onMouseEnter={e=>e.currentTarget.style.background=T.card+"80"}
+                              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+
+                              {/* Avatar */}
+                              <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,
+                                background:online?WA_GREEN:"#94a3b8",
+                                display:"flex",alignItems:"center",justifyContent:"center",
+                                fontSize:12,fontWeight:700,color:"#fff",position:"relative"}}>
+                                {(u.username||"?")[0].toUpperCase()}
+                                <div style={{position:"absolute",bottom:0,right:0,width:9,height:9,
+                                  borderRadius:"50%",border:"2px solid "+T.card2,
+                                  background:online?"#22c55e":u.active?"#cbd5e1":"#ef4444"}}/>
+                              </div>
+
+                              {/* Name + status */}
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:u.active?T.text:T.textMuted}}>
+                                  @{u.username}
                                 </div>
-                                <div style={{flex:1,minWidth:0}}>
-                                  <div style={{fontSize:12,fontWeight:700,color:T.text,display:"flex",alignItems:"center",gap:5}}>
-                                    @{u.username}
-                                    {!u.active&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:8,background:"#fee2e2",color:"#dc2626",fontWeight:700}}>OFF</span>}
-                                  </div>
-                                  <div style={{fontSize:10,color:online?WA_GREEN:T.textMuted}}>
-                                    {online?"🟢 Online":"Offline"}
-                                    {sess?.location&&<span style={{color:T.textMuted}}> · 📍{sess.location}</span>}
-                                  </div>
+                                <div style={{fontSize:11,color:online?WA_GREEN:T.textFaint,marginTop:1}}>
+                                  {online?"Online now":"Offline"}
+                                  {sess?.location&&<span style={{color:T.textFaint}}> · {sess.location}</span>}
                                 </div>
-                                <div style={{display:"flex",gap:3,flexShrink:0}}>
-                                  <button onClick={()=>{setEditUser({...u,newPassword:""});setView("user_form");}}
-                                    title="Edit" style={{width:26,height:26,borderRadius:6,border:`1px solid ${T.border}`,
-                                      background:"transparent",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
-                                  <button onClick={async()=>{await fetch(`${API}/api/admin/users/${u.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!u.active})});flash(`✅ @${u.username} ${u.active?"deactivated":"activated"}`);load();}}
-                                    title={u.active?"Deactivate":"Activate"} style={{width:26,height:26,borderRadius:6,fontSize:12,cursor:"pointer",
-                                      border:`1px solid ${u.active?"#fca5a5":"#86efac"}`,background:"transparent",
-                                      color:u.active?"#ef4444":"#16a34a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                                    {u.active?"🔴":"🟢"}</button>
-                                  {online&&<button onClick={()=>forceLogout(u.id,u.username)} title="Force logout"
-                                    style={{width:26,height:26,borderRadius:6,border:"1px solid #fca5a5",background:"transparent",
-                                      color:"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>⏏️</button>}
-                                  <button onClick={()=>setConfirmModal({title:"Delete @"+u.username+"?",message:"Permanently deletes this user account.",icon:"🗑️",danger:true,confirmText:"Yes, Delete",onConfirm:()=>deleteUser(u.id)})}
-                                    title="Delete" style={{width:26,height:26,borderRadius:6,border:"1px solid #fca5a5",background:"transparent",
-                                      color:"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>
+                              </div>
+
+                              {/* User active toggle */}
+                              <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                                <span style={{fontSize:11,color:T.textFaint}}>{u.active?"Active":"Off"}</span>
+                                <div onClick={async()=>{
+                                  await fetch(`${API}/api/admin/users/${u.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!u.active})});
+                                  flash(`✅ @${u.username} ${u.active?"deactivated":"activated"}`);load();
+                                }} style={{width:36,height:20,borderRadius:10,cursor:"pointer",flexShrink:0,
+                                  background:u.active?WA_GREEN:"#d1d5db",position:"relative",transition:"background .2s"}}>
+                                  <div style={{position:"absolute",top:2,left:u.active?17:2,width:16,height:16,
+                                    borderRadius:"50%",background:"#fff",transition:"left .2s",
+                                    boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
                                 </div>
-                              </div>;
-                            })}
-                          </div>}
+                              </div>
+
+                              {/* Action buttons */}
+                              <div style={{display:"flex",gap:4,flexShrink:0}}>
+                                <button onClick={()=>{setEditUser({...u,newPassword:""});setView("user_form");}}
+                                  title="Edit user"
+                                  style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${T.border}`,
+                                    background:"transparent",color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                                  Edit
+                                </button>
+                                {online&&<button onClick={()=>forceLogout(u.id,u.username)}
+                                  title="Force logout"
+                                  style={{padding:"4px 10px",borderRadius:6,border:"1px solid #fca5a5",
+                                    background:"transparent",color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                                  Logout
+                                </button>}
+                                <button onClick={()=>setConfirmModal({title:"Delete @"+u.username+"?",
+                                  message:"This permanently deletes the user account.",icon:"🗑️",danger:true,
+                                  confirmText:"Yes, Delete",onConfirm:()=>deleteUser(u.id)})}
+                                  title="Delete user"
+                                  style={{padding:"4px 10px",borderRadius:6,border:"1px solid #fca5a5",
+                                    background:"transparent",color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                                  Delete
+                                </button>
+                              </div>
+                            </div>;
+                          })}
+
                       </div>
                     </td>
                   </tr>}
