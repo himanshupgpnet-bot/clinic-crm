@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.332";
+const CRM_VERSION = "2.9.333";
 
 // Responsive hook
 function useWindowSize() {
@@ -2538,6 +2538,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         {ad.ad_source_type==="ad"?"📘 Facebook":ad.ad_source_type==="instagram"?"📸 Instagram":"📢 Ad"}
                       </div>
                       <div style={{fontSize:11,color:"#6d28d9"}}>{ad.ad_headline||ad.ad_source||"—"}</div>
+                      {ad.ad_source&&<a href={ad.ad_source} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#7c3aed",textDecoration:"none",display:"block",marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🔗 {ad.ad_source}</a>}
                       {ad.first_message&&<div style={{fontSize:10,color:"#a78bfa",marginTop:2}}>"{ad.first_message?.slice(0,40)}{ad.first_message?.length>40?"...":""}"</div>}
                     </div>
                   ))}
