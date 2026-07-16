@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.329";
+const CRM_VERSION = "2.9.330";
 
 // Responsive hook
 function useWindowSize() {
@@ -2526,15 +2526,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
 
             {/* Ad Source */}
-            {(selected.ad_headline||selected.ad_source)&&<div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
               <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Ad Source</div>
-              <div style={{background:"#f5f3ff",borderRadius:8,padding:"8px 10px",border:"1px solid #c4b5fd"}}>
-                <div style={{fontSize:12,fontWeight:700,color:"#5b21b6",marginBottom:3}}>
-                  {selected.ad_source_type==="ad"?"📘 Facebook":selected.ad_source_type==="instagram"?"📸 Instagram":"📢 Ad"}
+              {(selected.ad_headline||selected.ad_source)
+                ?<div style={{background:"#f5f3ff",borderRadius:8,padding:"8px 10px",border:"1px solid #c4b5fd"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#5b21b6",marginBottom:3}}>
+                    {selected.ad_source_type==="ad"?"📘 Facebook":selected.ad_source_type==="instagram"?"📸 Instagram":"📢 Ad"}
+                  </div>
+                  <div style={{fontSize:11,color:"#6d28d9"}}>{selected.ad_headline||selected.ad_source}</div>
                 </div>
-                <div style={{fontSize:11,color:"#6d28d9"}}>{selected.ad_headline||selected.ad_source||"—"}</div>
-              </div>
-            </div>}
+                :<div style={{fontSize:11,color:T.textFaint,fontStyle:"italic"}}>Organic / Direct</div>}
+            </div>
 
             {/* Tags */}
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
