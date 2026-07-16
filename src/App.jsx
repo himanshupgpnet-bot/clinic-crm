@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.336";
+const CRM_VERSION = "2.9.337";
 
 // Responsive hook
 function useWindowSize() {
@@ -1234,7 +1234,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         const r = await fetch(`${API}/api/conversations/${phone}`,{headers:authHeaders()});
         if(r.ok) {
           const data = await r.json();
-          const msgs = data.messages || [];
+          const msgs = (data.messages || []).map(m=>({
+            ...m,
+            mediaUrl: m.mediaUrl || m.media_url || "",
+            agentName: m.agentName || m.agent_name || "",
+          }));
           setSelected(prev => prev?.id===c.id ? {...prev, ...data, messages: msgs} : prev);
           selectedRef.current = {...selectedRef.current, ...data, messages: msgs};
         }
@@ -2431,6 +2435,25 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                             <span style={{fontSize:20}}>📄</span>
                             <span style={{fontSize:12,color:isOut?"rgba(255,255,255,.9)":WA_GREEN,fontWeight:600}}>{msg.text.replace("[Document: ","").replace("]","")}</span>
                           </a>
+                        ):msg.text?.startsWith("[Voice")||msg.text?.startsWith("[Audio")?(
+                          <div style={{display:"flex",alignItems:"center",gap:10,background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px"}}>
+                            <div style={{width:32,height:32,borderRadius:"50%",background:isOut?"rgba(255,255,255,.2)":WA_GREEN+"20",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                              <span style={{fontSize:16}}>🎤</span>
+                            </div>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:11,fontWeight:600,color:isOut?"rgba(255,255,255,.9)":T.text}}>Voice message</div>
+                              <div style={{fontSize:10,color:isOut?"rgba(255,255,255,.6)":T.textMuted}}>Audio not playable in CRM</div>
+                            </div>
+                            {msg.mediaUrl&&<a href={msg.mediaUrl} target="_blank" rel="noreferrer"
+                              style={{fontSize:10,color:isOut?"rgba(255,255,255,.8)":WA_GREEN,textDecoration:"none",fontWeight:600,flexShrink:0}}>
+                              Download
+                            </a>}
+                          </div>
+                        ):!msg.mediaUrl&&msg.text?.startsWith("[Document")?(
+                          <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px"}}>
+                            <span style={{fontSize:20}}>📄</span>
+                            <span style={{fontSize:12,color:isOut?"rgba(255,255,255,.9)":T.textMuted}}>{msg.text.replace("[Document: ","").replace("]","")}</span>
+                          </div>
                         ):msg.text?.startsWith("📢 Broadcast:")?(
                           <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 10px"}}>
                             <div style={{fontSize:10,color:isOut?"rgba(255,255,255,.7)":WA_GREEN,fontWeight:700,marginBottom:4}}>📢 BROADCAST</div>
