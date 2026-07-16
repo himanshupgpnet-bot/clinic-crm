@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.337";
+const CRM_VERSION = "2.9.338";
 
 // Responsive hook
 function useWindowSize() {
@@ -959,7 +959,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       // Also fetch ad summary for KPI card
       try {
         const cParam2 = clinicId ? `?clinic_id=${clinicId}` : "";
-        const _arUrl = API+"/api/analytics/ads"+(clinicId?"?clinic_id="+clinicId:"");
+        const _arUrl = API+"/api/analytics/ads?from="+from+"&to="+to+(clinicId?"&clinic_id="+clinicId:"");
         const ar = await fetch(_arUrl, {headers:authHeaders()});
         if(ar.ok) {
           const ads = await ar.json();
@@ -1194,11 +1194,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       if(!isAdmin) fetchSettings();
       // Refresh current tab data
       if(tab==="broadcast") { if(!isAdmin) fetchTemplates(); }
-    if(tab==="analytics") {
-        // Use ref to get current selectedClinic value
-        fetchAnalytics(dateFrom, dateTo, selectedClinicRef.current?.id||selectedClinicRef.current?.clinic_id||null);
-        if(isAdmin) fetchAdminOverview();
-      }
       if(isAdmin) fetchAdminOverview();
     };
     const interval = setInterval(autoRefresh, 30000);
@@ -7299,7 +7294,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 <i className="ti ti-ad" style={{fontSize:16,color:"#7c3aed"}}/>
                 <div>
                   <div style={{fontWeight:700,fontSize:13,color:T.text}}>Ad Performance</div>
-                  <div style={{fontSize:11,color:T.textMuted}}>All time · {adData.length} ads · click to expand</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{dateFrom} → {dateTo} · {adData.length} ads · click to expand</div>
                 </div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:16}}>
