@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.322";
+const CRM_VERSION = "2.9.323";
 
 // Responsive hook
 function useWindowSize() {
@@ -817,7 +817,7 @@ export default function App() {
     try {
       const clinicParam = inboxClinic ? `?clinic_id=${inboxClinic}` : "";
       const ctrl = new AbortController();
-      const tmo = setTimeout(()=>ctrl.abort(), 8000);
+      const tmo = setTimeout(()=>ctrl.abort(), 30000);
       const res = await fetch(`${API}/api/conversations${clinicParam}`, {headers:authHeaders(), signal:ctrl.signal});
       clearTimeout(tmo);
       if (!res.ok) throw new Error();
