@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.325";
+const CRM_VERSION = "2.9.326";
 
 // Responsive hook
 function useWindowSize() {
@@ -1228,15 +1228,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     // Lazy load messages if not already loaded
     if(!c.messages || c.messages.length===0) {
       try {
-        const encodedPhone = encodeURIComponent(c.phone);
-        const r = await fetch(`${API}/api/conversations/${encodedPhone}`,{headers:authHeaders()});
+        const phone = c.phone.replace(/^\+/, '');
+        const r = await fetch(`${API}/api/conversations/${phone}`,{headers:authHeaders()});
         if(r.ok) {
           const data = await r.json();
           const msgs = data.messages || [];
           setSelected(prev => prev?.id===c.id ? {...prev, messages: msgs} : prev);
           selectedRef.current = {...selectedRef.current, messages: msgs};
         }
-      } catch {}
+      } catch(e) { console.error('lazy load failed:', e); }
     }
   }
 
