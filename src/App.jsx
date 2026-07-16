@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.312";
+const CRM_VERSION = "2.9.313";
 
 // Responsive hook
 function useWindowSize() {
@@ -5867,6 +5867,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
   const [editClinic, setEditClinic] = useState(null);
   const [globalSettings, setGlobalSettings] = React.useState({fallback_enabled:"false",fallback_api_key:"",fallback_provider:"anthropic"});
   const [savingGlobal, setSavingGlobal] = React.useState(false);
+  const [selectedClinicRow, setSelectedClinicRow] = React.useState(null);
 
   const loadGlobalSettings = React.useCallback(async () => {
     try {
@@ -6404,7 +6405,6 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
   );
 
   // ── MAIN CLIENTS LIST ───────────────────────────────────────────────────────
-  const [selectedClinicRow, setSelectedClinicRow] = React.useState(null);
 
   return (
     <div style={{display:"flex",flexDirection:"column",flex:1,overflow:"hidden"}}>
