@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.310";
+const CRM_VERSION = "2.9.311";
 
 // Responsive hook
 function useWindowSize() {
@@ -4494,6 +4494,46 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {tab==="admin"&&isAdmin&&<AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal} adminOverview={adminOverview}/>}
 
       </div>
+
+      {/* ══ CONFIRM MODAL ══ */}
+      <ConfirmModal modal={confirmModal} onClose={()=>setConfirmModal(null)} T={T} WA_GREEN={WA_GREEN}/>
+
+      {/* ══ IDLE WARNING MODAL ══ */}
+      {idleWarning&&<IdleWarningModal
+        countdown={idleCountdown}
+        setCountdown={setIdleCountdown}
+        onContinue={()=>{setIdleWarning(false);setIdleCountdown(30);idleWarningRef.current=false;}}
+        onLogout={()=>{
+          sessionStorage.removeItem("crm_token");
+          sessionStorage.removeItem("crm_user");
+          sessionStorage.removeItem("crm_perms");
+          sessionStorage.removeItem("crm_timeout");
+          window.location.href = window.location.href.split("?")[0] + "?logout=" + Date.now();
+        }}
+        T={T} WA_GREEN={WA_GREEN}
+      />}
+
+      {/* ══ UNSAVED SETTINGS MODAL ══ */}
+      {showUnsavedModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:T.card,borderRadius:20,padding:28,width:"100%",maxWidth:380,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+          <div style={{fontSize:24,marginBottom:12,textAlign:"center"}}>⚠️</div>
+          <div style={{fontWeight:800,fontSize:17,marginBottom:8,textAlign:"center"}}>Unsaved Changes</div>
+          <div style={{fontSize:13,color:T.textMuted,marginBottom:24,textAlign:"center",lineHeight:1.6}}>
+            You have unsaved settings changes.<br/>Do you want to save before leaving?
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={()=>{setShowUnsavedModal(false);setSettingsDirtyWithRef(false);setTab(pendingTab);setPendingTab(null);fetchSettings(null,true);}}
+              style={{flex:1,padding:"11px",borderRadius:12,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+              Discard
+            </button>
+            <button onClick={async()=>{await saveSettings();setShowUnsavedModal(false);setTab(pendingTab);setPendingTab(null);}}
+              style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+              💾 Save & Continue
+            </button>
+          </div>
+        </div>
+      </div>}
+
     </div>
   );
 }
