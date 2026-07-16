@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.338";
+const CRM_VERSION = "2.9.339";
 
 // Responsive hook
 function useWindowSize() {
@@ -7294,7 +7294,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 <i className="ti ti-ad" style={{fontSize:16,color:"#7c3aed"}}/>
                 <div>
                   <div style={{fontWeight:700,fontSize:13,color:T.text}}>Ad Performance</div>
-                  <div style={{fontSize:11,color:T.textMuted}}>{dateFrom} → {dateTo} · {adData.length} ads · click to expand</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{dateFrom} → {dateTo} · {adData.length} ads · click to {adExpanded?"collapse":"expand"}</div>
                 </div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:16}}>
