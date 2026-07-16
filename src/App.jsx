@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.318";
+const CRM_VERSION = "2.9.320";
 
 // Responsive hook
 function useWindowSize() {
@@ -1447,8 +1447,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   }
 
   async function deleteQA(id) {
-    if(!confirm("Delete?")) return;
-    try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()}); fetchKnowledge(kbClinic?.clinic_id); } catch {}
+    setConfirmModal({title:"Delete Q&A?",message:"This will permanently remove this Q&A pair from the knowledge base.",icon:"🗑️",danger:true,confirmText:"Yes, Delete",
+      onConfirm:async()=>{ try { await fetch(`${API}/api/knowledge/qa/${id}`,{method:"DELETE",headers:authHeaders()}); fetchKnowledge(kbClinic?.clinic_id); } catch {} }});
   }
 
   function parseBotResponse(raw) {
@@ -1694,7 +1694,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {/* Chat list */}
         <div style={{flex:1,overflowY:"auto"}}>
-          {sortedContacts.length===0&&<div style={{textAlign:"center",color:"#8696a0",fontSize:13,marginTop:60}}>No conversations yet</div>}
+          {sortedContacts.length===0&&<div style={{textAlign:"center",color:"#8696a0",fontSize:13,marginTop:60}}>
+            {loading
+              ?<><div style={{width:24,height:24,borderRadius:"50%",border:"3px solid #25D36630",borderTop:"3px solid #25D366",animation:"spin .8s linear infinite",margin:"0 auto 10px"}}/><div>Loading...</div></>
+              :"No conversations yet"}
+          </div>}
           {sortedContacts.map((c,i)=>{
             const unread = c.unread_count||0;
             const lastMsg = c.last_message||c.last_msg||"";
@@ -1832,12 +1836,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               {archivedContacts.length>0&&<button onClick={async()=>{
-                if(!confirm(`Restore all ${archivedContacts.length} contacts?`)) return;
-                for(const c of archivedContacts){
+                setConfirmModal({title:`Restore ${archivedContacts.length} contacts?`,message:"All archived contacts will be moved back to your inbox.",icon:"📥",danger:false,confirmText:"Yes, Restore All",
+                  onConfirm:async()=>{for(const c of archivedContacts){
                   await fetch(`${API}/api/conversations/${c.id}/archive`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({archived:false})});
-                }
-                setArchivedContacts([]);
-                fetchConversations();
+                }setArchivedContacts([]);fetchConversations();}});
               }} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${WA_GREEN}`,background:`${WA_GREEN}10`,color:WA_GREEN,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                 ↩️ Restore All
               </button>}
@@ -2310,10 +2312,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       setSelectedChats(new Set());setSelectMode(false);
                     }} className="nx-btn" style={{flex:1,justifyContent:"center",fontSize:11}}>🔴 Unread</button>
                     <button onClick={async()=>{
-                      if(!confirm(`Delete ${selectedChats.size} chat${selectedChats.size>1?"s":""}?`)) return;
-                      for(const phone of [...selectedChats]){await fetch(`${API}/api/conversations/${phone.replace("+","")}`,{method:"DELETE",headers:authHeaders()});}
-                      setSelectedChats(new Set());setSelectMode(false);fetchConversations();
-                      if(selected&&selectedChats.has(selected.phone))setSelected(null);
+                      setConfirmModal({title:`Delete ${selectedChats.size} chat${selectedChats.size>1?"s":""}?`,message:"This permanently deletes the selected conversations.",icon:"🗑️",danger:true,confirmText:"Yes, Delete",
+                        onConfirm:async()=>{for(const phone of [...selectedChats]){await fetch(`${API}/api/conversations/${phone.replace("+","")}`,{method:"DELETE",headers:authHeaders()});}
+                        setSelectedChats(new Set());setSelectMode(false);fetchConversations();
+                        if(selected&&selectedChats.has(selected.phone))setSelected(null);}});
                     }} className="nx-btn danger" style={{flex:1,justifyContent:"center",fontSize:11}}>🗑️ Delete</button>
                   </div>
                 </div>}
@@ -2856,12 +2858,12 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       </div>
                       <div style={{fontSize:11,color:T.textMuted,marginTop:4,paddingLeft:16}}>{col.sub}</div>
                       {col.id==="done"&&colContacts.length>0&&<button onClick={async()=>{
-                        if(!confirm(`Move all ${colContacts.length} Done leads back to Warm?`)) return;
+                        setConfirmModal({title:`Move ${colContacts.length} leads back to Warm?`,message:'All Done leads will be moved back to Warm and re-enter the pipeline.',icon:'🔄',danger:false,confirmText:'Yes, Move All',onConfirm:async()=>{
                         for(const c of colContacts){
                           await fetch(`${API}/api/conversations/${c.id}/lead`,{method:"PATCH",headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`},body:JSON.stringify({lead:"warm"})});
                           await fetch(`${API}/api/conversations/${c.id}/pipeline`,{method:"PATCH",headers:{"Content-Type":"application/json","Authorization":`Bearer ${authToken}`},body:JSON.stringify({stage:"new"})});
                         }
-                        fetchConversations();
+                        fetchConversations();}});
                       }} className="nx-btn" style={{marginTop:8,width:"100%",justifyContent:"center",fontSize:11}}>
                         ↩️ Reset All to Warm
                       </button>}
@@ -4498,7 +4500,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>{/* end body flex */}
         </div>}
         {/* ══ ADMIN TAB ══ */}
-        {tab==="admin"&&isAdmin&&<AdminPanel authHeaders={authHeaders} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal} adminOverview={adminOverview}/>}
+        {tab==="admin"&&isAdmin&&<AdminPanel authHeaders={authHeaders} authToken={authToken} T={T} WA_GREEN={WA_GREEN} dark={dark} setConfirmModal={setConfirmModal} adminOverview={adminOverview}/>}
 
       </div>
 
@@ -4613,17 +4615,13 @@ function BotTestTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOv
 
   const resetSandbox = async () => {
     if(!botClinicId) return;
-    if(!confirm("Reset sandbox from live data? Your sandbox edits will be lost.")) return;
-    try {
-      await fetch(`${API}/api/bot/sandbox/${botClinicId}/reset`, {method:"POST",headers:authHeaders()});
-      await loadSandbox(botClinicId);
-      flash("🔄 Sandbox reset from live data");
-    } catch { flash("❌ Reset failed"); }
+    setConfirmModal({title:"Reset Sandbox?",message:"Your sandbox edits will be lost and replaced with live data.",icon:"🔄",danger:true,confirmText:"Yes, Reset",
+      onConfirm:async()=>{try{await fetch(`${API}/api/bot/sandbox/${botClinicId}/reset`,{method:"POST",headers:authHeaders()});await loadSandbox(botClinicId);flash("🔄 Sandbox reset");}catch{flash("❌ Reset failed");}}});
   };
 
   const publishSandbox = async () => {
     if(!botClinicId) return;
-    if(!confirm(`Publish sandbox to LIVE for ${botClinicName}? This will replace the current live KB and system prompt.`)) return;
+    if(!window._confirmPublish) { setConfirmModal({title:`Publish to LIVE for ${botClinicName}?`,message:"This replaces the current live KB and system prompt. Users will see changes immediately.",icon:"🚀",danger:true,confirmText:"Yes, Publish Live",onConfirm:()=>{window._confirmPublish=true;publishSandbox();window._confirmPublish=false;}}); return; }
     setPublishLoading(true); setPublishResult(null);
     try {
       const r = await fetch(`${API}/api/bot/sandbox/${botClinicId}/publish`, {method:"POST",headers:authHeaders()});
@@ -5091,8 +5089,8 @@ function NotesTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, adminOver
   };
 
   const deleteNote = async (id) => {
-    if(!confirm("Delete this note?")) return;
-    try { await fetch(`${API}/api/notes/${id}`, {method:"DELETE", headers:authHeaders()}); setNotes(p=>p.filter(n=>n.id!==id)); } catch {}
+    setConfirmModal({title:"Delete Note?",message:"This note will be permanently deleted.",icon:"🗑️",danger:true,confirmText:"Yes, Delete",
+      onConfirm:async()=>{try{await fetch(`${API}/api/notes/${id}`,{method:"DELETE",headers:authHeaders()});setNotes(p=>p.filter(n=>n.id!==id));}catch{}}});
   };
 
   const saveEditNote = async (id) => {
@@ -5870,7 +5868,8 @@ function PermGrid({data, setData, PERM_TABS, WA_GREEN, T, INTEGRATION_CONNECTORS
 }
 
 // ── ADMIN PANEL COMPONENT ─────────────────────────────────────────────────────
-function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverview=[]}) {
+function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal, adminOverview=[]}) {
+  const authH = () => ({"Content-Type":"application/json","Authorization":`Bearer ${authToken}`});
   const [view, setView] = useState("clients");
   const [clinics, setClinics] = useState([]);
   const [users, setUsers] = useState([]);
@@ -5882,7 +5881,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
 
   const loadGlobalSettings = React.useCallback(async () => {
     try {
-      const r = await fetch(API+"/api/admin/global-settings", {headers:authHeaders()});
+      const r = await fetch(API+"/api/admin/global-settings", {headers:authH()});
       if(r.ok) setGlobalSettings(await r.json());
     } catch {}
   }, []);
@@ -5891,7 +5890,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
     setSavingGlobal(true);
     try {
       const newSettings = {...globalSettings,...updates};
-      await fetch(API+"/api/admin/global-settings", {method:"PATCH", headers:authHeaders(), body:JSON.stringify(newSettings)});
+      await fetch(API+"/api/admin/global-settings", {method:"PATCH", headers:authH(), body:JSON.stringify(newSettings)});
       setGlobalSettings(newSettings);
       const t=document.createElement("div");
       t.style.cssText="position:fixed;bottom:24px;right:24px;z-index:99999;background:#166534;color:#fff;border-radius:12px;padding:12px 20px;font-size:13px;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,.2);display:flex;align-items:center;gap:8px";
@@ -5949,14 +5948,14 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
     try {
       // Load clients and users first (fast)
       const [cr,ur] = await Promise.all([
-        fetch(`${API}/api/admin/clients`,{headers:authHeaders()}),
-        fetch(`${API}/api/admin/users`,{headers:authHeaders()}),
+        fetch(`${API}/api/admin/clients`,{headers:authH()}),
+        fetch(`${API}/api/admin/users`,{headers:authH()}),
       ]);
       if(cr.ok) setClinics(await cr.json());
       if(ur.ok) setUsers(await ur.json());
       setLoading(false);
       // Load sessions separately (slower, non-blocking)
-      fetch(`${API}/api/admin/sessions`,{headers:authHeaders()})
+      fetch(`${API}/api/admin/sessions`,{headers:authH()})
         .then(r=>r.ok?r.json():[]).then(d=>setSessions(d)).catch(()=>{});
     } catch(e) {
       setLoading(false);
@@ -5971,7 +5970,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
       danger:true,
       confirmText:"Yes, Force Logout",
       onConfirm:async()=>{
-        const r = await fetch(`${API}/api/admin/sessions/${userId}`,{method:"DELETE",headers:authHeaders()});
+        const r = await fetch(`${API}/api/admin/sessions/${userId}`,{method:"DELETE",headers:authH()});
         if(r.ok) { flash(`✅ @${username} has been logged out`); load(); }
       }
     });
@@ -6016,7 +6015,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
       setTimeout(()=>setKbBuildMsg("📚 Building knowledge base..."), 5000);
     }
 
-    const r = await fetch(url,{method,headers:authHeaders(),body:JSON.stringify({
+    const r = await fetch(url,{method,headers:authH(),body:JSON.stringify({
       ...editClinic,
       website_url: website,
       contact_email: editClinic.contact_email||""
@@ -6079,7 +6078,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
           }};
     const url = isNew ? `${API}/api/admin/users` : `${API}/api/admin/users/${editUser.id}`;
     try {
-      const r = await fetch(url,{method:isNew?"POST":"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
+      const r = await fetch(url,{method:isNew?"POST":"PATCH",headers:authH(),body:JSON.stringify(payload)});
       const d = await r.json();
       if(!r.ok) { showToast(d.error||"Save failed","#ef4444"); return; }
       flash(isNew?`✅ User "@${editUser.username}" created!`:"✅ User updated!");
@@ -6089,10 +6088,9 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
     }
   };
 
-  const deleteUser = async uid => {
-    if(!confirm("Delete this user?")) return;
-    await fetch(`${API}/api/admin/users/${uid}`,{method:"DELETE",headers:authHeaders()});
-    load();
+  const deleteUser = uid => {
+    setConfirmModal({title:"Delete User?",message:"This permanently deletes the user account and all their access.",icon:"🗑️",danger:true,confirmText:"Yes, Delete",
+      onConfirm:async()=>{await fetch(`${API}/api/admin/users/${uid}`,{method:"DELETE",headers:authH()});load();}});
   };
 
   // SectionCard and PermGrid defined outside AdminPanel — see below
@@ -6637,7 +6635,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                               icon:inactive?"🟢":"🔴",danger:!inactive,
                               confirmText:"Yes, "+(inactive?"Enable":"Disable"),
                               onConfirm:async()=>{
-                                await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!!inactive})});
+                                await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"PATCH",headers:authH(),body:JSON.stringify({active:!!inactive})});
                                 flash("✅ Done");load();
                               }})}
                               style={{width:44,height:24,borderRadius:12,cursor:"pointer",flexShrink:0,
@@ -6705,7 +6703,7 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
                               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                                 <span style={{fontSize:11,color:T.textFaint}}>{u.active?"Active":"Off"}</span>
                                 <div onClick={async()=>{
-                                  await fetch(`${API}/api/admin/users/${u.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!u.active})});
+                                  await fetch(`${API}/api/admin/users/${u.id}`,{method:"PATCH",headers:authH(),body:JSON.stringify({active:!u.active})});
                                   flash(`✅ @${u.username} ${u.active?"deactivated":"activated"}`);load();
                                 }} style={{width:36,height:20,borderRadius:10,cursor:"pointer",flexShrink:0,
                                   background:u.active?WA_GREEN:"#d1d5db",position:"relative",transition:"background .2s"}}>
