@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.335";
+const CRM_VERSION = "2.9.336";
 
 // Responsive hook
 function useWindowSize() {
@@ -6688,6 +6688,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
   const [drillType, setDrillType] = React.useState(null);
   const [drillData, setDrillData] = React.useState(null);
   const [drillLoading, setDrillLoading] = React.useState(false);
+  const [adExpanded, setAdExpanded] = React.useState(false);
   const [drillSearch, setDrillSearch] = React.useState("");
   const [selectedBar, setSelectedBar] = React.useState(null);
 
@@ -7146,6 +7147,12 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           <div className="nx-page-title">Analytics</div>
           <div className="nx-page-sub">{selectedClinic?selectedClinic.company_name||selectedClinic.username:dateFrom+" → "+dateTo}</div>
         </div>
+        <button onClick={()=>fetchAnalytics(dateFrom,dateTo,selectedClinic?.id||selectedClinic?.clinic_id||null)}
+          style={{marginLeft:"auto",padding:"6px 14px",borderRadius:8,border:`1px solid ${T.border}`,
+            background:"transparent",color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit",
+            display:"flex",alignItems:"center",gap:6}}>
+          <i className="ti ti-refresh" style={{fontSize:14}}/> Refresh
+        </button>
         {isAdmin&&adminOverview.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center",marginLeft:12}}>
           <button onClick={()=>{setSelectedClinicWithRef(null);fetchAnalytics(dateFrom,dateTo,null);fetchAdminOverview();}}
             style={{padding:"3px 10px",borderRadius:20,border:`1px solid ${!selectedClinic?WA_GREEN:T.border}`,background:!selectedClinic?`${WA_GREEN}15`:"transparent",color:!selectedClinic?WA_GREEN:T.textMuted,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
@@ -7263,35 +7270,37 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
 
           {/* AD PERFORMANCE BREAKDOWN — all time, no date filter */}
           {adData.length>0&&<div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:20,marginBottom:20}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}
+              onClick={()=>setAdExpanded(p=>!p)}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <i className="ti ti-ad" style={{fontSize:16,color:"#7c3aed"}}/>
                 <div>
                   <div style={{fontWeight:700,fontSize:13,color:T.text}}>Ad Performance</div>
-                  <div style={{fontSize:11,color:T.textMuted}}>All time · sorted by reach</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>All time · {adData.length} ads · click to expand</div>
                 </div>
               </div>
-              <div style={{display:"flex",gap:16}}>
+              <div style={{display:"flex",alignItems:"center",gap:16}}>
                 {[
                   {label:"Total Leads",val:adData.reduce((s,a)=>s+(a.total_clicks||0),0),color:"#7c3aed"},
                   {label:"Hot Leads",val:adData.reduce((s,a)=>s+(a.hot_leads||0),0),color:"#ef4444"},
                   {label:"Booked",val:adData.reduce((s,a)=>s+(a.bookings||0),0),color:WA_GREEN},
                 ].map(s=>(
                   <div key={s.label} style={{textAlign:"center"}}>
-                    <div style={{fontSize:20,fontWeight:800,color:s.color}}>{s.val}</div>
+                    <div style={{fontSize:18,fontWeight:800,color:s.color}}>{s.val}</div>
                     <div style={{fontSize:10,color:T.textMuted}}>{s.label}</div>
                   </div>
                 ))}
+                <i className={`ti ti-chevron-${adExpanded?"up":"down"}`} style={{fontSize:16,color:T.textMuted,marginLeft:8}}/>
               </div>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {adData.sort((a,b)=>(b.total_clicks||0)-(a.total_clicks||0)).map((ad,i)=>{
+            {adExpanded&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+              {[...adData].sort((a,b)=>(b.total_clicks||0)-(a.total_clicks||0)).map((ad,i)=>{
                 const clicks = ad.total_clicks||0;
                 const hot = ad.hot_leads||0;
                 const booked = ad.bookings||0;
                 const convRate = clicks>0?Math.round(booked/clicks*100):0;
                 const hotRate = clicks>0?Math.round(hot/clicks*100):0;
-                const maxClicks = adData[0]?.total_clicks||1;
+                const maxClicks = adData.reduce((m,a)=>Math.max(m,a.total_clicks||0),1);
                 return <div key={i} style={{padding:"12px 14px",borderRadius:10,background:T.card2,border:`1px solid ${T.border}`}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                     <div style={{flex:1,minWidth:0}}>
@@ -7317,7 +7326,6 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                       </div>
                     </div>
                   </div>
-                  {/* Reach bar */}
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{flex:1,height:5,borderRadius:3,background:T.border,overflow:"hidden"}}>
                       <div style={{height:5,borderRadius:3,background:"#7c3aed",
@@ -7327,7 +7335,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                   </div>
                 </div>;
               })}
-            </div>
+            </div>}
           </div>}
 
           {/* DAILY CHART + LEAD BREAKDOWN — matches mockup 2fr 1fr grid */}
