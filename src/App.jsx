@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.330";
+const CRM_VERSION = "2.9.331";
 
 // Responsive hook
 function useWindowSize() {
@@ -195,6 +195,7 @@ export default function App() {
   const [improverDays, setImproverDays] = useState(7);
   const [kbSubTab, setKbSubTab] = useState("kb"); // "kb" | "wizard"
   const [adSummary, setAdSummary] = useState({count:0,totalClicks:0,totalBookings:0});
+  const [adData, setAdData] = useState([]);
   const [dateFrom, setDateFrom] = useState(daysAgo(29));
   const [dateTo, setDateTo] = useState(today());
   const [datePreset, setDatePreset] = useState("30d");
@@ -962,6 +963,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         const ar = await fetch(_arUrl, {headers:authHeaders()});
         if(ar.ok) {
           const ads = await ar.json();
+          setAdData(ads);
           setAdSummary({
             count: ads.length,
             totalClicks: ads.reduce((s,a)=>s+(a.total_clicks||a.total_leads||0),0),
@@ -2915,6 +2917,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               API={API} authHeaders={authHeaders}
               contacts={contacts}
               adSummary={adSummary}
+              adData={adData}
               countryData={countryData} setCountryData={setCountryData}
             />
           </div>
@@ -6654,7 +6657,7 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
 function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedClinicWithRef,
   fetchAnalytics, fetchAdminOverview, adminOverview, overviewLoading,
   analyticsLoading, analytics, dateFrom, dateTo, datePreset, setDatePreset,
-  setDateFrom, setDateTo, daysAgo, today, API, authHeaders, contacts, adSummary,
+  setDateFrom, setDateTo, daysAgo, today, API, authHeaders, contacts, adSummary, adData=[],
   countryData=[], setCountryData}) {
 
   // Fetch country data when analytics loads
@@ -7242,6 +7245,62 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
             <KpiCard icon="✅" val={done} label="Bookings" sub="In selected period" color="#22c55e" bg="#f0fdf4" trend="Date filtered" type="bookings"/>
             <KpiCard icon="📢" val={adSummary.count||0} label="Ad Sources" sub={`${adSummary.totalClicks||0} clicks`} color="#7c3aed" bg="#f5f3ff" trend={`${adSummary.totalBookings||0} booked`} type="ads"/>
           </div>
+
+          {/* AD CONVERSION BREAKDOWN */}
+          {adData.length>0&&<div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:20,marginBottom:20}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+              <i className="ti ti-ad" style={{fontSize:16,color:"#7c3aed"}}/>
+              <div style={{fontWeight:700,fontSize:13,color:T.text}}>Ad Performance Breakdown</div>
+            </div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{borderBottom:`1px solid ${T.border}`}}>
+                  {["Ad","Source","Clicks","Hot Leads","Booked","Conversion"].map(h=>(
+                    <th key={h} style={{padding:"8px 10px",textAlign:"left",fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.4}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {adData.sort((a,b)=>(b.total_clicks||b.total_leads||0)-(a.total_clicks||a.total_leads||0)).map((ad,i)=>{
+                  const clicks = ad.total_clicks||ad.total_leads||0;
+                  const booked = ad.bookings||0;
+                  const hot = ad.hot_leads||0;
+                  const convRate = clicks>0?Math.round(booked/clicks*100):0;
+                  return <tr key={i} style={{borderBottom:`1px solid ${T.border}40`}}
+                    onMouseEnter={e=>e.currentTarget.style.background=T.card2}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <td style={{padding:"10px 10px"}}>
+                      <div style={{fontSize:13,fontWeight:600,color:T.text}}>{ad.ad_headline||"Unknown"}</div>
+                    </td>
+                    <td style={{padding:"10px 10px"}}>
+                      <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,
+                        background:ad.ad_source_type==="ad"?"#dbeafe":ad.ad_source_type==="instagram"?"#fce7f3":"#f3f4f6",
+                        color:ad.ad_source_type==="ad"?"#1d4ed8":ad.ad_source_type==="instagram"?"#9d174d":"#6b7280",
+                        fontWeight:600}}>
+                        {ad.ad_source_type==="ad"?"📘 Facebook":ad.ad_source_type==="instagram"?"📸 Instagram":"📢 "+ad.ad_source_type}
+                      </span>
+                    </td>
+                    <td style={{padding:"10px 10px",fontSize:13,fontWeight:700,color:T.text}}>{clicks}</td>
+                    <td style={{padding:"10px 10px"}}>
+                      <span style={{fontSize:13,fontWeight:700,color:hot>0?"#ef4444":T.textMuted}}>{hot}</span>
+                    </td>
+                    <td style={{padding:"10px 10px"}}>
+                      <span style={{fontSize:13,fontWeight:700,color:booked>0?WA_GREEN:T.textMuted}}>{booked}</span>
+                    </td>
+                    <td style={{padding:"10px 10px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:50,height:5,borderRadius:3,background:T.border,overflow:"hidden"}}>
+                          <div style={{height:5,borderRadius:3,width:`${convRate}%`,
+                            background:convRate>=10?WA_GREEN:convRate>=5?"#f59e0b":"#ef4444"}}/>
+                        </div>
+                        <span style={{fontSize:12,fontWeight:600,color:T.text}}>{convRate}%</span>
+                      </div>
+                    </td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>}
 
           {/* DAILY CHART + LEAD BREAKDOWN — matches mockup 2fr 1fr grid */}
           <div className="an4" style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,marginBottom:20}}>
