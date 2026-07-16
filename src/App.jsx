@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.320";
+const CRM_VERSION = "2.9.321";
 
 // Responsive hook
 function useWindowSize() {
@@ -6695,8 +6695,10 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
                                 </div>
                                 <div style={{fontSize:11,color:online?WA_GREEN:T.textFaint,marginTop:1}}>
                                   {online?"Online now":"Offline"}
-                                  {sess?.location&&<span style={{color:T.textFaint}}> · {sess.location}</span>}
                                 </div>
+                                {sess?.location&&<div style={{fontSize:11,color:T.textMuted,marginTop:1}}>
+                                  📍 {sess.location}
+                                </div>}
                               </div>
 
                               {/* User active toggle */}
