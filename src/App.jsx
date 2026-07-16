@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.323";
+const CRM_VERSION = "2.9.324";
 
 // Responsive hook
 function useWindowSize() {
@@ -1220,11 +1220,23 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   }
 
   async function selectContact(c) {
-    setSelected(c); selectedRef.current = c; setMenuOpen(false);
-    manuallyReadRef.current.add(c.id); // remember this chat was read
+    setSelected({...c, messages: c.messages||[]}); selectedRef.current = c; setMenuOpen(false);
+    manuallyReadRef.current.add(c.id);
     try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders()}); } catch {}
     setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:0}:x));
     fetchAdHistory(c.phone);
+    // Lazy load messages if not already loaded
+    if(!c.messages || c.messages.length===0) {
+      try {
+        const r = await fetch(`${API}/api/conversations/${c.phone}`,{headers:authHeaders()});
+        if(r.ok) {
+          const data = await r.json();
+          const msgs = data.messages || [];
+          setSelected(prev => prev?.id===c.id ? {...prev, messages: msgs} : prev);
+          selectedRef.current = {...selectedRef.current, messages: msgs};
+        }
+      } catch {}
+    }
   }
 
   async function archiveContact(id) {
