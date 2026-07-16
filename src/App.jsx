@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.317";
+const CRM_VERSION = "2.9.318";
 
 // Responsive hook
 function useWindowSize() {
@@ -5963,10 +5963,18 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
     }
   };
 
-  const forceLogout = async (userId, username) => {
-    if(!confirm(`Force logout @${username}?`)) return;
-    const r = await fetch(`${API}/api/admin/sessions/${userId}`,{method:"DELETE",headers:authHeaders()});
-    if(r.ok) { flash(`✅ @${username} has been logged out`); load(); }
+  const forceLogout = (userId, username) => {
+    setConfirmModal({
+      title:`Force logout @${username}?`,
+      message:"This will immediately end their session. They'll need to log in again.",
+      icon:"⏏️",
+      danger:true,
+      confirmText:"Yes, Force Logout",
+      onConfirm:async()=>{
+        const r = await fetch(`${API}/api/admin/sessions/${userId}`,{method:"DELETE",headers:authHeaders()});
+        if(r.ok) { flash(`✅ @${username} has been logged out`); load(); }
+      }
+    });
   };
 
   useEffect(()=>{
