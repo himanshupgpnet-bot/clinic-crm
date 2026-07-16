@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.311";
+const CRM_VERSION = "2.9.312";
 
 // Responsive hook
 function useWindowSize() {
@@ -3349,10 +3349,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>
 
                 {/* Upload doc OR paste text — tabs */}
-                {(()=>{
-                  const [m2tab, setM2tab] = window._m2state || (window._m2state = ["paste", ()=>{}]);
-                  return null;
-                })()}
 
                 <div style={{display:"flex",gap:6,marginBottom:12}}>
                   {[{id:"paste",label:"✍️ Paste Text"},{id:"upload",label:"📎 Upload Document"}].map(t=>(
