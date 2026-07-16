@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.334";
+const CRM_VERSION = "2.9.335";
 
 // Responsive hook
 function useWindowSize() {
@@ -959,14 +959,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       // Also fetch ad summary for KPI card
       try {
         const cParam2 = clinicId ? `?clinic_id=${clinicId}` : "";
-        const _arUrl = API+"/api/analytics/ads?from="+from+"&to="+to+(clinicId?"&clinic_id="+clinicId:"");
+        const _arUrl = API+"/api/analytics/ads"+(clinicId?"?clinic_id="+clinicId:"");
         const ar = await fetch(_arUrl, {headers:authHeaders()});
         if(ar.ok) {
           const ads = await ar.json();
-          setAdData(ads);
+          setAdData(ads.filter(a=>a.ad_headline&&a.ad_headline!=="Organic / Direct"));
           setAdSummary({
-            count: ads.length,
-            totalClicks: ads.reduce((s,a)=>s+(a.total_clicks||a.total_leads||0),0),
+            count: ads.filter(a=>a.ad_headline&&a.ad_headline!=="Organic / Direct").length,
+            totalClicks: ads.reduce((s,a)=>s+(a.total_clicks||0),0),
             totalBookings: ads.reduce((s,a)=>s+(a.bookings||0),0),
           });
         }
@@ -7261,60 +7261,73 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
             <KpiCard icon="📢" val={adSummary.count||0} label="Ad Sources" sub={`${adSummary.totalClicks||0} clicks`} color="#7c3aed" bg="#f5f3ff" trend={`${adSummary.totalBookings||0} booked`} type="ads"/>
           </div>
 
-          {/* AD CONVERSION BREAKDOWN */}
+          {/* AD PERFORMANCE BREAKDOWN — all time, no date filter */}
           {adData.length>0&&<div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:20,marginBottom:20}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-              <i className="ti ti-ad" style={{fontSize:16,color:"#7c3aed"}}/>
-              <div style={{fontWeight:700,fontSize:13,color:T.text}}>Ad Performance Breakdown</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <i className="ti ti-ad" style={{fontSize:16,color:"#7c3aed"}}/>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:T.text}}>Ad Performance</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>All time · sorted by reach</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:16}}>
+                {[
+                  {label:"Total Leads",val:adData.reduce((s,a)=>s+(a.total_clicks||0),0),color:"#7c3aed"},
+                  {label:"Hot Leads",val:adData.reduce((s,a)=>s+(a.hot_leads||0),0),color:"#ef4444"},
+                  {label:"Booked",val:adData.reduce((s,a)=>s+(a.bookings||0),0),color:WA_GREEN},
+                ].map(s=>(
+                  <div key={s.label} style={{textAlign:"center"}}>
+                    <div style={{fontSize:20,fontWeight:800,color:s.color}}>{s.val}</div>
+                    <div style={{fontSize:10,color:T.textMuted}}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead>
-                <tr style={{borderBottom:`1px solid ${T.border}`}}>
-                  {["Ad","Source","Clicks","Hot Leads","Booked","Conversion"].map(h=>(
-                    <th key={h} style={{padding:"8px 10px",textAlign:"left",fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.4}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {adData.sort((a,b)=>(b.total_clicks||b.total_leads||0)-(a.total_clicks||a.total_leads||0)).map((ad,i)=>{
-                  const clicks = ad.total_clicks||ad.total_leads||0;
-                  const booked = ad.bookings||0;
-                  const hot = ad.hot_leads||0;
-                  const convRate = clicks>0?Math.round(booked/clicks*100):0;
-                  return <tr key={i} style={{borderBottom:`1px solid ${T.border}40`}}
-                    onMouseEnter={e=>e.currentTarget.style.background=T.card2}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <td style={{padding:"10px 10px"}}>
-                      <div style={{fontSize:13,fontWeight:600,color:T.text}}>{ad.ad_headline||"Unknown"}</div>
-                    </td>
-                    <td style={{padding:"10px 10px"}}>
-                      <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,
-                        background:ad.ad_source_type==="ad"?"#dbeafe":ad.ad_source_type==="instagram"?"#fce7f3":"#f3f4f6",
-                        color:ad.ad_source_type==="ad"?"#1d4ed8":ad.ad_source_type==="instagram"?"#9d174d":"#6b7280",
-                        fontWeight:600}}>
-                        {ad.ad_source_type==="ad"?"📘 Facebook":ad.ad_source_type==="instagram"?"📸 Instagram":"📢 "+ad.ad_source_type}
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {adData.sort((a,b)=>(b.total_clicks||0)-(a.total_clicks||0)).map((ad,i)=>{
+                const clicks = ad.total_clicks||0;
+                const hot = ad.hot_leads||0;
+                const booked = ad.bookings||0;
+                const convRate = clicks>0?Math.round(booked/clicks*100):0;
+                const hotRate = clicks>0?Math.round(hot/clicks*100):0;
+                const maxClicks = adData[0]?.total_clicks||1;
+                return <div key={i} style={{padding:"12px 14px",borderRadius:10,background:T.card2,border:`1px solid ${T.border}`}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:2}}>{ad.ad_headline}</div>
+                      <span style={{fontSize:10,padding:"2px 7px",borderRadius:20,fontWeight:600,
+                        background:ad.ad_source_type==="ad"?"#dbeafe":"#fce7f3",
+                        color:ad.ad_source_type==="ad"?"#1d4ed8":"#9d174d"}}>
+                        {ad.ad_source_type==="ad"?"📘 Facebook":"📸 Instagram"}
                       </span>
-                    </td>
-                    <td style={{padding:"10px 10px",fontSize:13,fontWeight:700,color:T.text}}>{clicks}</td>
-                    <td style={{padding:"10px 10px"}}>
-                      <span style={{fontSize:13,fontWeight:700,color:hot>0?"#ef4444":T.textMuted}}>{hot}</span>
-                    </td>
-                    <td style={{padding:"10px 10px"}}>
-                      <span style={{fontSize:13,fontWeight:700,color:booked>0?WA_GREEN:T.textMuted}}>{booked}</span>
-                    </td>
-                    <td style={{padding:"10px 10px"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{width:50,height:5,borderRadius:3,background:T.border,overflow:"hidden"}}>
-                          <div style={{height:5,borderRadius:3,width:`${convRate}%`,
-                            background:convRate>=10?WA_GREEN:convRate>=5?"#f59e0b":"#ef4444"}}/>
-                        </div>
-                        <span style={{fontSize:12,fontWeight:600,color:T.text}}>{convRate}%</span>
+                    </div>
+                    <div style={{display:"flex",gap:16,flexShrink:0,marginLeft:12}}>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:16,fontWeight:800,color:"#7c3aed"}}>{clicks}</div>
+                        <div style={{fontSize:10,color:T.textMuted}}>Leads</div>
                       </div>
-                    </td>
-                  </tr>;
-                })}
-              </tbody>
-            </table>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:16,fontWeight:800,color:"#ef4444"}}>{hot}</div>
+                        <div style={{fontSize:10,color:T.textMuted}}>Hot ({hotRate}%)</div>
+                      </div>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:16,fontWeight:800,color:WA_GREEN}}>{booked}</div>
+                        <div style={{fontSize:10,color:T.textMuted}}>Booked ({convRate}%)</div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Reach bar */}
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{flex:1,height:5,borderRadius:3,background:T.border,overflow:"hidden"}}>
+                      <div style={{height:5,borderRadius:3,background:"#7c3aed",
+                        width:`${Math.round(clicks/maxClicks*100)}%`,transition:"width .5s"}}/>
+                    </div>
+                    <span style={{fontSize:10,color:T.textMuted,flexShrink:0}}>{Math.round(clicks/maxClicks*100)}% reach</span>
+                  </div>
+                </div>;
+              })}
+            </div>
           </div>}
 
           {/* DAILY CHART + LEAD BREAKDOWN — matches mockup 2fr 1fr grid */}
