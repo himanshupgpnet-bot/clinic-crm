@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.326";
+const CRM_VERSION = "2.9.327";
 
 // Responsive hook
 function useWindowSize() {
@@ -2411,7 +2411,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     <div style={{maxWidth:"65%"}}>
                       {isOut&&<div style={{fontSize:9,fontWeight:700,marginBottom:3,textAlign:"right",letterSpacing:.2,
                         color:isBot?WA_GREEN:isAgent?"#0284c7":T.textMuted}}>
-                        {isBot?(msg.agentName?.startsWith("📤")?msg.agentName:"🤖 "+selected.botName||"AI"):msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
+                        {isBot?(msg.agentName?.startsWith("📤")?msg.agentName:"🤖 "+(
+                          (adminOverview.find(c=>String(c.clinic_id||c.id)===String(selected.clinicId||selected.clinic_id||1))?.company_name||
+                          currentUser?.company_name||"Bot")
+                        )):msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
                       </div>}
                       <div style={{
                         background:isOut?(isBot?WA_GREEN:isAgent?"#0284c7":T.card2):T.msgIn,
