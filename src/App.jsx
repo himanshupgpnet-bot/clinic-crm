@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.331";
+const CRM_VERSION = "2.9.332";
 
 // Responsive hook
 function useWindowSize() {
@@ -2527,15 +2527,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               ))}
             </div>
 
-            {/* Ad Source */}
+            {/* Ad Source History */}
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
               <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Ad Source</div>
-              {(selected.ad_headline||selected.ad_source)
-                ?<div style={{background:"#f5f3ff",borderRadius:8,padding:"8px 10px",border:"1px solid #c4b5fd"}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#5b21b6",marginBottom:3}}>
-                    {selected.ad_source_type==="ad"?"📘 Facebook":selected.ad_source_type==="instagram"?"📸 Instagram":"📢 Ad"}
-                  </div>
-                  <div style={{fontSize:11,color:"#6d28d9"}}>{selected.ad_headline||selected.ad_source}</div>
+              {adHistory.length>0
+                ?<div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {[...new Map(adHistory.map(a=>[a.ad_headline||a.ad_source, a])).values()].map((ad,i)=>(
+                    <div key={i} style={{background:"#f5f3ff",borderRadius:8,padding:"7px 10px",border:"1px solid #c4b5fd"}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#5b21b6",marginBottom:2}}>
+                        {ad.ad_source_type==="ad"?"📘 Facebook":ad.ad_source_type==="instagram"?"📸 Instagram":"📢 Ad"}
+                      </div>
+                      <div style={{fontSize:11,color:"#6d28d9"}}>{ad.ad_headline||ad.ad_source||"—"}</div>
+                      {ad.first_message&&<div style={{fontSize:10,color:"#a78bfa",marginTop:2}}>"{ad.first_message?.slice(0,40)}{ad.first_message?.length>40?"...":""}"</div>}
+                    </div>
+                  ))}
                 </div>
                 :<div style={{fontSize:11,color:T.textFaint,fontStyle:"italic"}}>Organic / Direct</div>}
             </div>
