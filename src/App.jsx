@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.324";
+const CRM_VERSION = "2.9.325";
 
 // Responsive hook
 function useWindowSize() {
@@ -1228,7 +1228,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     // Lazy load messages if not already loaded
     if(!c.messages || c.messages.length===0) {
       try {
-        const r = await fetch(`${API}/api/conversations/${c.phone}`,{headers:authHeaders()});
+        const encodedPhone = encodeURIComponent(c.phone);
+        const r = await fetch(`${API}/api/conversations/${encodedPhone}`,{headers:authHeaders()});
         if(r.ok) {
           const data = await r.json();
           const msgs = data.messages || [];
@@ -2397,6 +2398,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   background:"#f5f6fa",display:"flex",flexDirection:"column",gap:8,
                   backgroundImage:"radial-gradient(circle at 100% 0,rgba(108,99,255,.03) 0,transparent 60%)",
                   WebkitOverflowScrolling:"touch",minHeight:0}}>
+                {(!selected.messages||selected.messages.length===0)&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",color:"#8696a0",gap:8}}>
+                  <div style={{width:24,height:24,borderRadius:"50%",border:`3px solid ${WA_GREEN}30`,borderTop:`3px solid ${WA_GREEN}`,animation:"spin .8s linear infinite"}}/>
+                  <span style={{fontSize:12}}>Loading messages...</span>
+                </div>}
                 {selected.messages?.map((msg,i)=>{
                   const isOut=msg.from!=="user";
                   const isBot=msg.from==="bot";
