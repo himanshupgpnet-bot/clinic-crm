@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.328";
+const CRM_VERSION = "2.9.329";
 
 // Responsive hook
 function useWindowSize() {
@@ -1233,8 +1233,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         if(r.ok) {
           const data = await r.json();
           const msgs = data.messages || [];
-          setSelected(prev => prev?.id===c.id ? {...prev, messages: msgs} : prev);
-          selectedRef.current = {...selectedRef.current, messages: msgs};
+          setSelected(prev => prev?.id===c.id ? {...prev, ...data, messages: msgs} : prev);
+          selectedRef.current = {...selectedRef.current, ...data, messages: msgs};
         }
       } catch(e) { console.error('lazy load failed:', e); }
     }
