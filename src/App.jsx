@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.313";
+const CRM_VERSION = "2.9.315";
 
 // Responsive hook
 function useWindowSize() {
@@ -1607,7 +1607,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
     // ── MOBILE CHAT VIEW ──
     if (mobileChat) {
-      const msgs = selected?.messages||mobileChat.messages||[];
+      // Sync messages from selected into mobileChat when available
+      const isMatch = selected?.id===mobileChat?.id || selected?.phone===mobileChat?.phone;
+      const msgs = isMatch && selected?.messages?.length
+        ? selected.messages
+        : (mobileChat.messages||[]);
       return (
         <div style={{height:"100vh",display:"flex",flexDirection:"column",background:WA_BG_MOBILE,fontFamily:"'Helvetica Neue',Arial,sans-serif"}}>
           {/* Header */}
@@ -1626,7 +1630,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
           {/* Messages */}
           <div style={{flex:1,overflowY:"auto",padding:"12px 10px",display:"flex",flexDirection:"column",gap:4}}>
-            {msgs.length===0&&<div style={{textAlign:"center",color:"#8696a0",fontSize:12,marginTop:40}}>No messages yet</div>}
+            {msgs.length===0&&<div style={{textAlign:"center",color:"#8696a0",fontSize:12,marginTop:40}}>
+              {isMatch&&!selected?.messages?.length
+                ?<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                  <div style={{width:24,height:24,borderRadius:"50%",border:"3px solid #25D36630",borderTop:"3px solid #25D366",animation:"spin .8s linear infinite"}}/>
+                  <span>Loading messages...</span>
+                </div>
+                :"No messages yet"}
+            </div>}
             {msgs.map((m,i)=>{
               const isOut = m.from_==="bot"||m.from_==="agent";
               const isBot = m.from_==="bot";
@@ -1693,7 +1704,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             const color = colors[i%colors.length];
             const initials = (c.name||c.phone||"?").slice(0,2).toUpperCase();
             return (
-              <div key={c.id||c.phone} onClick={()=>{selectContact({...c,color});setMobileChat({...c,color});}}
+              <div key={c.id||c.phone} onClick={()=>{selectContact({...c,color});setMobileChat({...c,color,messages:c.messages||[]});}}
                 style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:"0.5px solid #f0f2f5",cursor:"pointer",active:{background:"#f5f5f5"}}}>
                 <div style={{width:48,height:48,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:"#fff",flexShrink:0}}>
                   {initials}
@@ -6420,218 +6431,266 @@ function AdminPanel({authHeaders, T, WA_GREEN, dark, setConfirmModal, adminOverv
           <button onClick={()=>{setEditUser(emptyUser());setView("user_form");}} className="nx-btn">
             <i className="ti ti-user-plus" style={{fontSize:14}}/> New User
           </button>
-          <button onClick={()=>{setEditClinic({...emptyClinic});setView("clinic_form");}} className="nx-btn primary">
+          <button onClick={()=>{setEditClinic({...emptyClinic});setClinicStep(0);setView("clinic_form");}} className="nx-btn primary">
             <i className="ti ti-plus" style={{fontSize:14}}/> Add Client
           </button>
         </div>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:"16px 24px",paddingBottom:40}}>
+      <div style={{flex:1,overflowY:"auto",padding:"20px 24px",paddingBottom:40}}>
 
-        {msg&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:10,padding:"10px 16px",marginBottom:14,fontSize:13,fontWeight:600,color:"#166534"}}>{msg}</div>}
+        {msg&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:13,fontWeight:600,color:"#166534"}}>{msg}</div>}
 
-        {/* ── 4 STAT CARDS ── */}
+        {/* Stat cards */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
           {[
-            {label:"Active Clients",   val:clinics.filter(c=>c.active!==false).length,          color:"#f59e0b", bg:"#fffbeb", icon:"ti ti-building"},
-            {label:"Total Contacts",   val:adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0), color:"#2563eb", bg:"#eff6ff", icon:"ti ti-users"},
-            {label:"Avg Bot Performance", val:(()=>{const a=adminOverview.filter(c=>c.active!==false);return a.length>0?Math.round(a.reduce((s,c)=>s+(c.bot_performance||0),0)/a.length):0})()+"%", color:WA_GREEN, bg:"#f0fdf4", icon:"ti ti-robot"},
-            {label:"Online Now",       val:sessions.length,                                        color:"#16a34a", bg:"#f0fdf4", icon:"ti ti-wifi"},
+            {label:"Active Clients",      val:clinics.filter(c=>c.active!==false).length,                                                                                             icon:"ti ti-building",  color:"#f59e0b"},
+            {label:"Total Contacts",      val:adminOverview.reduce((s,c)=>s+(c.total_contacts||0),0),                                                                                 icon:"ti ti-users",     color:"#3b82f6"},
+            {label:"Avg Bot Performance", val:(()=>{const a=adminOverview.filter(c=>c.active!==false);return a.length?Math.round(a.reduce((s,c)=>s+(c.bot_performance||0),0)/a.length):0})()+"%", icon:"ti ti-robot",  color:WA_GREEN},
+            {label:"Online Now",          val:sessions.length,                                                                                                                        icon:"ti ti-wifi",      color:"#8b5cf6"},
           ].map(s=>(
-            <div key={s.label} className="nx-stat" style={{display:"flex",alignItems:"center",gap:14}}>
-              <div style={{width:42,height:42,borderRadius:10,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <i className={s.icon} style={{fontSize:20,color:s.color}}/>
+            <div key={s.label} style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:"16px 18px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:40,height:40,borderRadius:10,background:s.color+"15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <i className={s.icon} style={{fontSize:18,color:s.color}}/>
               </div>
               <div>
-                <div className="nx-stat-label">{s.label}</div>
-                <div className="nx-stat-val" style={{color:s.color}}>{s.val}</div>
+                <div style={{fontSize:11,color:T.textMuted,fontWeight:500,marginBottom:2}}>{s.label}</div>
+                <div style={{fontSize:22,fontWeight:800,color:T.text,lineHeight:1}}>{s.val}</div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* ── GLOBAL SETTINGS ── */}
-        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:"14px 18px",marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:globalSettings.fallback_enabled==="true"?12:0}}>
+        {/* Global fallback API key */}
+        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:"14px 18px",marginBottom:20}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <i className="ti ti-key" style={{fontSize:16,color:"#f59e0b"}}/>
               <div>
-                <div style={{fontSize:13,fontWeight:700,color:T.text}}>Fallback API Key</div>
-                <div style={{fontSize:11,color:T.textMuted}}>Used for clients without their own API key</div>
+                <div style={{fontSize:13,fontWeight:600,color:T.text}}>Fallback API Key</div>
+                <div style={{fontSize:11,color:T.textMuted}}>Used when a client has no own API key</div>
               </div>
             </div>
-            <div onClick={()=>saveGlobalSettings({fallback_enabled:globalSettings.fallback_enabled==="true"?"false":"true"})}
-              style={{width:44,height:24,borderRadius:12,background:globalSettings.fallback_enabled==="true"?WA_GREEN:"#d1d5db",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
-              <div style={{position:"absolute",top:2,left:globalSettings.fallback_enabled==="true"?21:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              {globalSettings.fallback_enabled==="true"&&<>
+                <select value={globalSettings.fallback_provider||"anthropic"}
+                  onChange={e=>setGlobalSettings(p=>({...p,fallback_provider:e.target.value}))}
+                  style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+                  <option value="anthropic">Claude (Anthropic)</option>
+                  <option value="openai">OpenAI (GPT-4o)</option>
+                </select>
+                <input type="password" value={globalSettings.fallback_api_key||""}
+                  onChange={e=>setGlobalSettings(p=>({...p,fallback_api_key:e.target.value}))}
+                  placeholder="sk-ant-... or sk-..."
+                  style={{width:220,padding:"6px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontFamily:"monospace",outline:"none"}}/>
+                <button onClick={()=>saveGlobalSettings(globalSettings)} disabled={savingGlobal}
+                  className="nx-btn primary" style={{padding:"6px 14px",fontSize:12,flexShrink:0}}>
+                  {savingGlobal?"Saving...":"Save"}
+                </button>
+              </>}
+              <div onClick={()=>saveGlobalSettings({fallback_enabled:globalSettings.fallback_enabled==="true"?"false":"true"})}
+                style={{width:40,height:22,borderRadius:11,background:globalSettings.fallback_enabled==="true"?WA_GREEN:"#d1d5db",
+                  cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+                <div style={{position:"absolute",top:2,left:globalSettings.fallback_enabled==="true"?20:2,width:18,height:18,
+                  borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+              </div>
             </div>
           </div>
-          {globalSettings.fallback_enabled==="true"&&<div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <select value={globalSettings.fallback_provider||"anthropic"}
-              onChange={e=>setGlobalSettings(p=>({...p,fallback_provider:e.target.value}))}
-              style={{padding:"7px 10px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontFamily:"inherit",outline:"none"}}>
-              <option value="anthropic">Claude (Anthropic)</option>
-              <option value="openai">OpenAI (GPT-4o)</option>
-            </select>
-            <input type="password" value={globalSettings.fallback_api_key||""}
-              onChange={e=>setGlobalSettings(p=>({...p,fallback_api_key:e.target.value}))}
-              placeholder="sk-ant-... or sk-..."
-              style={{flex:1,padding:"7px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:12,fontFamily:"monospace",outline:"none"}}/>
-            <button onClick={()=>saveGlobalSettings(globalSettings)} disabled={savingGlobal} className="nx-btn primary" style={{padding:"7px 14px",fontSize:12}}>
-              {savingGlobal?"Saving...":"💾 Save"}
-            </button>
-          </div>}
         </div>
 
-        {/* ── CLIENTS TABLE ── */}
-        {loading&&<div style={{textAlign:"center",padding:40,color:T.textMuted}}>
-          <div style={{width:32,height:32,borderRadius:"50%",border:`3px solid ${WA_GREEN}20`,borderTop:`3px solid ${WA_GREEN}`,animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/>
-          Loading clients...
-        </div>}
-
-        {!loading&&<div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden",marginBottom:20}}>
-          <table className="nx-table" style={{width:"100%"}}>
+        {/* Clients table */}
+        {loading?<div style={{textAlign:"center",padding:40,color:T.textMuted}}>
+          <div style={{width:28,height:28,borderRadius:"50%",border:`3px solid ${WA_GREEN}30`,borderTop:`3px solid ${WA_GREEN}`,
+            animation:"spin .8s linear infinite",margin:"0 auto 10px"}}/>
+          Loading...
+        </div>:<div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead>
-              <tr>
-                <th>Client</th>
-                <th>WhatsApp</th>
-                <th>Bot</th>
-                <th>Contacts</th>
-                <th>Messages</th>
-                <th>Performance</th>
-                <th>Actions</th>
+              <tr style={{borderBottom:`1px solid ${T.border}`}}>
+                {["Client","WhatsApp","Bot","Contacts","Messages","Performance",""].map(h=>(
+                  <th key={h} style={{padding:"11px 14px",textAlign:"left",fontSize:11,fontWeight:700,
+                    color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap"}}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {clinics.length===0&&<tr><td colSpan={7} style={{textAlign:"center",padding:32,color:T.textMuted}}>
+              {clinics.length===0&&<tr><td colSpan={7} style={{padding:40,textAlign:"center",color:T.textMuted,fontSize:13}}>
                 No clients yet — click "Add Client" to get started
               </td></tr>}
               {clinics.map(clinic=>{
-                const ov = adminOverview.find(o=>o.clinic_id===clinic.id||o.id===clinic.id)||null;
-                const botRate = ov&&ov.total_messages>0?Math.round((ov.bot_messages||0)/ov.total_messages*100):0;
+                const ov = adminOverview.find(o=>o.clinic_id===clinic.id||o.id===clinic.id)||{};
+                const total = ov.total_messages||0;
+                const botMsgs = ov.bot_messages||0;
+                const perf = total>0?Math.round(botMsgs/total*100):0;
                 const clinicUsers = users.filter(u=>u.clinic_id===clinic.id);
                 const isExpanded = selectedClinicRow===clinic.id;
-                return (
-                  <React.Fragment key={clinic.id}>
-                    <tr style={{opacity:clinic.active===false?0.5:1,cursor:"pointer"}}
-                      onClick={()=>setSelectedClinicRow(isExpanded?null:clinic.id)}
-                      onMouseEnter={e=>e.currentTarget.style.background=T.card2}
-                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                      {/* Client */}
-                      <td>
-                        <div style={{display:"flex",alignItems:"center",gap:10}}>
-                          <div style={{width:34,height:34,borderRadius:9,overflow:"hidden",background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            {clinic.logo_url?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
-                              :<span style={{fontSize:12,fontWeight:700,color:WA_GREEN}}>{clinic.name?.slice(0,2).toUpperCase()}</span>}
-                          </div>
-                          <div>
-                            <div style={{fontSize:13,fontWeight:700,color:T.text}}>{clinic.name}</div>
-                            <div style={{fontSize:10,color:T.textMuted}}>ID: {clinic.id} · {clinic.industry||"—"}</div>
-                          </div>
-                          {clinic.active===false&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:10,background:"#fee2e2",color:"#dc2626",fontWeight:700}}>OFF</span>}
-                        </div>
-                      </td>
-                      {/* WhatsApp */}
-                      <td style={{fontSize:12,color:T.textMuted}}>{clinic.whatsapp_number||"—"}</td>
-                      {/* Bot */}
-                      <td>
-                        <div style={{display:"flex",alignItems:"center",gap:5}}>
-                          <div style={{width:7,height:7,borderRadius:"50%",background:clinic.bot_enabled!==false?WA_GREEN:"#e11d48"}}/>
-                          <span style={{fontSize:12,fontWeight:600,color:clinic.bot_enabled!==false?WA_GREEN:"#e11d48"}}>
-                            {clinic.bot_enabled!==false?"ON":"OFF"}
-                          </span>
-                        </div>
-                      </td>
-                      {/* Contacts */}
-                      <td style={{fontSize:13,fontWeight:600,color:T.text}}>{ov?.total_contacts||0}</td>
-                      {/* Messages */}
-                      <td style={{fontSize:13,fontWeight:600,color:T.text}}>{ov?.total_messages||0}</td>
-                      {/* Performance */}
-                      <td>
-                        <div style={{display:"flex",alignItems:"center",gap:8}}>
-                          <div style={{width:60,height:5,borderRadius:3,background:T.border,overflow:"hidden",flexShrink:0}}>
-                            <div style={{height:5,borderRadius:3,width:`${botRate}%`,background:botRate>=70?WA_GREEN:botRate>=40?"#f59e0b":"#ef4444",transition:"width .5s"}}/>
-                          </div>
-                          <span style={{fontSize:12,fontWeight:600,color:T.text}}>{botRate}%</span>
-                        </div>
-                      </td>
-                      {/* Actions */}
-                      <td onClick={e=>e.stopPropagation()}>
-                        <div style={{display:"flex",gap:5}}>
-                          <button onClick={()=>{setEditClinic({...clinic});setView("clinic_form");}}
-                            className="nx-btn" style={{padding:"4px 10px",fontSize:11}}>✏️ Edit</button>
-                          <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
-                            className="nx-btn" style={{padding:"4px 10px",fontSize:11}}>👤 Add User</button>
-                          <button onClick={()=>{
-                            const isActive = clinic.active!==false;
-                            setConfirmModal({title:(isActive?"Disable":"Enable")+" "+clinic.name+"?",
-                              message:isActive?"Users won't be able to login.":"Users can login again.",
-                              icon:isActive?"🔴":"🟢",danger:isActive,confirmText:"Yes, "+(isActive?"Disable":"Enable"),
-                              onConfirm:async()=>{await fetch(API+"/api/admin/clients/"+clinic.id,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!isActive})});flash("✅ Done");load();}});
-                          }} style={{padding:"4px 8px",borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:"inherit",border:"none",
-                            background:clinic.active!==false?"#fef2f2":"#f0fdf4",
-                            color:clinic.active!==false?"#dc2626":"#16a34a"}}>
-                            {clinic.active!==false?"🔴":"🟢"}
-                          </button>
-                          <button onClick={()=>setConfirmModal({title:"Reset "+clinic.name+"?",message:"Permanently delete all contacts and chats.",icon:"🗑️",danger:true,confirmText:"Yes, Reset",
-                            onConfirm:async()=>{const r=await fetch(API+"/api/admin/clients/"+clinic.id+"/reset",{method:"DELETE",headers:authHeaders()});if(r.ok){const d=await r.json();flash("✅ Reset — "+d.deleted_contacts+" contacts deleted");}load();}})}
-                            style={{padding:"4px 8px",borderRadius:7,border:"1px solid #ef444430",background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                const inactive = clinic.active===false;
 
-                    {/* Expanded row — staff list */}
-                    {isExpanded&&<tr>
-                      <td colSpan={7} style={{padding:0,background:T.card2,borderBottom:`1px solid ${T.border}`}}>
-                        <div style={{padding:"12px 20px"}}>
-                          <div style={{fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6,marginBottom:10}}>
-                            Staff ({clinicUsers.length}) · Seats used: {clinicUsers.filter(u=>u.active).length}/{clinic.max_seats||1}
+                return <React.Fragment key={clinic.id}>
+                  <tr style={{borderBottom:`1px solid ${T.border}`,opacity:inactive?.5:1,
+                    background:isExpanded?T.card2:"transparent",transition:"background .15s",cursor:"pointer"}}
+                    onClick={()=>setSelectedClinicRow(isExpanded?null:clinic.id)}
+                    onMouseEnter={e=>{if(!isExpanded)e.currentTarget.style.background=T.card2;}}
+                    onMouseLeave={e=>{if(!isExpanded)e.currentTarget.style.background="transparent";}}>
+
+                    {/* Client */}
+                    <td style={{padding:"12px 14px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <div style={{width:34,height:34,borderRadius:9,overflow:"hidden",flexShrink:0,
+                          background:WA_GREEN+"20",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          {clinic.logo_url
+                            ?<img src={clinic.logo_url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
+                            :<span style={{fontSize:11,fontWeight:800,color:WA_GREEN}}>{(clinic.name||"?").slice(0,2).toUpperCase()}</span>}
+                        </div>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:700,color:T.text}}>{clinic.name}</div>
+                          <div style={{fontSize:10,color:T.textMuted}}>clinic_id: {clinic.id}{inactive?" · Disabled":""}</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* WhatsApp */}
+                    <td style={{padding:"12px 14px",fontSize:12,color:T.textMuted}}>{clinic.whatsapp_number||"—"}</td>
+
+                    {/* Bot */}
+                    <td style={{padding:"12px 14px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <div style={{width:7,height:7,borderRadius:"50%",
+                          background:clinic.bot_enabled!==false?WA_GREEN:"#ef4444"}}/>
+                        <span style={{fontSize:12,fontWeight:600,color:clinic.bot_enabled!==false?WA_GREEN:"#ef4444"}}>
+                          {clinic.bot_enabled!==false?"ON":"OFF"}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Contacts */}
+                    <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:T.text}}>{ov.total_contacts||0}</td>
+
+                    {/* Messages */}
+                    <td style={{padding:"12px 14px",fontSize:13,fontWeight:600,color:T.text}}>{total}</td>
+
+                    {/* Performance */}
+                    <td style={{padding:"12px 14px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:64,height:4,borderRadius:2,background:T.border,overflow:"hidden",flexShrink:0}}>
+                          <div style={{height:4,borderRadius:2,transition:"width .5s",
+                            width:`${perf}%`,background:perf>=70?WA_GREEN:perf>=40?"#f59e0b":"#ef4444"}}/>
+                        </div>
+                        <span style={{fontSize:12,fontWeight:600,color:T.text,minWidth:30}}>{perf}%</span>
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td style={{padding:"12px 14px"}} onClick={e=>e.stopPropagation()}>
+                      <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                        <button onClick={()=>{setEditClinic({...clinic});setClinicStep(0);setView("clinic_form");}}
+                          style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",
+                            color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>
+                          Edit
+                        </button>
+                        <button onClick={()=>{setEditUser(emptyUser(clinic.id));setView("user_form");}}
+                          style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",
+                            color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>
+                          + User
+                        </button>
+                        <button onClick={()=>{
+                          const isActive = !inactive;
+                          setConfirmModal({title:(isActive?"Disable":"Enable")+" "+clinic.name+"?",
+                            message:isActive?"Users won't be able to login.":"Users can login again.",
+                            icon:isActive?"🔴":"🟢",danger:isActive,
+                            confirmText:"Yes, "+(isActive?"Disable":"Enable"),
+                            onConfirm:async()=>{
+                              await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!isActive})});
+                              flash("✅ Done");load();
+                            }});
+                        }} style={{padding:"5px 10px",borderRadius:8,fontSize:13,cursor:"pointer",
+                          border:`1px solid ${inactive?"#bbf7d0":"#fca5a5"}`,background:"transparent",
+                          color:inactive?"#16a34a":"#ef4444"}}>
+                          {inactive?"🟢":"🔴"}
+                        </button>
+                        <button onClick={()=>setConfirmModal({title:"Reset "+clinic.name+"?",
+                          message:"Permanently delete all contacts and conversations.",
+                          icon:"🗑️",danger:true,confirmText:"Yes, Reset",
+                          onConfirm:async()=>{
+                            const r=await fetch(`${API}/api/admin/clients/${clinic.id}/reset`,{method:"DELETE",headers:authHeaders()});
+                            if(r.ok){const d=await r.json();flash("✅ Reset — "+d.deleted_contacts+" contacts deleted");}
+                            load();
+                          }})}
+                          style={{padding:"5px 10px",borderRadius:8,border:`1px solid #fca5a5`,
+                            background:"transparent",color:"#ef4444",fontSize:13,cursor:"pointer"}}>
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Expanded staff row */}
+                  {isExpanded&&<tr style={{borderBottom:`1px solid ${T.border}`}}>
+                    <td colSpan={7} style={{padding:0}}>
+                      <div style={{padding:"14px 20px",background:T.card2}}>
+                        <div style={{fontSize:11,fontWeight:700,color:T.textMuted,textTransform:"uppercase",
+                          letterSpacing:.6,marginBottom:10}}>
+                          Staff · {clinicUsers.length} user{clinicUsers.length!==1?"s":""} · {clinicUsers.filter(u=>u.active).length}/{clinic.max_seats||1} seats
+                        </div>
+                        {clinicUsers.length===0
+                          ?<div style={{fontSize:12,color:T.textFaint,fontStyle:"italic",padding:"4px 0"}}>
+                            No staff yet — click "+ User" to add one
                           </div>
-                          {clinicUsers.length===0&&<div style={{fontSize:12,color:T.textFaint,fontStyle:"italic"}}>No staff yet</div>}
-                          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                          :<div style={{display:"flex",flexWrap:"wrap",gap:8}}>
                             {clinicUsers.map(u=>{
-                              const session = sessions.find(s=>s.user_id===u.id);
-                              return <div key={u.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",
-                                borderRadius:10,background:T.card,border:`1px solid ${T.border}`,minWidth:180}}>
-                                <div style={{width:30,height:30,borderRadius:"50%",background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",position:"relative",flexShrink:0}}>
-                                  {u.username?.[0]?.toUpperCase()||"?"}
-                                  <div style={{position:"absolute",bottom:-1,right:-1,width:9,height:9,borderRadius:"50%",
-                                    background:session?"#22c55e":u.active?"#94a3b8":"#ef4444",
-                                    border:"2px solid "+T.card}}/>
+                              const sess = sessions.find(s=>s.user_id===u.id);
+                              return <div key={u.id} style={{display:"flex",alignItems:"center",gap:8,
+                                padding:"8px 12px",borderRadius:10,background:T.card,
+                                border:`1px solid ${T.border}`,minWidth:200}}>
+                                <div style={{width:30,height:30,borderRadius:"50%",background:WA_GREEN,
+                                  display:"flex",alignItems:"center",justifyContent:"center",
+                                  fontSize:11,fontWeight:700,color:"#fff",position:"relative",flexShrink:0}}>
+                                  {(u.username||"?")[0].toUpperCase()}
+                                  <div style={{position:"absolute",bottom:-1,right:-1,width:9,height:9,
+                                    borderRadius:"50%",border:"2px solid "+T.card,
+                                    background:sess?"#22c55e":u.active?"#94a3b8":"#ef4444"}}/>
                                 </div>
                                 <div style={{flex:1,minWidth:0}}>
                                   <div style={{fontSize:12,fontWeight:700,color:T.text}}>@{u.username}</div>
-                                  <div style={{fontSize:10,color:T.textMuted}}>{session?"🟢 Online":"Offline"}{!u.active?" · Deactivated":""}
-                                  {session?.location&&<span> · 📍{session.location}</span>}
-                                  {session?.device_info&&<div style={{fontSize:9,color:T.textFaint,marginTop:1}}>{session.device_info.split(" | ")[0]}</div>}
+                                  <div style={{fontSize:10,color:T.textMuted}}>
+                                    {sess?"🟢 Online":"Offline"}{!u.active?" · Deactivated":""}
+                                    {sess?.location&&" · 📍"+sess.location}
+                                  </div>
                                 </div>
-                                </div>
-                                <div style={{display:"flex",gap:4}}>
+                                <div style={{display:"flex",gap:4,flexShrink:0}}>
                                   <button onClick={()=>{setEditUser({...u,newPassword:""});setView("user_form");}}
-                                    style={{padding:"3px 7px",borderRadius:6,border:`1px solid ${T.border}`,background:"transparent",color:T.text,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                                    style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${T.border}`,
+                                      background:"transparent",color:T.text,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                                    ✏️
+                                  </button>
                                   <button onClick={async()=>{
                                     await fetch(`${API}/api/admin/users/${u.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({active:!u.active})});
                                     flash(`✅ @${u.username} ${u.active?"deactivated":"activated"}`);load();
-                                  }} style={{padding:"3px 7px",borderRadius:6,fontSize:10,cursor:"pointer",fontFamily:"inherit",
-                                    border:u.active?"1px solid #fca5a5":"1px solid #86efac",
-                                    background:"transparent",color:u.active?"#dc2626":"#16a34a"}}>
+                                  }} style={{padding:"3px 8px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:"inherit",
+                                    border:`1px solid ${u.active?"#fca5a5":"#86efac"}`,background:"transparent",
+                                    color:u.active?"#ef4444":"#16a34a"}}>
                                     {u.active?"🔴":"🟢"}
                                   </button>
-                                  {session&&<button onClick={()=>forceLogout(u.id,u.username)}
-                                    style={{padding:"3px 7px",borderRadius:6,border:"1px solid #fca5a5",background:"transparent",color:"#dc2626",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>⏏️</button>}
-                                  <button onClick={()=>setConfirmModal({title:"Delete @"+u.username+"?",message:"This permanently deletes the user account.",icon:"🗑️",danger:true,confirmText:"Yes, Delete",
-                                    onConfirm:()=>deleteUser(u.id)})}
-                                    style={{padding:"3px 7px",borderRadius:6,border:"1px solid #fca5a5",background:"transparent",color:"#dc2626",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+                                  {sess&&<button onClick={()=>forceLogout(u.id,u.username)}
+                                    style={{padding:"3px 8px",borderRadius:6,border:"1px solid #fca5a5",
+                                      background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                                    ⏏️
+                                  </button>}
+                                  <button onClick={()=>setConfirmModal({title:"Delete @"+u.username+"?",
+                                    message:"Permanently deletes this user account.",icon:"🗑️",danger:true,
+                                    confirmText:"Yes, Delete",onConfirm:()=>deleteUser(u.id)})}
+                                    style={{padding:"3px 8px",borderRadius:6,border:"1px solid #fca5a5",
+                                      background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                                    🗑️
+                                  </button>
                                 </div>
                               </div>;
                             })}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>}
-                  </React.Fragment>
-                );
+                          </div>}
+                      </div>
+                    </td>
+                  </tr>}
+                </React.Fragment>;
               })}
             </tbody>
           </table>
