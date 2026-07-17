@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.341";
+const CRM_VERSION = "2.9.342";
 
 // Responsive hook
 function useWindowSize() {
@@ -7263,8 +7263,11 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 <div style={{fontSize:11,color:"rgba(255,255,255,.4)",letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>{a.dateFrom} → {a.dateTo}</div>
                 <div style={{fontSize:30,fontWeight:900,letterSpacing:-1,lineHeight:1}}>{growth.thisperiod||0} <span style={{fontSize:15,fontWeight:400,color:"rgba(255,255,255,.5)"}}>new conversations</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
-                  {growth.pct!==0&&<div style={{background:growth.pct>0?"rgba(0,200,83,.2)":"rgba(239,68,68,.2)",color:growth.pct>0?"#4ade80":"#f87171",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>
+                  {growth.pct!==0&&growth.prevperiod>50&&<div style={{background:growth.pct>0?"rgba(0,200,83,.2)":"rgba(239,68,68,.2)",color:growth.pct>0?"#4ade80":"#f87171",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>
                     {growth.pct>0?"▲":"▼"} {Math.abs(growth.pct)}% vs previous period
+                  </div>}
+                  {growth.prevperiod<=50&&growth.thisperiod>0&&<div style={{background:"rgba(99,102,241,.2)",color:"#a5b4fc",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>
+                    🚀 New — insufficient history to compare
                   </div>}
                   <div style={{fontSize:12,color:"rgba(255,255,255,.55)"}}>Bot handled <strong style={{color:"#4ade80"}}>{totals.botMessages||0}</strong> msgs</div>
                 </div>
