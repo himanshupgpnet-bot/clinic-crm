@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.344";
+const CRM_VERSION = "2.9.345";
 
 // Responsive hook
 function useWindowSize() {
@@ -1999,13 +1999,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
 
-        <div className="hide-mobile nav-sidebar" style={{width:sidebarCollapsed?0:200,flexShrink:0,background:T.sidebar,borderRight:sidebarCollapsed?"none":`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative",transition:"width .2s ease"}}>
+        <div className="hide-mobile nav-sidebar" style={{width:sidebarCollapsed?52:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative",transition:"width .2s ease"}}>
           {/* Brand — top of sidebar like mockup */}
-          <div style={{padding:"16px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-            <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:"#fff",flexShrink:0}}>
-              {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"N"}
-            </div>
-            <span style={{fontWeight:700,fontSize:14,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Nexora"}</span>
+          <div style={{padding:"16px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0,justifyContent:sidebarCollapsed?"center":"space-between"}}>
+            {!sidebarCollapsed&&<div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+              <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:"#fff",flexShrink:0}}>
+                {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"N"}
+              </div>
+              <span style={{fontWeight:700,fontSize:14,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Nexora"}</span>
+            </div>}
+            <button onClick={()=>setSidebarCollapsed(p=>!p)}
+              style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,padding:4,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}
+              title={sidebarCollapsed?"Expand sidebar":"Collapse sidebar"}>
+              <i className={`ti ti-layout-sidebar${sidebarCollapsed?"-right":""}`} style={{fontSize:16}}/>
+            </button>
           </div>
           {/* Nav items */}
           <div style={{flex:1,padding:"8px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
@@ -2016,13 +2023,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <button onClick={()=>safeSetTab(t.id)}
                     className={`nav-item-btn${tab===t.id?" active":""}`}>
                     <i className={t.icon} style={{fontSize:18,flexShrink:0,width:20,textAlign:"center"}}/>
-                    <span style={{flex:1}}>{t.label}</span>
-                    {t.id==="crm"&&totalUnread>0&&<span style={{
+                    {!sidebarCollapsed&&<span style={{flex:1}}>{t.label}</span>}
+                    {!sidebarCollapsed&&t.id==="crm"&&totalUnread>0&&<span style={{
                       background:WA_GREEN,color:"#fff",borderRadius:10,
                       minWidth:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",
                       fontSize:10,fontWeight:700,padding:"0 4px",lineHeight:1
                     }}>{totalUnread>99?"99+":totalUnread}</span>}
-                    {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{
+                    {!sidebarCollapsed&&t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{
                       background:"#ef4444",color:"#fff",borderRadius:10,
                       minWidth:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",
                       fontSize:10,fontWeight:700,padding:"0 4px",lineHeight:1
