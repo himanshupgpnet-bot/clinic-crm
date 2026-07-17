@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.342";
+const CRM_VERSION = "2.9.343";
 
 // Responsive hook
 function useWindowSize() {
@@ -7266,8 +7266,8 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                   {growth.pct!==0&&growth.prevperiod>50&&<div style={{background:growth.pct>0?"rgba(0,200,83,.2)":"rgba(239,68,68,.2)",color:growth.pct>0?"#4ade80":"#f87171",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>
                     {growth.pct>0?"▲":"▼"} {Math.abs(growth.pct)}% vs previous period
                   </div>}
-                  {growth.prevperiod<=50&&growth.thisperiod>0&&<div style={{background:"rgba(99,102,241,.2)",color:"#a5b4fc",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>
-                    🚀 New — insufficient history to compare
+                  {growth.prevperiod>0&&growth.prevperiod<=50&&<div style={{background:"rgba(99,102,241,.2)",color:"#a5b4fc",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>
+                    🚀 Growing fast
                   </div>}
                   <div style={{fontSize:12,color:"rgba(255,255,255,.55)"}}>Bot handled <strong style={{color:"#4ade80"}}>{totals.botMessages||0}</strong> msgs</div>
                 </div>
