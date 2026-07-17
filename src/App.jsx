@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.346";
+const CRM_VERSION = "2.9.347";
 
 // Responsive hook
 function useWindowSize() {
@@ -1688,9 +1688,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         .kcard{cursor:grab;transition:transform .15s,box-shadow .15s}.kcard:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12)}.kcard:active{cursor:grabbing}
         .cc{background:${T.card};border:1px solid ${T.border};border-radius:12px;padding:20px;margin-bottom:16px}
         @media(min-width:640px){.hide-desktop{display:none!important}}
-        .nav-item-wrap:hover .nav-tooltip{opacity:1!important;visibility:visible!important}
-        .nav-tooltip{position:absolute;left:58px;top:50%;transform:translateY(-50%);background:#111827;color:#fff;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap;z-index:9999;opacity:0;visibility:hidden;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .15s,visibility .15s}
-        .sidebar-expanded .nav-item-wrap:hover .nav-tooltip{opacity:0!important;visibility:hidden!important}
+        .nav-item-wrap:hover .nav-tooltip{opacity:0!important;visibility:hidden!important}
+        .nav-tooltip{display:none}
         .nav-tooltip::after{content:"";position:absolute;right:100%;top:50%;transform:translateY(-50%);border:5px solid transparent;border-right-color:#111827}
         @keyframes pulse{0%{transform:scale(1);opacity:.8}70%{transform:scale(2.2);opacity:0}100%{transform:scale(1);opacity:0}}
         @media(max-width:1023px){.tablet-stack{flex-direction:column!important}}
@@ -2000,20 +1999,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
 
-        <div className={`hide-mobile nav-sidebar${sidebarCollapsed?"":" sidebar-expanded"}`} style={{width:sidebarCollapsed?52:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative",transition:"width .2s ease"}}>
+        <div className="hide-mobile nav-sidebar" style={{width:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
           {/* Brand — top of sidebar like mockup */}
-          <div style={{padding:"16px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0,justifyContent:sidebarCollapsed?"center":"space-between"}}>
-            {!sidebarCollapsed&&<div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
-              <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:"#fff",flexShrink:0}}>
-                {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"N"}
-              </div>
-              <span style={{fontWeight:700,fontSize:14,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Nexora"}</span>
-            </div>}
-            <button onClick={()=>setSidebarCollapsed(p=>!p)}
-              style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,padding:4,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}
-              title={sidebarCollapsed?"Expand sidebar":"Collapse sidebar"}>
-              <i className={`ti ti-layout-sidebar${sidebarCollapsed?"-right":""}`} style={{fontSize:16}}/>
-            </button>
+          <div style={{padding:"16px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+            <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:"#fff",flexShrink:0}}>
+              {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"N"}
+            </div>
+            <span style={{fontWeight:700,fontSize:14,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Nexora"}</span>
           </div>
           {/* Nav items */}
           <div style={{flex:1,padding:"8px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
@@ -2024,13 +2016,13 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <button onClick={()=>safeSetTab(t.id)}
                     className={`nav-item-btn${tab===t.id?" active":""}`}>
                     <i className={t.icon} style={{fontSize:18,flexShrink:0,width:20,textAlign:"center"}}/>
-                    {!sidebarCollapsed&&<span style={{flex:1}}>{t.label}</span>}
-                    {!sidebarCollapsed&&t.id==="crm"&&totalUnread>0&&<span style={{
+                    <span style={{flex:1}}>{t.label}</span>
+                    {t.id==="crm"&&totalUnread>0&&<span style={{
                       background:WA_GREEN,color:"#fff",borderRadius:10,
                       minWidth:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",
                       fontSize:10,fontWeight:700,padding:"0 4px",lineHeight:1
                     }}>{totalUnread>99?"99+":totalUnread}</span>}
-                    {!sidebarCollapsed&&t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{
+                    {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{
                       background:"#ef4444",color:"#fff",borderRadius:10,
                       minWidth:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",
                       fontSize:10,fontWeight:700,padding:"0 4px",lineHeight:1
