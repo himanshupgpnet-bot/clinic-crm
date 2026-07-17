@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.343";
+const CRM_VERSION = "2.9.344";
 
 // Responsive hook
 function useWindowSize() {
@@ -1688,7 +1688,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         .kcard{cursor:grab;transition:transform .15s,box-shadow .15s}.kcard:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12)}.kcard:active{cursor:grabbing}
         .cc{background:${T.card};border:1px solid ${T.border};border-radius:12px;padding:20px;margin-bottom:16px}
         @media(min-width:640px){.hide-desktop{display:none!important}}
-        .nav-item-wrap:hover .nav-tooltip{opacity:1!important;visibility:visible!important}
+        .nav-item-wrap:hover .nav-tooltip{opacity:${sidebarCollapsed?1:0}!important;visibility:${sidebarCollapsed?"visible":"hidden"}!important}
         .nav-tooltip{position:absolute;left:58px;top:50%;transform:translateY(-50%);background:#111827;color:#fff;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap;z-index:9999;opacity:0;visibility:hidden;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .15s,visibility .15s}
         .nav-tooltip::after{content:"";position:absolute;right:100%;top:50%;transform:translateY(-50%);border:5px solid transparent;border-right-color:#111827}
         @keyframes pulse{0%{transform:scale(1);opacity:.8}70%{transform:scale(2.2);opacity:0}100%{transform:scale(1);opacity:0}}
