@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.339";
+const CRM_VERSION = "2.9.340";
 
 // Responsive hook
 function useWindowSize() {
@@ -7301,7 +7301,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 {[
                   {label:"Total Leads",val:adData.reduce((s,a)=>s+(a.total_clicks||0),0),color:"#7c3aed"},
                   {label:"Hot Leads",val:adData.reduce((s,a)=>s+(a.hot_leads||0),0),color:"#ef4444"},
-                  {label:"Booked",val:adData.reduce((s,a)=>s+(a.bookings||0),0),color:WA_GREEN},
+                  {label:"Converted",val:adData.reduce((s,a)=>s+(a.bookings||0),0),color:WA_GREEN},
                 ].map(s=>(
                   <div key={s.label} style={{textAlign:"center"}}>
                     <div style={{fontSize:18,fontWeight:800,color:s.color}}>{s.val}</div>
@@ -7340,7 +7340,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                       </div>
                       <div style={{textAlign:"center"}}>
                         <div style={{fontSize:16,fontWeight:800,color:WA_GREEN}}>{booked}</div>
-                        <div style={{fontSize:10,color:T.textMuted}}>Booked ({convRate}%)</div>
+                        <div style={{fontSize:10,color:T.textMuted}}>Converted ({convRate}%)</div>
                       </div>
                     </div>
                   </div>
