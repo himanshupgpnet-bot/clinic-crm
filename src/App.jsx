@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.354";
+const CRM_VERSION = "2.9.355";
 
 // Responsive hook
 function useWindowSize() {
@@ -5760,7 +5760,7 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
     <div style={{textAlign:"center",padding:"48px 24px",marginTop:16,background:T.card,borderRadius:12,border:`0.5px dashed ${T.border}`}}>
       <i className="ti ti-bell-off" style={{fontSize:28,color:T.textFaint,display:"block",marginBottom:12}}/>
       <div style={{fontSize:14,fontWeight:500,color:T.text,marginBottom:6}}>Follow-up tracker is off</div>
-      <div style={{fontSize:13,color:T.textMuted,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Enable auto follow-up in the Settings tab to start tracking automated messages.</div>
+      <div style={{fontSize:13,color:T.textMuted,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Enable auto follow-up in the Settings tab to see automated message activity.</div>
     </div>
   );
 
@@ -5779,69 +5779,64 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
     return {label:"In progress",color:"#185FA5",bg:"#E6F1FB"};
   };
 
-  const getAvatar = (c) => {
-    const initials = (c.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    const colors = {hot:{bg:"#FAEEDA",color:"#633806"},warm:{bg:"#E6F1FB",color:"#0C447C"},cold:{bg:T.card2,color:T.textMuted}};
-    const s = colors[c.lead]||colors.cold;
-    return {initials, ...s};
+  const getAvatar = (name, lead) => {
+    const initials = (name||"?").split(" ").slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
+    const s = lead==="hot"?{bg:"#FAEEDA",color:"#633806"}:lead==="warm"?{bg:"#E6F1FB",color:"#0C447C"}:{bg:T.card2,color:T.textMuted};
+    return {...s, initials};
   };
 
   const visible = hideCompleted
     ? followupTracker.filter(c=>!(c.followups?.length&&c.followups.every(f=>f.status==="sent")))
     : followupTracker;
 
-  const cols = fu2Enabled
-    ? "1.2fr 1fr 80px 100px 1.5fr 1.5fr 100px"
-    : "1.2fr 1fr 80px 100px 2fr 100px";
-
-  const FuCell = ({fu, isCold, fu1Done}) => {
-    if(isCold) return <span style={{fontSize:11,color:T.textMuted}}>—</span>;
-    if(!fu) return fu1Done
-      ? <span style={{fontSize:11,color:"#d97706"}}>Pending</span>
-      : <span style={{fontSize:11,color:T.textMuted}}>—</span>;
+  const FuCell = ({fu, isCold, waitingForFu1}) => {
+    if(isCold) return <span style={{color:T.textMuted,fontSize:12}}>—</span>;
+    if(waitingForFu1) return <span style={{color:T.textMuted,fontSize:12}}>—</span>;
+    if(!fu) return <span style={{fontSize:12,color:"#d97706"}}>Pending</span>;
     if(fu.status==="sent") return (
       <div>
-        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}>
-          <span style={{width:6,height:6,borderRadius:"50%",background:"#3B6D11",display:"inline-block",flexShrink:0}}/>
-          <span style={{fontSize:11,fontWeight:500,color:"#3B6D11"}}>Sent · {fu.created_at}</span>
+        <div style={{fontSize:11,fontWeight:500,color:"#3B6D11",marginBottom:3,display:"flex",alignItems:"center",gap:4}}>
+          <i className="ti ti-check" style={{fontSize:11}}/>{fu.created_at}
         </div>
-        <div style={{fontSize:11,color:T.textMuted,fontStyle:"italic",lineHeight:1.5}}>
-          "{fu.message?.slice(0,75)}{fu.message?.length>75?"...":""}"
+        <div style={{fontSize:11,color:T.textMuted,fontStyle:"italic",lineHeight:1.5,maxWidth:280}}>
+          "{fu.message?.slice(0,90)}{fu.message?.length>90?"...":""}"
         </div>
       </div>
     );
     if(fu.status==="skipped") return (
       <div>
-        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}>
-          <span style={{width:6,height:6,borderRadius:"50%",background:"#BA7517",display:"inline-block",flexShrink:0}}/>
-          <span style={{fontSize:11,fontWeight:500,color:"#854F0B"}}>AI skipped</span>
+        <div style={{fontSize:11,fontWeight:500,color:"#854F0B",marginBottom:3,display:"flex",alignItems:"center",gap:4}}>
+          <i className="ti ti-brain" style={{fontSize:11}}/> AI skipped
         </div>
-        <div style={{fontSize:11,color:"#854F0B",lineHeight:1.5}}>{fu.skip_reason||"AI decided not to follow up"}</div>
+        <div style={{fontSize:11,color:"#854F0B",lineHeight:1.5,maxWidth:280}}>{fu.skip_reason||"AI decided not to send"}</div>
       </div>
     );
-    return <span style={{fontSize:11,color:"#d97706"}}>Pending</span>;
+    return <span style={{fontSize:12,color:"#d97706"}}>Pending</span>;
   };
 
   return (
-    <div style={{paddingTop:4}}>
-      {/* KPI cards */}
+    <div>
+      {/* KPI row */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
         {[
-          {l:"Eligible today",v:total,c:T.text},
-          {l:"Sent",v:sent,c:"#3B6D11"},
-          {l:"AI skipped",v:skipped,c:"#854F0B"},
-          {l:"Pending",v:pending,c:"#185FA5"},
+          {l:"Eligible today",v:total,c:T.text,icon:"ti-users"},
+          {l:"Sent",v:sent,c:"#3B6D11",icon:"ti-send"},
+          {l:"AI skipped",v:skipped,c:"#854F0B",icon:"ti-brain"},
+          {l:"Pending",v:pending,c:"#185FA5",icon:"ti-clock"},
         ].map(s=>(
-          <div key={s.l} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,padding:"14px 18px"}}>
-            <div style={{fontSize:11,color:T.textMuted,marginBottom:4}}>{s.l}</div>
-            <div style={{fontSize:26,fontWeight:500,color:s.c,lineHeight:1}}>{followupTrackerLoading?"—":s.v}</div>
+          <div key={s.l} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:12}}>
+            <i className={`ti ${s.icon}`} style={{fontSize:20,color:s.c,opacity:.7}}/>
+            <div>
+              <div style={{fontSize:11,color:T.textMuted}}>{s.l}</div>
+              <div style={{fontSize:24,fontWeight:500,color:s.c,lineHeight:1.2}}>{followupTrackerLoading?"—":s.v}</div>
+            </div>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-        <span style={{fontSize:12,color:T.textMuted}}>Today · auto-refreshes every 30s</span>
+        <span style={{fontSize:12,color:T.textMuted}}>Today · auto-refreshes every 30s · {visible.length} contacts</span>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <label style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
             <input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)} style={{accentColor:WA_GREEN}}/>
@@ -5854,68 +5849,70 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
         </div>
       </div>
 
-      {/* Table with horizontal scroll */}
+      {/* Table */}
       {followupTrackerLoading&&<div style={{textAlign:"center",padding:48,color:T.textMuted,fontSize:13}}>Loading...</div>}
       {!followupTrackerLoading&&visible.length===0&&<div style={{textAlign:"center",padding:48,color:T.textMuted,fontSize:13}}>No active contacts in the last 24 hours</div>}
       {!followupTrackerLoading&&visible.length>0&&(
-        <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
-          {/* Scroll wrapper */}
-          <div style={{overflowY:"auto"}}>
-            <div>
-              {/* Header */}
-              <div style={{display:"grid",gridTemplateColumns:cols,background:T.card2,borderBottom:`0.5px solid ${T.border}`,position:"sticky",top:0,zIndex:1}}>
-                {["Contact","Phone","Lead","Last msg","Follow-up 1",fu2Enabled?"Follow-up 2":null,"Status"].filter(Boolean).map(h=>(
-                  <div key={h} style={{padding:"10px 14px",fontSize:10,fontWeight:500,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6,whiteSpace:"nowrap"}}>{h}</div>
-                ))}
-              </div>
-              {/* Rows */}
+        <div style={{border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+          <table className="nx-table" style={{tableLayout:"fixed",width:"100%"}}>
+            <colgroup>
+              <col style={{width:"16%"}}/>
+              <col style={{width:"12%"}}/>
+              <col style={{width:"7%"}}/>
+              <col style={{width:"10%"}}/>
+              <col style={{width:fu2Enabled?"27.5%":"55%"}}/>
+              {fu2Enabled&&<col style={{width:"27.5%"}}/>}
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Contact</th>
+                <th>Phone</th>
+                <th>Lead</th>
+                <th>Last message</th>
+                <th>Follow-up 1</th>
+                {fu2Enabled&&<th>Follow-up 2</th>}
+                <th style={{width:"100px"}}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
               {visible.map((c,i)=>{
                 const fu1 = c.followups?.find(f=>f.followup_num===1);
                 const fu2 = c.followups?.find(f=>f.followup_num===2);
                 const status = getStatus(c);
-                const av = getAvatar(c);
+                const av = getAvatar(c.name, c.lead);
                 const isCold = c.lead==="cold";
                 return (
-                  <div key={i} style={{display:"grid",gridTemplateColumns:cols,
-                    borderBottom:i<visible.length-1?`0.5px solid ${T.border}`:"none",
-                    opacity:isCold?0.45:1,transition:"background .1s",cursor:"default"}}
-                    onMouseEnter={e=>e.currentTarget.style.background=T.card2}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    {/* Contact */}
-                    <div style={{padding:"13px 14px",display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{width:30,height:30,borderRadius:8,background:av.bg,color:av.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:500,flexShrink:0}}>
-                        {av.initials}
+                  <tr key={i} style={{opacity:isCold?0.4:1}}>
+                    <td>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:28,height:28,borderRadius:7,background:av.bg,color:av.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:500,flexShrink:0}}>
+                          {av.initials}
+                        </div>
+                        <span style={{fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
                       </div>
-                      <span style={{fontSize:13,fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
-                    </div>
-                    {/* Phone */}
-                    <div style={{padding:"13px 14px",fontSize:11,color:T.textMuted,display:"flex",alignItems:"center"}}>+{c.phone}</div>
-                    {/* Lead */}
-                    <div style={{padding:"13px 14px",display:"flex",alignItems:"center"}}>
-                      <span style={{fontSize:11,fontWeight:500,padding:"3px 9px",borderRadius:20,
+                    </td>
+                    <td style={{color:T.textMuted,fontSize:11}}>{c.phone}</td>
+                    <td>
+                      <span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:20,
                         background:c.lead==="hot"?"#FAEEDA":c.lead==="warm"?"#E6F1FB":T.card2,
-                        color:c.lead==="hot"?"#633806":c.lead==="warm"?"#0C447C":T.textMuted}}>
+                        color:c.lead==="hot"?"#633806":c.lead==="warm"?"#0C447C":T.textMuted,whiteSpace:"nowrap"}}>
                         {c.lead==="hot"?"Hot":c.lead==="warm"?"Warm":"Cold"}
                       </span>
-                    </div>
-                    {/* Last msg */}
-                    <div style={{padding:"13px 14px",display:"flex",flexDirection:"column",justifyContent:"center",gap:2}}>
-                      <span style={{fontSize:12,color:T.text}}>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</span>
-                      <span style={{fontSize:10,color:T.textFaint}}>{c.silent_mins<60?c.silent_mins+"m ago":Math.floor(c.silent_mins/60)+"h ago"}</span>
-                    </div>
-                    {/* FU1 */}
-                    <div style={{padding:"13px 14px"}}><FuCell fu={fu1} isCold={isCold} fu1Done={false}/></div>
-                    {/* FU2 */}
-                    {fu2Enabled&&<div style={{padding:"13px 14px"}}><FuCell fu={fu2} isCold={isCold} fu1Done={!!fu1&&fu1.status==="sent"}/></div>}
-                    {/* Status */}
-                    <div style={{padding:"13px 14px",display:"flex",alignItems:"center"}}>
-                      <span style={{fontSize:11,fontWeight:500,padding:"3px 10px",borderRadius:20,background:status.bg,color:status.color}}>{status.label}</span>
-                    </div>
-                  </div>
+                    </td>
+                    <td>
+                      <div style={{fontSize:12,color:T.text}}>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</div>
+                      <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{c.silent_mins<60?c.silent_mins+"m ago":Math.floor(c.silent_mins/60)+"h ago"}</div>
+                    </td>
+                    <td><FuCell fu={fu1} isCold={isCold} waitingForFu1={false}/></td>
+                    {fu2Enabled&&<td><FuCell fu={fu2} isCold={isCold} waitingForFu1={!fu1||fu1.status!=="sent"}/></td>}
+                    <td>
+                      <span style={{fontSize:11,fontWeight:500,padding:"3px 10px",borderRadius:20,background:status.bg,color:status.color,whiteSpace:"nowrap"}}>{status.label}</span>
+                    </td>
+                  </tr>
                 );
               })}
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
       )}
     </div>
