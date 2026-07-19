@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.352";
+const CRM_VERSION = "2.9.353";
 
 // Responsive hook
 function useWindowSize() {
@@ -5791,8 +5791,8 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
     : followupTracker;
 
   const cols = fu2Enabled
-    ? "160px 120px 68px 88px 1fr 1fr 88px"
-    : "160px 120px 68px 88px 1fr 88px";
+    ? "1.2fr 1fr 80px 100px 1.5fr 1.5fr 100px"
+    : "1.2fr 1fr 80px 100px 2fr 100px";
 
   const FuCell = ({fu, isCold, fu1Done}) => {
     if(isCold) return <span style={{fontSize:11,color:T.textMuted}}>—</span>;
@@ -5860,8 +5860,8 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
       {!followupTrackerLoading&&visible.length>0&&(
         <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
           {/* Scroll wrapper */}
-          <div style={{overflowX:"auto",overflowY:"auto",maxHeight:520}}>
-            <div style={{minWidth:700}}>
+          <div style={{overflowY:"auto",maxHeight:"calc(100vh - 320px)"}}>
+            <div>
               {/* Header */}
               <div style={{display:"grid",gridTemplateColumns:cols,background:T.card2,borderBottom:`0.5px solid ${T.border}`,position:"sticky",top:0,zIndex:1}}>
                 {["Contact","Phone","Lead","Last msg","Follow-up 1",fu2Enabled?"Follow-up 2":null,"Status"].filter(Boolean).map(h=>(
