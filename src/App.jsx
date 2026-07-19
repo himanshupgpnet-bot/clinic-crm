@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.362";
+const CRM_VERSION = "2.9.363";
 
 // Responsive hook
 function useWindowSize() {
@@ -5879,8 +5879,8 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
       {!followupTrackerLoading&&visible.length===0&&<div style={{textAlign:"center",padding:56,color:T.textMuted,fontSize:13,background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`}}>No active contacts in the last 24 hours</div>}
       {!followupTrackerLoading&&visible.length>0&&<>
         <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
-            <colgroup>
+          <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed",minWidth:700,fontSize:11}}>            <colgroup>
               <col style={{width:"16%"}}/>
               <col style={{width:"12%"}}/>
               <col style={{width:"7%"}}/>
@@ -5944,6 +5944,7 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}
