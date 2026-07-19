@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.348";
+const CRM_VERSION = "2.9.349";
 
 // Responsive hook
 function useWindowSize() {
@@ -4270,7 +4270,23 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
                 {/* ── FOLLOW-UP ── */}
                 {settingsNav==="followup"&&(!isAdmin||settingsClinic)&&<>
-                  {/* Master toggle card */}
+                  {/* Follow-up sub-tabs */}
+                  {(()=>{
+                    const [fuTab, setFuTab] = React.useState("settings");
+                    return <>
+                      <div style={{display:"flex",gap:4,marginBottom:18,background:T.card2,borderRadius:10,padding:4,width:"fit-content"}}>
+                        {[{id:"settings",label:"Settings",icon:"ti-adjustments-horizontal"},{id:"tracker",label:"Tracker",icon:"ti-list-check"}].map(t=>(
+                          <button key={t.id} onClick={()=>setFuTab(t.id)}
+                            style={{padding:"6px 16px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",
+                              fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5,
+                              background:fuTab===t.id?T.card:"transparent",
+                              color:fuTab===t.id?T.text:T.textMuted,
+                              boxShadow:fuTab===t.id?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
+                            <i className={`ti ${t.icon}`} style={{fontSize:13}}/>{t.label}
+                          </button>
+                        ))}
+                      </div>
+                      {fuTab==="settings"&&<>
                   <div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:"20px 22px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -4351,7 +4367,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </button>
 
                   {/* ── FOLLOW-UP TRACKER ── */}
-                  <FollowupTracker
+                  </>}
+                  {fuTab==="tracker"&&<FollowupTracker
                     T={T} WA_GREEN={WA_GREEN}
                     API={API} authHeaders={authHeaders}
                     appSettings={appSettings}
@@ -4360,7 +4377,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     fetchFollowupTracker={()=>fetchFollowupTracker(settingsClinic?.id||settingsClinic?.clinic_id||null)}
                     hideCompleted={hideCompleted}
                     setHideCompleted={setHideCompleted}
-                  />
+                  />}
+                  </>;
+                  })()}
                 </>}
 
                 {/* ── NOTIFICATIONS (Telegram) ── */}
@@ -5730,148 +5749,135 @@ function SectionCard({title, children, T}) {
   );
 }
 
-function FollowupTracker({T, WA_GREEN, API, authHeaders, appSettings, followupTracker, followupTrackerLoading, fetchFollowupTracker, hideCompleted, setHideCompleted}) {
+function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTrackerLoading, fetchFollowupTracker, hideCompleted, setHideCompleted}) {
   const followupEnabled = appSettings.followup_enabled === "true";
   const fu2Enabled = appSettings.followup_2_enabled === "true";
 
-  React.useEffect(() => {
+  React.useEffect(()=>{
     if(followupEnabled) fetchFollowupTracker();
   }, [followupEnabled]);
 
-  React.useEffect(() => {
+  React.useEffect(()=>{
     if(!followupEnabled) return;
-    const interval = setInterval(fetchFollowupTracker, 30000);
-    return () => clearInterval(interval);
+    const t = setInterval(fetchFollowupTracker, 30000);
+    return ()=>clearInterval(t);
   }, [followupEnabled]);
 
   if(!followupEnabled) return (
-    <div style={{marginTop:20,background:T.card,borderRadius:14,border:`1.5px dashed ${T.border}`,padding:"32px 24px",textAlign:"center"}}>
+    <div style={{textAlign:"center",padding:"40px 24px",background:T.card,borderRadius:14,border:`1.5px dashed ${T.border}`,marginTop:8}}>
       <i className="ti ti-bell-off" style={{fontSize:32,color:T.textFaint,display:"block",marginBottom:12}}/>
-      <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:6}}>Follow-up tracker is off</div>
-      <div style={{fontSize:13,color:T.textMuted,lineHeight:1.6}}>Enable auto follow-up above to see the tracker and start sending automated messages to hot and warm leads.</div>
+      <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:6}}>Follow-up is off</div>
+      <div style={{fontSize:13,color:T.textMuted}}>Enable auto follow-up in the Settings tab to start tracking.</div>
     </div>
   );
 
   const total = followupTracker.length;
   const sent = followupTracker.filter(c=>c.followups?.some(f=>f.status==="sent")).length;
   const skipped = followupTracker.filter(c=>c.followups?.some(f=>f.status==="skipped")).length;
-  const pending = followupTracker.filter(c=>!c.followups?.length && c.lead!=="cold").length;
-  const cold = followupTracker.filter(c=>c.lead==="cold").length;
+  const pending = followupTracker.filter(c=>c.lead!=="cold"&&!c.followups?.length).length;
 
-  const visible = hideCompleted
-    ? followupTracker.filter(c=>!c.followups?.every(f=>f.status==="sent") || !c.followups?.length)
-    : followupTracker;
-
-  const getStatus = (contact) => {
-    const fus = contact.followups || [];
-    if(contact.lead==="cold") return {label:"Excluded",color:"#888",bg:T.card2};
-    if(fus.length===0) return {label:"Pending",color:"#f59e0b",bg:"#fef3c7"};
-    const allSent = fus.every(f=>f.status==="sent");
-    const hasSkip = fus.some(f=>f.status==="skipped");
-    if(allSent) return {label:"All sent",color:"#22c55e",bg:"#f0fdf4"};
-    if(hasSkip && fus.some(f=>f.status==="sent")) return {label:"Partial",color:"#f59e0b",bg:"#fef3c7"};
-    if(hasSkip) return {label:"AI skipped",color:"#f59e0b",bg:"#fef3c7"};
-    return {label:"In progress",color:"#3b82f6",bg:"#eff6ff"};
+  const getStatus = (c) => {
+    const fus = c.followups||[];
+    if(c.lead==="cold") return {label:"Excluded",color:T.textMuted,bg:T.card2};
+    if(!fus.length) return {label:"Pending",color:"#d97706",bg:"#fffbeb"};
+    if(fus.every(f=>f.status==="sent")) return {label:"All sent",color:"#16a34a",bg:"#f0fdf4"};
+    if(fus.some(f=>f.status==="skipped")&&fus.some(f=>f.status==="sent")) return {label:"Partial",color:"#d97706",bg:"#fffbeb"};
+    if(fus.some(f=>f.status==="skipped")) return {label:"AI skipped",color:"#d97706",bg:"#fffbeb"};
+    return {label:"In progress",color:"#2563eb",bg:"#eff6ff"};
   };
 
+  const visible = hideCompleted
+    ? followupTracker.filter(c=>!(c.followups?.length&&c.followups.every(f=>f.status==="sent")))
+    : followupTracker;
+
   return (
-    <div style={{marginTop:24}}>
-      {/* Header */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:8}}>
-        <div>
-          <div style={{fontSize:14,fontWeight:700,color:T.text}}>Follow-up tracker</div>
-          <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>Auto-refreshes every 30s · Today only</div>
-        </div>
+    <div style={{paddingTop:4}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
+        {[{l:"Eligible",v:total,c:T.text},{l:"Sent",v:sent,c:"#16a34a"},{l:"AI skipped",v:skipped,c:"#d97706"},{l:"Pending",v:pending,c:"#2563eb"}].map(s=>(
+          <div key={s.l} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px"}}>
+            <div style={{fontSize:11,color:T.textMuted,marginBottom:2}}>{s.l}</div>
+            <div style={{fontSize:20,fontWeight:700,color:s.c}}>{followupTrackerLoading?"—":s.v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+        <div style={{fontSize:12,color:T.textMuted}}>Auto-refreshes every 30s · Today only</div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <label style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:5,cursor:"pointer"}}>
-            <input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)}/>
-            Hide completed
+            <input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)}/> Hide completed
           </label>
           <button onClick={fetchFollowupTracker} style={{fontSize:12,padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",color:T.text,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
             <i className="ti ti-refresh" style={{fontSize:13}}/> Refresh
           </button>
         </div>
       </div>
-
-      {/* Summary cards */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
-        {[
-          {label:"Eligible",val:total,color:T.text},
-          {label:"Sent",val:sent,color:"#22c55e"},
-          {label:"AI skipped",val:skipped,color:"#f59e0b"},
-          {label:"Pending",val:pending,color:"#3b82f6"},
-        ].map(s=>(
-          <div key={s.label} style={{background:T.card,borderRadius:10,border:`1px solid ${T.border}`,padding:"10px 14px"}}>
-            <div style={{fontSize:11,color:T.textMuted,marginBottom:3}}>{s.label}</div>
-            <div style={{fontSize:20,fontWeight:700,color:s.color}}>{followupTrackerLoading?"—":s.val}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Rows */}
-      {followupTrackerLoading&&<div style={{textAlign:"center",padding:24,color:T.textMuted,fontSize:13}}>Loading...</div>}
-      {!followupTrackerLoading&&visible.length===0&&<div style={{textAlign:"center",padding:24,color:T.textMuted,fontSize:13}}>No active contacts in last 24 hours</div>}
-      {!followupTrackerLoading&&visible.map((c,i)=>{
-        const status = getStatus(c);
-        const fu1 = c.followups?.find(f=>f.followup_num===1);
-        const fu2 = c.followups?.find(f=>f.followup_num===2);
-        const isCold = c.lead==="cold";
-        return (
-          <div key={i} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:"14px 16px",marginBottom:8,opacity:isCold?0.5:1}}>
-            {/* Top row */}
-            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:10}}>
-              <div style={{fontSize:13,fontWeight:600,color:T.text,minWidth:140}}>{c.name}</div>
-              <span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:20,
-                background:c.lead==="hot"?"#fef3c7":c.lead==="warm"?"#eff6ff":T.card2,
-                color:c.lead==="hot"?"#92400e":c.lead==="warm"?"#1e40af":T.textMuted}}>
-                {c.lead==="hot"?"🔥 Hot":c.lead==="warm"?"💧 Warm":"❄️ Cold"}
-              </span>
-              <span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:20,background:status.bg,color:status.color}}>
-                {status.label}
-              </span>
-              <div style={{fontSize:11,color:T.textMuted,marginLeft:"auto"}}>{c.phone}</div>
-            </div>
-
-            {/* Grid */}
-            <div style={{display:"grid",gridTemplateColumns:`1fr 1fr${fu2Enabled?" 1fr":""}`,gap:12}}>
-              {/* Last message */}
-              <div>
-                <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.5,marginBottom:4}}>Last message</div>
-                <div style={{fontSize:12,color:T.text}}>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</div>
-                <div style={{fontSize:11,color:T.textMuted}}>{c.silent_mins<60?`${c.silent_mins} mins ago`:`${Math.floor(c.silent_mins/60)}h ${c.silent_mins%60}m ago`}</div>
-              </div>
-
-              {/* Follow-up 1 */}
-              <div>
-                <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.5,marginBottom:4}}>
-                  <span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",marginRight:5,background:fu1?.status==="sent"?"#22c55e":fu1?.status==="skipped"?"#f59e0b":"#d1d5db"}}/>
-                  Follow-up 1{fu1?.created_at?` · ${fu1.created_at}`:""}
-                </div>
-                {isCold?<div style={{fontSize:11,color:T.textMuted}}>Cold leads excluded</div>
-                :fu1?.status==="sent"?<div style={{background:T.card2,borderRadius:6,padding:"6px 8px",fontSize:11,color:T.textMuted,fontStyle:"italic",lineHeight:1.5}}>"{fu1.message?.slice(0,100)}{fu1.message?.length>100?"...":""}"</div>
-                :fu1?.status==="skipped"?<div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:6,padding:"6px 8px",fontSize:11,color:"#92400e",lineHeight:1.5}}>{fu1.skip_reason||"AI decided to skip"}</div>
-                :<div style={{fontSize:11,color:"#f59e0b"}}>{c.silent_mins>0?"Pending — waiting for delay":"Too soon"}</div>}
-              </div>
-
-              {/* Follow-up 2 */}
-              {fu2Enabled&&<div>
-                <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.5,marginBottom:4}}>
-                  <span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",marginRight:5,background:fu2?.status==="sent"?"#22c55e":fu2?.status==="skipped"?"#f59e0b":"#d1d5db"}}/>
-                  Follow-up 2{fu2?.created_at?` · ${fu2.created_at}`:""}
-                </div>
-                {isCold?<div style={{fontSize:11,color:T.textMuted}}>—</div>
-                :fu2?.status==="sent"?<div style={{background:T.card2,borderRadius:6,padding:"6px 8px",fontSize:11,color:T.textMuted,fontStyle:"italic",lineHeight:1.5}}>"{fu2.message?.slice(0,100)}{fu2.message?.length>100?"...":""}"</div>
-                :fu2?.status==="skipped"?<div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:6,padding:"6px 8px",fontSize:11,color:"#92400e",lineHeight:1.5}}>{fu2.skip_reason||"AI decided to skip"}</div>
-                :fu1?.status==="sent"?<div style={{fontSize:11,color:"#f59e0b"}}>Pending · after delay</div>
-                :<div style={{fontSize:11,color:T.textMuted}}>Not yet</div>}
-              </div>}
-            </div>
-          </div>
-        );
-      })}
+      {followupTrackerLoading&&<div style={{textAlign:"center",padding:32,color:T.textMuted,fontSize:13}}>Loading...</div>}
+      {!followupTrackerLoading&&visible.length===0&&<div style={{textAlign:"center",padding:32,color:T.textMuted,fontSize:13}}>No active contacts in last 24 hours</div>}
+      {!followupTrackerLoading&&visible.length>0&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <thead>
+            <tr style={{borderBottom:`1px solid ${T.border}`,background:T.card2}}>
+              {["Name","Phone","Lead","Last message","Follow-up 1",fu2Enabled?"Follow-up 2":null,"Status"].filter(Boolean).map(h=>(
+                <th key={h} style={{padding:"10px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap"}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((c,i)=>{
+              const fu1 = c.followups?.find(f=>f.followup_num===1);
+              const fu2 = c.followups?.find(f=>f.followup_num===2);
+              const status = getStatus(c);
+              const isCold = c.lead==="cold";
+              return (
+                <tr key={i} style={{borderBottom:`1px solid ${T.border}40`,opacity:isCold?0.55:1}}
+                  onMouseEnter={e=>e.currentTarget.style.background=T.card2}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <td style={{padding:"10px 12px",fontWeight:600,color:T.text,whiteSpace:"nowrap"}}>{c.name}</td>
+                  <td style={{padding:"10px 12px",color:T.textMuted,whiteSpace:"nowrap"}}>{c.phone}</td>
+                  <td style={{padding:"10px 12px"}}>
+                    <span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:20,
+                      background:c.lead==="hot"?"#fef3c7":c.lead==="warm"?"#eff6ff":T.card2,
+                      color:c.lead==="hot"?"#92400e":c.lead==="warm"?"#1e40af":T.textMuted}}>
+                      {c.lead==="hot"?"🔥 Hot":c.lead==="warm"?"💧 Warm":"❄️ Cold"}
+                    </span>
+                  </td>
+                  <td style={{padding:"10px 12px",color:T.textMuted,whiteSpace:"nowrap"}}>
+                    <div>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</div>
+                    <div style={{fontSize:10,color:T.textFaint}}>{c.silent_mins<60?c.silent_mins+"m ago":Math.floor(c.silent_mins/60)+"h ago"}</div>
+                  </td>
+                  <td style={{padding:"10px 12px",maxWidth:200}}>
+                    {isCold?<span style={{color:T.textMuted}}>—</span>
+                    :fu1?.status==="sent"?<>
+                      <div style={{fontSize:10,color:"#16a34a",fontWeight:600,marginBottom:2}}>✓ Sent {fu1.created_at}</div>
+                      <div style={{color:T.textMuted,lineHeight:1.4,fontSize:11}}>"{fu1.message?.slice(0,80)}{fu1.message?.length>80?"...":""}"</div>
+                    </>:fu1?.status==="skipped"?<>
+                      <div style={{fontSize:10,color:"#d97706",fontWeight:600,marginBottom:2}}>⚡ AI skipped</div>
+                      <div style={{color:"#d97706",fontSize:11,lineHeight:1.4}}>{fu1.skip_reason||"AI decided not to follow up"}</div>
+                    </>:<span style={{color:"#d97706",fontSize:11}}>Pending</span>}
+                  </td>
+                  {fu2Enabled&&<td style={{padding:"10px 12px",maxWidth:200}}>
+                    {isCold?<span style={{color:T.textMuted}}>—</span>
+                    :fu2?.status==="sent"?<>
+                      <div style={{fontSize:10,color:"#16a34a",fontWeight:600,marginBottom:2}}>✓ Sent {fu2.created_at}</div>
+                      <div style={{color:T.textMuted,lineHeight:1.4,fontSize:11}}>"{fu2.message?.slice(0,80)}{fu2.message?.length>80?"...":""}"</div>
+                    </>:fu2?.status==="skipped"?<>
+                      <div style={{fontSize:10,color:"#d97706",fontWeight:600,marginBottom:2}}>⚡ AI skipped</div>
+                      <div style={{color:"#d97706",fontSize:11}}>{fu2.skip_reason||"AI decided not to follow up"}</div>
+                    </>:fu1?.status==="sent"?<span style={{color:"#d97706",fontSize:11}}>Pending</span>:<span style={{color:T.textMuted,fontSize:11}}>—</span>}
+                  </td>}
+                  <td style={{padding:"10px 12px",whiteSpace:"nowrap"}}>
+                    <span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:20,background:status.bg,color:status.color}}>{status.label}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>}
     </div>
   );
 }
+
 
 function AIProviderCards({appSettings, setAppSettings, setSettingsDirtyWithRef, T}) {
   const [showKey, setShowKey] = useState({});
