@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.355";
+const CRM_VERSION = "2.9.356";
 
 // Responsive hook
 function useWindowSize() {
@@ -5856,12 +5856,13 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
         <div style={{border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
           <table className="nx-table" style={{tableLayout:"fixed",width:"100%"}}>
             <colgroup>
-              <col style={{width:"16%"}}/>
-              <col style={{width:"12%"}}/>
-              <col style={{width:"7%"}}/>
+              <col style={{width:"18%"}}/>
+              <col style={{width:"13%"}}/>
+              <col style={{width:"8%"}}/>
+              <col style={{width:"11%"}}/>
+              <col style={{width:fu2Enabled?"25%":"40%"}}/>
+              {fu2Enabled&&<col style={{width:"25%"}}/>}
               <col style={{width:"10%"}}/>
-              <col style={{width:fu2Enabled?"27.5%":"55%"}}/>
-              {fu2Enabled&&<col style={{width:"27.5%"}}/>}
             </colgroup>
             <thead>
               <tr>
@@ -5883,30 +5884,30 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
                 const isCold = c.lead==="cold";
                 return (
                   <tr key={i} style={{opacity:isCold?0.4:1}}>
-                    <td>
+                    <td style={{overflow:"hidden"}}>
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
                         <div style={{width:28,height:28,borderRadius:7,background:av.bg,color:av.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:500,flexShrink:0}}>
                           {av.initials}
                         </div>
-                        <span style={{fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
+                        <span style={{fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{c.name}</span>
                       </div>
                     </td>
-                    <td style={{color:T.textMuted,fontSize:11}}>{c.phone}</td>
-                    <td>
+                    <td style={{color:T.textMuted,fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.phone}</td>
+                    <td style={{overflow:"hidden"}}>
                       <span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:20,
                         background:c.lead==="hot"?"#FAEEDA":c.lead==="warm"?"#E6F1FB":T.card2,
                         color:c.lead==="hot"?"#633806":c.lead==="warm"?"#0C447C":T.textMuted,whiteSpace:"nowrap"}}>
                         {c.lead==="hot"?"Hot":c.lead==="warm"?"Warm":"Cold"}
                       </span>
                     </td>
-                    <td>
-                      <div style={{fontSize:12,color:T.text}}>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</div>
+                    <td style={{overflow:"hidden"}}>
+                      <div style={{fontSize:12,color:T.text,whiteSpace:"nowrap"}}>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</div>
                       <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{c.silent_mins<60?c.silent_mins+"m ago":Math.floor(c.silent_mins/60)+"h ago"}</div>
                     </td>
-                    <td><FuCell fu={fu1} isCold={isCold} waitingForFu1={false}/></td>
-                    {fu2Enabled&&<td><FuCell fu={fu2} isCold={isCold} waitingForFu1={!fu1||fu1.status!=="sent"}/></td>}
-                    <td>
-                      <span style={{fontSize:11,fontWeight:500,padding:"3px 10px",borderRadius:20,background:status.bg,color:status.color,whiteSpace:"nowrap"}}>{status.label}</span>
+                    <td style={{overflow:"hidden",verticalAlign:"top",paddingTop:12}}><FuCell fu={fu1} isCold={isCold} waitingForFu1={false}/></td>
+                    {fu2Enabled&&<td style={{overflow:"hidden",verticalAlign:"top",paddingTop:12}}><FuCell fu={fu2} isCold={isCold} waitingForFu1={!fu1||fu1.status!=="sent"}/></td>}
+                    <td style={{overflow:"hidden"}}>
+                      <span style={{fontSize:11,fontWeight:500,padding:"3px 10px",borderRadius:20,background:status.bg,color:status.color,whiteSpace:"nowrap",display:"inline-block"}}>{status.label}</span>
                     </td>
                   </tr>
                 );
