@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.353";
+const CRM_VERSION = "2.9.354";
 
 // Responsive hook
 function useWindowSize() {
@@ -4054,7 +4054,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
               {/* ── RIGHT SETTINGS CONTENT ── */}
               <div style={{flex:1,overflowY:"auto",padding:"24px 40px",display:"flex",justifyContent:"center"}}>
-              <div style={{width:"100%",maxWidth:560}}>
+              <div style={{width:"100%",maxWidth:fuTab==="tracker"?"100%":560}}>
 
                 {/* Sticky save bar */}
                 {settingsDirty&&<div style={{position:"sticky",top:0,zIndex:10,marginBottom:20,background:T.bg,paddingBottom:8}}>
@@ -5860,7 +5860,7 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
       {!followupTrackerLoading&&visible.length>0&&(
         <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
           {/* Scroll wrapper */}
-          <div style={{overflowY:"auto",maxHeight:"calc(100vh - 320px)"}}>
+          <div style={{overflowY:"auto"}}>
             <div>
               {/* Header */}
               <div style={{display:"grid",gridTemplateColumns:cols,background:T.card2,borderBottom:`0.5px solid ${T.border}`,position:"sticky",top:0,zIndex:1}}>
