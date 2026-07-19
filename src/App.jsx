@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.363";
+const CRM_VERSION = "2.9.364";
 
 // Responsive hook
 function useWindowSize() {
@@ -5880,20 +5880,16 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
       {!followupTrackerLoading&&visible.length>0&&<>
         <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,overflow:"hidden"}}>
           <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed",minWidth:700,fontSize:11}}>            <colgroup>
-              <col style={{width:"16%"}}/>
-              <col style={{width:"12%"}}/>
-              <col style={{width:"7%"}}/>
-              <col style={{width:"10%"}}/>
-              <col style={{width:fu2Enabled?"22%":"38%"}}/>
-              {fu2Enabled&&<col style={{width:"22%"}}/>}
-              <col style={{width:"9%"}}/>
-            </colgroup>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
             <thead>
               <tr style={{borderBottom:`0.5px solid ${T.border}`,background:T.card2}}>
-                {["Contact","Phone","Lead","Last message","Follow-up 1",fu2Enabled?"Follow-up 2":null,"Status"].filter(Boolean).map(h=>(
-                  <th key={h} style={{padding:"11px 16px",textAlign:"left",fontSize:11,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap"}}>{h}</th>
-                ))}
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:140}}>Contact</th>
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:120}}>Phone</th>
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:70}}>Lead</th>
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:100}}>Last message</th>
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:200}}>Follow-up 1</th>
+                {fu2Enabled&&<th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:200}}>Follow-up 2</th>}
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:90}}>Status</th>
               </tr>
             </thead>
             <tbody>
