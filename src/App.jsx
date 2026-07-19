@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.349";
+const CRM_VERSION = "2.9.350";
 
 // Responsive hook
 function useWindowSize() {
@@ -196,6 +196,7 @@ export default function App() {
   const [kbSubTab, setKbSubTab] = useState("kb"); // "kb" | "wizard"
   const [adSummary, setAdSummary] = useState({count:0,totalClicks:0,totalBookings:0});
   const [adData, setAdData] = useState([]);
+  const [fuTab, setFuTab] = useState("settings");
   const [followupTracker, setFollowupTracker] = useState([]);
   const [followupTrackerLoading, setFollowupTrackerLoading] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(false);
@@ -4271,22 +4272,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {/* ── FOLLOW-UP ── */}
                 {settingsNav==="followup"&&(!isAdmin||settingsClinic)&&<>
                   {/* Follow-up sub-tabs */}
-                  {(()=>{
-                    const [fuTab, setFuTab] = React.useState("settings");
-                    return <>
-                      <div style={{display:"flex",gap:4,marginBottom:18,background:T.card2,borderRadius:10,padding:4,width:"fit-content"}}>
-                        {[{id:"settings",label:"Settings",icon:"ti-adjustments-horizontal"},{id:"tracker",label:"Tracker",icon:"ti-list-check"}].map(t=>(
-                          <button key={t.id} onClick={()=>setFuTab(t.id)}
-                            style={{padding:"6px 16px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",
-                              fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5,
-                              background:fuTab===t.id?T.card:"transparent",
-                              color:fuTab===t.id?T.text:T.textMuted,
-                              boxShadow:fuTab===t.id?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
-                            <i className={`ti ${t.icon}`} style={{fontSize:13}}/>{t.label}
-                          </button>
-                        ))}
-                      </div>
-                      {fuTab==="settings"&&<>
+                  <div style={{display:"flex",gap:4,marginBottom:18,background:T.card2,borderRadius:10,padding:4,width:"fit-content"}}>
+                    {[{id:"settings",label:"Settings",icon:"ti-adjustments-horizontal"},{id:"tracker",label:"Tracker",icon:"ti-list-check"}].map(t=>(
+                      <button key={t.id} onClick={()=>setFuTab(t.id)}
+                        style={{padding:"6px 16px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",
+                          fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5,
+                          background:fuTab===t.id?T.card:"transparent",
+                          color:fuTab===t.id?T.text:T.textMuted,
+                          boxShadow:fuTab===t.id?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
+                        <i className={`ti ${t.icon}`} style={{fontSize:13}}/>{t.label}
+                      </button>
+                    ))}
+                  </div>
+                  {fuTab==="settings"&&<>
                   <div style={{background:T.card,borderRadius:14,border:`1px solid ${T.border}`,padding:"20px 22px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,.04)"}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -4378,8 +4376,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     hideCompleted={hideCompleted}
                     setHideCompleted={setHideCompleted}
                   />}
-                  </>;
-                  })()}
                 </>}
 
                 {/* ── NOTIFICATIONS (Telegram) ── */}
