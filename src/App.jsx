@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.350";
+const CRM_VERSION = "2.9.351";
 
 // Responsive hook
 function useWindowSize() {
@@ -5748,11 +5748,9 @@ function SectionCard({title, children, T}) {
 function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTrackerLoading, fetchFollowupTracker, hideCompleted, setHideCompleted}) {
   const followupEnabled = appSettings.followup_enabled === "true";
   const fu2Enabled = appSettings.followup_2_enabled === "true";
+  const [expanded, setExpanded] = React.useState({});
 
-  React.useEffect(()=>{
-    if(followupEnabled) fetchFollowupTracker();
-  }, [followupEnabled]);
-
+  React.useEffect(()=>{ if(followupEnabled) fetchFollowupTracker(); }, [followupEnabled]);
   React.useEffect(()=>{
     if(!followupEnabled) return;
     const t = setInterval(fetchFollowupTracker, 30000);
@@ -5760,10 +5758,12 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
   }, [followupEnabled]);
 
   if(!followupEnabled) return (
-    <div style={{textAlign:"center",padding:"40px 24px",background:T.card,borderRadius:14,border:`1.5px dashed ${T.border}`,marginTop:8}}>
-      <i className="ti ti-bell-off" style={{fontSize:32,color:T.textFaint,display:"block",marginBottom:12}}/>
-      <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:6}}>Follow-up is off</div>
-      <div style={{fontSize:13,color:T.textMuted}}>Enable auto follow-up in the Settings tab to start tracking.</div>
+    <div style={{textAlign:"center",padding:"48px 24px",marginTop:16}}>
+      <div style={{width:52,height:52,borderRadius:16,background:"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
+        <i className="ti ti-bell-off" style={{fontSize:24,color:"#9ca3af"}}/>
+      </div>
+      <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:6}}>Follow-up tracker is off</div>
+      <div style={{fontSize:13,color:T.textMuted,lineHeight:1.6,maxWidth:320,margin:"0 auto"}}>Enable auto follow-up in the Settings tab to start tracking automated messages sent to your leads.</div>
     </div>
   );
 
@@ -5774,102 +5774,152 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
 
   const getStatus = (c) => {
     const fus = c.followups||[];
-    if(c.lead==="cold") return {label:"Excluded",color:T.textMuted,bg:T.card2};
-    if(!fus.length) return {label:"Pending",color:"#d97706",bg:"#fffbeb"};
-    if(fus.every(f=>f.status==="sent")) return {label:"All sent",color:"#16a34a",bg:"#f0fdf4"};
-    if(fus.some(f=>f.status==="skipped")&&fus.some(f=>f.status==="sent")) return {label:"Partial",color:"#d97706",bg:"#fffbeb"};
-    if(fus.some(f=>f.status==="skipped")) return {label:"AI skipped",color:"#d97706",bg:"#fffbeb"};
-    return {label:"In progress",color:"#2563eb",bg:"#eff6ff"};
+    if(c.lead==="cold") return {label:"Excluded",dot:"#d1d5db",text:"#9ca3af",bg:"#f9fafb"};
+    if(!fus.length) return {label:"Pending",dot:"#f59e0b",text:"#d97706",bg:"#fffbeb"};
+    if(fus.every(f=>f.status==="sent")) return {label:"All sent",dot:"#22c55e",text:"#16a34a",bg:"#f0fdf4"};
+    if(fus.some(f=>f.status==="skipped")&&fus.some(f=>f.status==="sent")) return {label:"Partial",dot:"#f59e0b",text:"#d97706",bg:"#fffbeb"};
+    if(fus.some(f=>f.status==="skipped")) return {label:"AI skipped",dot:"#f59e0b",text:"#d97706",bg:"#fffbeb"};
+    return {label:"In progress",dot:"#3b82f6",text:"#2563eb",bg:"#eff6ff"};
   };
 
   const visible = hideCompleted
     ? followupTracker.filter(c=>!(c.followups?.length&&c.followups.every(f=>f.status==="sent")))
     : followupTracker;
 
+  const FuCell = ({fu, isCold}) => {
+    if(isCold) return <span style={{color:T.textMuted,fontSize:12}}>—</span>;
+    if(!fu) return <span style={{fontSize:12,color:"#f59e0b"}}>Pending</span>;
+    if(fu.status==="sent") return (
+      <div>
+        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",display:"inline-block",flexShrink:0}}/>
+          <span style={{fontSize:11,fontWeight:600,color:"#16a34a"}}>{fu.created_at}</span>
+        </div>
+        <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5,fontStyle:"italic",paddingLeft:11}}>"{fu.message?.slice(0,70)}{fu.message?.length>70?"...":""}"</div>
+      </div>
+    );
+    if(fu.status==="skipped") return (
+      <div>
+        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:"#f59e0b",display:"inline-block",flexShrink:0}}/>
+          <span style={{fontSize:11,fontWeight:600,color:"#d97706"}}>AI skipped</span>
+        </div>
+        <div style={{fontSize:11,color:"#d97706",lineHeight:1.5,paddingLeft:11}}>{fu.skip_reason||"AI decided not to follow up"}</div>
+      </div>
+    );
+    return <span style={{fontSize:12,color:"#f59e0b"}}>Pending</span>;
+  };
+
   return (
     <div style={{paddingTop:4}}>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
-        {[{l:"Eligible",v:total,c:T.text},{l:"Sent",v:sent,c:"#16a34a"},{l:"AI skipped",v:skipped,c:"#d97706"},{l:"Pending",v:pending,c:"#2563eb"}].map(s=>(
-          <div key={s.l} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 14px"}}>
-            <div style={{fontSize:11,color:T.textMuted,marginBottom:2}}>{s.l}</div>
-            <div style={{fontSize:20,fontWeight:700,color:s.c}}>{followupTrackerLoading?"—":s.v}</div>
+      {/* KPI row */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+        {[
+          {l:"Eligible today",v:total,icon:"ti-users",c:"#6366f1",bg:"#eef2ff"},
+          {l:"Sent",v:sent,icon:"ti-send",c:"#16a34a",bg:"#f0fdf4"},
+          {l:"AI skipped",v:skipped,icon:"ti-brain",c:"#d97706",bg:"#fffbeb"},
+          {l:"Pending",v:pending,icon:"ti-clock",c:"#2563eb",bg:"#eff6ff"},
+        ].map(s=>(
+          <div key={s.l} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:38,height:38,borderRadius:10,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <i className={`ti ${s.icon}`} style={{fontSize:18,color:s.c}}/>
+            </div>
+            <div>
+              <div style={{fontSize:11,color:T.textMuted,marginBottom:2}}>{s.l}</div>
+              <div style={{fontSize:22,fontWeight:700,color:s.c,lineHeight:1}}>{followupTrackerLoading?"—":s.v}</div>
+            </div>
           </div>
         ))}
       </div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-        <div style={{fontSize:12,color:T.textMuted}}>Auto-refreshes every 30s · Today only</div>
+
+      {/* Toolbar */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:6}}>
+          <i className="ti ti-refresh" style={{fontSize:13}}/> Auto-refreshes every 30s · Today only
+        </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <label style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:5,cursor:"pointer"}}>
-            <input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)}/> Hide completed
+          <label style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none"}}>
+            <input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)} style={{accentColor:WA_GREEN}}/>
+            Hide completed
           </label>
-          <button onClick={fetchFollowupTracker} style={{fontSize:12,padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",color:T.text,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
-            <i className="ti ti-refresh" style={{fontSize:13}}/> Refresh
+          <button onClick={fetchFollowupTracker}
+            style={{fontSize:12,padding:"6px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",color:T.text,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:5}}>
+            <i className="ti ti-refresh" style={{fontSize:13}}/>Refresh
           </button>
         </div>
       </div>
-      {followupTrackerLoading&&<div style={{textAlign:"center",padding:32,color:T.textMuted,fontSize:13}}>Loading...</div>}
-      {!followupTrackerLoading&&visible.length===0&&<div style={{textAlign:"center",padding:32,color:T.textMuted,fontSize:13}}>No active contacts in last 24 hours</div>}
-      {!followupTrackerLoading&&visible.length>0&&<div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead>
-            <tr style={{borderBottom:`1px solid ${T.border}`,background:T.card2}}>
-              {["Name","Phone","Lead","Last message","Follow-up 1",fu2Enabled?"Follow-up 2":null,"Status"].filter(Boolean).map(h=>(
-                <th key={h} style={{padding:"10px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap"}}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((c,i)=>{
-              const fu1 = c.followups?.find(f=>f.followup_num===1);
-              const fu2 = c.followups?.find(f=>f.followup_num===2);
-              const status = getStatus(c);
-              const isCold = c.lead==="cold";
-              return (
-                <tr key={i} style={{borderBottom:`1px solid ${T.border}40`,opacity:isCold?0.55:1}}
-                  onMouseEnter={e=>e.currentTarget.style.background=T.card2}
-                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <td style={{padding:"10px 12px",fontWeight:600,color:T.text,whiteSpace:"nowrap"}}>{c.name}</td>
-                  <td style={{padding:"10px 12px",color:T.textMuted,whiteSpace:"nowrap"}}>{c.phone}</td>
-                  <td style={{padding:"10px 12px"}}>
-                    <span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:20,
-                      background:c.lead==="hot"?"#fef3c7":c.lead==="warm"?"#eff6ff":T.card2,
-                      color:c.lead==="hot"?"#92400e":c.lead==="warm"?"#1e40af":T.textMuted}}>
-                      {c.lead==="hot"?"🔥 Hot":c.lead==="warm"?"💧 Warm":"❄️ Cold"}
-                    </span>
-                  </td>
-                  <td style={{padding:"10px 12px",color:T.textMuted,whiteSpace:"nowrap"}}>
-                    <div>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</div>
-                    <div style={{fontSize:10,color:T.textFaint}}>{c.silent_mins<60?c.silent_mins+"m ago":Math.floor(c.silent_mins/60)+"h ago"}</div>
-                  </td>
-                  <td style={{padding:"10px 12px",maxWidth:200}}>
-                    {isCold?<span style={{color:T.textMuted}}>—</span>
-                    :fu1?.status==="sent"?<>
-                      <div style={{fontSize:10,color:"#16a34a",fontWeight:600,marginBottom:2}}>✓ Sent {fu1.created_at}</div>
-                      <div style={{color:T.textMuted,lineHeight:1.4,fontSize:11}}>"{fu1.message?.slice(0,80)}{fu1.message?.length>80?"...":""}"</div>
-                    </>:fu1?.status==="skipped"?<>
-                      <div style={{fontSize:10,color:"#d97706",fontWeight:600,marginBottom:2}}>⚡ AI skipped</div>
-                      <div style={{color:"#d97706",fontSize:11,lineHeight:1.4}}>{fu1.skip_reason||"AI decided not to follow up"}</div>
-                    </>:<span style={{color:"#d97706",fontSize:11}}>Pending</span>}
-                  </td>
-                  {fu2Enabled&&<td style={{padding:"10px 12px",maxWidth:200}}>
-                    {isCold?<span style={{color:T.textMuted}}>—</span>
-                    :fu2?.status==="sent"?<>
-                      <div style={{fontSize:10,color:"#16a34a",fontWeight:600,marginBottom:2}}>✓ Sent {fu2.created_at}</div>
-                      <div style={{color:T.textMuted,lineHeight:1.4,fontSize:11}}>"{fu2.message?.slice(0,80)}{fu2.message?.length>80?"...":""}"</div>
-                    </>:fu2?.status==="skipped"?<>
-                      <div style={{fontSize:10,color:"#d97706",fontWeight:600,marginBottom:2}}>⚡ AI skipped</div>
-                      <div style={{color:"#d97706",fontSize:11}}>{fu2.skip_reason||"AI decided not to follow up"}</div>
-                    </>:fu1?.status==="sent"?<span style={{color:"#d97706",fontSize:11}}>Pending</span>:<span style={{color:T.textMuted,fontSize:11}}>—</span>}
-                  </td>}
-                  <td style={{padding:"10px 12px",whiteSpace:"nowrap"}}>
-                    <span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:20,background:status.bg,color:status.color}}>{status.label}</span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>}
+
+      {/* Table */}
+      {followupTrackerLoading&&(
+        <div style={{textAlign:"center",padding:"48px 0",color:T.textMuted,fontSize:13}}>
+          <i className="ti ti-loader-2" style={{fontSize:24,display:"block",marginBottom:8,color:T.textFaint}}/>Loading...
+        </div>
+      )}
+      {!followupTrackerLoading&&visible.length===0&&(
+        <div style={{textAlign:"center",padding:"48px 0",color:T.textMuted,fontSize:13}}>No active contacts in the last 24 hours</div>
+      )}
+      {!followupTrackerLoading&&visible.length>0&&(
+        <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,overflow:"hidden"}}>
+          {/* Header */}
+          <div style={{display:"grid",gridTemplateColumns:`180px 130px 80px 110px 1fr${fu2Enabled?" 1fr":""} 100px`,gap:0,borderBottom:`1px solid ${T.border}`,background:T.card2,padding:"0 4px"}}>
+            {["Name","Phone","Lead","Last msg","Follow-up 1",fu2Enabled?"Follow-up 2":null,"Status"].filter(Boolean).map(h=>(
+              <div key={h} style={{padding:"10px 12px",fontSize:10,fontWeight:700,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6}}>{h}</div>
+            ))}
+          </div>
+          {/* Rows */}
+          {visible.map((c,i)=>{
+            const fu1 = c.followups?.find(f=>f.followup_num===1);
+            const fu2 = c.followups?.find(f=>f.followup_num===2);
+            const status = getStatus(c);
+            const isCold = c.lead==="cold";
+            return (
+              <div key={i} style={{display:"grid",gridTemplateColumns:`180px 130px 80px 110px 1fr${fu2Enabled?" 1fr":""} 100px`,gap:0,
+                borderBottom:i<visible.length-1?`1px solid ${T.border}40`:"none",
+                background:"transparent",opacity:isCold?0.5:1,transition:"background .12s"}}
+                onMouseEnter={e=>e.currentTarget.style.background=T.card2}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                {/* Name */}
+                <div style={{padding:"12px 12px",display:"flex",alignItems:"flex-start"}}>
+                  <div style={{width:28,height:28,borderRadius:8,background:c.lead==="hot"?"#fef3c7":c.lead==="warm"?"#eff6ff":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginRight:8,fontSize:12,fontWeight:700,color:c.lead==="hot"?"#92400e":c.lead==="warm"?"#1e40af":"#6b7280"}}>
+                    {(c.name||"?")[0].toUpperCase()}
+                  </div>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,lineHeight:1.4,paddingTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                </div>
+                {/* Phone */}
+                <div style={{padding:"12px 12px",fontSize:11,color:T.textMuted,display:"flex",alignItems:"center"}}>+{c.phone}</div>
+                {/* Lead */}
+                <div style={{padding:"12px 12px",display:"flex",alignItems:"center"}}>
+                  <span style={{fontSize:11,fontWeight:600,padding:"3px 8px",borderRadius:20,
+                    background:c.lead==="hot"?"#fef3c7":c.lead==="warm"?"#eff6ff":"#f3f4f6",
+                    color:c.lead==="hot"?"#92400e":c.lead==="warm"?"#1e40af":"#6b7280"}}>
+                    {c.lead==="hot"?"🔥 Hot":c.lead==="warm"?"💧 Warm":"❄️ Cold"}
+                  </span>
+                </div>
+                {/* Last msg */}
+                <div style={{padding:"12px 12px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+                  <div style={{fontSize:12,color:T.text,fontWeight:500}}>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</div>
+                  <div style={{fontSize:10,color:T.textFaint,marginTop:2}}>{c.silent_mins<60?c.silent_mins+"m ago":Math.floor(c.silent_mins/60)+"h ago"}</div>
+                </div>
+                {/* FU1 */}
+                <div style={{padding:"12px 12px",display:"flex",alignItems:"flex-start"}}>
+                  <FuCell fu={fu1} isCold={isCold}/>
+                </div>
+                {/* FU2 */}
+                {fu2Enabled&&<div style={{padding:"12px 12px",display:"flex",alignItems:"flex-start"}}>
+                  <FuCell fu={fu2} isCold={isCold||!fu1}/>
+                </div>}
+                {/* Status */}
+                <div style={{padding:"12px 12px",display:"flex",alignItems:"center"}}>
+                  <span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:20,background:status.bg,color:status.text,display:"flex",alignItems:"center",gap:5}}>
+                    <span style={{width:5,height:5,borderRadius:"50%",background:status.dot,display:"inline-block"}}/>
+                    {status.label}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
