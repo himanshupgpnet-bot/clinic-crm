@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.357";
+const CRM_VERSION = "2.9.358";
 
 // Responsive hook
 function useWindowSize() {
@@ -5445,32 +5445,43 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
      fields:[{key:"wa_phone_number_id",label:"Phone Number ID",ph:"985068241357564"},
              {key:"wa_phone_number",label:"WhatsApp Number",ph:"+60 11 1050 7200"},
              {key:"wa_token",label:"Access Token",ph:"EAAxxxxxxxx",pwd:true}],
-     logo:"📱", permKey:"integration_whatsapp"},
+     logo:<svg viewBox="0 0 24 24" fill="#25D366" width="28" height="28"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>,
+     permKey:"integration_whatsapp"},
     {id:"telegram",  label:"Telegram Alerts", color:"#229ED9", bg:"#eff6ff",
      desc:"Get instant lead alerts and notifications in Telegram",
      isConnected:(d)=>!!(d.telegram_token&&d.telegram_token.length>5&&d.telegram_chat_id),
      statusText:(d)=>d.telegram_chat_id?"Chat: "+d.telegram_chat_id:"",
      fields:[{key:"telegram_token",label:"Bot Token",ph:"8664616537:AAGE9wn...",pwd:true},
              {key:"telegram_chat_id",label:"Group Chat ID",ph:"-5277820778"}],
-     logo:"✈️", permKey:"integration_telegram"},
+     logo:<svg viewBox="0 0 24 24" fill="#229ED9" width="28" height="28"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>,
+     permKey:"integration_telegram"},
     {id:"claude",    label:"Claude AI (Anthropic)", color:"#7c3aed", bg:"#f5f3ff",
      desc:"Powers your AI bot conversations and responses",
      isConnected:(d)=>!!(d.anthropic_key||d.ai_api_key),
      statusText:(d)=>d.ai_model||"claude-haiku-4-5",
      fields:[{key:"anthropic_key",label:"API Key",ph:"sk-ant-api03-...",pwd:true}],
-     logo:"🤖", permKey:null},
+     logo:<svg viewBox="0 0 24 24" width="28" height="28" fill="#7c3aed"><path d="M13.827 3.52l7.653 13.25h-3.296l-1.23-2.176H7.046l-1.23 2.175H2.52l7.653-13.25h3.655zm-1.828 3.325l-2.677 4.655h5.354l-2.677-4.655z"/></svg>,
+     permKey:null},
     {id:"email",     label:"Email Notifications", color:"#ef4444", bg:"#fef2f2",
      desc:"Get notified when hot leads come in or bot needs help",
-     isConnected:()=>false, statusText:()=>"", fields:[], logo:"📧", permKey:null},
+     isConnected:()=>false, statusText:()=>"", fields:[],
+     logo:<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.8" width="28" height="28"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>,
+     permKey:null},
     {id:"sheets",    label:"Google Sheets", color:"#16a34a", bg:"#f0fdf4",
      desc:"Export leads and conversations to Google Sheets automatically",
-     isConnected:()=>false, statusText:()=>"", fields:[], logo:"📊", permKey:null},
+     isConnected:()=>false, statusText:()=>"", fields:[],
+     logo:<svg viewBox="0 0 24 24" width="28" height="28"><rect x="3" y="3" width="18" height="18" rx="2" fill="#16a34a"/><path d="M7 8h10M7 12h10M7 16h6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+     permKey:null},
     {id:"slack",     label:"Slack Notifications", color:"#7c3aed", bg:"#fdf4ff",
      desc:"Send hot lead alerts directly to your Slack channel",
-     isConnected:()=>false, statusText:()=>"", fields:[], logo:"🔔", permKey:null},
+     isConnected:()=>false, statusText:()=>"", fields:[],
+     logo:<svg viewBox="0 0 24 24" width="28" height="28"><g fill="none"><path d="M14.5 10a1.5 1.5 0 01-1.5-1.5v-4a1.5 1.5 0 013 0v4a1.5 1.5 0 01-1.5 1.5z" fill="#E01E5A"/><path d="M19.5 10H18V8.5a1.5 1.5 0 013 0A1.5 1.5 0 0119.5 10z" fill="#E01E5A"/><path d="M9.5 14a1.5 1.5 0 011.5 1.5v4a1.5 1.5 0 01-3 0v-4A1.5 1.5 0 019.5 14z" fill="#2EB67D"/><path d="M4.5 14H6v1.5a1.5 1.5 0 01-3 0A1.5 1.5 0 014.5 14z" fill="#2EB67D"/><path d="M14 14.5a1.5 1.5 0 011.5-1.5h4a1.5 1.5 0 010 3h-4a1.5 1.5 0 01-1.5-1.5z" fill="#ECB22E"/><path d="M14 19.5V18h1.5a1.5 1.5 0 010 3A1.5 1.5 0 0114 19.5z" fill="#ECB22E"/><path d="M10 9.5A1.5 1.5 0 018.5 11h-4a1.5 1.5 0 010-3h4A1.5 1.5 0 0110 9.5z" fill="#36C5F0"/><path d="M10 4.5V6H8.5a1.5 1.5 0 010-3A1.5 1.5 0 0110 4.5z" fill="#36C5F0"/></g></svg>,
+     permKey:null},
     {id:"calendly",  label:"Calendly", color:"#d97706", bg:"#fff7ed",
      desc:"Let the bot book consultations directly into your calendar",
-     isConnected:()=>false, statusText:()=>"", fields:[], logo:"📅", permKey:null},
+     isConnected:()=>false, statusText:()=>"", fields:[],
+     logo:<svg viewBox="0 0 24 24" width="28" height="28" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="#d97706"/><path d="M8 2v4M16 2v4M3 10h18" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/><circle cx="8" cy="15" r="1.5" fill="#fff"/><circle cx="12" cy="15" r="1.5" fill="#fff"/><circle cx="16" cy="15" r="1.5" fill="#fff"/></svg>,
+     permKey:null},
   ];
 
   const visibleConnectors = isAdmin ? ALL_CONNECTORS : ALL_CONNECTORS.filter(c=>{
