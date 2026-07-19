@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.359";
+const CRM_VERSION = "2.9.360";
 
 // Responsive hook
 function useWindowSize() {
@@ -5460,7 +5460,7 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
      isConnected:(d)=>!!(d.anthropic_key||d.ai_api_key),
      statusText:(d)=>d.ai_model||"claude-haiku-4-5",
      fields:[{key:"anthropic_key",label:"API Key",ph:"sk-ant-api03-...",pwd:true}],
-     logo:<svg viewBox="0 0 46 32" width="32" height="22" fill="#7c3aed"><path d="M32.73 0h-6.945L36.945 32h6.945L32.73 0zM13.27 0 2.11 32H9.28l2.27-6.262h11.57L25.39 32h7.17L21.4 0h-8.13zm.67 19.658 3.925-10.82 3.925 10.82H13.94z"/></svg>,
+     logo:<svg viewBox="0 0 24 24" width="28" height="28" fill="#7c3aed" xmlns="http://www.w3.org/2000/svg"><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z"/></svg>,
      permKey:null},
     {id:"email",     label:"Email Notifications", color:"#ef4444", bg:"#fef2f2",
      desc:"Get notified when hot leads come in or bot needs help",
