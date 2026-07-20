@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.368";
+const CRM_VERSION = "2.9.369";
 
 // Responsive hook
 function useWindowSize() {
@@ -6937,7 +6937,13 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
                                 </button>}
                                 <button onClick={()=>setConfirmModal({title:"Delete @"+u.username+"?",
                                   message:"This permanently deletes the user account.",icon:"🗑️",danger:true,
-                                  confirmText:"Yes, Delete",onConfirm:()=>deleteUser(u.id)})}
+                                  confirmText:"Yes, Delete",onConfirm:async()=>{
+                                    try {
+                                      const r = await fetch(`${API}/api/admin/users/${u.id}`,{method:"DELETE",headers:authH()});
+                                      if(r.ok){flash(`✅ @${u.username} deleted`);load();}
+                                      else{const d=await r.json();flash("❌ "+(d.error||"Delete failed"));}
+                                    } catch(e){flash("❌ Error: "+e.message);}
+                                  }})}
                                   title="Delete user"
                                   style={{padding:"4px 10px",borderRadius:6,border:"1px solid #fca5a5",
                                     background:"transparent",color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
