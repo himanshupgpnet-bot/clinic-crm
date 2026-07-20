@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.364";
+const CRM_VERSION = "2.9.365";
 
 // Responsive hook
 function useWindowSize() {
@@ -5771,9 +5771,9 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
 
   if(!followupEnabled) return (
     <div style={{textAlign:"center",padding:"56px 24px",marginTop:8,background:T.card,borderRadius:12,border:`0.5px dashed ${T.border}`}}>
-      <i className="ti ti-bell-off" style={{fontSize:32,color:T.textFaint,display:"block",marginBottom:12}}/>
-      <div style={{fontSize:15,fontWeight:500,color:T.text,marginBottom:6}}>Follow-up tracker is off</div>
-      <div style={{fontSize:13,color:T.textMuted,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Enable auto follow-up in the Settings tab to see activity.</div>
+      <i className="ti ti-bell-off" style={{fontSize:28,color:T.textFaint,display:"block",marginBottom:12}}/>
+      <div style={{fontSize:14,fontWeight:500,color:T.text,marginBottom:6}}>Follow-up tracker is off</div>
+      <div style={{fontSize:12,color:T.textMuted,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Enable auto follow-up in the Settings tab to see activity.</div>
     </div>
   );
 
@@ -5784,16 +5784,19 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
 
   const getStatus = (c) => {
     const fus = c.followups||[];
-    if(c.lead==="cold") return {label:"Excluded",dot:"#9ca3af",text:"#6b7280",bg:"#f3f4f6"};
+    if(c.lead==="cold") return {label:"Excluded",dot:"#9ca3af",text:T.textMuted,bg:T.card2};
     if(!fus.length) return {label:"Pending",dot:"#f59e0b",text:"#b45309",bg:"#fffbeb"};
-    if(fus.every(f=>f.status==="sent")) return {label:"All sent",dot:"#22c55e",text:"#15803d",bg:"#f0fdf4"};
+    if(fus.every(f=>f.status==="sent")) return {label:"All sent",dot:"#22c55e",text:"#27500A",bg:"#EAF3DE"};
     if(fus.some(f=>f.status==="skipped")&&fus.some(f=>f.status==="sent")) return {label:"Partial",dot:"#f59e0b",text:"#b45309",bg:"#fffbeb"};
-    if(fus.some(f=>f.status==="skipped")) return {label:"Skipped",dot:"#f59e0b",text:"#b45309",bg:"#fffbeb"};
-    return {label:"In progress",dot:"#60a5fa",text:"#1d4ed8",bg:"#eff6ff"};
+    if(fus.some(f=>f.status==="skipped")) return {label:"Skipped",dot:"#f59e0b",text:"#854F0B",bg:"#FAEEDA"};
+    return {label:"In progress",dot:"#60a5fa",text:"#185FA5",bg:"#E6F1FB"};
   };
 
-  const getInitials = (name) => (name||"?").split(" ").slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
-  const getAvatarColor = (lead) => lead==="hot"?{bg:"#fef3c7",c:"#92400e"}:lead==="warm"?{bg:"#dbeafe",c:"#1e40af"}:{bg:"#f3f4f6",c:"#6b7280"};
+  const getAv = (name, lead) => {
+    const initials = (name||"?").split(" ").slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
+    const s = lead==="hot"?{bg:"#FAEEDA",c:"#633806"}:lead==="warm"?{bg:"#E6F1FB",c:"#0C447C"}:{bg:T.card2,c:T.textMuted};
+    return {...s, initials};
+  };
 
   const visible = hideCompleted
     ? followupTracker.filter(c=>!(c.followups?.length&&c.followups.every(f=>f.status==="sent")))
@@ -5803,174 +5806,150 @@ function FollowupTracker({T, WA_GREEN, appSettings, followupTracker, followupTra
   const paged = visible.slice((page-1)*perPage, page*perPage);
 
   const FuCell = ({fu, isCold, disabled}) => {
-    if(isCold||disabled) return <span style={{fontSize:12,color:"#9ca3af"}}>—</span>;
-    if(!fu) return <div style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:12,color:"#f59e0b"}}><span style={{width:6,height:6,borderRadius:"50%",background:"#f59e0b",display:"inline-block"}}/> Pending</div>;
+    if(isCold) return <span style={{fontSize:11,color:T.textMuted}}>—</span>;
+    if(disabled) return <span style={{fontSize:11,color:T.textMuted}}>—</span>;
+    if(!fu) return <div style={{fontSize:11,color:"#b45309",display:"flex",alignItems:"center",gap:4}}><span style={{width:5,height:5,borderRadius:"50%",background:"#f59e0b",display:"inline-block"}}/> Pending</div>;
     if(fu.status==="sent") return (
       <div>
-        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
-          <span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",flexShrink:0,display:"inline-block"}}/>
-          <span style={{fontSize:11,fontWeight:500,color:"#15803d"}}>{fu.created_at}</span>
+        <div style={{fontSize:11,color:"#27500A",display:"flex",alignItems:"center",gap:4,marginBottom:3}}>
+          <span style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",display:"inline-block",flexShrink:0}}/>
+          Sent · {fu.created_at}
         </div>
-        <div style={{fontSize:11,color:"#6b7280",fontStyle:"italic",lineHeight:1.5,paddingLeft:11,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>
-          "{fu.message?.slice(0,100)}{fu.message?.length>100?"...":""}"
-        </div>
+        <div style={{fontSize:11,color:T.textMuted,fontStyle:"italic",lineHeight:1.5}}>"{fu.message?.slice(0,90)}{fu.message?.length>90?"...":""}"</div>
       </div>
     );
     if(fu.status==="skipped") return (
       <div>
-        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
-          <span style={{width:6,height:6,borderRadius:"50%",background:"#f59e0b",flexShrink:0,display:"inline-block"}}/>
-          <span style={{fontSize:11,fontWeight:500,color:"#b45309"}}>AI skipped</span>
+        <div style={{fontSize:11,color:"#854F0B",display:"flex",alignItems:"center",gap:4,marginBottom:3}}>
+          <span style={{width:5,height:5,borderRadius:"50%",background:"#f59e0b",display:"inline-block",flexShrink:0}}/>
+          AI skipped
         </div>
-        <div style={{fontSize:11,color:"#b45309",lineHeight:1.5,paddingLeft:11}}>{fu.skip_reason||"AI decided not to send"}</div>
+        <div style={{fontSize:11,color:"#854F0B",lineHeight:1.5}}>{fu.skip_reason||"AI decided not to send"}</div>
       </div>
     );
-    return <span style={{fontSize:12,color:"#f59e0b"}}>Pending</span>;
+    return <span style={{fontSize:11,color:"#b45309"}}>Pending</span>;
   };
+
+  const pages = Array.from({length:totalPages},(_,i)=>i+1)
+    .filter(n=>n===1||n===totalPages||Math.abs(n-page)<=1)
+    .reduce((acc,n,i,arr)=>{ if(i>0&&n-arr[i-1]>1) acc.push("..."); acc.push(n); return acc; },[]);
+
+  const thStyle = {padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:500,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6,whiteSpace:"nowrap"};
+  const tdStyle = {padding:"12px 14px",borderBottom:`0.5px solid ${T.border}`,verticalAlign:"top"};
 
   return (
     <div>
       {/* KPI cards */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
-        {[
-          {l:"Total today",v:total,icon:"ti-users",accent:"#6366f1"},
-          {l:"Sent",v:sent,icon:"ti-send",accent:"#22c55e"},
-          {l:"AI skipped",v:skipped,icon:"ti-brain",accent:"#f59e0b"},
-          {l:"Pending",v:pending,icon:"ti-clock",accent:"#3b82f6"},
-        ].map(s=>(
-          <div key={s.l} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,padding:"16px 18px",display:"flex",alignItems:"center",gap:14}}>
-            <div style={{width:40,height:40,borderRadius:10,background:s.accent+"15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <i className={`ti ${s.icon}`} style={{fontSize:19,color:s.accent}}/>
-            </div>
-            <div>
-              <div style={{fontSize:22,fontWeight:500,color:T.text,lineHeight:1}}>{followupTrackerLoading?"—":s.v}</div>
-              <div style={{fontSize:11,color:T.textMuted,marginTop:3}}>{s.l}</div>
-            </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+        {[{l:"Eligible today",v:total,c:T.text},{l:"Sent",v:sent,c:"#3B6D11"},{l:"AI skipped",v:skipped,c:"#854F0B"},{l:"Pending",v:pending,c:"#185FA5"}].map(s=>(
+          <div key={s.l} style={{background:T.card2,borderRadius:8,padding:"14px 16px"}}>
+            <div style={{fontSize:24,fontWeight:500,color:s.c,lineHeight:1,marginBottom:4}}>{followupTrackerLoading?"—":s.v}</div>
+            <div style={{fontSize:12,color:T.textMuted}}>{s.l}</div>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:12,color:T.textMuted}}>Show</span>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:T.textMuted}}>
+          Show
           <select value={perPage} onChange={e=>{setPerPage(Number(e.target.value));setPage(1);}}
-            style={{fontSize:12,padding:"4px 8px",borderRadius:6,border:`0.5px solid ${T.border}`,background:T.card,color:T.text,cursor:"pointer",outline:"none"}}>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={30}>30</option>
+            style={{fontSize:12,padding:"3px 6px",borderRadius:6,border:`0.5px solid ${T.border}`,background:T.card,color:T.text,outline:"none",cursor:"pointer"}}>
+            <option value={10}>10</option><option value={20}>20</option><option value={30}>30</option>
           </select>
-          <span style={{fontSize:12,color:T.textMuted}}>entries · {visible.length} total · auto-refreshes 30s</span>
+          entries · {visible.length} total · refreshes every 30s
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <label style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+          <label style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:5,cursor:"pointer"}}>
             <input type="checkbox" checked={hideCompleted} onChange={e=>{setHideCompleted(e.target.checked);setPage(1);}} style={{accentColor:WA_GREEN}}/>
             Hide completed
           </label>
           <button onClick={fetchFollowupTracker}
-            style={{fontSize:12,padding:"5px 12px",borderRadius:8,border:`0.5px solid ${T.border}`,background:"transparent",color:T.text,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:5}}>
+            style={{fontSize:12,padding:"5px 10px",borderRadius:6,border:`0.5px solid ${T.border}`,background:"transparent",color:T.text,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>
             <i className="ti ti-refresh" style={{fontSize:13}}/>Refresh
           </button>
         </div>
       </div>
 
       {/* Table */}
-      {followupTrackerLoading&&<div style={{textAlign:"center",padding:56,color:T.textMuted,fontSize:13}}>Loading...</div>}
-      {!followupTrackerLoading&&visible.length===0&&<div style={{textAlign:"center",padding:56,color:T.textMuted,fontSize:13,background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`}}>No active contacts in the last 24 hours</div>}
+      {followupTrackerLoading&&<div style={{textAlign:"center",padding:48,color:T.textMuted,fontSize:13}}>Loading...</div>}
+      {!followupTrackerLoading&&visible.length===0&&<div style={{textAlign:"center",padding:48,color:T.textMuted,fontSize:13,background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`}}>No active contacts in the last 24 hours</div>}
       {!followupTrackerLoading&&visible.length>0&&<>
-        <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,overflow:"hidden"}}>
+        <div style={{border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
           <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-            <thead>
-              <tr style={{borderBottom:`0.5px solid ${T.border}`,background:T.card2}}>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:140}}>Contact</th>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:120}}>Phone</th>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:70}}>Lead</th>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:100}}>Last message</th>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:200}}>Follow-up 1</th>
-                {fu2Enabled&&<th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:200}}>Follow-up 2</th>}
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",minWidth:90}}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map((c,i)=>{
-                const fu1 = c.followups?.find(f=>f.followup_num===1);
-                const fu2 = c.followups?.find(f=>f.followup_num===2);
-                const status = getStatus(c);
-                const av = getAvatarColor(c.lead);
-                const isCold = c.lead==="cold";
-                return (
-                  <tr key={i} style={{borderBottom:i<paged.length-1?`0.5px solid ${T.border}`:"none",transition:"background .1s",opacity:isCold?.45:1}}
-                    onMouseEnter={e=>e.currentTarget.style.background=T.card2}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <td style={{padding:"13px 16px",overflow:"hidden"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:9}}>
-                        <div style={{width:30,height:30,borderRadius:8,background:av.bg,color:av.c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,flexShrink:0}}>
-                          {getInitials(c.name)}
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead>
+                <tr style={{background:T.card2,borderBottom:`0.5px solid ${T.border}`}}>
+                  <th style={{...thStyle,minWidth:150}}>Contact</th>
+                  <th style={{...thStyle,minWidth:120}}>Phone</th>
+                  <th style={{...thStyle,minWidth:70}}>Lead</th>
+                  <th style={{...thStyle,minWidth:100}}>Last message</th>
+                  <th style={{...thStyle,minWidth:220}}>Follow-up 1</th>
+                  {fu2Enabled&&<th style={{...thStyle,minWidth:220}}>Follow-up 2</th>}
+                  <th style={{...thStyle,minWidth:90}}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map((c,i)=>{
+                  const fu1 = c.followups?.find(f=>f.followup_num===1);
+                  const fu2 = c.followups?.find(f=>f.followup_num===2);
+                  const status = getStatus(c);
+                  const av = getAv(c.name, c.lead);
+                  const isCold = c.lead==="cold";
+                  const isLast = i===paged.length-1;
+                  return (
+                    <tr key={i} style={{opacity:isCold?.45:1,transition:"background .1s"}}
+                      onMouseEnter={e=>e.currentTarget.style.background=T.card2}
+                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      <td style={{...tdStyle,borderBottom:isLast?"none":tdStyle.borderBottom}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{width:30,height:30,borderRadius:8,background:av.bg,color:av.c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:500,flexShrink:0}}>{av.initials}</div>
+                          <span style={{fontSize:13,fontWeight:500,color:T.text}}>{c.name}</span>
                         </div>
-                        <span style={{fontSize:13,fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
-                      </div>
-                    </td>
-                    <td style={{padding:"13px 16px",fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.phone}</td>
-                    <td style={{padding:"13px 16px",overflow:"hidden"}}>
-                      <span style={{fontSize:11,fontWeight:500,padding:"3px 9px",borderRadius:20,whiteSpace:"nowrap",
-                        background:c.lead==="hot"?"#fef3c7":c.lead==="warm"?"#dbeafe":"#f3f4f6",
-                        color:c.lead==="hot"?"#92400e":c.lead==="warm"?"#1e40af":"#6b7280"}}>
-                        {c.lead==="hot"?"Hot":c.lead==="warm"?"Warm":"Cold"}
-                      </span>
-                    </td>
-                    <td style={{padding:"13px 16px",overflow:"hidden"}}>
-                      <div style={{fontSize:12,fontWeight:500,color:T.text,whiteSpace:"nowrap"}}>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</div>
-                      <div style={{fontSize:10,color:T.textMuted,marginTop:2,whiteSpace:"nowrap"}}>{c.silent_mins<60?c.silent_mins+"m ago":Math.floor(c.silent_mins/60)+"h ago"}</div>
-                    </td>
-                    <td style={{padding:"13px 16px",overflow:"hidden",verticalAlign:"top",paddingTop:14}}>
-                      <FuCell fu={fu1} isCold={isCold} disabled={false}/>
-                    </td>
-                    {fu2Enabled&&<td style={{padding:"13px 16px",overflow:"hidden",verticalAlign:"top",paddingTop:14}}>
-                      <FuCell fu={fu2} isCold={isCold} disabled={!fu1||fu1.status!=="sent"}/>
-                    </td>}
-                    <td style={{padding:"13px 16px",overflow:"hidden"}}>
-                      <div style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:20,background:status.bg}}>
-                        <span style={{width:5,height:5,borderRadius:"50%",background:status.dot,flexShrink:0,display:"inline-block"}}/>
-                        <span style={{fontSize:11,fontWeight:500,color:status.text,whiteSpace:"nowrap"}}>{status.label}</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td style={{...tdStyle,borderBottom:isLast?"none":tdStyle.borderBottom,fontSize:11,color:T.textMuted,whiteSpace:"nowrap"}}>{c.phone}</td>
+                      <td style={{...tdStyle,borderBottom:isLast?"none":tdStyle.borderBottom}}>
+                        <span style={{fontSize:11,fontWeight:500,padding:"3px 9px",borderRadius:20,background:c.lead==="hot"?"#FAEEDA":c.lead==="warm"?"#E6F1FB":T.card2,color:c.lead==="hot"?"#633806":c.lead==="warm"?"#0C447C":T.textMuted,whiteSpace:"nowrap"}}>
+                          {c.lead==="hot"?"Hot":c.lead==="warm"?"Warm":"Cold"}
+                        </span>
+                      </td>
+                      <td style={{...tdStyle,borderBottom:isLast?"none":tdStyle.borderBottom}}>
+                        <div style={{fontSize:12,fontWeight:500,color:T.text,whiteSpace:"nowrap"}}>{c.last_message_time?c.last_message_time.slice(11,16)+" MYT":"—"}</div>
+                        <div style={{fontSize:10,color:T.textMuted,marginTop:2,whiteSpace:"nowrap"}}>{c.silent_mins<60?c.silent_mins+"m ago":Math.floor(c.silent_mins/60)+"h ago"}</div>
+                      </td>
+                      <td style={{...tdStyle,borderBottom:isLast?"none":tdStyle.borderBottom}}><FuCell fu={fu1} isCold={isCold} disabled={false}/></td>
+                      {fu2Enabled&&<td style={{...tdStyle,borderBottom:isLast?"none":tdStyle.borderBottom}}><FuCell fu={fu2} isCold={isCold} disabled={!fu1||fu1.status!=="sent"}/></td>}
+                      <td style={{...tdStyle,borderBottom:isLast?"none":tdStyle.borderBottom}}>
+                        <span style={{fontSize:11,fontWeight:500,padding:"3px 10px",borderRadius:20,background:status.bg,color:status.text,display:"inline-flex",alignItems:"center",gap:5,whiteSpace:"nowrap"}}>
+                          <span style={{width:5,height:5,borderRadius:"50%",background:status.dot,flexShrink:0,display:"inline-block"}}/>
+                          {status.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {/* Pagination */}
-        {totalPages>1&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:16}}>
-          <span style={{fontSize:12,color:T.textMuted}}>
-            Showing {(page-1)*perPage+1}–{Math.min(page*perPage,visible.length)} of {visible.length}
-          </span>
+        {totalPages>1&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14}}>
+          <span style={{fontSize:12,color:T.textMuted}}>Showing {(page-1)*perPage+1}–{Math.min(page*perPage,visible.length)} of {visible.length}</span>
           <div style={{display:"flex",gap:4}}>
             <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
-              style={{padding:"5px 10px",borderRadius:7,border:`0.5px solid ${T.border}`,background:"transparent",color:page===1?T.textFaint:T.text,cursor:page===1?"default":"pointer",fontSize:12,fontFamily:"inherit"}}>
-              ‹ Prev
-            </button>
-            {Array.from({length:totalPages},(_,i)=>i+1).filter(n=>n===1||n===totalPages||Math.abs(n-page)<=1).reduce((acc,n,i,arr)=>{
-              if(i>0&&n-arr[i-1]>1) acc.push("...");
-              acc.push(n);
-              return acc;
-            },[]).map((n,i)=>
-              n==="..."
-                ?<span key={i} style={{padding:"5px 8px",fontSize:12,color:T.textMuted}}>…</span>
-                :<button key={i} onClick={()=>setPage(n)}
-                  style={{padding:"5px 10px",borderRadius:7,border:`0.5px solid ${n===page?WA_GREEN:T.border}`,
-                    background:n===page?`${WA_GREEN}15`:"transparent",color:n===page?WA_GREEN:T.text,
-                    cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:n===page?600:400}}>
-                  {n}
-                </button>
+              style={{padding:"4px 10px",borderRadius:6,border:`0.5px solid ${T.border}`,background:"transparent",color:page===1?T.textFaint:T.text,cursor:page===1?"default":"pointer",fontSize:12,fontFamily:"inherit"}}>‹ Prev</button>
+            {pages.map((n,i)=>n==="..."
+              ?<span key={i} style={{padding:"4px 6px",fontSize:12,color:T.textMuted}}>…</span>
+              :<button key={i} onClick={()=>setPage(n)}
+                style={{padding:"4px 10px",borderRadius:6,border:`0.5px solid ${n===page?WA_GREEN:T.border}`,
+                  background:n===page?`${WA_GREEN}15`:"transparent",color:n===page?WA_GREEN:T.text,
+                  cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:n===page?500:400}}>
+                {n}
+              </button>
             )}
             <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
-              style={{padding:"5px 10px",borderRadius:7,border:`0.5px solid ${T.border}`,background:"transparent",color:page===totalPages?T.textFaint:T.text,cursor:page===totalPages?"default":"pointer",fontSize:12,fontFamily:"inherit"}}>
-              Next ›
-            </button>
+              style={{padding:"4px 10px",borderRadius:6,border:`0.5px solid ${T.border}`,background:"transparent",color:page===totalPages?T.textFaint:T.text,cursor:page===totalPages?"default":"pointer",fontSize:12,fontFamily:"inherit"}}>Next ›</button>
           </div>
         </div>}
       </>}
