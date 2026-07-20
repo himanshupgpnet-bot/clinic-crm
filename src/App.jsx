@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.365";
+const CRM_VERSION = "2.9.368";
 
 // Responsive hook
 function useWindowSize() {
@@ -1231,6 +1231,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   }
 
   async function selectContact(c) {
+    setShowRightPanel(true);
     setSelected({...c, messages: c.messages||[]}); selectedRef.current = c; setMenuOpen(false);
     manuallyReadRef.current.add(c.id);
     try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders()}); } catch {}
@@ -2427,8 +2428,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       {isOut&&<div style={{fontSize:9,fontWeight:700,marginBottom:3,textAlign:"right",letterSpacing:.2,
                         color:isBot?WA_GREEN:isAgent?"#0284c7":T.textMuted}}>
                         {isBot?(msg.agentName?.startsWith("📤")?msg.agentName:"🤖 "+(
-                          (adminOverview.find(c=>String(c.clinic_id||c.id)===String(selected.clinicId||selected.clinic_id||1))?.company_name||
-                          currentUser?.company_name||"Bot")
+                          adminOverview.find(c=>String(c.clinic_id||c.id)===String(selected.clinicId||selected.clinic_id||1))?.company_name||
+                          currentUser?.company_name||
+                          "Bot"
                         )):msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
                       </div>}
                       <div style={{
@@ -2511,7 +2513,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>}
 
           {/* RIGHT PANEL — always visible on desktop when contact selected, like mockup */}
-          {selected&&!isMobile&&<div style={{width:240,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.sidebar,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+          {selected&&!isMobile&&showRightPanel&&<div style={{width:240,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.sidebar,overflowY:"auto",display:"flex",flexDirection:"column"}}>
             <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{fontWeight:700,fontSize:13,color:T.text}}>Contact info</div>
               <button onClick={()=>setShowRightPanel(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted,lineHeight:1}}>×</button>
@@ -6265,7 +6267,13 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
 
   const deleteUser = uid => {
     setConfirmModal({title:"Delete User?",message:"This permanently deletes the user account and all their access.",icon:"🗑️",danger:true,confirmText:"Yes, Delete",
-      onConfirm:async()=>{await fetch(`${API}/api/admin/users/${uid}`,{method:"DELETE",headers:authH()});load();}});
+      onConfirm:async()=>{
+        try {
+          const r = await fetch(`${API}/api/admin/users/${uid}`,{method:"DELETE",headers:authH()});
+          if(r.ok) { flash("✅ User deleted"); load(); }
+          else { const d=await r.json(); flash("❌ "+(d.error||"Delete failed")); }
+        } catch(e) { flash("❌ Error: "+e.message); }
+      }});
   };
 
   // SectionCard and PermGrid defined outside AdminPanel — see below
@@ -6771,6 +6779,20 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
                           style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:"transparent",
                             color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                           Edit
+                        </button>
+                        <button onClick={()=>setConfirmModal({title:"Delete Client?",
+                          message:`This permanently deletes "${clinic.name}" and ALL their data — contacts, messages, KB. This cannot be undone.`,
+                          icon:"🗑️",danger:true,confirmText:"Yes, Delete",
+                          onConfirm:async()=>{
+                            try {
+                              const r = await fetch(`${API}/api/admin/clients/${clinic.id}`,{method:"DELETE",headers:authH()});
+                              if(r.ok) { flash(`✅ "${clinic.name}" deleted`); load(); }
+                              else { const d=await r.json(); flash("❌ "+(d.error||"Delete failed")); }
+                            } catch(e) { flash("❌ Error: "+e.message); }
+                          }})}
+                          style={{padding:"5px 10px",borderRadius:8,border:"1px solid #ef444460",background:"transparent",
+                            color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                          <i className="ti ti-trash" style={{fontSize:13}}/>
                         </button>
                         <button onClick={()=>setSelectedClinicRow(isExpanded?null:clinic.id)}
                           style={{padding:"5px 12px",borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit",
