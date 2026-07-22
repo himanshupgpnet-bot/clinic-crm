@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.369";
+const CRM_VERSION = "2.9.371";
 
 // Responsive hook
 function useWindowSize() {
@@ -2532,6 +2532,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {selected.lead==="hot"?"🔥 Hot":selected.lead==="warm"?"🟡 Warm":"🔵 Cold"}
                 </span>
                 {selected.booking_confirmed&&<span className="nx-badge success">✅ Booked</span>}
+                {selected.needsHuman&&<span className="nx-badge" style={{background:"#fef2f2",color:"#dc2626",border:"1px solid #fca5a5"}}>👤 Needs Human</span>}
               </div>
             </div>
             {/* Lead score — mockup style */}
@@ -2834,7 +2835,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                                 📅 {c.lastDate.includes("-")?c.lastDate.split("-").reverse().join("/"):c.lastDate} {c.lastTime&&`· ${c.lastTime}`}
                               </div>}
                               </div>
-                              {c.needsHuman&&<span style={{fontSize:14}} title="Needs Human">🚨</span>}
+                              {c.needsHuman&&<span style={{fontSize:10,fontWeight:600,padding:"1px 6px",borderRadius:10,background:"#fef2f2",color:"#dc2626",border:"1px solid #fca5a5",whiteSpace:"nowrap"}} title="Needs Human Attention">👤 Human</span>}
                             </div>
 
                             {/* Lead score */}
@@ -6780,7 +6781,7 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
                             color:T.text,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                           Edit
                         </button>
-                        <button onClick={()=>setConfirmModal({title:"Delete Client?",
+                        <button onClick={(e)=>{e.stopPropagation();setConfirmModal({title:"Delete Client?",
                           message:`This permanently deletes "${clinic.name}" and ALL their data — contacts, messages, KB. This cannot be undone.`,
                           icon:"🗑️",danger:true,confirmText:"Yes, Delete",
                           onConfirm:async()=>{
@@ -6789,7 +6790,7 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
                               if(r.ok) { flash(`✅ "${clinic.name}" deleted`); load(); }
                               else { const d=await r.json(); flash("❌ "+(d.error||"Delete failed")); }
                             } catch(e) { flash("❌ Error: "+e.message); }
-                          }})}
+                          }});}}
                           style={{padding:"5px 10px",borderRadius:8,border:"1px solid #ef444460",background:"transparent",
                             color:"#ef4444",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                           <i className="ti ti-trash" style={{fontSize:13}}/>
