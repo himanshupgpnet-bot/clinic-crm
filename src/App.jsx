@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.371";
+const CRM_VERSION = "2.9.372";
 
 // Responsive hook
 function useWindowSize() {
@@ -3727,7 +3727,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <div style={{maxHeight:220,overflowY:"auto"}}>
                   {(()=>{
                     const q=(broadcastSearch||"").toLowerCase();
-                    const filtered=contacts.filter(c=>(c.name||"").toLowerCase().includes(q)||c.phone?.includes(q));
+                    const filtered=contacts.filter(c=>{
+                      if(isAdmin && broadcastClinic) {
+                        const cClinicId = String(c.clinicId||c.clinic_id||"");
+                        const bClinicId = String(broadcastClinic.clinic_id||broadcastClinic.id||"");
+                        if(cClinicId && bClinicId && cClinicId!==bClinicId) return false;
+                      }
+                      return (c.name||"").toLowerCase().includes(q)||c.phone?.includes(q);
+                    });
                     const phoneMatch=/^[0-9+\s\-()]{7,}$/.test(broadcastSearch||"");
                     const exactMatch=contacts.some(c=>c.phone===broadcastSearch||c.phone==="+"+broadcastSearch);
                     return <>
