@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.376";
+const CRM_VERSION = "2.9.377";
 
 // Responsive hook
 function useWindowSize() {
@@ -3615,6 +3615,10 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   className={`nx-btn${broadcastSubTab==="send"?" primary":""}`}>
                   <i className="ti ti-send" style={{fontSize:14}}/> Send Broadcast
                 </button>
+                <button onClick={()=>{setBroadcastSubTab("history");}}
+                  className={`nx-btn${broadcastSubTab==="history"?" primary":""}`}>
+                  <i className="ti ti-history" style={{fontSize:14}}/> History
+                </button>
                 <button onClick={()=>{setBroadcastSubTab("create");setCreateTemplateStep(1);setCreateTemplateResult(null);}}
                   className={`nx-btn${broadcastSubTab==="create"?" primary":""}`}>
                   <i className="ti ti-plus" style={{fontSize:14}}/> Create Template
@@ -3983,6 +3987,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               submitting={createTemplateSubmitting} setSubmitting={setCreateTemplateSubmitting}
               result={createTemplateResult} setResult={setCreateTemplateResult}
               onSuccess={()=>{ fetchTemplates(isAdmin&&broadcastClinic?broadcastClinic.clinic_id:null); setBroadcastSubTab("send"); }}
+            />}
+
+            {broadcastSubTab==="history"&&<BroadcastHistoryPanel
+              T={T} WA_GREEN={WA_GREEN} API={API} authHeaders={authHeaders}
+              isAdmin={isAdmin} broadcastClinic={broadcastClinic}
             />}
 
           </>}
@@ -8456,6 +8465,87 @@ function LeadsMap({T, WA_GREEN, countryData, dark}) {
 
 
 // ── CREATE TEMPLATE PANEL ─────────────────────────────────────────────────────
+function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcastClinic}) {
+  const [history, setHistory] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [search, setSearch] = React.useState("");
+
+  React.useEffect(()=>{
+    const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+    const url = clinicId ? `${API}/api/broadcast/history?clinic_id=${clinicId}&limit=200` : `${API}/api/broadcast/history?limit=200`;
+    fetch(url,{headers:authHeaders()}).then(r=>r.json()).then(d=>{
+      setHistory(Array.isArray(d)?d:[]);
+      setLoading(false);
+    }).catch(()=>setLoading(false));
+  },[broadcastClinic]);
+
+  const statusColor = s => s==="read"?"#8b5cf6":s==="delivered"?WA_GREEN:s==="failed"?"#ef4444":"#f59e0b";
+  const statusIcon = s => s==="read"?"ti-eye":s==="delivered"?"ti-checks":s==="failed"?"ti-x":"ti-clock";
+  const statusLabel = s => s==="read"?"Read":s==="delivered"?"Delivered":s==="failed"?"Failed":"Sent";
+
+  const filtered = history.filter(h=>
+    !search||(h.name||"").toLowerCase().includes(search.toLowerCase())||h.phone?.includes(search)||h.template_name?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Group by template+date
+  const grouped = filtered.reduce((acc,h)=>{
+    const key = `${h.template_name}__${(h.sent_at||"").slice(0,10)}`;
+    if(!acc[key]) acc[key]={template:h.template_name, date:(h.sent_at||"").slice(0,10), contacts:[], sent:0, delivered:0, read:0, failed:0};
+    acc[key].contacts.push(h);
+    if(h.status==="read") acc[key].read++;
+    else if(h.status==="delivered") acc[key].delivered++;
+    else if(h.status==="failed") acc[key].failed++;
+    else acc[key].sent++;
+    return acc;
+  },{});
+
+  return <div style={{flex:1,overflowY:"auto",padding:20}}>
+    <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center"}}>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name, phone or template…"
+        style={{flex:1,padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,outline:"none"}}/>
+      <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>{filtered.length} records</div>
+    </div>
+    {loading?<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading…</div>:
+    filtered.length===0?<div style={{textAlign:"center",padding:40,color:T.textMuted}}>No broadcast history yet</div>:
+    Object.values(grouped).map((g,gi)=>(
+      <div key={gi} style={{marginBottom:16,border:`1px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+        <div style={{padding:"10px 14px",background:T.card2,display:"flex",alignItems:"center",gap:10}}>
+          <i className="ti ti-send" style={{fontSize:14,color:WA_GREEN}}/>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:600,fontSize:13,color:T.text}}>{g.template}</div>
+            <div style={{fontSize:11,color:T.textMuted}}>{g.date} · {g.contacts.length} contacts</div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            {g.read>0&&<span style={{fontSize:11,fontWeight:600,color:"#8b5cf6"}}>👁 {g.read}</span>}
+            {g.delivered>0&&<span style={{fontSize:11,fontWeight:600,color:WA_GREEN}}>✓✓ {g.delivered}</span>}
+            {g.sent>0&&<span style={{fontSize:11,fontWeight:600,color:"#f59e0b"}}>✓ {g.sent}</span>}
+            {g.failed>0&&<span style={{fontSize:11,fontWeight:600,color:"#ef4444"}}>✗ {g.failed}</span>}
+          </div>
+        </div>
+        {g.contacts.map((h,i)=>(
+          <div key={i} style={{padding:"8px 14px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:28,height:28,borderRadius:"50%",background:`${statusColor(h.status)}20`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <i className={`ti ${statusIcon(h.status)}`} style={{fontSize:12,color:statusColor(h.status)}}/>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.text}}>{h.name||h.phone}</div>
+              <div style={{fontSize:11,color:T.textMuted}}>{h.phone}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:11,fontWeight:600,color:statusColor(h.status)}}>{statusLabel(h.status)}</div>
+              <div style={{fontSize:10,color:T.textMuted}}>
+                {h.status==="read"&&h.read_at?new Date(h.read_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):
+                 h.status==="delivered"&&h.delivered_at?new Date(h.delivered_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):
+                 h.sent_at?new Date(h.sent_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>;
+}
+
 function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, isAdmin, broadcastClinic, step, setStep, submitting, setSubmitting, result, setResult, onSuccess}) {
   const inputStyle = {width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none",transition:"border-color .15s"};
   const labelStyle = {fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:5,display:"block",letterSpacing:.2};
