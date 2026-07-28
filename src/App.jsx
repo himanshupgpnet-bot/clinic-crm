@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.373";
+const CRM_VERSION = "2.9.374";
 
 // Responsive hook
 function useWindowSize() {
@@ -3775,8 +3775,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     </>;
                   })()}
                 </div>
-                {broadcastContacts.length>0&&<div style={{padding:"8px 14px",borderTop:`1px solid ${T.border}`,fontSize:12,color:WA_GREEN,fontWeight:600}}>
-                  <i className="ti ti-check" style={{fontSize:12,marginRight:4}}/>{broadcastContacts.length} contact{broadcastContacts.length!==1?"s":""} selected
+                {broadcastContacts.length>0&&<div style={{padding:"8px 14px",borderTop:`1px solid ${T.border}`}}>
+                  <div style={{fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:6}}><i className="ti ti-check" style={{fontSize:11,marginRight:4,color:WA_GREEN}}/>{broadcastContacts.length} contact{broadcastContacts.length!==1?"s":""} selected</div>
+                  <div style={{maxHeight:120,overflowY:"auto",display:"flex",flexWrap:"wrap",gap:4}}>
+                    {broadcastContacts.map((c,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:4,background:T.card2,borderRadius:20,padding:"3px 8px 3px 4px",fontSize:11}}>
+                        <div style={{width:18,height:18,borderRadius:"50%",background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:WA_GREEN}}>{(c.name||c.phone||"?").slice(0,1).toUpperCase()}</div>
+                        <span style={{color:T.text,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name||c.phone}</span>
+                        <i className="ti ti-x" onClick={()=>setBroadcastContacts(p=>p.filter((_,j)=>j!==i))} style={{fontSize:10,color:T.textMuted,cursor:"pointer"}}/>
+                      </div>
+                    ))}
+                  </div>
                 </div>}
               </div>
 
@@ -3925,7 +3934,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         <div style={{background:"#fff",borderRadius:"0 7px 7px 7px",overflow:"hidden",boxShadow:"0 1px 2px rgba(0,0,0,.1)"}}>
                           {selectedTemplate.header_value&&selectedTemplate.header_type?.toUpperCase()==="IMAGE"&&
                             <img src={selectedTemplate.header_value} alt="" style={{width:"100%",maxHeight:80,objectFit:"cover",display:"block"}}/>}
-                          {selectedTemplate.body_text&&<div style={{padding:"6px 8px",fontSize:10,color:"#1a1a1a",lineHeight:1.4,whiteSpace:"pre-wrap"}}>{selectedTemplate.body_text.slice(0,120)}</div>}
+                          {selectedTemplate.body_text&&<div style={{padding:"6px 8px",fontSize:10,color:"#1a1a1a",lineHeight:1.4,whiteSpace:"pre-wrap"}}>{selectedTemplate.body_text}</div>}
                           {selectedTemplate.footer_text&&<div style={{padding:"0 8px 4px",fontSize:9,color:"#888"}}>{selectedTemplate.footer_text}</div>}
                           <div style={{padding:"0 8px 4px",fontSize:9,color:"#999",textAlign:"right"}}>11:59 ✓✓</div>
                         </div>
