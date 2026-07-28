@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.386";
+const CRM_VERSION = "2.9.387";
 
 // Responsive hook
 function useWindowSize() {
@@ -7210,19 +7210,64 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
   };
 
   // KPI card — matches mockup stat-card style, keeps drilldown
-  const KpiCard = ({icon,val,label,sub,color,bg,trend,type}) => (
-    <div onClick={()=>openDrill(type)} className="nx-stat"
-      style={{cursor:"pointer",transition:"all .15s",flex:1,minWidth:0,position:"relative"}}
-      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.08)";}}
-      onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
-      <div className="nx-stat-label">{label}</div>
-      <div className="nx-stat-val" style={{color,marginBottom:4}}>{val??"-"}</div>
-      <div style={{fontSize:11,color:T.textMuted}}>{sub}</div>
-      {trend&&<div style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:6,background:"#f0fdf4",color:"#15803d",marginTop:6}}>{trend}</div>}
-      <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,borderRadius:"0 0 12px 12px",background:color,opacity:.3}}/>
-      <div style={{position:"absolute",top:10,right:10,fontSize:9,color:T.textFaint}}>↗</div>
-    </div>
-  );
+  const KpiCard = ({icon,val,label,sub,color,bg,trend,type}) => {
+    const gradients = {
+      "#2563eb": "linear-gradient(135deg,#3b82f6,#2563eb)",
+      "#22c55e": "linear-gradient(135deg,#4ade80,#16a34a)",
+      "#ef4444": "linear-gradient(135deg,#f87171,#dc2626)",
+      "#7c3aed": "linear-gradient(135deg,#a78bfa,#7c3aed)",
+    };
+    const grad = gradients[color] || `linear-gradient(135deg,${color},${color}dd)`;
+    const WG = WA_GREEN;
+    const isWG = color===WG;
+    const finalGrad = isWG ? "linear-gradient(135deg,#4ade80,#16a34a)" : grad;
+    return (
+      <div onClick={()=>openDrill(type)}
+        style={{cursor:"pointer",flex:1,minWidth:0,position:"relative",
+          borderRadius:16,overflow:"hidden",
+          background:dark?"rgba(255,255,255,0.04)":"#fff",
+          border:`1px solid ${dark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.06)"}`,
+          boxShadow:dark?"0 4px 20px rgba(0,0,0,0.2)":"0 4px 20px rgba(0,0,0,0.06)",
+          transition:"all .2s"}}
+        onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow=`0 12px 32px ${color}30`;}}
+        onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=dark?"0 4px 20px rgba(0,0,0,0.2)":"0 4px 20px rgba(0,0,0,0.06)";}}>
+        {/* Color bar top */}
+        <div style={{height:4,background:finalGrad,width:"100%"}}/>
+        <div style={{padding:"16px 18px"}}>
+          {/* Icon + trend row */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+            <div style={{width:38,height:38,borderRadius:10,background:finalGrad,
+              display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,
+              boxShadow:`0 4px 12px ${color}40`}}>
+              {icon}
+            </div>
+            {trend&&<div style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
+              background:`${color}15`,color,border:`1px solid ${color}25`}}>
+              {trend}
+            </div>}
+          </div>
+          {/* Value */}
+          <div style={{fontSize:28,fontWeight:800,color:dark?"#fff":"#111",
+            letterSpacing:"-0.5px",lineHeight:1,marginBottom:4}}>
+            {val??"-"}
+          </div>
+          {/* Label */}
+          <div style={{fontSize:12,fontWeight:600,color:dark?"rgba(255,255,255,0.7)":"#555",marginBottom:2}}>
+            {label}
+          </div>
+          {/* Sub */}
+          <div style={{fontSize:10,color:dark?"rgba(255,255,255,0.35)":"#999"}}>
+            {sub}
+          </div>
+        </div>
+        {/* Click hint */}
+        <div style={{position:"absolute",bottom:12,right:14,fontSize:10,
+          color:dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.15)",fontWeight:600}}>
+          ↗
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={{maxWidth:1100,margin:"0 auto",width:"100%",position:"relative"}}>
@@ -7717,6 +7762,47 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                 <div style={{fontSize:11,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Conversion Rate</div>
                 <div style={{fontSize:44,fontWeight:900,color:"#00c853",lineHeight:1}}>{growth.conversionRate||0}%</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:4}}>Contacts → Hot Leads</div>
+              </div>
+            </div>
+          </div>
+
+          {/* VIVID HERO BANNER */}
+          <div className="an2" style={{borderRadius:20,overflow:"hidden",marginBottom:20,position:"relative",
+            background:"linear-gradient(135deg,#8052FF 0%,#C040E8 50%,#FF6B6B 100%)",
+            padding:"24px 28px",color:"#fff"}}>
+            {/* Animated orbs */}
+            <div style={{position:"absolute",width:180,height:180,borderRadius:"50%",
+              background:"radial-gradient(circle,rgba(255,255,255,0.15),transparent 70%)",
+              top:-60,right:-40,pointerEvents:"none"}}/>
+            <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",
+              background:"radial-gradient(circle,rgba(255,255,255,0.1),transparent 70%)",
+              bottom:-40,left:60,pointerEvents:"none"}}/>
+            <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",
+                  color:"rgba(255,255,255,0.7)",marginBottom:6}}>Performance Overview</div>
+                <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.5px",lineHeight:1}}>
+                  {done} Bookings · {hot} Hot Leads
+                </div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,0.7)",marginTop:6}}>
+                  {a?.dateFrom} → {a?.dateTo} · {botRate}% automated
+                </div>
+              </div>
+              <div style={{display:"flex",gap:16,flexShrink:0}}>
+                {[
+                  {label:"Conversion",value:`${total>0?Math.round(done/total*100):0}%`,icon:"📈"},
+                  {label:"Hrs Saved",value:`${Math.round((totals.botMessages||0)*2/60)}h`,icon:"⏱️"},
+                  {label:"Follow-ups",value:totals.followups||"—",icon:"📩"},
+                ].map((s,i)=>(
+                  <div key={i} style={{textAlign:"center",padding:"12px 16px",
+                    background:"rgba(255,255,255,0.15)",borderRadius:14,
+                    border:"1px solid rgba(255,255,255,0.2)",backdropFilter:"blur(8px)"}}>
+                    <div style={{fontSize:20,marginBottom:4}}>{s.icon}</div>
+                    <div style={{fontSize:20,fontWeight:800,lineHeight:1}}>{s.value}</div>
+                    <div style={{fontSize:10,color:"rgba(255,255,255,0.7)",marginTop:3,
+                      textTransform:"uppercase",letterSpacing:.8}}>{s.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
