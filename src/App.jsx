@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.375";
+const CRM_VERSION = "2.9.376";
 
 // Responsive hook
 function useWindowSize() {
@@ -224,6 +224,7 @@ export default function App() {
   const [newTemplate, setNewTemplate] = useState({template_name:"",language:"en",category:"MARKETING",header_type:"none",header_value:"",body_text:"",footer_text:"",variables:[],status:"pending"});
   const [broadcastContacts, setBroadcastContacts] = useState([]);
   const [broadcastProgress, setBroadcastProgress] = useState(null);
+  const [broadcastLog, setBroadcastLog] = useState([]);
   const [broadcastSearch, setBroadcastSearch] = useState("");
   const [scheduleMode, setScheduleMode] = useState(false);
   const [scheduleAt, setScheduleAt] = useState("");
@@ -3861,6 +3862,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       return;
                     }
                     setBroadcastProgress({active:true,done:0,total:broadcastContacts.length,failed:0});
+                    setBroadcastLog([]);
                     let done=0,failed=0;
                     const token=sessionStorage.getItem("crm_token")||authToken;
                     const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
@@ -3872,8 +3874,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                           xhr.open("POST",url);
                           xhr.setRequestHeader("Content-Type","application/json");
                           xhr.setRequestHeader("Authorization","Bearer "+token);
-                          xhr.onload=()=>{try{const d=JSON.parse(xhr.responseText);if(d.success||d.message_id||d.messages||d.sent||d.status==="sent")done++;else failed++;}catch{failed++;}resolve();};
-                          xhr.onerror=()=>{failed++;resolve();};
+                          xhr.onload=()=>{try{const d=JSON.parse(xhr.responseText);if(d.success||d.message_id||d.messages||d.sent||d.status==="sent"){done++;setBroadcastLog(p=>[...p,{name:contact.name||contact.phone,phone:contact.phone,status:"sent"}]);}else{failed++;setBroadcastLog(p=>[...p,{name:contact.name||contact.phone,phone:contact.phone,status:"failed",error:d.error||"Failed"}]);}}catch{failed++;setBroadcastLog(p=>[...p,{name:contact.name||contact.phone,phone:contact.phone,status:"failed"}]);}resolve();};
+                          xhr.onerror=()=>{failed++;setBroadcastLog(p=>[...p,{name:contact.name||contact.phone,phone:contact.phone,status:"failed",error:"Network error"}]);resolve();};
                           xhr.send(JSON.stringify({
                             phone:contact.phone,name:contact.name||contact.phone,
                             template_name:selectedTemplate.template_name,
@@ -3882,7 +3884,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                             header_type:selectedTemplate.header_type||"none"
                           }));
                         });
-                      }catch{failed++;}
+                      }catch{failed++;setBroadcastLog(p=>[...p,{name:contact.name||contact.phone,phone:contact.phone,status:"failed"}]);}
                       setBroadcastProgress({active:true,done:done+failed,total:broadcastContacts.length,failed});
                     }
                     setBroadcastProgress({active:false,done,total:broadcastContacts.length,failed});
@@ -3894,16 +3896,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     {scheduleMode?`Schedule for ${broadcastContacts.length} contacts`:`Send to ${broadcastContacts.length} contacts`}
                   </button>
 
-                  {broadcastProgress&&<div style={{marginTop:12,background:T.card2,borderRadius:8,padding:12,border:`1px solid ${T.border}`}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                      <span style={{fontSize:12,fontWeight:600,color:T.text}}>{broadcastProgress.active?"Sending…":"Done!"}</span>
-                      <span style={{fontSize:12,color:T.textMuted}}>{broadcastProgress.done}/{broadcastProgress.total}</span>
-                    </div>
-                    <div style={{height:5,borderRadius:3,background:T.border,overflow:"hidden"}}>
-                      <div style={{height:5,borderRadius:3,background:WA_GREEN,width:`${(broadcastProgress.done/broadcastProgress.total)*100}%`,transition:"width .3s"}}/>
-                    </div>
-                    {broadcastProgress.failed>0&&<div style={{fontSize:11,color:"#ef4444",marginTop:4}}>{broadcastProgress.failed} failed</div>}
-                    {!broadcastProgress.active&&<div style={{fontSize:12,color:WA_GREEN,marginTop:6,fontWeight:600}}>✅ Broadcast complete!</div>}
+                  {broadcastProgress&&!broadcastProgress.active&&broadcastLog.length>0&&<div style={{marginTop:8,fontSize:11,color:T.textMuted,textAlign:"center"}}>
+                    ✅ {broadcastProgress.done} sent{broadcastProgress.failed>0?`, ${broadcastProgress.failed} failed`:""} — <span style={{cursor:"pointer",color:WA_GREEN,textDecoration:"underline"}} onClick={()=>setBroadcastProgress(null)}>dismiss</span>
                   </div>}
                 </div>
               </div>
@@ -4487,6 +4481,44 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
       {/* ══ CONFIRM MODAL ══ */}
       <ConfirmModal modal={confirmModal} onClose={()=>setConfirmModal(null)} T={T} WA_GREEN={WA_GREEN}/>
+      {broadcastProgress&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:T.card,borderRadius:16,padding:24,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <div style={{width:36,height:36,borderRadius:"50%",background:`${WA_GREEN}20`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <i className={`ti ti-${broadcastProgress.active?"send":"circle-check"}`} style={{fontSize:18,color:WA_GREEN}}/>
+            </div>
+            <div>
+              <div style={{fontWeight:700,fontSize:15,color:T.text}}>{broadcastProgress.active?"Sending broadcast…":"Broadcast complete!"}</div>
+              <div style={{fontSize:12,color:T.textMuted}}>{broadcastProgress.done}/{broadcastProgress.total} contacts{broadcastProgress.failed>0?` · ${broadcastProgress.failed} failed`:""}</div>
+            </div>
+          </div>
+          <div style={{height:4,borderRadius:2,background:T.border,overflow:"hidden",marginBottom:16}}>
+            <div style={{height:4,borderRadius:2,background:WA_GREEN,width:`${(broadcastProgress.done/broadcastProgress.total)*100}%`,transition:"width .3s"}}/>
+          </div>
+          <div style={{maxHeight:260,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
+            {broadcastLog.map((l,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:T.card2,borderRadius:8,border:`1px solid ${T.border}`}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:l.status==="sent"?`${WA_GREEN}20`:"#fef2f2",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <i className={`ti ti-${l.status==="sent"?"check":"x"}`} style={{fontSize:14,color:l.status==="sent"?WA_GREEN:"#ef4444"}}/>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:600,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.name}</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>{l.phone}</div>
+                </div>
+                <span style={{fontSize:11,fontWeight:600,color:l.status==="sent"?WA_GREEN:"#ef4444",flexShrink:0}}>{l.status==="sent"?"✓ Sent":"✗ Failed"}</span>
+              </div>
+            ))}
+            {broadcastProgress.active&&Array.from({length:broadcastProgress.total-broadcastLog.length}).map((_,i)=>(
+              <div key={`pending-${i}`} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:T.card2,borderRadius:8,border:`1px solid ${T.border}`,opacity:0.4}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:T.border,flexShrink:0}}/>
+                <div style={{flex:1}}><div style={{height:10,background:T.border,borderRadius:4,width:"60%",marginBottom:4}}/><div style={{height:8,background:T.border,borderRadius:4,width:"40%"}}/></div>
+                <div style={{width:40,height:10,background:T.border,borderRadius:4}}/>
+              </div>
+            ))}
+          </div>
+          {!broadcastProgress.active&&<button onClick={()=>{setBroadcastProgress(null);setBroadcastLog([]);}} className="nx-btn primary" style={{width:"100%",justifyContent:"center",marginTop:16,padding:"10px"}}>Done</button>}
+        </div>
+      </div>}
 
       {/* ══ IDLE WARNING MODAL ══ */}
       {idleWarning&&<IdleWarningModal
