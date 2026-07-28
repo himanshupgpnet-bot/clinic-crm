@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.380";
+const CRM_VERSION = "2.9.381";
 
 // Responsive hook
 function useWindowSize() {
@@ -1380,6 +1380,62 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       setTimeout(()=>{document.body.removeChild(toast);document.head.removeChild(style);},300);
     },3000);
   }
+
+  // Claude-powered greeting toast
+  async function showGreeting() {
+    if(!currentUser) return;
+    const name = currentUser.full_name || currentUser.username || "there";
+    const firstName = name.split(" ")[0];
+    const now = new Date();
+    const hour = now.getHours();
+    const day = now.toLocaleDateString("en-US",{weekday:"long"});
+    const timeOfDay = hour>=5&&hour<12?"morning":hour>=12&&hour<17?"afternoon":hour>=17&&hour<21?"evening":"night";
+    const isNight = hour>=21||hour<5;
+    try {
+      const resp = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-haiku-4-5-20251001",
+          max_tokens:60,
+          messages:[{role:"user",content:`Write a short casual warm greeting for ${firstName} who just opened their CRM dashboard. It is ${timeOfDay} on ${day}. ${isNight?"They are working late — acknowledge playfully.":""} Under 12 words. No quotes. Just the greeting. Be creative and varied. Add 1 relevant emoji at the end.`}]
+        })
+      });
+      const data = await resp.json();
+      const msg = data?.content?.[0]?.text?.trim();
+      if(msg) showGreetingToast(msg);
+    } catch(e) {
+      const fallbacks = [
+        `Hey ${firstName}! Ready to close some deals? 🔥`,
+        `Welcome back, ${firstName}! Leads are waiting. 📊`,
+        `${firstName} is in the building! Let's go. 💪`
+      ];
+      showGreetingToast(fallbacks[Math.floor(Math.random()*fallbacks.length)]);
+    }
+  }
+
+  function showGreetingToast(msg) {
+    const existing = document.getElementById("lluna-greeting-toast");
+    if(existing) existing.remove();
+    const toast = document.createElement("div");
+    toast.id = "lluna-greeting-toast";
+    toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;padding:14px 20px;border-radius:14px;font-size:13px;font-weight:600;font-family:inherit;box-shadow:0 8px 32px rgba(128,82,255,.35);max-width:280px;line-height:1.4;cursor:pointer;animation:greetSlide .4s cubic-bezier(.34,1.56,.64,1) forwards`;
+    const style = document.createElement("style");
+    style.textContent = "@keyframes greetSlide{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}";
+    document.head.appendChild(style);
+    toast.textContent = msg;
+    toast.onclick = ()=>{ toast.style.opacity="0"; toast.style.transition="opacity .3s"; setTimeout(()=>toast.remove(),300); };
+    document.body.appendChild(toast);
+    setTimeout(()=>{ toast.style.transition="opacity .5s"; toast.style.opacity="0"; setTimeout(()=>{ toast.remove(); },500); },6000);
+  }
+
+  // Show greeting on login + every hour
+  React.useEffect(()=>{
+    if(!currentUser) return;
+    const timer = setTimeout(()=>showGreeting(), 1500);
+    const interval = setInterval(()=>showGreeting(), 60*60*1000);
+    return ()=>{ clearTimeout(timer); clearInterval(interval); };
+  },[currentUser?.username]);
 
   async function saveSettings() {
     try {
