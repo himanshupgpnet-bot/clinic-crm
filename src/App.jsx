@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.379";
+const CRM_VERSION = "2.9.380";
 
 // Responsive hook
 function useWindowSize() {
@@ -8470,29 +8470,38 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
   const [expanded, setExpanded] = React.useState({});
+  const [sortKey, setSortKey] = React.useState("sent_at");
+  const [sortDir, setSortDir] = React.useState("desc");
 
   React.useEffect(()=>{
     const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-    const url = clinicId ? `${API}/api/broadcast/history?clinic_id=${clinicId}&limit=200` : `${API}/api/broadcast/history?limit=200`;
+    const url = clinicId ? `${API}/api/broadcast/history?clinic_id=${clinicId}&limit=500` : `${API}/api/broadcast/history?limit=500`;
+    setLoading(true);
     fetch(url,{headers:authHeaders()}).then(r=>r.json()).then(d=>{
       setHistory(Array.isArray(d)?d:[]);
       setLoading(false);
     }).catch(()=>setLoading(false));
   },[broadcastClinic]);
 
-  const statusColor = s => s==="read"?"#8b5cf6":s==="delivered"?WA_GREEN:s==="failed"?"#ef4444":"#f59e0b";
-  const statusIcon = s => s==="read"?"ti-eye":s==="delivered"?"ti-checks":s==="failed"?"ti-x":"ti-clock";
-  const statusLabel = s => s==="read"?"Read":s==="delivered"?"Delivered":s==="failed"?"Failed":"Sent";
+  const statusConfig = {
+    read:     {color:"#8b5cf6", bg:"#f5f3ff", label:"Read",      icon:"ti-eye"},
+    delivered:{color:WA_GREEN,  bg:"#f0fdf4", label:"Delivered",  icon:"ti-checks"},
+    failed:   {color:"#ef4444", bg:"#fef2f2", label:"Failed",     icon:"ti-x"},
+    accepted: {color:"#f59e0b", bg:"#fffbeb", label:"Sent",       icon:"ti-clock"},
+  };
+  const sc = s => statusConfig[s] || statusConfig.accepted;
 
   const filtered = history.filter(h=>
-    !search||(h.name||"").toLowerCase().includes(search.toLowerCase())||h.phone?.includes(search)||h.template_name?.toLowerCase().includes(search.toLowerCase())
+    !search||(h.name||"").toLowerCase().includes(search.toLowerCase())||
+    h.phone?.includes(search)||h.template_name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Group by template+date
+  // Group by template + date
   const grouped = filtered.reduce((acc,h)=>{
     const key = `${h.template_name}__${(h.sent_at||"").slice(0,10)}`;
-    if(!acc[key]) acc[key]={template:h.template_name, date:(h.sent_at||"").slice(0,10), contacts:[], sent:0, delivered:0, read:0, failed:0};
+    if(!acc[key]) acc[key]={key, template:h.template_name, date:(h.sent_at||"").slice(0,10), contacts:[], total:0, delivered:0, read:0, failed:0, sent:0};
     acc[key].contacts.push(h);
+    acc[key].total++;
     if(h.status==="read") acc[key].read++;
     else if(h.status==="delivered") acc[key].delivered++;
     else if(h.status==="failed") acc[key].failed++;
@@ -8500,57 +8509,154 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
     return acc;
   },{});
 
-  return <div style={{flex:1,overflowY:"auto",padding:20}}>
-    <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center"}}>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name, phone or template…"
-        style={{flex:1,padding:"8px 12px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.text,fontSize:13,outline:"none"}}/>
-      <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap"}}>{filtered.length} records</div>
-    </div>
-    {loading?<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading…</div>:
-    filtered.length===0?<div style={{textAlign:"center",padding:40,color:T.textMuted}}>No broadcast history yet</div>:
-    Object.values(grouped).map((g,gi)=>{
-      const key = `${g.template}__${g.date}`;
-      const isOpen = expanded[key]!==false; // default open
-      return <div key={gi} style={{marginBottom:10,border:`1px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
-        <div onClick={()=>setExpanded(p=>({...p,[key]:!isOpen}))}
-          style={{padding:"10px 14px",background:T.card2,display:"flex",alignItems:"center",gap:10,cursor:"pointer",userSelect:"none"}}>
-          <i className="ti ti-send" style={{fontSize:14,color:WA_GREEN}}/>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:600,fontSize:13,color:T.text}}>{g.template}</div>
-            <div style={{fontSize:11,color:T.textMuted}}>{g.date} · {g.contacts.length} contacts</div>
+  const groups = Object.values(grouped).sort((a,b)=>b.date.localeCompare(a.date));
+  const totalSent = filtered.length;
+  const totalDelivered = filtered.filter(h=>h.status==="delivered"||h.status==="read").length;
+  const totalRead = filtered.filter(h=>h.status==="read").length;
+  const totalFailed = filtered.filter(h=>h.status==="failed").length;
+
+  const thStyle = {padding:"10px 14px",fontSize:11,fontWeight:700,color:T.textMuted,textAlign:"left",
+    letterSpacing:.5,textTransform:"uppercase",borderBottom:`2px solid ${T.border}`,whiteSpace:"nowrap",userSelect:"none"};
+
+  const fmtTime = ts => ts ? new Date(ts).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "";
+
+  return <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",padding:20,gap:16}}>
+    {/* KPI row */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+      {[
+        {label:"Total Sent",    value:totalSent,      color:"#3b82f6", icon:"ti-send"},
+        {label:"Delivered",     value:totalDelivered, color:WA_GREEN,  icon:"ti-checks"},
+        {label:"Read",          value:totalRead,      color:"#8b5cf6", icon:"ti-eye"},
+        {label:"Failed",        value:totalFailed,    color:"#ef4444", icon:"ti-x"},
+      ].map((k,i)=>(
+        <div key={i} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:36,height:36,borderRadius:10,background:`${k.color}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <i className={`ti ${k.icon}`} style={{fontSize:16,color:k.color}}/>
           </div>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            {g.read>0&&<span style={{fontSize:11,fontWeight:600,color:"#8b5cf6"}}>👁 {g.read}</span>}
-            {g.delivered>0&&<span style={{fontSize:11,fontWeight:600,color:WA_GREEN}}>✓✓ {g.delivered}</span>}
-            {g.sent>0&&<span style={{fontSize:11,fontWeight:600,color:"#f59e0b"}}>✓ {g.sent}</span>}
-            {g.failed>0&&<span style={{fontSize:11,fontWeight:600,color:"#ef4444"}}>✗ {g.failed}</span>}
-            <i className={`ti ti-chevron-${isOpen?"up":"down"}`} style={{fontSize:12,color:T.textMuted,marginLeft:4}}/>
+          <div>
+            <div style={{fontSize:20,fontWeight:700,color:T.text,lineHeight:1}}>{k.value}</div>
+            <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{k.label}</div>
           </div>
         </div>
-        {isOpen&&g.contacts.map((h,i)=>(
-          <div key={i} style={{padding:"8px 14px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:28,height:28,borderRadius:"50%",background:`${statusColor(h.status)}20`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <i className={`ti ${statusIcon(h.status)}`} style={{fontSize:12,color:statusColor(h.status)}}/>
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:600,color:T.text}}>{h.name||h.phone}</div>
-              <div style={{fontSize:11,color:T.textMuted}}>{h.phone}</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:11,fontWeight:600,color:statusColor(h.status)}}>{statusLabel(h.status)}</div>
-              <div style={{fontSize:10,color:T.textMuted}}>
-                {h.status==="read"&&h.read_at?new Date(h.read_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):
-                 h.status==="delivered"&&h.delivered_at?new Date(h.delivered_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):
-                 h.sent_at?new Date(h.sent_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}
+      ))}
+    </div>
+
+    {/* Search */}
+    <div style={{display:"flex",gap:10,alignItems:"center"}}>
+      <div style={{flex:1,position:"relative"}}>
+        <i className="ti ti-search" style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:T.textMuted}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, phone or template…"
+          style={{width:"100%",padding:"9px 12px 9px 34px",borderRadius:10,border:`1px solid ${T.border}`,
+            background:T.card2,color:T.text,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+      </div>
+      <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap",padding:"0 4px"}}>{totalSent} records · {groups.length} campaigns</div>
+    </div>
+
+    {/* Table */}
+    <div style={{flex:1,overflowY:"auto",borderRadius:12,border:`1px solid ${T.border}`,background:T.card}}>
+      {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,color:T.textMuted,gap:8}}>
+        <i className="ti ti-loader" style={{fontSize:20}}/> Loading…
+      </div>:groups.length===0?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:200,color:T.textMuted,gap:8}}>
+        <i className="ti ti-send" style={{fontSize:32,opacity:.3}}/>
+        <div style={{fontSize:14}}>No broadcast history yet</div>
+        <div style={{fontSize:12}}>Send your first broadcast to see results here</div>
+      </div>:groups.map((g,gi)=>{
+        const isOpen = expanded[g.key]!==false;
+        const delivRate = g.total>0?Math.round((g.delivered+g.read)/g.total*100):0;
+        const readRate = g.total>0?Math.round(g.read/g.total*100):0;
+        return <div key={gi} style={{borderBottom:gi<groups.length-1?`1px solid ${T.border}`:"none"}}>
+          {/* Group header */}
+          <div onClick={()=>setExpanded(p=>({...p,[g.key]:!isOpen}))}
+            style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto auto",gap:12,padding:"12px 16px",
+              alignItems:"center",cursor:"pointer",background:isOpen?T.card2:"transparent",
+              transition:"background .15s"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+              <div style={{width:32,height:32,borderRadius:8,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <i className="ti ti-speakerphone" style={{fontSize:15,color:WA_GREEN}}/>
               </div>
-              {h.status==="failed"&&h.failed_reason&&<div style={{fontSize:10,color:"#ef4444",maxWidth:160,textAlign:"right",marginTop:2}}>{h.failed_reason}</div>}
+              <div style={{minWidth:0}}>
+                <div style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.template}</div>
+                <div style={{fontSize:11,color:T.textMuted}}>{g.date} · {g.total} recipients</div>
+              </div>
             </div>
+            {/* Delivery rate bar */}
+            <div style={{width:80,display:"flex",flexDirection:"column",gap:3}}>
+              <div style={{fontSize:10,color:T.textMuted,textAlign:"center"}}>Delivery</div>
+              <div style={{height:4,borderRadius:2,background:T.border,overflow:"hidden"}}>
+                <div style={{height:4,borderRadius:2,background:WA_GREEN,width:`${delivRate}%`}}/>
+              </div>
+              <div style={{fontSize:10,fontWeight:600,color:WA_GREEN,textAlign:"center"}}>{delivRate}%</div>
+            </div>
+            {/* Read rate */}
+            <div style={{width:70,display:"flex",flexDirection:"column",gap:3}}>
+              <div style={{fontSize:10,color:T.textMuted,textAlign:"center"}}>Read</div>
+              <div style={{height:4,borderRadius:2,background:T.border,overflow:"hidden"}}>
+                <div style={{height:4,borderRadius:2,background:"#8b5cf6",width:`${readRate}%`}}/>
+              </div>
+              <div style={{fontSize:10,fontWeight:600,color:"#8b5cf6",textAlign:"center"}}>{readRate}%</div>
+            </div>
+            {/* Status pills */}
+            <div style={{display:"flex",gap:6,flexWrap:"nowrap"}}>
+              {g.read>0&&<span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:"#f5f3ff",color:"#8b5cf6"}}>👁 {g.read}</span>}
+              {g.delivered>0&&<span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:"#f0fdf4",color:WA_GREEN}}>✓✓ {g.delivered}</span>}
+              {g.sent>0&&<span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:"#fffbeb",color:"#f59e0b"}}>✓ {g.sent}</span>}
+              {g.failed>0&&<span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:"#fef2f2",color:"#ef4444"}}>✗ {g.failed}</span>}
+            </div>
+            <i className={`ti ti-chevron-${isOpen?"up":"down"}`} style={{fontSize:13,color:T.textMuted}}/>
           </div>
-        ))}
-      </div>;
-    })}
+
+          {/* Expanded contact table */}
+          {isOpen&&<div style={{borderTop:`1px solid ${T.border}`}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{background:T.card2}}>
+                  <th style={thStyle}>Contact</th>
+                  <th style={thStyle}>Phone</th>
+                  <th style={thStyle}>Status</th>
+                  <th style={thStyle}>Sent</th>
+                  <th style={thStyle}>Delivered</th>
+                  <th style={thStyle}>Read</th>
+                  <th style={{...thStyle,minWidth:160}}>Failure Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.contacts.map((h,i)=>{
+                  const cfg = sc(h.status);
+                  return <tr key={i} style={{borderTop:`1px solid ${T.border}`,transition:"background .1s"}}
+                    onMouseEnter={e=>e.currentTarget.style.background=T.card2}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <td style={{padding:"10px 14px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:28,height:28,borderRadius:"50%",background:`${cfg.color}15`,
+                          display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
+                          fontSize:11,fontWeight:700,color:cfg.color}}>
+                          {(h.name||h.phone||"?")[0].toUpperCase()}
+                        </div>
+                        <span style={{fontSize:13,fontWeight:600,color:T.text}}>{h.name||"—"}</span>
+                      </div>
+                    </td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:T.textMuted,fontFamily:"monospace"}}>{h.phone}</td>
+                    <td style={{padding:"10px 14px"}}>
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:20,
+                        background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:600}}>
+                        <i className={`ti ${cfg.icon}`} style={{fontSize:11}}/>{cfg.label}
+                      </span>
+                    </td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:T.textMuted}}>{fmtTime(h.sent_at)}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:T.textMuted}}>{h.delivered_at?fmtTime(h.delivered_at):"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:T.textMuted}}>{h.read_at?fmtTime(h.read_at):"—"}</td>
+                    <td style={{padding:"10px 14px",fontSize:12,color:"#ef4444",maxWidth:200}}>{h.failed_reason||"—"}</td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>}
+        </div>;
+      })}
+    </div>
   </div>;
 }
+
 
 function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, isAdmin, broadcastClinic, step, setStep, submitting, setSubmitting, result, setResult, onSuccess}) {
   const inputStyle = {width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none",transition:"border-color .15s"};
