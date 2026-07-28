@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.378";
+const CRM_VERSION = "2.9.379";
 
 // Responsive hook
 function useWindowSize() {
@@ -8469,6 +8469,7 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
   const [history, setHistory] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
+  const [expanded, setExpanded] = React.useState({});
 
   React.useEffect(()=>{
     const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
@@ -8507,22 +8508,26 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
     </div>
     {loading?<div style={{textAlign:"center",padding:40,color:T.textMuted}}>Loading…</div>:
     filtered.length===0?<div style={{textAlign:"center",padding:40,color:T.textMuted}}>No broadcast history yet</div>:
-    Object.values(grouped).map((g,gi)=>(
-      <div key={gi} style={{marginBottom:16,border:`1px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
-        <div style={{padding:"10px 14px",background:T.card2,display:"flex",alignItems:"center",gap:10}}>
+    Object.values(grouped).map((g,gi)=>{
+      const key = `${g.template}__${g.date}`;
+      const isOpen = expanded[key]!==false; // default open
+      return <div key={gi} style={{marginBottom:10,border:`1px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+        <div onClick={()=>setExpanded(p=>({...p,[key]:!isOpen}))}
+          style={{padding:"10px 14px",background:T.card2,display:"flex",alignItems:"center",gap:10,cursor:"pointer",userSelect:"none"}}>
           <i className="ti ti-send" style={{fontSize:14,color:WA_GREEN}}/>
           <div style={{flex:1}}>
             <div style={{fontWeight:600,fontSize:13,color:T.text}}>{g.template}</div>
             <div style={{fontSize:11,color:T.textMuted}}>{g.date} · {g.contacts.length} contacts</div>
           </div>
-          <div style={{display:"flex",gap:8}}>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
             {g.read>0&&<span style={{fontSize:11,fontWeight:600,color:"#8b5cf6"}}>👁 {g.read}</span>}
             {g.delivered>0&&<span style={{fontSize:11,fontWeight:600,color:WA_GREEN}}>✓✓ {g.delivered}</span>}
             {g.sent>0&&<span style={{fontSize:11,fontWeight:600,color:"#f59e0b"}}>✓ {g.sent}</span>}
             {g.failed>0&&<span style={{fontSize:11,fontWeight:600,color:"#ef4444"}}>✗ {g.failed}</span>}
+            <i className={`ti ti-chevron-${isOpen?"up":"down"}`} style={{fontSize:12,color:T.textMuted,marginLeft:4}}/>
           </div>
         </div>
-        {g.contacts.map((h,i)=>(
+        {isOpen&&g.contacts.map((h,i)=>(
           <div key={i} style={{padding:"8px 14px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:28,height:28,borderRadius:"50%",background:`${statusColor(h.status)}20`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               <i className={`ti ${statusIcon(h.status)}`} style={{fontSize:12,color:statusColor(h.status)}}/>
@@ -8542,8 +8547,8 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
             </div>
           </div>
         ))}
-      </div>
-    ))}
+      </div>;
+    })}
   </div>;
 }
 
