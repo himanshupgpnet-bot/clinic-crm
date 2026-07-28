@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.387";
+const CRM_VERSION = "2.9.388";
 
 // Responsive hook
 function useWindowSize() {
@@ -7277,6 +7277,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
         @keyframes _slideInL{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
         @keyframes _barGrow{from{height:0}to{height:100%}}
         @keyframes _ringFill{from{stroke-dashoffset:276}to{stroke-dashoffset:var(--offset)}}
+        @keyframes _shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
         .an1{animation:_fadeUp .4s cubic-bezier(.22,1,.36,1) both}
         .an2{animation:_fadeUp .4s .08s cubic-bezier(.22,1,.36,1) both}
         .an3{animation:_fadeUp .4s .16s cubic-bezier(.22,1,.36,1) both}
@@ -7285,6 +7286,14 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
         .kpi-hover:hover{transform:translateY(-3px)!important}
         .bar-hover:hover{opacity:.75}
         .drill-row:hover{background:${dark?"#ffffff08":T.card2}!important}
+        .an-card{background:${dark?"rgba(255,255,255,0.03)":"#fff"};border-radius:16px;border:1px solid ${dark?"rgba(255,255,255,0.07)":"rgba(0,0,0,0.06)"};box-shadow:${dark?"0 4px 24px rgba(0,0,0,0.2)":"0 4px 24px rgba(0,0,0,0.05)"};overflow:hidden}
+        .an-card-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid ${dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.06)"}}
+        .an-card-body{padding:20px}
+        .an-section-title{font-size:13px;font-weight:700;color:${dark?"rgba(255,255,255,0.9)":"#111"};letter-spacing:-0.2px}
+        .an-section-sub{font-size:11px;color:${dark?"rgba(255,255,255,0.4)":"#999"};margin-top:2px}
+        .an-icon-badge{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+        .an-bar-segment:hover{filter:brightness(1.15)}
+        .an-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:3px}
       `}</style>
 
       {/* ── DRILLDOWN OVERLAY ── */}
@@ -7741,31 +7750,6 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
         </div>}
 
         {!analyticsLoading&&a&&<>
-          {/* HERO BANNER */}
-          <div className="an2" style={{background:`linear-gradient(135deg,#0d1117 0%,#1a2332 50%,#0d1b2a 100%)`,borderRadius:18,padding:"24px 28px",marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",top:-30,right:-30,width:180,height:180,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,200,83,.1),transparent 70%)",pointerEvents:"none"}}/>
-            <div style={{display:"flex",alignItems:"center",position:"relative",zIndex:1,flexWrap:"wrap",gap:16}}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:11,color:"rgba(255,255,255,.4)",letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>{a.dateFrom} → {a.dateTo}</div>
-                <div style={{fontSize:30,fontWeight:900,letterSpacing:-1,lineHeight:1}}>{growth.thisperiod||0} <span style={{fontSize:15,fontWeight:400,color:"rgba(255,255,255,.5)"}}>new conversations</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
-                  {growth.pct!==0&&growth.prevperiod>50&&<div style={{background:growth.pct>0?"rgba(0,200,83,.2)":"rgba(239,68,68,.2)",color:growth.pct>0?"#4ade80":"#f87171",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>
-                    {growth.pct>0?"▲":"▼"} {Math.abs(growth.pct)}% vs previous period
-                  </div>}
-                  {growth.prevperiod>0&&growth.prevperiod<=50&&<div style={{background:"rgba(99,102,241,.2)",color:"#a5b4fc",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>
-                    🚀 Growing fast
-                  </div>}
-                  <div style={{fontSize:12,color:"rgba(255,255,255,.55)"}}>Bot handled <strong style={{color:"#4ade80"}}>{totals.botMessages||0}</strong> msgs</div>
-                </div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div style={{fontSize:11,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Conversion Rate</div>
-                <div style={{fontSize:44,fontWeight:900,color:"#00c853",lineHeight:1}}>{growth.conversionRate||0}%</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:4}}>Contacts → Hot Leads</div>
-              </div>
-            </div>
-          </div>
-
           {/* VIVID HERO BANNER */}
           <div className="an2" style={{borderRadius:20,overflow:"hidden",marginBottom:20,position:"relative",
             background:"linear-gradient(135deg,#8052FF 0%,#C040E8 50%,#FF6B6B 100%)",
@@ -7817,8 +7801,8 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           </div>
 
           {/* AD PERFORMANCE BREAKDOWN — all time, no date filter */}
-          {adData.length>0&&<div style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,padding:20,marginBottom:20}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}
+          {adData.length>0&&<div className="an-card" style={{marginBottom:16}}>
+            <div className="an-card-header" style={{cursor:"pointer"}}
               onClick={()=>setAdExpanded(p=>!p)}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <i className="ti ti-ad" style={{fontSize:16,color:"#7c3aed"}}/>
@@ -7889,14 +7873,14 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           {/* DAILY CHART + LEAD BREAKDOWN — matches mockup 2fr 1fr grid */}
           <div className="an4" style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,marginBottom:20}}>
             {/* Daily bar chart */}
-            <div style={{background:T.card,borderRadius:12,padding:20,border:`1px solid ${T.border}`}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <i className="ti ti-chart-line" style={{fontSize:16,color:WA_GREEN}}/>
-                  <div style={{fontWeight:700,fontSize:13,color:T.text}}>Messages per day</div>
+            <div className="an-card">
+              <div className="an-card-header">
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div className="an-icon-badge" style={{background:"linear-gradient(135deg,#4ade80,#16a34a)"}}><i className="ti ti-chart-line" style={{fontSize:14,color:"#fff"}}/></div>
+                  <div><div className="an-section-title">Messages per day</div><div className="an-section-sub">Bot · Customer · Agent activity</div></div>
                 </div>
                 <div style={{display:"flex",gap:12}}>
-                  {[{c:WA_GREEN,l:"Bot"},{c:"#6366f1",l:"Customer"},{c:"#f59e0b",l:"Agent"}].map(l=>(
+                  {[{c:"#4ade80",l:"Bot"},{c:"#818cf8",l:"Customer"},{c:"#fbbf24",l:"Agent"}].map(l=>(
                     <div key={l.l} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:T.textMuted}}>
                       <div style={{width:8,height:8,borderRadius:"50%",background:l.c}}/>
                       {l.l}
@@ -7984,11 +7968,14 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
               </div>}
             </div>
             {/* Lead breakdown — matches mockup */}
-            <div style={{background:T.card,borderRadius:12,padding:20,border:`1px solid ${T.border}`,display:"flex",flexDirection:"column"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-                <i className="ti ti-target" style={{fontSize:16,color:WA_GREEN}}/>
-                <div style={{fontWeight:700,fontSize:13,color:T.text}}>Lead breakdown</div>
+            <div className="an-card" style={{display:"flex",flexDirection:"column"}}>
+              <div className="an-card-header">
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div className="an-icon-badge" style={{background:"linear-gradient(135deg,#f87171,#dc2626)"}}><i className="ti ti-target" style={{fontSize:14,color:"#fff"}}/></div>
+                  <div><div className="an-section-title">Lead breakdown</div><div className="an-section-sub">Hot · Warm · Cold</div></div>
+                </div>
               </div>
+              <div style={{padding:"0 20px"}}>
               <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
                 {[
                   {l:`🔥 Hot (${hot})`,v:total>0?Math.round(hot/total*100):0,c:"#ef4444"},
@@ -8046,11 +8033,16 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
               <div style={{marginTop:10,padding:"8px 10px",background:`${WA_GREEN}08`,borderRadius:8,fontSize:10,color:T.textMuted,border:`1px solid ${WA_GREEN}20`}}>
                 🤖 AI tagged <strong style={{color:WA_GREEN}}>{hot+warm}</strong> potential patients from {total} conversations
               </div>
+              </div>
             </div>
             {/* Peak hours */}
-            <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>⏰ Peak Activity Hours</div>
-              <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>When customers message most</div>
+            <div className="an-card">
+              <div className="an-card-header">
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div className="an-icon-badge" style={{background:"linear-gradient(135deg,#f59e0b,#d97706)"}}>⏰</div>
+                  <div><div className="an-section-title">Peak Activity Hours</div><div className="an-section-sub">When customers message most</div></div>
+                </div>
+              </div>
               {(()=>{
                 const maxH=Math.max(...(a.peakHours||[]).map(p=>p.count),1);
                 const hoveredData = hoveredHour!==null ? {
