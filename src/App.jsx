@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.388";
+const CRM_VERSION = "2.9.389";
 
 // Responsive hook
 function useWindowSize() {
@@ -8011,9 +8011,14 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           {/* BOTTOM ROW */}
           <div className="an5" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:20}}>
             {/* Funnel */}
-            <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>🎯 Conversion Funnel</div>
-              <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>First message → booking</div>
+            <div className="an-card">
+              <div className="an-card-header">
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div className="an-icon-badge" style={{background:"linear-gradient(135deg,#818cf8,#4f46e5)"}}>🎯</div>
+                  <div><div className="an-section-title">Conversion Funnel</div><div className="an-section-sub">First message → booking</div></div>
+                </div>
+              </div>
+              <div style={{padding:"16px 20px"}}>
               {[
                 {l:"New Contacts",v:total,pct:100,c:"#6366f1"},
                 {l:"Warm Interest",v:warm,pct:total>0?Math.round(warm/total*100):0,c:"#f59e0b"},
@@ -8032,6 +8037,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
               ))}
               <div style={{marginTop:10,padding:"8px 10px",background:`${WA_GREEN}08`,borderRadius:8,fontSize:10,color:T.textMuted,border:`1px solid ${WA_GREEN}20`}}>
                 🤖 AI tagged <strong style={{color:WA_GREEN}}>{hot+warm}</strong> potential patients from {total} conversations
+              </div>
               </div>
               </div>
             </div>
@@ -8109,9 +8115,14 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           </div>
 
           {/* STAFF LEADERBOARD */}
-          {a.staffStats?.length>0&&<div className="an5" style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`,marginBottom:20}}>
-            <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>👥 Team Leaderboard</div>
-            <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>Who handled what this period</div>
+          {a.staffStats?.length>0&&<div className="an-card an5" style={{marginBottom:16}}>
+            <div className="an-card-header">
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div className="an-icon-badge" style={{background:"linear-gradient(135deg,#34d399,#059669)"}}>👥</div>
+                <div><div className="an-section-title">Team Leaderboard</div><div className="an-section-sub">Who handled what this period</div></div>
+              </div>
+            </div>
+            <div style={{padding:"16px 20px"}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
               {a.staffStats.map((s,i)=>{
                 const rate=s.assigned_count>0?Math.round((s.done_count||0)/s.assigned_count*100):0;
@@ -8137,6 +8148,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                   </div>
                 );
               })}
+            </div>
             </div>
           </div>}
 
