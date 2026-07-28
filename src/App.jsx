@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.389";
+const CRM_VERSION = "2.9.390";
 
 // Responsive hook
 function useWindowSize() {
@@ -8009,7 +8009,9 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           </div>
 
           {/* BOTTOM ROW */}
-          <div className="an5" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:20}}>
+          <div className="an5" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
+            {/* Left column — Funnel + Lead Quality stacked */}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* Funnel */}
             <div className="an-card">
               <div className="an-card-header">
@@ -8093,9 +8095,14 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
               {(()=>{const p=(a.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});return p.count>0&&<div style={{marginTop:10,fontSize:11,color:T.textMuted}}>Peak: <strong style={{color:WA_GREEN}}>{p.hour}:00–{p.hour+1}:00</strong> · {p.count} messages</div>;})()}
             </div>
             {/* Lead quality */}
-            <div style={{background:T.card,borderRadius:14,padding:18,border:`1px solid ${T.border}`}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>📊 Lead Quality Split</div>
-              <div style={{fontSize:11,color:T.textFaint,marginBottom:14}}>AI classification breakdown</div>
+            <div className="an-card">
+              <div className="an-card-header">
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div className="an-icon-badge" style={{background:"linear-gradient(135deg,#f87171,#dc2626)"}}>📊</div>
+                  <div><div className="an-section-title">Lead Quality Split</div><div className="an-section-sub">AI classification breakdown</div></div>
+                </div>
+              </div>
+              <div style={{padding:"16px 20px"}}>
               {[
                 {l:"🔥 High Intent",v:hot,pct:total>0?Math.round(hot/total*100):0,c:"#ef4444"},
                 {l:"🟡 Interested",v:warm,pct:total>0?Math.round(warm/total*100):0,c:"#f59e0b"},
@@ -8111,6 +8118,8 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                   </div>
                 </div>
               ))}
+            </div>
+              </div>
             </div>
           </div>
 
