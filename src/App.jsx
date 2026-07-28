@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.382";
+const CRM_VERSION = "2.9.384";
 
 // Responsive hook
 function useWindowSize() {
@@ -1417,64 +1417,121 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   function showGreetingToast(msg) {
     const existing = document.getElementById("lluna-greeting-toast");
     if(existing) existing.remove();
+    document.getElementById("lluna-greeting-style")?.remove();
+
+    const hour = new Date().getHours();
+    const timeEmoji = hour>=5&&hour<12?"🌅":hour>=12&&hour<17?"☀️":hour>=17&&hour<21?"🌆":"🌙";
+
     const style = document.createElement("style");
     style.id = "lluna-greeting-style";
     style.textContent = `
-      @keyframes greetFadeIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.85)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-      @keyframes greetFadeOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-50%) scale(0.9)}}
-      #lluna-greeting-toast{animation:greetFadeIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
-      #lluna-greeting-toast.hiding{animation:greetFadeOut .4s ease forwards}
+      @keyframes lgFadeIn{from{opacity:0;transform:translate(-50%,-48%) scale(0.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+      @keyframes lgFadeOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-52%) scale(0.95)}}
+      @keyframes lgFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+      @keyframes lgPulse{0%,100%{opacity:0.6;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+      @keyframes lgOrb1{0%,100%{transform:translate(0,0)}50%{transform:translate(20px,-15px)}}
+      @keyframes lgOrb2{0%,100%{transform:translate(0,0)}50%{transform:translate(-15px,20px)}}
+      @keyframes lgShimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+      #lluna-greeting-toast{animation:lgFadeIn .6s cubic-bezier(.34,1.56,.64,1) forwards}
+      #lluna-greeting-toast.hiding{animation:lgFadeOut .4s ease forwards}
+      .lg-btn:hover{transform:translateY(-2px)!important;box-shadow:0 8px 24px rgba(255,255,255,0.2)!important}
+      .lg-stat:hover{transform:translateY(-3px) scale(1.05)!important}
     `;
     document.head.appendChild(style);
 
+    // Overlay
     const overlay = document.createElement("div");
-    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9998;backdrop-filter:blur(4px)";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(10,5,30,0.7);z-index:9998;backdrop-filter:blur(8px);transition:opacity .4s";
 
-    const toast = document.createElement("div");
-    toast.id = "lluna-greeting-toast";
-    toast.style.cssText = `
+    // Main card
+    const card = document.createElement("div");
+    card.id = "lluna-greeting-toast";
+    card.style.cssText = `
       position:fixed;top:50%;left:50%;z-index:9999;
-      background:linear-gradient(145deg,#8052FF,#5B35CC);
-      color:#fff;padding:40px 48px;border-radius:24px;
-      font-family:inherit;text-align:center;
-      box-shadow:0 24px 80px rgba(128,82,255,.5);
-      min-width:320px;max-width:440px;
+      width:460px;
+      background:linear-gradient(135deg,#8052FF 0%,#C040E8 40%,#FF6B6B 80%,#FFB347 100%);
+      border:none;
+      border-radius:28px;padding:0;overflow:hidden;
+      font-family:inherit;
+      box-shadow:0 32px 100px rgba(128,82,255,.5),0 8px 32px rgba(192,64,232,.3);
     `;
 
-    const emoji = document.createElement("div");
-    emoji.style.cssText = "font-size:48px;margin-bottom:16px;line-height:1";
-    const hour = new Date().getHours();
-    emoji.textContent = hour>=5&&hour<12?"🌅":hour>=12&&hour<17?"☀️":hour>=17&&hour<21?"🌆":"🌙";
+    // Animated orbs background
+    card.innerHTML = `
+      <div style="position:absolute;inset:0;overflow:hidden;border-radius:28px;pointer-events:none">
+        <div style="position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.25),transparent 70%);top:-60px;right:-60px;animation:lgOrb1 6s ease-in-out infinite"></div>
+        <div style="position:absolute;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.15),transparent 70%);bottom:-40px;left:-40px;animation:lgOrb2 8s ease-in-out infinite"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(128,82,255,0.05) 0%,transparent 50%,rgba(128,82,255,0.05) 100%)"></div>
+      </div>
 
-    const text = document.createElement("div");
-    text.style.cssText = "font-size:22px;font-weight:700;line-height:1.3;margin-bottom:24px;letter-spacing:-0.3px";
-    text.textContent = msg;
+      <div style="position:relative;padding:40px 44px 36px">
+        <!-- Top bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(255,255,255,0.8);animation:lgPulse 2s ease-in-out infinite"></div>
+            <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.9);letter-spacing:1.5px;text-transform:uppercase">Lluna CRM</span>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.3)">${new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}</div>
+        </div>
 
-    const btn = document.createElement("button");
-    btn.style.cssText = `background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:#fff;
-      padding:10px 28px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;
-      font-family:inherit;transition:background .2s`;
-    btn.textContent = "Let's go →";
-    btn.onmouseover = ()=>btn.style.background="rgba(255,255,255,0.3)";
-    btn.onmouseout = ()=>btn.style.background="rgba(255,255,255,0.2)";
+        <!-- Emoji -->
+        <div style="font-size:52px;margin-bottom:20px;animation:lgFloat 3s ease-in-out infinite;display:inline-block">${timeEmoji}</div>
+
+        <!-- Greeting text -->
+        <div style="font-size:26px;font-weight:700;color:#fff;line-height:1.25;margin-bottom:8px;letter-spacing:-0.5px" id="lg-msg-text">Loading...</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:32px">Your dashboard is ready. Let's see what's happening.</div>
+
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:32px" id="lg-stats">
+          <div class="lg-stat" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:14px;padding:14px 12px;text-align:center;transition:transform .2s,box-shadow .2s;cursor:default">
+            <div style="font-size:22px;font-weight:700;color:#fff;line-height:1" id="lg-stat-hot">—</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.7);margin-top:4px;text-transform:uppercase;letter-spacing:.8px">Hot Leads</div>
+          </div>
+          <div class="lg-stat" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:14px;padding:14px 12px;text-align:center;transition:transform .2s,box-shadow .2s;cursor:default">
+            <div style="font-size:22px;font-weight:700;color:#fff;line-height:1" id="lg-stat-bookings">—</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.7);margin-top:4px;text-transform:uppercase;letter-spacing:.8px">Bookings</div>
+          </div>
+          <div class="lg-stat" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:14px;padding:14px 12px;text-align:center;transition:transform .2s,box-shadow .2s;cursor:default">
+            <div style="font-size:22px;font-weight:700;color:#fff;line-height:1" id="lg-stat-unread">—</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.7);margin-top:4px;text-transform:uppercase;letter-spacing:.8px">Unread</div>
+          </div>
+        </div>
+
+        <!-- CTA button -->
+        <button class="lg-btn" id="lg-dismiss-btn" style="width:100%;background:rgba(255,255,255,0.25);border:2px solid rgba(255,255,255,0.5);color:#fff;padding:14px 28px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .2s,box-shadow .2s;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(0,0,0,.1);backdrop-filter:blur(4px)">
+          Let's get to work →
+        </button>
+      </div>
+    `;
 
     const dismiss = ()=>{
-      toast.classList.add("hiding");
-      overlay.style.transition="opacity .4s";
+      card.classList.add("hiding");
       overlay.style.opacity="0";
-      setTimeout(()=>{ toast.remove(); overlay.remove(); style.remove(); },400);
+      setTimeout(()=>{ card.remove(); overlay.remove(); style.remove(); },400);
     };
 
-    btn.onclick = dismiss;
+    document.body.appendChild(overlay);
+    document.body.appendChild(card);
+
+    // Set greeting text
+    card.querySelector("#lg-msg-text").textContent = msg;
+
+    // Dismiss handlers
+    card.querySelector("#lg-dismiss-btn").onclick = dismiss;
     overlay.onclick = dismiss;
 
-    toast.appendChild(emoji);
-    toast.appendChild(text);
-    toast.appendChild(btn);
-    document.body.appendChild(overlay);
-    document.body.appendChild(toast);
+    // Fetch quick stats
+    const token = sessionStorage.getItem("crm_token");
+    if(token) {
+      fetch(`${API}/api/overview`,{headers:{"Authorization":"Bearer "+token}})
+        .then(r=>r.json()).then(d=>{
+          if(d.hot_leads!==undefined) card.querySelector("#lg-stat-hot").textContent = d.hot_leads||0;
+          if(d.total_bookings!==undefined) card.querySelector("#lg-stat-bookings").textContent = d.total_bookings||0;
+          if(d.unread_count!==undefined) card.querySelector("#lg-stat-unread").textContent = d.unread_count||0;
+        }).catch(()=>{});
+    }
 
-    setTimeout(dismiss, 7000);
+    setTimeout(dismiss, 9000);
   }
 
   // Show greeting on login + every hour
