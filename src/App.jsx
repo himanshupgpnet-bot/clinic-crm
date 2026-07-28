@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.393";
+const CRM_VERSION = "2.9.394";
 
 // Responsive hook
 function useWindowSize() {
@@ -8009,7 +8009,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
           </div>
 
           {/* BOTTOM ROW */}
-          <div className="an5" style={{display:"grid",gridTemplateColumns:"1fr 1fr 2fr",gap:14,marginBottom:20}}>
+          <div className="an5" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:20}}>
             {/* Funnel */}
             <div className="an-card">
               <div className="an-card-header">
@@ -8068,7 +8068,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                       :<span style={{fontSize:10,color:T.textMuted}}>Hover a bar to see details</span>
                     }
                   </div>
-                  <div style={{display:"flex",alignItems:"flex-end",gap:2,height:120,position:"relative"}}>
+                  <div style={{display:"flex",alignItems:"flex-end",gap:2,height:80,position:"relative"}}>
                     {Array.from({length:24},(_,h)=>{
                       const cnt=(a.peakHours||[]).find(p=>p.hour===h)?.count||0;
                       const isPeak=cnt===maxH&&cnt>0;
@@ -8077,7 +8077,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                         onMouseEnter={()=>setHoveredHour(h)}
                         onMouseLeave={()=>setHoveredHour(null)}>
                         <div style={{width:"100%",borderRadius:"3px 3px 0 0",
-                          height:`${Math.max(2,(cnt/maxH)*116)}px`,
+                          height:`${Math.max(2,(cnt/maxH)*76)}px`,
                           transition:"all .2s",
                           background:isHovered?"#fff":isPeak?WA_GREEN:cnt>0?WA_GREEN+"60":T.border,
                           transform:isHovered?"scaleY(1.08)":"scaleY(1)",
