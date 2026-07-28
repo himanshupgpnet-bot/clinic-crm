@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.372";
+const CRM_VERSION = "2.9.373";
 
 // Responsive hook
 function useWindowSize() {
@@ -3863,7 +3863,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                           xhr.open("POST",url);
                           xhr.setRequestHeader("Content-Type","application/json");
                           xhr.setRequestHeader("Authorization","Bearer "+token);
-                          xhr.onload=()=>{try{const d=JSON.parse(xhr.responseText);if(d.success||d.message_id)done++;else failed++;}catch{failed++;}resolve();};
+                          xhr.onload=()=>{try{const d=JSON.parse(xhr.responseText);if(d.success||d.message_id||d.messages||d.sent)done++;else failed++;}catch{failed++;}resolve();};
                           xhr.onerror=()=>{failed++;resolve();};
                           xhr.send(JSON.stringify({
                             phone:contact.phone,name:contact.name||contact.phone,
