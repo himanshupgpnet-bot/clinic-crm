@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.391";
+const CRM_VERSION = "2.9.392";
 
 // Responsive hook
 function useWindowSize() {
@@ -1459,7 +1459,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     emojiEl.textContent = timeEmoji;
 
     const textEl = document.createElement("span");
-    textEl.style.cssText = "font-size:14px;font-weight:700;letter-spacing:-0.2px;position:relative;white-space:normal;max-width:320px;line-height:1.3";
+    textEl.style.cssText = "font-size:14px;font-weight:700;letter-spacing:-0.2px;position:relative;white-space:nowrap;line-height:1";
     textEl.textContent = msg;
 
     toast.appendChild(emojiEl);
@@ -3047,7 +3047,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           })()}
 
           {/* Main analytics content */}
-          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:80,position:"relative"}}>
+          <div style={{flex:1,overflowY:"auto",padding:16,paddingBottom:32,position:"relative"}}>
             <AnalyticsTab
               T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
               selectedClinic={selectedClinic} setSelectedClinicWithRef={setSelectedClinicWithRef}
@@ -7270,7 +7270,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
   };
 
   return (
-    <div style={{maxWidth:1100,margin:"0 auto",width:"100%",position:"relative"}}>
+    <div style={{maxWidth:1400,margin:"0 auto",width:"100%",position:"relative"}}>
       <style>{`
         @keyframes _fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         @keyframes _slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
