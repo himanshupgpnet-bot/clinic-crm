@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.381";
+const CRM_VERSION = "2.9.382";
 
 // Responsive hook
 function useWindowSize() {
@@ -1417,16 +1417,64 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   function showGreetingToast(msg) {
     const existing = document.getElementById("lluna-greeting-toast");
     if(existing) existing.remove();
+    const style = document.createElement("style");
+    style.id = "lluna-greeting-style";
+    style.textContent = `
+      @keyframes greetFadeIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.85)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+      @keyframes greetFadeOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-50%) scale(0.9)}}
+      #lluna-greeting-toast{animation:greetFadeIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
+      #lluna-greeting-toast.hiding{animation:greetFadeOut .4s ease forwards}
+    `;
+    document.head.appendChild(style);
+
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9998;backdrop-filter:blur(4px)";
+
     const toast = document.createElement("div");
     toast.id = "lluna-greeting-toast";
-    toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;padding:14px 20px;border-radius:14px;font-size:13px;font-weight:600;font-family:inherit;box-shadow:0 8px 32px rgba(128,82,255,.35);max-width:280px;line-height:1.4;cursor:pointer;animation:greetSlide .4s cubic-bezier(.34,1.56,.64,1) forwards`;
-    const style = document.createElement("style");
-    style.textContent = "@keyframes greetSlide{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}";
-    document.head.appendChild(style);
-    toast.textContent = msg;
-    toast.onclick = ()=>{ toast.style.opacity="0"; toast.style.transition="opacity .3s"; setTimeout(()=>toast.remove(),300); };
+    toast.style.cssText = `
+      position:fixed;top:50%;left:50%;z-index:9999;
+      background:linear-gradient(145deg,#8052FF,#5B35CC);
+      color:#fff;padding:40px 48px;border-radius:24px;
+      font-family:inherit;text-align:center;
+      box-shadow:0 24px 80px rgba(128,82,255,.5);
+      min-width:320px;max-width:440px;
+    `;
+
+    const emoji = document.createElement("div");
+    emoji.style.cssText = "font-size:48px;margin-bottom:16px;line-height:1";
+    const hour = new Date().getHours();
+    emoji.textContent = hour>=5&&hour<12?"🌅":hour>=12&&hour<17?"☀️":hour>=17&&hour<21?"🌆":"🌙";
+
+    const text = document.createElement("div");
+    text.style.cssText = "font-size:22px;font-weight:700;line-height:1.3;margin-bottom:24px;letter-spacing:-0.3px";
+    text.textContent = msg;
+
+    const btn = document.createElement("button");
+    btn.style.cssText = `background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:#fff;
+      padding:10px 28px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;
+      font-family:inherit;transition:background .2s`;
+    btn.textContent = "Let's go →";
+    btn.onmouseover = ()=>btn.style.background="rgba(255,255,255,0.3)";
+    btn.onmouseout = ()=>btn.style.background="rgba(255,255,255,0.2)";
+
+    const dismiss = ()=>{
+      toast.classList.add("hiding");
+      overlay.style.transition="opacity .4s";
+      overlay.style.opacity="0";
+      setTimeout(()=>{ toast.remove(); overlay.remove(); style.remove(); },400);
+    };
+
+    btn.onclick = dismiss;
+    overlay.onclick = dismiss;
+
+    toast.appendChild(emoji);
+    toast.appendChild(text);
+    toast.appendChild(btn);
+    document.body.appendChild(overlay);
     document.body.appendChild(toast);
-    setTimeout(()=>{ toast.style.transition="opacity .5s"; toast.style.opacity="0"; setTimeout(()=>{ toast.remove(); },500); },6000);
+
+    setTimeout(dismiss, 7000);
   }
 
   // Show greeting on login + every hour
