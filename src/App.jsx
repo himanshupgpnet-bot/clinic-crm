@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.390";
+const CRM_VERSION = "2.9.391";
 
 // Responsive hook
 function useWindowSize() {
@@ -8058,7 +8058,7 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                   time:String(hoveredHour).padStart(2,"0")+":00 – "+String(hoveredHour+1).padStart(2,"0")+":00"
                 } : null;
                 const peakHour=(a.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});
-                return <>
+                return <div style={{padding:"16px 20px 20px"}}>
                   {/* Hover info — compact inline strip */}
                   <div style={{marginBottom:8,height:24,display:"flex",alignItems:"center"}}>
                     {hoveredData&&hoveredData.cnt>0
@@ -8090,9 +8090,9 @@ function AnalyticsTab({T, WA_GREEN, dark, isAdmin, selectedClinic, setSelectedCl
                       </div>;
                     })}
                   </div>
-                </>;
+                  {(()=>{const p=(a.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});return p.count>0&&<div style={{marginTop:10,fontSize:11,color:T.textMuted}}>Peak: <strong style={{color:WA_GREEN}}>{p.hour}:00–{p.hour+1}:00</strong> · {p.count} messages</div>;})()}
+                </div>;
               })()}
-              {(()=>{const p=(a.peakHours||[]).reduce((a,b)=>b.count>a.count?b:a,{hour:0,count:0});return p.count>0&&<div style={{marginTop:10,fontSize:11,color:T.textMuted}}>Peak: <strong style={{color:WA_GREEN}}>{p.hour}:00–{p.hour+1}:00</strong> · {p.count} messages</div>;})()}
             </div>
             {/* Lead quality */}
             <div className="an-card">
