@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.377";
+const CRM_VERSION = "2.9.378";
 
 // Responsive hook
 function useWindowSize() {
@@ -8538,6 +8538,7 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
                  h.status==="delivered"&&h.delivered_at?new Date(h.delivered_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):
                  h.sent_at?new Date(h.sent_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}
               </div>
+              {h.status==="failed"&&h.failed_reason&&<div style={{fontSize:10,color:"#ef4444",maxWidth:160,textAlign:"right",marginTop:2}}>{h.failed_reason}</div>}
             </div>
           </div>
         ))}
