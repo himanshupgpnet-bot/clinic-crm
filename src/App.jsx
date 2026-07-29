@@ -21,7 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
-const LLUNA_LOGO = "https://drive.google.com/uc?export=view&id=1EWoSaJYBtqdeJoHUpGdogRuZYQoRpeq-";
+const LLUNA_LOGO = "https://api.codt.my/media/lluna-logo.png";
 
 // Unregister service worker immediately at module load — before React renders
 // This prevents SW from caching/intercepting API calls
@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.397";
+const CRM_VERSION = "2.9.398";
 
 // Responsive hook
 function useWindowSize() {
