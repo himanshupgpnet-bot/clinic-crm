@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.400";
+const CRM_VERSION = "2.9.401";
 
 // Responsive hook
 function useWindowSize() {
@@ -364,7 +364,7 @@ export default function App() {
           {/* Logo */}
           <div className="la0">
             <img src={LLUNA_LOGO} alt="Lluna"
-              style={{height:36,width:"auto",objectFit:"contain",filter:"brightness(0) invert(1)"}}
+              style={{height:36,width:"auto",objectFit:"contain"}}
               onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="block";}}/>
             <span style={{display:"none",fontSize:22,fontWeight:900,color:"#fff",letterSpacing:-0.5}}>Lluna</span>
           </div>
