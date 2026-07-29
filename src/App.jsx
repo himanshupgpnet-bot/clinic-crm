@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.405";
+const CRM_VERSION = "2.9.406";
 
 // Responsive hook
 function useWindowSize() {
@@ -448,10 +448,17 @@ export default function App() {
         </div>
 
         {/* Tagline below card */}
-        <div style={{position:"absolute",bottom:32,left:0,right:0,textAlign:"center"}}>
-          <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,0.9)",letterSpacing:-0.2,lineHeight:1.6,
-            textShadow:"0 1px 8px rgba(0,0,0,0.15)"}}>
-            Your customers are everywhere. Now you are too.
+        <div style={{position:"absolute",bottom:36,left:0,right:0,textAlign:"center"}}>
+          <div style={{fontSize:15,fontWeight:300,color:"rgba(255,255,255,0.95)",
+            letterSpacing:0.5,lineHeight:1.8,fontStyle:"italic",
+            fontFamily:"Georgia,'Times New Roman',serif",
+            textShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
+            Your customers are everywhere.
+            <span style={{display:"block",fontWeight:600,fontStyle:"normal",
+              fontSize:13,letterSpacing:2,textTransform:"uppercase",
+              marginTop:4,color:"rgba(255,255,255,0.7)"}}>
+              Now you are too.
+            </span>
           </div>
         </div>
       </div>
