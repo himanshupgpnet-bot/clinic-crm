@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.406";
+const CRM_VERSION = "2.9.407";
 
 // Responsive hook
 function useWindowSize() {
@@ -362,8 +362,8 @@ export default function App() {
           bottom:-100,left:-100,pointerEvents:"none"}}/>
 
         {/* White card */}
-        <div className="la0" style={{background:"#fff",borderRadius:24,padding:"48px 52px",
-          width:420,maxWidth:"90vw",position:"relative",zIndex:1,
+        <div className="la0" style={{background:"#fff",borderRadius:24,padding:"52px 44px",
+          width:360,maxWidth:"90vw",position:"relative",zIndex:1,
           boxShadow:"0 32px 80px rgba(0,0,0,0.2)"}}>
 
           {/* Logo */}
@@ -375,7 +375,7 @@ export default function App() {
           </div>
 
           {/* Welcome */}
-          <div className="la1" style={{marginBottom:28,textAlign:"center"}}>
+          <div className="la1" style={{marginBottom:32,textAlign:"center"}}>
             <h1 style={{fontSize:22,fontWeight:900,color:"#0f0f1a",letterSpacing:-0.5,marginBottom:6}}>Welcome back</h1>
             <p style={{fontSize:13,color:"#6b7280"}}>Sign in to your workspace</p>
           </div>
@@ -409,7 +409,7 @@ export default function App() {
 
           {/* Form */}
           <div className="la2">
-            <div style={{marginBottom:14}}>
+            <div style={{marginBottom:18}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
                 marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Username</label>
               <input className="lluna-input" value={loginForm.username}
@@ -417,7 +417,7 @@ export default function App() {
                 onKeyDown={e=>e.key==="Enter"&&doLogin()}
                 placeholder="Enter your username"/>
             </div>
-            <div style={{marginBottom:22}}>
+            <div style={{marginBottom:28}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
                 marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Password</label>
               <div style={{position:"relative"}}>
