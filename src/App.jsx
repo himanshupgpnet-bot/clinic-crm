@@ -31,7 +31,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.394";
+const CRM_VERSION = "2.9.395";
 
 // Responsive hook
 function useWindowSize() {
@@ -256,7 +256,7 @@ export default function App() {
   const [exportDateFrom, setExportDateFrom] = useState("");
   const [exportDateTo, setExportDateTo] = useState("");
   const [exportLoading, setExportLoading] = useState(false); // {total, done, active}
-  const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm Sara from Nexora 😊\nHow can I help you today?",time:ts(),sources:[]}]);
+  const [botConvo, setBotConvo] = useState([{from:"bot",text:"👋 Hi! I'm your AI assistant at Lluna 😊\nHow can I help you today?",time:ts(),sources:[]}]);
   const [botInput, setBotInput] = useState("");
   const [botLoading, setBotLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState({});
@@ -446,7 +446,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="a4" style={{textAlign:"center",marginTop:22,fontSize:10,color:"#d1d5db",letterSpacing:1.5,fontWeight:600,textTransform:"uppercase"}}>Nexora CRM · v{CRM_VERSION}</div>
+            <div className="a4" style={{textAlign:"center",marginTop:22,fontSize:10,color:"#d1d5db",letterSpacing:1.5,fontWeight:600,textTransform:"uppercase"}}>Lluna CRM · v{CRM_VERSION}</div>
           </div>
         </div>
 
@@ -461,7 +461,7 @@ export default function App() {
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20,paddingBottom:16,borderBottom:"1px solid #f3f4f6"}}>
                 <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#4f46e5,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 12px rgba(79,70,229,0.3)"}}>🤖</div>
                 <div>
-                  <div style={{fontWeight:800,fontSize:14,color:"#111"}}>Nexora AI</div>
+                  <div style={{fontWeight:800,fontSize:14,color:"#111"}}>Lluna AI</div>
                   <div style={{fontSize:11,color:"#25D366",fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
                     <span style={{width:6,height:6,borderRadius:"50%",background:"#25D366",display:"inline-block",animation:"pulse 2s infinite"}}/>
                     Online · Responding
@@ -2088,7 +2088,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </button>
         <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
           <div style={{width:26,height:26,borderRadius:7,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>💬</div>
-          <span style={{fontWeight:700,fontSize:14,color:T.text}}>{currentUser?.company_name||"Nexora"}</span>
+          <span style={{fontWeight:700,fontSize:14,color:T.text}}>{currentUser?.company_name||"Lluna"}</span>
         </div>
         <button onClick={()=>setDark(d=>!d)} style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{dark?"☀️":"🌙"}</button>
       </div>
@@ -2123,7 +2123,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:"#fff",flexShrink:0}}>
               {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"N"}
             </div>
-            <span style={{fontWeight:700,fontSize:14,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Nexora"}</span>
+            <span style={{fontWeight:700,fontSize:14,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Lluna"}</span>
           </div>
           {/* Nav items */}
           <div style={{flex:1,padding:"8px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
@@ -2178,7 +2178,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   v{CRM_VERSION}
                 </div>
                 {/* Logout */}
-                <button onClick={()=>{setShowUserMenu(false);setConfirmModal({title:"Log Out?",message:"Log out of Nexora CRM?",icon:"🔐",danger:false,confirmText:"Yes, Log Out",onConfirm:()=>doLogout()});}}
+                <button onClick={()=>{setShowUserMenu(false);setConfirmModal({title:"Log Out?",message:"Log out of Lluna CRM?",icon:"🔐",danger:false,confirmText:"Yes, Log Out",onConfirm:()=>doLogout()});}}
                   style={{width:"100%",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",color:"#ef4444",fontSize:13,textAlign:"left"}}>
                   <i className="ti ti-logout" style={{fontSize:16}}/>
                   <span>Log out</span>
