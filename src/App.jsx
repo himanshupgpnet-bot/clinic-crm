@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.402";
+const CRM_VERSION = "2.9.403";
 
 // Responsive hook
 function useWindowSize() {
@@ -450,7 +450,7 @@ export default function App() {
         {/* Bottom tagline */}
         <div style={{position:"absolute",bottom:24,left:0,right:0,textAlign:"center",
           fontSize:11,color:"rgba(255,255,255,0.5)",letterSpacing:1,fontWeight:500}}>
-          One inbox · Every channel · More revenue
+          Your customers are everywhere. Now you are too.
         </div>
       </div>
     );
