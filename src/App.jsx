@@ -21,6 +21,7 @@ function getSocket(apiUrl, clinicId) {
 }
 
 const API = "https://api.codt.my";
+const LLUNA_LOGO = "https://drive.google.com/uc?export=view&id=1EWoSaJYBtqdeJoHUpGdogRuZYQoRpeq-";
 
 // Unregister service worker immediately at module load — before React renders
 // This prevents SW from caching/intercepting API calls
@@ -31,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.395";
+const CRM_VERSION = "2.9.397";
 
 // Responsive hook
 function useWindowSize() {
@@ -348,9 +349,9 @@ export default function App() {
           .a3{animation:fadeSlideUp 0.5s 0.24s ease both}
           .a4{animation:fadeSlideUp 0.5s 0.32s ease both}
           .login-input{transition:all 0.2s}
-          .login-input:focus{border-color:#4f46e5!important;box-shadow:0 0 0 4px rgba(79,70,229,0.1)!important;outline:none!important;background:#fff!important}
-          .sign-btn{transition:all 0.2s;background:linear-gradient(135deg,#4f46e5,#6d28d9)}
-          .sign-btn:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(79,70,229,0.45)!important}
+          .login-input:focus{border-color:#8052FF!important;box-shadow:0 0 0 4px rgba(128,82,255,0.1)!important;outline:none!important;background:#fff!important}
+          .sign-btn{transition:all 0.2s;background:linear-gradient(135deg,#8052FF,#6030DD)}
+          .sign-btn:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(128,82,255,0.45)!important}
           .sign-btn:active{transform:translateY(0)}
         `}</style>
 
@@ -366,9 +367,10 @@ export default function App() {
             {/* Logo */}
             <div className="a0" style={{marginBottom:36}}>
               <div style={{display:"inline-flex",alignItems:"center",gap:10}}>
-                <div style={{width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#4f46e5,#6d28d9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,boxShadow:"0 4px 14px rgba(79,70,229,0.35)"}}>🤖</div>
+                <img src={LLUNA_LOGO} alt="Lluna" style={{height:38,width:"auto",objectFit:"contain"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="inline-flex";}} />
+                <div style={{display:"none",width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#8052FF,#6030DD)",alignItems:"center",justifyContent:"center",fontSize:19,boxShadow:"0 4px 14px rgba(128,82,255,0.35)"}}>✦</div>
                 <div style={{fontWeight:900,fontSize:22,letterSpacing:-0.8,color:"#0f0f1a"}}>
-                  Nexo<span style={{color:"#4f46e5"}}>ra</span>
+                  Ll<span style={{color:"#8052FF"}}>una</span>
                 </div>
               </div>
             </div>
@@ -378,7 +380,7 @@ export default function App() {
             <div className="a2" style={{marginBottom:28}}>
               <h1 style={{margin:0,fontWeight:900,fontSize:26,color:"#0f0f1a",letterSpacing:-0.8,lineHeight:1.2}}>
                 One inbox.<br/>
-                <span style={{color:"#4f46e5"}}>Every channel.</span>
+                <span style={{color:"#8052FF"}}>Every channel.</span>
               </h1>
               <p style={{margin:"8px 0 0",fontSize:13,color:"#6b7280",lineHeight:1.6,fontWeight:400}}>Manage WhatsApp, Instagram, TikTok & Facebook conversations powered by AI.</p>
             </div>
@@ -441,7 +443,7 @@ export default function App() {
                 onMouseDown={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
                 onClick={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
                 disabled={loginLoading}
-                style={{width:"100%",padding:"14px",borderRadius:14,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:loginLoading?"wait":"pointer",fontFamily:"inherit",letterSpacing:0.3,boxShadow:"0 6px 24px rgba(79,70,229,0.35)"}}>
+                style={{width:"100%",padding:"14px",borderRadius:14,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:loginLoading?"wait":"pointer",fontFamily:"inherit",letterSpacing:0.3,boxShadow:"0 6px 24px rgba(128,82,255,0.35)"}}>
                 {loginLoading?"Signing in...":"Sign In →"}
               </button>
             </div>
@@ -459,7 +461,8 @@ export default function App() {
             {/* Main chat card */}
             <div style={{background:"#fff",borderRadius:28,padding:26,boxShadow:"0 24px 80px rgba(79,70,229,0.14),0 4px 16px rgba(0,0,0,0.06)",animation:"floatCard 5s ease-in-out infinite"}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20,paddingBottom:16,borderBottom:"1px solid #f3f4f6"}}>
-                <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#4f46e5,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 12px rgba(79,70,229,0.3)"}}>🤖</div>
+                <img src={LLUNA_LOGO} alt="Lluna" style={{width:40,height:40,borderRadius:12,objectFit:"contain",background:"#f5f3ff",padding:4}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>
+                <div style={{display:"none",width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#8052FF,#6030DD)",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 12px rgba(128,82,255,0.3)"}}>✦</div>
                 <div>
                   <div style={{fontWeight:800,fontSize:14,color:"#111"}}>Lluna AI</div>
                   <div style={{fontSize:11,color:"#25D366",fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
@@ -2086,10 +2089,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           style={{width:38,height:38,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4,padding:8,flexShrink:0}}>
           {[0,1,2].map(i=><div key={i} style={{width:18,height:2,background:menuOpen?WA_GREEN:T.textMuted,borderRadius:2,transition:"all .2s",transform:menuOpen?(i===0?"rotate(45deg) translate(4px,4px)":i===2?"rotate(-45deg) translate(4px,-4px)":"scaleX(0)"):"none"}}/>)}
         </button>
-        <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-          <div style={{width:26,height:26,borderRadius:7,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>💬</div>
-          <span style={{fontWeight:700,fontSize:14,color:T.text}}>{currentUser?.company_name||"Lluna"}</span>
-        </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+            <img src={LLUNA_LOGO} alt="Lluna" style={{height:28,width:"auto",objectFit:"contain"}} onError={e=>{e.target.style.display="none";}}/>
+          </div>
         <button onClick={()=>setDark(d=>!d)} style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{dark?"☀️":"🌙"}</button>
       </div>
 
