@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.398";
+const CRM_VERSION = "2.9.399";
 
 // Responsive hook
 function useWindowSize() {
@@ -2122,8 +2122,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         <div className="hide-mobile nav-sidebar" style={{width:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
           {/* Brand — top of sidebar like mockup */}
           <div style={{padding:"16px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-            <div style={{width:32,height:32,borderRadius:8,background:WA_GREEN,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:"#fff",flexShrink:0}}>
-              {currentUser?.logo_url?<img src={currentUser.logo_url} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} alt="logo"/>:"N"}
+            <div style={{width:32,height:32,borderRadius:8,background:"#f5f3ff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+              <img src={currentUser?.logo_url||LLUNA_LOGO} style={{width:"100%",height:"100%",objectFit:"contain",padding:2}} alt="logo"/>
             </div>
             <span style={{fontWeight:700,fontSize:14,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Lluna"}</span>
           </div>
