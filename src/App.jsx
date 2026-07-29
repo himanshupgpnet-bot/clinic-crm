@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.404";
+const CRM_VERSION = "2.9.405";
 
 // Responsive hook
 function useWindowSize() {
@@ -445,16 +445,15 @@ export default function App() {
             color:"#d1d5db",letterSpacing:1.5,fontWeight:600,textTransform:"uppercase"}}>
             Lluna CRM · v{CRM_VERSION}
           </div>
-
-          {/* Tagline */}
-          <div style={{marginTop:20,paddingTop:20,borderTop:"1px solid #f3f4f6",textAlign:"center"}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#8052FF",letterSpacing:-0.2,lineHeight:1.5}}>
-              Your customers are everywhere.<br/>Now you are too.
-            </div>
-          </div>
         </div>
 
-        {/* Remove bottom absolute tagline */}
+        {/* Tagline below card */}
+        <div style={{position:"absolute",bottom:32,left:0,right:0,textAlign:"center"}}>
+          <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,0.9)",letterSpacing:-0.2,lineHeight:1.6,
+            textShadow:"0 1px 8px rgba(0,0,0,0.15)"}}>
+            Your customers are everywhere. Now you are too.
+          </div>
+        </div>
       </div>
     );
   }
