@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.399";
+const CRM_VERSION = "2.9.400";
 
 // Responsive hook
 function useWindowSize() {
@@ -335,199 +335,155 @@ export default function App() {
   // ── LOGIN PAGE ──
   if (!currentUser) {
     return (
-      <div style={{minHeight:"100vh",display:"flex",fontFamily:"'Helvetica Neue',Arial,sans-serif",background:"#f7f8fc"}}>
+      <div style={{minHeight:"100vh",display:"flex",alignItems:"stretch",fontFamily:"'Helvetica Neue',Arial,sans-serif"}}>
         <style>{`
-          @keyframes fadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-          @keyframes floatCard{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-12px) rotate(-1.5deg)}}
-          @keyframes floatCard2{0%,100%{transform:translateY(0) rotate(1.5deg)}50%{transform:translateY(-9px) rotate(1.5deg)}}
-          @keyframes badgePop{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-          @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-          @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-          .a0{animation:fadeSlideUp 0.5s ease both}
-          .a1{animation:fadeSlideUp 0.5s 0.08s ease both}
-          .a2{animation:fadeSlideUp 0.5s 0.16s ease both}
-          .a3{animation:fadeSlideUp 0.5s 0.24s ease both}
-          .a4{animation:fadeSlideUp 0.5s 0.32s ease both}
-          .login-input{transition:all 0.2s}
-          .login-input:focus{border-color:#8052FF!important;box-shadow:0 0 0 4px rgba(128,82,255,0.1)!important;outline:none!important;background:#fff!important}
-          .sign-btn{transition:all 0.2s;background:linear-gradient(135deg,#8052FF,#6030DD)}
-          .sign-btn:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(128,82,255,0.45)!important}
-          .sign-btn:active{transform:translateY(0)}
+          @keyframes lgFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+          .la0{animation:lgFadeUp .5s ease both}
+          .la1{animation:lgFadeUp .5s .1s ease both}
+          .la2{animation:lgFadeUp .5s .18s ease both}
+          .la3{animation:lgFadeUp .5s .26s ease both}
+          .la4{animation:lgFadeUp .5s .34s ease both}
+          .lluna-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#111;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;transition:all .2s}
+          .lluna-input:focus{border-color:#8052FF;box-shadow:0 0 0 3px rgba(128,82,255,0.12);background:#fff}
+          .lluna-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;box-shadow:0 4px 20px rgba(128,82,255,0.35)}
+          .lluna-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(128,82,255,0.45)}
+          .lluna-btn:disabled{opacity:0.7;cursor:wait;transform:none}
+          .ch-chip{background:rgba(255,255,255,0.15);border:0.5px solid rgba(255,255,255,0.3);border-radius:20px;padding:5px 12px;font-size:11px;color:#fff;font-weight:600;display:inline-flex;align-items:center;gap:5px}
         `}</style>
 
-        {/* ══ LEFT PANEL ══ */}
-        <div style={{width:"46%",minWidth:420,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"52px 56px",background:"#ffffff",position:"relative",boxShadow:"2px 0 40px rgba(0,0,0,0.06)",zIndex:2}}>
+        {/* LEFT — Vivid gradient panel */}
+        <div style={{width:"44%",minWidth:360,background:"linear-gradient(145deg,#8052FF 0%,#B040F0 50%,#FF6B9D 100%)",
+          padding:"52px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",
+          position:"relative",overflow:"hidden"}}>
+          {/* Orbs */}
+          <div style={{position:"absolute",width:280,height:280,borderRadius:"50%",
+            background:"radial-gradient(circle,rgba(255,255,255,0.1),transparent 70%)",top:-80,right:-80,pointerEvents:"none"}}/>
+          <div style={{position:"absolute",width:200,height:200,borderRadius:"50%",
+            background:"radial-gradient(circle,rgba(255,255,255,0.07),transparent 70%)",bottom:-60,left:20,pointerEvents:"none"}}/>
 
-          {/* Subtle top-right accent */}
-          <div style={{position:"absolute",top:0,right:0,width:180,height:180,background:"radial-gradient(circle at top right,rgba(79,70,229,0.06),transparent 70%)",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",bottom:0,left:0,width:150,height:150,background:"radial-gradient(circle at bottom left,rgba(109,40,217,0.05),transparent 70%)",pointerEvents:"none"}}/>
+          {/* Logo */}
+          <div className="la0">
+            <img src={LLUNA_LOGO} alt="Lluna"
+              style={{height:36,width:"auto",objectFit:"contain",filter:"brightness(0) invert(1)"}}
+              onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="block";}}/>
+            <span style={{display:"none",fontSize:22,fontWeight:900,color:"#fff",letterSpacing:-0.5}}>Lluna</span>
+          </div>
 
-          <div style={{width:"100%",maxWidth:360}}>
+          {/* Tagline */}
+          <div className="la1" style={{position:"relative"}}>
+            <h2 style={{fontSize:34,fontWeight:900,color:"#fff",lineHeight:1.2,letterSpacing:-0.8,marginBottom:14}}>
+              One inbox.<br/>Every channel.
+            </h2>
+            <p style={{fontSize:13,color:"rgba(255,255,255,0.75)",lineHeight:1.7,maxWidth:320}}>
+              AI-powered conversations across WhatsApp, Instagram, Facebook and TikTok — all in one place.
+            </p>
+          </div>
 
-            {/* Logo */}
-            <div className="a0" style={{marginBottom:36}}>
-              <div style={{display:"inline-flex",alignItems:"center",gap:10}}>
-                <img src={LLUNA_LOGO} alt="Lluna" style={{height:38,width:"auto",objectFit:"contain"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="inline-flex";}} />
-                <div style={{display:"none",width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#8052FF,#6030DD)",alignItems:"center",justifyContent:"center",fontSize:19,boxShadow:"0 4px 14px rgba(128,82,255,0.35)"}}>✦</div>
-                <div style={{fontWeight:900,fontSize:22,letterSpacing:-0.8,color:"#0f0f1a"}}>
-                  Ll<span style={{color:"#8052FF"}}>una</span>
-                </div>
+          {/* Channel chips */}
+          <div className="la2" style={{display:"flex",gap:8,flexWrap:"wrap",position:"relative"}}>
+            {[
+              {label:"WhatsApp",dot:"#25D366"},
+              {label:"Instagram",dot:"#E1306C"},
+              {label:"Facebook",dot:"#1877F2"},
+              {label:"TikTok",dot:"#fff"},
+            ].map(c=>(
+              <div key={c.label} className="ch-chip">
+                <div style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>
+                {c.label}
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT — Login form */}
+        <div style={{flex:1,background:"#fff",padding:"52px 56px",display:"flex",flexDirection:"column",
+          justifyContent:"center",position:"relative"}}>
+          <div style={{position:"absolute",top:0,right:0,width:200,height:200,
+            background:"radial-gradient(circle at top right,rgba(128,82,255,0.05),transparent 70%)",pointerEvents:"none"}}/>
+
+          <div style={{maxWidth:360,width:"100%"}}>
+            {/* Right logo */}
+            <div className="la0" style={{marginBottom:36,display:"flex",alignItems:"center",gap:10}}>
+              <img src={LLUNA_LOGO} alt="Lluna"
+                style={{height:32,width:"auto",objectFit:"contain"}}
+                onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>
+              <div style={{display:"none",width:32,height:32,borderRadius:9,
+                background:"linear-gradient(135deg,#8052FF,#6030DD)",
+                alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff"}}>✦</div>
             </div>
 
-
-            {/* Tagline */}
-            <div className="a2" style={{marginBottom:28}}>
-              <h1 style={{margin:0,fontWeight:900,fontSize:26,color:"#0f0f1a",letterSpacing:-0.8,lineHeight:1.2}}>
-                One inbox.<br/>
-                <span style={{color:"#8052FF"}}>Every channel.</span>
+            {/* Welcome */}
+            <div className="la1" style={{marginBottom:28}}>
+              <h1 style={{fontSize:26,fontWeight:900,color:"#0f0f1a",letterSpacing:-0.8,marginBottom:6}}>
+                Welcome back
               </h1>
-              <p style={{margin:"8px 0 0",fontSize:13,color:"#6b7280",lineHeight:1.6,fontWeight:400}}>Manage WhatsApp, Instagram, TikTok & Facebook conversations powered by AI.</p>
+              <p style={{fontSize:13,color:"#6b7280"}}>Sign in to your workspace</p>
             </div>
 
-            {/* Session conflict modal */}
-            {sessionConflict&&<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:14,padding:"18px",marginBottom:14}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                <span style={{fontSize:22}}>🔒</span>
-                <div style={{fontWeight:800,fontSize:15,color:"#92400e"}}>Account Already In Use</div>
+            {/* Session conflict */}
+            {sessionConflict&&<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:12,padding:16,marginBottom:14}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                <span style={{fontSize:20}}>🔒</span>
+                <div style={{fontWeight:800,fontSize:14,color:"#92400e"}}>Account already in use</div>
               </div>
-              <div style={{fontSize:13,color:"#78350f",marginBottom:10,lineHeight:1.6}}>
-                This account is currently active on another device.<br/>
-                You need to log out from that device first, or force login here.
-              </div>
-              <div style={{background:"#fef3c7",borderRadius:10,padding:"10px 12px",marginBottom:14,fontSize:12,color:"#92400e"}}>
-                <div>📱 <strong>Device:</strong> {sessionConflict.device_info}</div>
-                <div style={{marginTop:4}}>🕐 <strong>Last active:</strong> {sessionConflict.last_active_friendly||"recently"}</div>
-                <div style={{marginTop:4}}>📅 <strong>Logged in at:</strong> {sessionConflict.logged_in_at ? new Date(sessionConflict.logged_in_at.replace(" ","T")+"Z").toLocaleString([],{dateStyle:"medium",timeStyle:"short"}) : "—"}</div>
-              </div>
-              <div style={{fontSize:12,color:"#b45309",marginBottom:12,padding:"8px 10px",background:"#fef9c3",borderRadius:8,border:"1px solid #fde68a"}}>
-                ⚠️ Forcing login will immediately log out the other device
+              <div style={{fontSize:12,color:"#78350f",marginBottom:10,lineHeight:1.6}}>
+                This account is active on another device. Force login to continue.
               </div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>setSessionConflict(null)}
-                  style={{flex:1,padding:"10px",borderRadius:10,border:"1px solid #fed7aa",background:"#fff",color:"#92400e",fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+                  style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid #fed7aa",background:"#fff",color:"#92400e",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
                   Cancel
                 </button>
                 <button onClick={()=>{setSessionConflict(null);doLogin(true);}}
-                  style={{flex:2,padding:"10px",borderRadius:10,border:"none",background:"#dc2626",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  🔓 Force Login
+                  style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  Force login
                 </button>
               </div>
             </div>}
 
             {/* Error */}
-            {loginError&&<div className="a2" style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#dc2626",marginBottom:14,fontWeight:500}}>⚠ {loginError}</div>}
+            {loginError&&<div className="la1" style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,
+              padding:"10px 14px",fontSize:13,color:"#dc2626",marginBottom:14,fontWeight:500}}>
+              ⚠ {loginError}
+            </div>}
 
             {/* Form */}
-            <div className="a3">
-              <div style={{marginBottom:12}}>
-                <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Username</label>
-                <input className="login-input" value={loginForm.username}
+            <div className="la2">
+              <div style={{marginBottom:14}}>
+                <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
+                  marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Username</label>
+                <input className="lluna-input" value={loginForm.username}
                   onChange={e=>setLoginForm(p=>({...p,username:e.target.value}))}
                   onKeyDown={e=>e.key==="Enter"&&doLogin()}
-                  placeholder="Enter your username"
-                  style={{width:"100%",padding:"13px 16px",borderRadius:14,border:"1.5px solid #e5e7eb",background:"#f9fafb",color:"#111",fontSize:14,boxSizing:"border-box",fontFamily:"inherit"}}/>
+                  placeholder="Enter your username"/>
               </div>
-              <div style={{marginBottom:22}}>
-                <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Password</label>
+              <div style={{marginBottom:20}}>
+                <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
+                  marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Password</label>
                 <div style={{position:"relative"}}>
-                  <input className="login-input" type={showPw?"text":"password"} value={loginForm.password}
+                  <input className="lluna-input" type={showPw?"text":"password"} value={loginForm.password}
                     onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
                     onKeyDown={e=>e.key==="Enter"&&doLogin()}
                     placeholder="Enter your password"
-                    style={{width:"100%",padding:"13px 48px 13px 16px",borderRadius:14,border:"1.5px solid #e5e7eb",background:"#f9fafb",color:"#111",fontSize:14,boxSizing:"border-box",fontFamily:"inherit"}}/>
-                  <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:18,color:"#9ca3af",lineHeight:1,padding:0}}>{showPw?"🙈":"👁️"}</button>
+                    style={{paddingRight:48}}/>
+                  <button onClick={()=>setShowPw(p=>!p)}
+                    style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",
+                      border:"none",background:"none",cursor:"pointer",fontSize:18,color:"#9ca3af",lineHeight:1,padding:0}}>
+                    {showPw?"🙈":"👁️"}
+                  </button>
                 </div>
               </div>
-              <button type="button" className="sign-btn" 
+              <button type="button" className="lluna-btn"
                 onMouseDown={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
                 onClick={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
-                disabled={loginLoading}
-                style={{width:"100%",padding:"14px",borderRadius:14,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:loginLoading?"wait":"pointer",fontFamily:"inherit",letterSpacing:0.3,boxShadow:"0 6px 24px rgba(128,82,255,0.35)"}}>
-                {loginLoading?"Signing in...":"Sign In →"}
+                disabled={loginLoading}>
+                {loginLoading?"Signing in...":"Sign in →"}
               </button>
             </div>
 
-            <div className="a4" style={{textAlign:"center",marginTop:22,fontSize:10,color:"#d1d5db",letterSpacing:1.5,fontWeight:600,textTransform:"uppercase"}}>Lluna CRM · v{CRM_VERSION}</div>
-          </div>
-        </div>
-
-        {/* ══ RIGHT PANEL ══ */}
-        <div style={{flex:1,background:"linear-gradient(145deg,#eef2ff 0%,#f5f3ff 45%,#ecfdf5 100%)",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",top:"-15%",right:"-10%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(79,70,229,0.1),transparent 65%)",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",bottom:"-15%",left:"-5%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle,rgba(124,58,237,0.08),transparent 65%)",pointerEvents:"none"}}/>
-
-          <div style={{position:"relative",width:"82%",maxWidth:500}}>
-            {/* Main chat card */}
-            <div style={{background:"#fff",borderRadius:28,padding:26,boxShadow:"0 24px 80px rgba(79,70,229,0.14),0 4px 16px rgba(0,0,0,0.06)",animation:"floatCard 5s ease-in-out infinite"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20,paddingBottom:16,borderBottom:"1px solid #f3f4f6"}}>
-                <img src={LLUNA_LOGO} alt="Lluna" style={{width:40,height:40,borderRadius:12,objectFit:"contain",background:"#f5f3ff",padding:4}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>
-                <div style={{display:"none",width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#8052FF,#6030DD)",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 12px rgba(128,82,255,0.3)"}}>✦</div>
-                <div>
-                  <div style={{fontWeight:800,fontSize:14,color:"#111"}}>Lluna AI</div>
-                  <div style={{fontSize:11,color:"#25D366",fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
-                    <span style={{width:6,height:6,borderRadius:"50%",background:"#25D366",display:"inline-block",animation:"pulse 2s infinite"}}/>
-                    Online · Responding
-                  </div>
-                </div>
-                <div style={{marginLeft:"auto",display:"flex",gap:5}}>
-                  {["#25D366","#e02d69","#111","#1877f2"].map((c,i)=>(
-                    <div key={i} style={{width:22,height:22,borderRadius:6,background:c,boxShadow:`0 2px 6px ${c}60`}}/>
-                  ))}
-                </div>
-              </div>
-              {[
-                {from:"bot",text:"Hi! How can I help you today? 😊",color:"#f3f4f6",tc:"#111"},
-                {from:"user",text:"I want to book an appointment",color:"linear-gradient(135deg,#4f46e5,#7c3aed)",tc:"#fff"},
-                {from:"bot",text:"Sure! What date works for you? 📅",color:"#f3f4f6",tc:"#111"},
-                {from:"user",text:"Tomorrow at 3pm please",color:"linear-gradient(135deg,#4f46e5,#7c3aed)",tc:"#fff"},
-              ].map((m,i)=>(
-                <div key={i} style={{display:"flex",justifyContent:m.from==="user"?"flex-end":"flex-start",marginBottom:10}}>
-                  <div style={{background:m.color,color:m.tc,padding:"10px 14px",borderRadius:m.from==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px",fontSize:13,fontWeight:500,maxWidth:"76%",boxShadow:m.from==="user"?"0 4px 12px rgba(79,70,229,0.25)":"0 2px 8px rgba(0,0,0,0.05)"}}>{m.text}</div>
-                </div>
-              ))}
-              <div style={{marginTop:14,display:"flex",gap:8,alignItems:"center"}}>
-                <div style={{flex:1,background:"#f9fafb",borderRadius:12,padding:"10px 14px",fontSize:12,color:"#aaa",border:"1px solid #f3f4f6"}}>Type a message...</div>
-                <div style={{width:38,height:38,borderRadius:12,background:"linear-gradient(135deg,#4f46e5,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:16,boxShadow:"0 4px 12px rgba(79,70,229,0.4)"}}>↑</div>
-              </div>
-            </div>
-
-            {/* Floating WA badge */}
-            <div style={{position:"absolute",top:-22,right:-22,background:"#fff",borderRadius:18,padding:"11px 15px",boxShadow:"0 8px 32px rgba(37,211,102,0.2),0 2px 8px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:9,animation:"badgePop 4s ease-in-out infinite"}}>
-              <div style={{width:34,height:34,borderRadius:10,background:"linear-gradient(135deg,#25D366,#128C7E)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 10px rgba(37,211,102,0.4)"}}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              </div>
-              <div><div style={{fontSize:12,fontWeight:800,color:"#111"}}>WhatsApp</div><div style={{fontSize:10,color:"#25D366",fontWeight:700}}>Connected ✓</div></div>
-            </div>
-
-            {/* Floating IG badge */}
-            <div style={{position:"absolute",bottom:-20,left:-28,background:"#fff",borderRadius:18,padding:"11px 15px",boxShadow:"0 8px 32px rgba(224,45,105,0.18),0 2px 8px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:9,animation:"badgePop 5.5s ease-in-out infinite 0.6s"}}>
-              <div style={{width:34,height:34,borderRadius:10,background:"linear-gradient(135deg,#f9c336,#f47121,#e02d69,#c12591)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 10px rgba(224,45,105,0.4)"}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-              </div>
-              <div><div style={{fontSize:12,fontWeight:800,color:"#111"}}>Instagram</div><div style={{fontSize:10,color:"#e02d69",fontWeight:700}}>Connected ✓</div></div>
-            </div>
-
-            {/* Floating TikTok badge */}
-            <div style={{position:"absolute",top:"38%",right:-30,background:"#fff",borderRadius:18,padding:"11px 15px",boxShadow:"0 8px 32px rgba(105,201,208,0.18),0 2px 8px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:9,animation:"badgePop 6s ease-in-out infinite 1.1s"}}>
-              <div style={{width:34,height:34,borderRadius:10,background:"#111",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 10px rgba(0,0,0,0.3)"}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="#69c9d0"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.27 8.27 0 004.84 1.56V6.78a4.85 4.85 0 01-1.07-.09z"/></svg>
-              </div>
-              <div><div style={{fontSize:12,fontWeight:800,color:"#111"}}>TikTok</div><div style={{fontSize:10,color:"#69c9d0",fontWeight:700}}>Connected ✓</div></div>
-            </div>
-
-            {/* Stats */}
-            <div style={{position:"absolute",bottom:-52,right:12,background:"#fff",borderRadius:18,padding:"13px 18px",boxShadow:"0 8px 32px rgba(79,70,229,0.13)",animation:"floatCard2 6s ease-in-out infinite"}}>
-              <div style={{fontSize:9,color:"#9ca3af",fontWeight:700,marginBottom:8,letterSpacing:1}}>TODAY'S MESSAGES</div>
-              <div style={{display:"flex",gap:14,alignItems:"flex-end"}}>
-                {[{c:"#25D366",n:"48",l:"WA"},{c:"#e02d69",n:"23",l:"IG"},{c:"#69c9d0",n:"31",l:"TT"},{c:"#1877f2",n:"17",l:"FB"}].map((s,i)=>(
-                  <div key={i} style={{textAlign:"center"}}>
-                    <div style={{fontWeight:900,fontSize:16,color:"#111"}}>{s.n}</div>
-                    <div style={{width:28,height:4,borderRadius:2,background:s.c,margin:"3px auto"}}/>
-                    <div style={{fontSize:9,color:s.c,fontWeight:700}}>{s.l}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="la4" style={{textAlign:"center",marginTop:24,fontSize:10,
+              color:"#d1d5db",letterSpacing:1.5,fontWeight:600,textTransform:"uppercase"}}>
+              Lluna CRM · v{CRM_VERSION}
             </div>
           </div>
         </div>
