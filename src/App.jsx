@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.401";
+const CRM_VERSION = "2.9.402";
 
 // Responsive hook
 function useWindowSize() {
@@ -335,157 +335,122 @@ export default function App() {
   // ── LOGIN PAGE ──
   if (!currentUser) {
     return (
-      <div style={{minHeight:"100vh",display:"flex",alignItems:"stretch",fontFamily:"'Helvetica Neue',Arial,sans-serif"}}>
+      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
+        fontFamily:"'Helvetica Neue',Arial,sans-serif",
+        background:"linear-gradient(135deg,#8052FF 0%,#C040E8 50%,#FF6B9D 100%)",
+        position:"relative",overflow:"hidden"}}>
         <style>{`
-          @keyframes lgFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+          @keyframes lgFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
           .la0{animation:lgFadeUp .5s ease both}
           .la1{animation:lgFadeUp .5s .1s ease both}
           .la2{animation:lgFadeUp .5s .18s ease both}
           .la3{animation:lgFadeUp .5s .26s ease both}
           .la4{animation:lgFadeUp .5s .34s ease both}
           .lluna-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#111;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;transition:all .2s}
-          .lluna-input:focus{border-color:#8052FF;box-shadow:0 0 0 3px rgba(128,82,255,0.12);background:#fff}
-          .lluna-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;box-shadow:0 4px 20px rgba(128,82,255,0.35)}
+          .lluna-input:focus{border-color:#8052FF;background:#fff;box-shadow:0 0 0 3px rgba(128,82,255,0.1)}
+          .lluna-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;box-shadow:0 4px 16px rgba(128,82,255,0.35)}
           .lluna-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(128,82,255,0.45)}
           .lluna-btn:disabled{opacity:0.7;cursor:wait;transform:none}
-          .ch-chip{background:rgba(255,255,255,0.15);border:0.5px solid rgba(255,255,255,0.3);border-radius:20px;padding:5px 12px;font-size:11px;color:#fff;font-weight:600;display:inline-flex;align-items:center;gap:5px}
         `}</style>
 
-        {/* LEFT — Vivid gradient panel */}
-        <div style={{width:"44%",minWidth:360,background:"linear-gradient(145deg,#8052FF 0%,#B040F0 50%,#FF6B9D 100%)",
-          padding:"52px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",
-          position:"relative",overflow:"hidden"}}>
-          {/* Orbs */}
-          <div style={{position:"absolute",width:280,height:280,borderRadius:"50%",
-            background:"radial-gradient(circle,rgba(255,255,255,0.1),transparent 70%)",top:-80,right:-80,pointerEvents:"none"}}/>
-          <div style={{position:"absolute",width:200,height:200,borderRadius:"50%",
-            background:"radial-gradient(circle,rgba(255,255,255,0.07),transparent 70%)",bottom:-60,left:20,pointerEvents:"none"}}/>
+        {/* Background orbs */}
+        <div style={{position:"absolute",width:500,height:500,borderRadius:"50%",
+          background:"radial-gradient(circle,rgba(255,255,255,0.1),transparent 70%)",
+          top:-150,right:-150,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",width:350,height:350,borderRadius:"50%",
+          background:"radial-gradient(circle,rgba(255,255,255,0.07),transparent 70%)",
+          bottom:-100,left:-100,pointerEvents:"none"}}/>
+
+        {/* White card */}
+        <div className="la0" style={{background:"#fff",borderRadius:24,padding:"48px 52px",
+          width:420,maxWidth:"90vw",position:"relative",zIndex:1,
+          boxShadow:"0 32px 80px rgba(0,0,0,0.2)"}}>
 
           {/* Logo */}
-          <div className="la0">
+          <div className="la0" style={{textAlign:"center",marginBottom:32}}>
             <img src={LLUNA_LOGO} alt="Lluna"
-              style={{height:36,width:"auto",objectFit:"contain"}}
+              style={{height:52,width:"auto",objectFit:"contain",marginBottom:12,display:"block",margin:"0 auto 12px"}}
               onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="block";}}/>
-            <span style={{display:"none",fontSize:22,fontWeight:900,color:"#fff",letterSpacing:-0.5}}>Lluna</span>
+            <div style={{display:"none",fontWeight:900,fontSize:26,color:"#8052FF",marginBottom:12,letterSpacing:-0.5}}>Lluna</div>
           </div>
 
-          {/* Tagline */}
-          <div className="la1" style={{position:"relative"}}>
-            <h2 style={{fontSize:34,fontWeight:900,color:"#fff",lineHeight:1.2,letterSpacing:-0.8,marginBottom:14}}>
-              One inbox.<br/>Every channel.
-            </h2>
-            <p style={{fontSize:13,color:"rgba(255,255,255,0.75)",lineHeight:1.7,maxWidth:320}}>
-              AI-powered conversations across WhatsApp, Instagram, Facebook and TikTok — all in one place.
-            </p>
+          {/* Welcome */}
+          <div className="la1" style={{marginBottom:28,textAlign:"center"}}>
+            <h1 style={{fontSize:22,fontWeight:900,color:"#0f0f1a",letterSpacing:-0.5,marginBottom:6}}>Welcome back</h1>
+            <p style={{fontSize:13,color:"#6b7280"}}>Sign in to your workspace</p>
           </div>
 
-          {/* Channel chips */}
-          <div className="la2" style={{display:"flex",gap:8,flexWrap:"wrap",position:"relative"}}>
-            {[
-              {label:"WhatsApp",dot:"#25D366"},
-              {label:"Instagram",dot:"#E1306C"},
-              {label:"Facebook",dot:"#1877F2"},
-              {label:"TikTok",dot:"#fff"},
-            ].map(c=>(
-              <div key={c.label} className="ch-chip">
-                <div style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>
-                {c.label}
+          {/* Session conflict */}
+          {sessionConflict&&<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:12,padding:16,marginBottom:14}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <span style={{fontSize:20}}>🔒</span>
+              <div style={{fontWeight:800,fontSize:14,color:"#92400e"}}>Account already in use</div>
+            </div>
+            <div style={{fontSize:12,color:"#78350f",marginBottom:10,lineHeight:1.6}}>
+              This account is active on another device. Force login to continue.
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setSessionConflict(null)}
+                style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid #fed7aa",background:"#fff",color:"#92400e",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+                Cancel
+              </button>
+              <button onClick={()=>{setSessionConflict(null);doLogin(true);}}
+                style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                Force login
+              </button>
+            </div>
+          </div>}
+
+          {/* Error */}
+          {loginError&&<div className="la1" style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,
+            padding:"10px 14px",fontSize:13,color:"#dc2626",marginBottom:14,fontWeight:500}}>
+            ⚠ {loginError}
+          </div>}
+
+          {/* Form */}
+          <div className="la2">
+            <div style={{marginBottom:14}}>
+              <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
+                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Username</label>
+              <input className="lluna-input" value={loginForm.username}
+                onChange={e=>setLoginForm(p=>({...p,username:e.target.value}))}
+                onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                placeholder="Enter your username"/>
+            </div>
+            <div style={{marginBottom:22}}>
+              <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
+                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Password</label>
+              <div style={{position:"relative"}}>
+                <input className="lluna-input" type={showPw?"text":"password"} value={loginForm.password}
+                  onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
+                  onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                  placeholder="Enter your password"
+                  style={{paddingRight:48}}/>
+                <button onClick={()=>setShowPw(p=>!p)}
+                  style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",
+                    border:"none",background:"none",cursor:"pointer",fontSize:18,color:"#9ca3af",lineHeight:1,padding:0}}>
+                  {showPw?"🙈":"👁️"}
+                </button>
               </div>
-            ))}
+            </div>
+            <button type="button" className="lluna-btn"
+              onMouseDown={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
+              onClick={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
+              disabled={loginLoading}>
+              {loginLoading?"Signing in...":"Sign in →"}
+            </button>
+          </div>
+
+          <div className="la4" style={{textAlign:"center",marginTop:24,fontSize:10,
+            color:"#d1d5db",letterSpacing:1.5,fontWeight:600,textTransform:"uppercase"}}>
+            Lluna CRM · v{CRM_VERSION}
           </div>
         </div>
 
-        {/* RIGHT — Login form */}
-        <div style={{flex:1,background:"#fff",padding:"52px 56px",display:"flex",flexDirection:"column",
-          justifyContent:"center",position:"relative"}}>
-          <div style={{position:"absolute",top:0,right:0,width:200,height:200,
-            background:"radial-gradient(circle at top right,rgba(128,82,255,0.05),transparent 70%)",pointerEvents:"none"}}/>
-
-          <div style={{maxWidth:360,width:"100%"}}>
-            {/* Right logo */}
-            <div className="la0" style={{marginBottom:36,display:"flex",alignItems:"center",gap:10}}>
-              <img src={LLUNA_LOGO} alt="Lluna"
-                style={{height:32,width:"auto",objectFit:"contain"}}
-                onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>
-              <div style={{display:"none",width:32,height:32,borderRadius:9,
-                background:"linear-gradient(135deg,#8052FF,#6030DD)",
-                alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff"}}>✦</div>
-            </div>
-
-            {/* Welcome */}
-            <div className="la1" style={{marginBottom:28}}>
-              <h1 style={{fontSize:26,fontWeight:900,color:"#0f0f1a",letterSpacing:-0.8,marginBottom:6}}>
-                Welcome back
-              </h1>
-              <p style={{fontSize:13,color:"#6b7280"}}>Sign in to your workspace</p>
-            </div>
-
-            {/* Session conflict */}
-            {sessionConflict&&<div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:12,padding:16,marginBottom:14}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                <span style={{fontSize:20}}>🔒</span>
-                <div style={{fontWeight:800,fontSize:14,color:"#92400e"}}>Account already in use</div>
-              </div>
-              <div style={{fontSize:12,color:"#78350f",marginBottom:10,lineHeight:1.6}}>
-                This account is active on another device. Force login to continue.
-              </div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>setSessionConflict(null)}
-                  style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid #fed7aa",background:"#fff",color:"#92400e",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
-                  Cancel
-                </button>
-                <button onClick={()=>{setSessionConflict(null);doLogin(true);}}
-                  style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:"#dc2626",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  Force login
-                </button>
-              </div>
-            </div>}
-
-            {/* Error */}
-            {loginError&&<div className="la1" style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,
-              padding:"10px 14px",fontSize:13,color:"#dc2626",marginBottom:14,fontWeight:500}}>
-              ⚠ {loginError}
-            </div>}
-
-            {/* Form */}
-            <div className="la2">
-              <div style={{marginBottom:14}}>
-                <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
-                  marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Username</label>
-                <input className="lluna-input" value={loginForm.username}
-                  onChange={e=>setLoginForm(p=>({...p,username:e.target.value}))}
-                  onKeyDown={e=>e.key==="Enter"&&doLogin()}
-                  placeholder="Enter your username"/>
-              </div>
-              <div style={{marginBottom:20}}>
-                <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
-                  marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Password</label>
-                <div style={{position:"relative"}}>
-                  <input className="lluna-input" type={showPw?"text":"password"} value={loginForm.password}
-                    onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
-                    onKeyDown={e=>e.key==="Enter"&&doLogin()}
-                    placeholder="Enter your password"
-                    style={{paddingRight:48}}/>
-                  <button onClick={()=>setShowPw(p=>!p)}
-                    style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",
-                      border:"none",background:"none",cursor:"pointer",fontSize:18,color:"#9ca3af",lineHeight:1,padding:0}}>
-                    {showPw?"🙈":"👁️"}
-                  </button>
-                </div>
-              </div>
-              <button type="button" className="lluna-btn"
-                onMouseDown={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
-                onClick={e=>{e.preventDefault();if(!loginLoading)doLogin();}}
-                disabled={loginLoading}>
-                {loginLoading?"Signing in...":"Sign in →"}
-              </button>
-            </div>
-
-            <div className="la4" style={{textAlign:"center",marginTop:24,fontSize:10,
-              color:"#d1d5db",letterSpacing:1.5,fontWeight:600,textTransform:"uppercase"}}>
-              Lluna CRM · v{CRM_VERSION}
-            </div>
-          </div>
+        {/* Bottom tagline */}
+        <div style={{position:"absolute",bottom:24,left:0,right:0,textAlign:"center",
+          fontSize:11,color:"rgba(255,255,255,0.5)",letterSpacing:1,fontWeight:500}}>
+          One inbox · Every channel · More revenue
         </div>
       </div>
     );
