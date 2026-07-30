@@ -336,7 +336,7 @@ export default function App() {
   if (!currentUser) {
     return (
       <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
-        fontFamily:"'Helvetica Neue',Arial,sans-serif",
+        fontFamily:"Georgia,'Times New Roman',serif",
         background:"linear-gradient(135deg,#8052FF 0%,#C040E8 50%,#FF6B9D 100%)",
         position:"relative",overflow:"hidden"}}>
         <style>{`
@@ -346,11 +346,21 @@ export default function App() {
           .la2{animation:lgFadeUp .5s .18s ease both}
           .la3{animation:lgFadeUp .5s .26s ease both}
           .la4{animation:lgFadeUp .5s .34s ease both}
-          .lluna-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#111;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;transition:all .2s}
+          .lluna-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#111;font-size:14px;font-family:Georgia,'Times New Roman',serif;outline:none;box-sizing:border-box;transition:all .2s}
           .lluna-input:focus{border-color:#8052FF;background:#fff;box-shadow:0 0 0 3px rgba(128,82,255,0.1)}
-          .lluna-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;box-shadow:0 4px 16px rgba(128,82,255,0.35)}
+          .lluna-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:Georgia,'Times New Roman',serif;transition:all .2s;box-shadow:0 4px 16px rgba(128,82,255,0.35)}
           .lluna-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(128,82,255,0.45)}
           .lluna-btn:disabled{opacity:0.7;cursor:wait;transform:none}
+          @keyframes shinyMove{0%{background-position:150% center}100%{background-position:-50% center}}
+          .shiny-text{
+            display:inline-block;
+            background-image:linear-gradient(120deg,#0f0f1a 0%,#0f0f1a 35%,#8052FF 50%,#ffffff 55%,#0f0f1a 65%,#0f0f1a 100%);
+            background-size:200% auto;
+            -webkit-background-clip:text;
+            background-clip:text;
+            -webkit-text-fill-color:transparent;
+            animation:shinyMove 3s linear infinite;
+          }
         `}</style>
 
         {/* Background orbs */}
@@ -376,11 +386,11 @@ export default function App() {
 
           {/* Welcome */}
           <div className="la1" style={{marginBottom:28,textAlign:"center"}}>
-            <h1 style={{fontSize:26,fontWeight:300,color:"#0f0f1a",letterSpacing:-0.3,marginBottom:8,
+            <h1 style={{fontSize:26,fontWeight:300,letterSpacing:-0.3,marginBottom:8,
               fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}}>
-              Welcome back
+              <span className="shiny-text">Welcome back</span>
             </h1>
-            <p style={{fontSize:11,color:"#9ca3af",letterSpacing:2,textTransform:"uppercase",fontWeight:600}}>
+            <p style={{fontSize:11,color:"#9ca3af",letterSpacing:2,textTransform:"uppercase",fontWeight:600,fontFamily:"Georgia,'Times New Roman',serif"}}>
               Sign in to your workspace
             </p>
           </div>
