@@ -351,6 +351,10 @@ export default function App() {
           .lluna-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;box-shadow:0 4px 16px rgba(128,82,255,0.35)}
           .lluna-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(128,82,255,0.45)}
           .lluna-btn:disabled{opacity:0.7;cursor:wait;transform:none}
+          @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+          @keyframes typing{from{width:0}to{width:100%}}
+          .welcome-text{overflow:hidden;white-space:nowrap;display:inline-block;animation:typing .8s steps(12,end) .3s both}
+          .cursor{display:inline-block;width:2px;height:1.1em;background:#8052FF;margin-left:2px;vertical-align:middle;animation:blink 1s step-end infinite;animation-delay:1.1s}
         `}</style>
 
         {/* Background orbs */}
@@ -376,8 +380,12 @@ export default function App() {
 
           {/* Welcome */}
           <div className="la1" style={{marginBottom:28,textAlign:"center"}}>
-            <h1 style={{fontSize:22,fontWeight:900,color:"#0f0f1a",letterSpacing:-0.5,marginBottom:6}}>Welcome back</h1>
-            <p style={{fontSize:13,color:"#6b7280"}}>Sign in to your workspace</p>
+            <h1 style={{fontSize:24,fontWeight:300,color:"#0f0f1a",letterSpacing:-0.5,marginBottom:6,
+              fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}}>
+              <span className="welcome-text">Welcome back</span>
+              <span className="cursor"/>
+            </h1>
+            <p style={{fontSize:12,color:"#9ca3af",letterSpacing:1.5,textTransform:"uppercase",fontWeight:600}}>Sign in to your workspace</p>
           </div>
 
           {/* Session conflict */}
