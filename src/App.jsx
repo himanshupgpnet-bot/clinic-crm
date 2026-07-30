@@ -5597,7 +5597,10 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
      permKey:null},
     {id:"calendly",  label:"Calendly", color:"#d97706", bg:"#fff7ed",
      desc:"Let the bot book consultations directly into your calendar",
-     isConnected:()=>false, statusText:()=>"", fields:[],
+     isConnected:(d)=>!!(d.calendly_url&&d.calendly_url.length>5&&d.calendly_enabled),
+     statusText:(d)=>d.calendly_url?d.calendly_url.replace("https://calendly.com/",""):"",
+     fields:[{key:"calendly_url",label:"Calendly URL",ph:"https://calendly.com/your-name/30min"},
+             {key:"calendly_enabled",label:"Enable Calendly Booking",type:"toggle"}],
      logo:<svg viewBox="0 0 24 24" width="28" height="28" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="#d97706"/><path d="M8 2v4M16 2v4M3 10h18" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/><circle cx="8" cy="15" r="1.5" fill="#fff"/><circle cx="12" cy="15" r="1.5" fill="#fff"/><circle cx="16" cy="15" r="1.5" fill="#fff"/></svg>,
      permKey:null},
   ];
@@ -5726,11 +5729,22 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
           {editConn.fields.map(f=>(
             <div key={f.key} style={{marginBottom:12}}>
               <div style={{fontSize:11,fontWeight:700,color:T.textMuted,marginBottom:5}}>{f.label}</div>
-              <input type={f.pwd?"password":"text"} value={connForm[f.key]||""}
-                onChange={e=>setConnForm(p=>({...p,[f.key]:e.target.value}))}
-                placeholder={f.ph}
-                style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,
-                  padding:"9px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}/>
+              {f.type==="toggle"
+                ? <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div onClick={()=>setConnForm(p=>({...p,[f.key]:!p[f.key]}))}
+                      style={{width:44,height:24,borderRadius:12,background:connForm[f.key]?WA_GREEN:T.border,
+                        cursor:"pointer",position:"relative",transition:"background .2s"}}>
+                      <div style={{position:"absolute",top:3,left:connForm[f.key]?22:3,width:18,height:18,
+                        borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                    </div>
+                    <span style={{fontSize:12,color:T.text}}>{connForm[f.key]?"Enabled":"Disabled"}</span>
+                  </div>
+                : <input type={f.pwd?"password":"text"} value={connForm[f.key]||""}
+                    onChange={e=>setConnForm(p=>({...p,[f.key]:e.target.value}))}
+                    placeholder={f.ph}
+                    style={{width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,
+                      padding:"9px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}/>
+              }
             </div>
           ))}
           <div style={{display:"flex",gap:8,marginTop:20}}>
