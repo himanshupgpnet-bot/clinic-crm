@@ -362,8 +362,8 @@ export default function App() {
           bottom:-100,left:-100,pointerEvents:"none"}}/>
 
         {/* White card */}
-        <div className="la0" style={{background:"#fff",borderRadius:24,padding:"48px 52px",
-          width:420,maxWidth:"90vw",position:"relative",zIndex:1,
+        <div className="la0" style={{background:"#fff",borderRadius:24,padding:"44px 40px",
+          width:360,maxWidth:"90vw",position:"relative",zIndex:1,
           boxShadow:"0 32px 80px rgba(0,0,0,0.2)"}}>
 
           {/* Logo */}
@@ -456,15 +456,15 @@ export default function App() {
             .w5{animation:wReveal .5s .85s both}
           `}</style>
           <div style={{fontStyle:"italic",fontFamily:"Georgia,'Times New Roman',serif",
-            fontSize:15,fontWeight:300,color:"rgba(255,255,255,0.95)",
+            fontSize:18,fontWeight:300,color:"rgba(255,255,255,0.95)",
             textShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
             {["Your\u00a0","customers\u00a0","are\u00a0","everywhere."].map((w,i)=>(
               <span key={i} className={`w${i+1}`} style={{display:"inline-block"}}>{w}</span>
             ))}
           </div>
           <div className="w5" style={{fontWeight:700,fontStyle:"normal",
-            fontSize:11,letterSpacing:3,textTransform:"uppercase",
-            marginTop:6,color:"rgba(255,255,255,0.6)"}}>
+            fontSize:13,letterSpacing:3,textTransform:"uppercase",
+            marginTop:8,color:"rgba(255,255,255,0.75)"}}>
             Now you are too.
           </div>
         </div>
