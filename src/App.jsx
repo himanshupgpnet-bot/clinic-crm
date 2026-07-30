@@ -241,6 +241,7 @@ export default function App() {
   };
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showRightPanel, setShowRightPanel] = useState(true);
+  const [showCalendly, setShowCalendly] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [adHistory, setAdHistory] = useState([]);
 
@@ -2593,6 +2594,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {selected.booking_confirmed&&<span className="nx-badge success">✅ Booked</span>}
                 {selected.needsHuman&&<span className="nx-badge" style={{background:"#fef2f2",color:"#dc2626",border:"1px solid #fca5a5"}}>👤 Needs Human</span>}
               </div>
+              {appSettings.calendly_url&&appSettings.calendly_enabled&&<button
+                onClick={()=>setShowCalendly(p=>!p)}
+                style={{marginTop:10,width:"100%",padding:"8px 12px",borderRadius:10,border:"1.5px solid #d97706",
+                  background:showCalendly?"#d97706":"#fff7ed",color:showCalendly?"#fff":"#b45309",
+                  fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all .2s"}}>
+                <i className="ti ti-calendar-event" style={{fontSize:14}}/> 
+                {showCalendly?"Close Calendly":"Book via Calendly"}
+              </button>}
             </div>
             {/* Lead score — mockup style */}
             {selected.leadScore>0&&<div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
@@ -4548,6 +4558,28 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
       {/* ══ CONFIRM MODAL ══ */}
       <ConfirmModal modal={confirmModal} onClose={()=>setConfirmModal(null)} T={T} WA_GREEN={WA_GREEN}/>
+
+      {/* Calendly Booking Modal */}
+      {showCalendly&&appSettings.calendly_url&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:T.card,borderRadius:20,width:"100%",maxWidth:520,height:580,display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,.3)",overflow:"hidden"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:34,height:34,borderRadius:10,background:"#fff7ed",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <i className="ti ti-calendar-event" style={{fontSize:18,color:"#d97706"}}/>
+              </div>
+              <div>
+                <div style={{fontWeight:700,fontSize:14,color:T.text}}>Book Appointment</div>
+                <div style={{fontSize:11,color:T.textMuted}}>{selected?.name||"Contact"} · {selected?.phone}</div>
+              </div>
+            </div>
+            <button onClick={()=>setShowCalendly(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:20,color:T.textMuted}}>×</button>
+          </div>
+          <iframe
+            src={`${appSettings.calendly_url}?hide_gdpr_banner=1&primary_color=8052ff&name=${encodeURIComponent(selected?.name||"")}&email=&a1=${encodeURIComponent(selected?.phone||"")}`}
+            style={{flex:1,border:"none",width:"100%"}}
+            title="Calendly Booking"/>
+        </div>
+      </div>}
       {broadcastProgress&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:T.card,borderRadius:16,padding:24,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
