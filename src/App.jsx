@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.407";
+const CRM_VERSION = "2.9.404";
 
 // Responsive hook
 function useWindowSize() {
@@ -362,8 +362,8 @@ export default function App() {
           bottom:-100,left:-100,pointerEvents:"none"}}/>
 
         {/* White card */}
-        <div className="la0" style={{background:"#fff",borderRadius:24,padding:"52px 44px",
-          width:360,maxWidth:"90vw",position:"relative",zIndex:1,
+        <div className="la0" style={{background:"#fff",borderRadius:24,padding:"48px 52px",
+          width:420,maxWidth:"90vw",position:"relative",zIndex:1,
           boxShadow:"0 32px 80px rgba(0,0,0,0.2)"}}>
 
           {/* Logo */}
@@ -375,7 +375,7 @@ export default function App() {
           </div>
 
           {/* Welcome */}
-          <div className="la1" style={{marginBottom:32,textAlign:"center"}}>
+          <div className="la1" style={{marginBottom:28,textAlign:"center"}}>
             <h1 style={{fontSize:22,fontWeight:900,color:"#0f0f1a",letterSpacing:-0.5,marginBottom:6}}>Welcome back</h1>
             <p style={{fontSize:13,color:"#6b7280"}}>Sign in to your workspace</p>
           </div>
@@ -409,7 +409,7 @@ export default function App() {
 
           {/* Form */}
           <div className="la2">
-            <div style={{marginBottom:18}}>
+            <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
                 marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Username</label>
               <input className="lluna-input" value={loginForm.username}
@@ -417,7 +417,7 @@ export default function App() {
                 onKeyDown={e=>e.key==="Enter"&&doLogin()}
                 placeholder="Enter your username"/>
             </div>
-            <div style={{marginBottom:28}}>
+            <div style={{marginBottom:22}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
                 marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Password</label>
               <div style={{position:"relative"}}>
@@ -449,16 +449,23 @@ export default function App() {
 
         {/* Tagline below card */}
         <div style={{position:"absolute",bottom:36,left:0,right:0,textAlign:"center"}}>
-          <div style={{fontSize:15,fontWeight:300,color:"rgba(255,255,255,0.95)",
-            letterSpacing:0.5,lineHeight:1.8,fontStyle:"italic",
-            fontFamily:"Georgia,'Times New Roman',serif",
+          <style>{`
+            @keyframes wReveal{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+            .w1{animation:wReveal .5s .1s both}.w2{animation:wReveal .5s .25s both}
+            .w3{animation:wReveal .5s .4s both}.w4{animation:wReveal .5s .55s both}
+            .w5{animation:wReveal .5s .85s both}
+          `}</style>
+          <div style={{fontStyle:"italic",fontFamily:"Georgia,'Times New Roman',serif",
+            fontSize:15,fontWeight:300,color:"rgba(255,255,255,0.95)",
             textShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
-            Your customers are everywhere.
-            <span style={{display:"block",fontWeight:600,fontStyle:"normal",
-              fontSize:13,letterSpacing:2,textTransform:"uppercase",
-              marginTop:4,color:"rgba(255,255,255,0.7)"}}>
-              Now you are too.
-            </span>
+            {["Your\u00a0","customers\u00a0","are\u00a0","everywhere."].map((w,i)=>(
+              <span key={i} className={`w${i+1}`} style={{display:"inline-block"}}>{w}</span>
+            ))}
+          </div>
+          <div className="w5" style={{fontWeight:700,fontStyle:"normal",
+            fontSize:11,letterSpacing:3,textTransform:"uppercase",
+            marginTop:6,color:"rgba(255,255,255,0.6)"}}>
+            Now you are too.
           </div>
         </div>
       </div>
