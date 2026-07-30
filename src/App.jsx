@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.417";
+const CRM_VERSION = "2.9.418";
 
 // Responsive hook
 function useWindowSize() {
@@ -5650,8 +5650,11 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
     setSaving(true);
     try {
       const url = isAdmin ? `${API}/api/admin/clients/${selClinicId}/settings` : `${API}/api/settings`;
-      const r = await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(connForm)});
-      if(r.ok){setConnData(p=>({...p,...connForm}));setEditConn(null);setConnForm({});}
+      // Convert toggle fields to proper boolean
+      const payload = {...connForm};
+      editConn?.fields?.forEach(f=>{ if(f.type==="toggle") payload[f.key]=!!connForm[f.key]; });
+      const r = await fetch(url,{method:"PATCH",headers:authHeaders(),body:JSON.stringify(payload)});
+      if(r.ok){setConnData(p=>({...p,...payload}));setEditConn(null);setConnForm({});}
     } catch(e){}
     setSaving(false);
   };
@@ -5717,7 +5720,7 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
                       </span>
                       {conn.statusText(connData)&&<div style={{fontSize:10,color:T.textMuted}}>{conn.statusText(connData)}</div>}
                       {hasFields&&<button onClick={()=>{
-                        const init={};conn.fields.forEach(f=>{init[f.key]=connData[f.key]||"";});
+                        const init={};conn.fields.forEach(f=>{init[f.key]=f.type==="toggle"?!!(connData[f.key]):connData[f.key]||"";});
                         setConnForm(init);setEditConn(conn);
                       }} style={{fontSize:11,fontWeight:600,padding:"4px 12px",borderRadius:8,
                         border:`1px solid ${T.border}`,background:"transparent",cursor:"pointer",color:T.text,fontFamily:"inherit"}}>
@@ -5726,7 +5729,7 @@ function IntegrationsTab({T, WA_GREEN, dark, isAdmin, currentUser, authToken, pe
                     </>
                   ):hasFields?(
                     <button onClick={()=>{
-                      const init={};conn.fields.forEach(f=>{init[f.key]=connData[f.key]||"";});
+                      const init={};conn.fields.forEach(f=>{init[f.key]=f.type==="toggle"?!!(connData[f.key]):connData[f.key]||"";});
                       setConnForm(init);setEditConn(conn);
                     }} style={{fontSize:11,fontWeight:600,padding:"5px 12px",borderRadius:8,
                       border:`1px solid ${T.border}`,background:"transparent",cursor:"pointer",
