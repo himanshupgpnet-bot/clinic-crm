@@ -336,19 +336,20 @@ export default function App() {
   if (!currentUser) {
     return (
       <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
-        fontFamily:"Georgia,'Times New Roman',serif",
+        fontFamily:"'Inter Tight',sans-serif",
         background:"linear-gradient(135deg,#8052FF 0%,#C040E8 50%,#FF6B9D 100%)",
         position:"relative",overflow:"hidden"}}>
         <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,200;1,200&display=swap');
           @keyframes lgFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
           .la0{animation:lgFadeUp .5s ease both}
           .la1{animation:lgFadeUp .5s .1s ease both}
           .la2{animation:lgFadeUp .5s .18s ease both}
           .la3{animation:lgFadeUp .5s .26s ease both}
           .la4{animation:lgFadeUp .5s .34s ease both}
-          .lluna-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#111;font-size:14px;font-family:Georgia,'Times New Roman',serif;outline:none;box-sizing:border-box;transition:all .2s}
+          .lluna-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#111;font-size:14px;font-family:'Inter Tight',sans-serif;font-weight:200;outline:none;box-sizing:border-box;transition:all .2s}
           .lluna-input:focus{border-color:#8052FF;background:#fff;box-shadow:0 0 0 3px rgba(128,82,255,0.1)}
-          .lluna-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:Georgia,'Times New Roman',serif;transition:all .2s;box-shadow:0 4px 16px rgba(128,82,255,0.35)}
+          .lluna-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter Tight',sans-serif;font-weight:200;transition:all .2s;box-shadow:0 4px 16px rgba(128,82,255,0.35)}
           .lluna-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(128,82,255,0.45)}
           .lluna-btn:disabled{opacity:0.7;cursor:wait;transform:none}
           @keyframes shinyMove{0%{background-position:150% center}100%{background-position:-50% center}}
@@ -386,11 +387,11 @@ export default function App() {
 
           {/* Welcome */}
           <div className="la1" style={{marginBottom:28,textAlign:"center"}}>
-            <h1 style={{fontSize:26,fontWeight:300,letterSpacing:-0.3,marginBottom:8,
-              fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}}>
+            <h1 style={{fontSize:26,fontWeight:200,letterSpacing:-0.3,marginBottom:8,
+              fontFamily:"'Inter Tight',sans-serif",fontStyle:"normal"}}>
               <span className="shiny-text">Welcome back</span>
             </h1>
-            <p style={{fontSize:11,color:"#9ca3af",letterSpacing:2,textTransform:"uppercase",fontWeight:600,fontFamily:"Georgia,'Times New Roman',serif"}}>
+            <p style={{fontSize:11,color:"#9ca3af",letterSpacing:2,textTransform:"uppercase",fontWeight:200,fontFamily:"'Inter Tight',sans-serif"}}>
               Sign in to your workspace
             </p>
           </div>
@@ -426,7 +427,7 @@ export default function App() {
           <div className="la2">
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
-                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Username</label>
+                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter Tight',sans-serif",fontWeight:200}}>Username</label>
               <input className="lluna-input" value={loginForm.username}
                 onChange={e=>setLoginForm(p=>({...p,username:e.target.value}))}
                 onKeyDown={e=>e.key==="Enter"&&doLogin()}
@@ -434,7 +435,7 @@ export default function App() {
             </div>
             <div style={{marginBottom:22}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
-                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase"}}>Password</label>
+                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter Tight',sans-serif",fontWeight:200}}>Password</label>
               <div style={{position:"relative"}}>
                 <input className="lluna-input" type={showPw?"text":"password"} value={loginForm.password}
                   onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
@@ -470,14 +471,15 @@ export default function App() {
             .w3{animation:wReveal .5s .4s both}.w4{animation:wReveal .5s .55s both}
             .w5{animation:wReveal .5s .85s both}
           `}</style>
-          <div style={{fontStyle:"italic",fontFamily:"Georgia,'Times New Roman',serif",
-            fontSize:18,fontWeight:300,color:"rgba(255,255,255,0.95)",
+          <div style={{fontStyle:"normal",fontFamily:"'Inter Tight',sans-serif",
+            fontSize:18,fontWeight:200,color:"rgba(255,255,255,0.95)",
             textShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
             {["Your\u00a0","customers\u00a0","are\u00a0","everywhere."].map((w,i)=>(
               <span key={i} className={`w${i+1}`} style={{display:"inline-block"}}>{w}</span>
             ))}
           </div>
-          <div className="w5" style={{fontWeight:700,fontStyle:"normal",
+          <div className="w5" style={{fontWeight:200,fontStyle:"normal",
+            fontFamily:"'Inter Tight',sans-serif",
             fontSize:13,letterSpacing:3,textTransform:"uppercase",
             marginTop:8,color:"rgba(255,255,255,0.75)"}}>
             Now you are too.
