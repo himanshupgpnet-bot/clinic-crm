@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.418";
+const CRM_VERSION = "2.9.419";
 
 // Responsive hook
 function useWindowSize() {
@@ -3170,8 +3170,40 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     </div>
                   </div>
                 </div>
-                <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)} rows={5}
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",minHeight:120,maxHeight:400}}/>
+                <div style={{borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,boxShadow:`0 2px 12px rgba(0,0,0,0.06)`}}>
+                  {/* Editor header bar */}
+                  <div style={{background:dark?"#1e1e2e":"#f8f7ff",padding:"8px 14px",borderBottom:`1px solid ${T.border}`,
+                    display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{display:"flex",gap:5}}>
+                        <div style={{width:10,height:10,borderRadius:"50%",background:"#ff5f57"}}/>
+                        <div style={{width:10,height:10,borderRadius:"50%",background:"#ffbd2e"}}/>
+                        <div style={{width:10,height:10,borderRadius:"50%",background:"#28c840"}}/>
+                      </div>
+                      <span style={{fontSize:11,color:T.textMuted,fontFamily:"monospace",marginLeft:4}}>system_prompt.txt</span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:10,color:T.textMuted}}>{systemPrompt.split('\n').length} lines · {systemPrompt.length} chars</span>
+                      <div style={{width:6,height:6,borderRadius:"50%",background:"#8052FF"}}/>
+                    </div>
+                  </div>
+                  {/* Line numbers + textarea */}
+                  <div style={{display:"flex",background:dark?"#13131f":"#fafaf9",position:"relative"}}>
+                    <div style={{padding:"12px 10px",background:dark?"#1a1a2e":"#f0eeff",
+                      borderRight:`1px solid ${T.border}`,fontSize:11,fontFamily:"monospace",
+                      color:T.textMuted,lineHeight:"20px",userSelect:"none",minWidth:36,textAlign:"right"}}>
+                      {systemPrompt.split('\n').map((_,i)=>(
+                        <div key={i}>{i+1}</div>
+                      ))}
+                    </div>
+                    <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)}
+                      style={{flex:1,background:"transparent",border:"none",padding:"12px 14px",
+                        color:T.text,fontSize:12,fontFamily:"'Fira Code','Cascadia Code','Consolas',monospace",
+                        resize:"none",boxSizing:"border-box",minHeight:200,maxHeight:400,
+                        lineHeight:"20px",outline:"none",width:"100%"}}
+                      spellCheck={false}/>
+                  </div>
+                </div>
                 <div style={{display:"flex",justifyContent:"flex-end",marginTop:4}}>
                   <button onClick={()=>{
                     const modal = document.createElement("div");
