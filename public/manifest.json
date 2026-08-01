@@ -1,6 +1,6 @@
 {
-  "name": "Nexora CRM",
-  "short_name": "Nexora",
+  "name": "Lluna CRM",
+  "short_name": "Lluna",
   "description": "WhatsApp CRM for managing customer conversations",
   "start_url": "/",
   "display": "standalone",

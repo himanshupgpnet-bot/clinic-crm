@@ -34,14 +34,33 @@ if("serviceWorker" in navigator) {
 }
 const CRM_VERSION = "2.9.421";
 
-// Responsive hook
+// Responsive hook — optimized to ignore vertical height shifts from mobile keyboard / URL bar
 function useWindowSize() {
-  const [size, setSize] = useState({w:window.innerWidth,h:window.innerHeight});
-  useEffect(()=>{
-    const fn = ()=>setSize({w:window.innerWidth,h:window.innerHeight});
-    window.addEventListener("resize",fn);
-    return ()=>window.removeEventListener("resize",fn);
-  },[]);
+  const [size, setSize] = useState({
+    w: typeof window !== "undefined" ? window.innerWidth : 1024,
+    h: typeof window !== "undefined" ? window.innerHeight : 768
+  });
+  useEffect(() => {
+    let timer = null;
+    const fn = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        const newW = window.innerWidth;
+        const newH = window.innerHeight;
+        setSize(prev => {
+          if (prev.w === newW && Math.abs(prev.h - newH) < 150) {
+            return prev;
+          }
+          return { w: newW, h: newH };
+        });
+      }, 100);
+    };
+    window.addEventListener("resize", fn, { passive: true });
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("resize", fn);
+    };
+  }, []);
   return size;
 }
 const WA_GREEN = "#25D366";
@@ -80,6 +99,27 @@ const ts = () => new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digi
 const today = () => new Date().toISOString().split("T")[0];
 const daysAgo = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; };
 
+const calcLastUserTime = (messages) => {
+  if (!messages || !messages.length) return 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.from === "user" && m.date && m.time) {
+      try {
+        const dateStr = String(m.date);
+        const d = dateStr.includes("/") ? dateStr.split("/").reverse().join("-") : dateStr;
+        const t = String(m.time).trim();
+        const isPM = /PM/i.test(t); const isAM = /AM/i.test(t);
+        const tp = t.replace(/[APap][Mm]/g,"").trim(); const tc = tp.split(":");
+        let h = parseInt(tc[0])||0; const min = parseInt(tc[1])||0;
+        if(isPM&&h!==12)h+=12; if(isAM&&h===12)h=0;
+        const timeStamp = new Date(`${d}T${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")}:00`).getTime();
+        return Number.isFinite(timeStamp) ? timeStamp : 0;
+      } catch { return 0; }
+    }
+  }
+  return 0;
+};
+
 const TABS = [
   {id:"crm",          icon:"ti ti-message-2",    label:"Inbox"},
   {id:"leads",        icon:"ti ti-target",        label:"Leads"},
@@ -92,6 +132,82 @@ const TABS = [
   {id:"settings",     icon:"ti ti-settings",      label:"Settings"},
   {id:"admin",        icon:"ti ti-crown",         label:"Admin", adminOnly:true},
 ];
+
+const ChatInputBar = React.memo(function ChatInputBar({ selected, isMobile, T, onSend }) {
+  const [text, setText] = useState("");
+
+  const handleSend = () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    onSend(trimmed);
+    setText("");
+  };
+
+  return (
+    <div className="mobile-chat-input" style={{padding:"10px 14px",background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"center",
+      flexShrink:0,paddingBottom:isMobile?"14px":"10px"}}>
+      <div style={{flex:1,background:T.card2,border:`1px solid ${T.border}`,borderRadius:22,padding:"6px 14px",display:"flex",alignItems:"center",gap:8,minHeight:42,transition:"all .15s"}}>
+        <textarea value={text} onChange={e=>setText(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();}}}
+          placeholder={selected?.botActive?"Bot active — toggle off to reply":"Type a message..."}
+          disabled={selected?.botActive} rows={1}
+          style={{flex:1,background:"transparent",border:"none",color:selected?.botActive?T.textMuted:T.text,fontSize:isMobile?15:13,maxHeight:100,fontFamily:"inherit",outline:"none",resize:"none",lineHeight:1.4,padding:"4px 0",margin:0}}/>
+        <i className="ti ti-mood-smile" onClick={()=>{}} style={{fontSize:20,color:T.textMuted,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center"}}/>
+        <i className="ti ti-paperclip" onClick={()=>{}} style={{fontSize:20,color:T.textMuted,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center"}}/>
+      </div>
+      <button className="sb" onClick={handleSend} disabled={selected?.botActive||!text.trim()}
+        style={{width:40,height:40,borderRadius:"50%",border:"none",
+          background:selected?.botActive||!text.trim()?T.card2:"linear-gradient(135deg,#6c63ff,#5a52e0)",
+          color:selected?.botActive||!text.trim()?T.textMuted:"#fff",fontSize:16,cursor:selected?.botActive?"not-allowed":"pointer",flexShrink:0,
+          display:"flex",alignItems:"center",justifyContent:"center",
+          boxShadow:selected?.botActive||!text.trim()?"none":"0 2px 10px rgba(108,99,255,.25)",transition:"all .2s"}}>
+        <i className="ti ti-send" style={{fontSize:18,marginLeft:2,lineHeight:1}}/>
+      </button>
+    </div>
+  );
+});
+
+function LeadBadge({lead,score,reason,small,dark}) {
+  const cfg=LEAD_CFG[lead]||LEAD_CFG.cold;
+  return <div title={reason||""} style={{display:"inline-flex",alignItems:"center",gap:3,background:dark?cfg.dark:cfg.bg,border:`1px solid ${cfg.border}`,borderRadius:10,padding:small?"1px 6px":"3px 8px",fontSize:small?9:11,fontWeight:700,color:cfg.color,whiteSpace:"nowrap"}}>{cfg.label}{score>0&&!small&&<span style={{opacity:.7,fontWeight:400}}>· {score}</span>}</div>;
+}
+
+function SourceBadge({s, dark, qaData=[], WA_GREEN, T, hoveredSource, setHoveredSource, highlightQA}) {
+  const qa=qaData.find(q=>String(q.id)===String(s.id)); if(!qa) return null;
+  const color=s.relevance==="high"?WA_GREEN:"#FFA726";
+  return (
+    <div onMouseEnter={()=>setHoveredSource?.(s.id)} onMouseLeave={()=>setHoveredSource?.(null)} onClick={()=>highlightQA?.(s.id)}
+      style={{position:"relative",display:"inline-flex",alignItems:"center",gap:4,background:dark?"#1a2e23":"#dcfce7",border:`1px solid ${color}40`,borderRadius:12,padding:"2px 8px",cursor:"pointer",marginRight:4,marginTop:4}}>
+      <span style={{width:6,height:6,borderRadius:"50%",background:color,display:"inline-block"}}/>
+      <span style={{fontSize:10,color,fontWeight:600}}>{qa.question.slice(0,28)}{qa.question.length>28?"…":""}</span>
+      {hoveredSource===s.id&&<div style={{position:"absolute",bottom:"calc(100% + 6px)",left:0,zIndex:99,background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:10,width:260,boxShadow:"0 4px 20px rgba(0,0,0,.15)"}}>
+        <div style={{fontSize:11,color:WA_GREEN,fontWeight:700,marginBottom:4}}>📌 {qa.question}</div>
+        <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
+      </div>}
+    </div>
+  );
+}
+
+function StatCard({icon,label,value,color,sub,badge,T,WA_GREEN}) {
+  return <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"16px 18px",flex:1,minWidth:120}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+      <div style={{fontSize:22,marginBottom:6}}>{icon}</div>
+      {badge&&<div style={{background:badge.positive?"#dcfce7":"#fef2f2",color:badge.positive?WA_GREEN:"#ef4444",fontSize:11,fontWeight:700,borderRadius:12,padding:"2px 8px"}}>{badge.positive?"+":""}{badge.value}%</div>}
+    </div>
+    <div style={{fontSize:28,fontWeight:800,color:color||T.text,lineHeight:1}}>{value??"-"}</div>
+    <div style={{fontSize:12,fontWeight:600,color:T.text,marginTop:4}}>{label}</div>
+    {sub&&<div style={{fontSize:11,color:T.textFaint,marginTop:2}}>{sub}</div>}
+  </div>;
+}
+
+function SettingInput({label,hint,settingKey,type="text",rows,appSettings={},setAppSettings,setSettingsDirtyWithRef,T}) {
+  return <div style={{marginBottom:14}}>
+    <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>{label}</div>
+    {hint&&<div style={{fontSize:11,color:T.textFaint,marginBottom:5}}>{hint}</div>}
+    {rows?<textarea value={appSettings[settingKey]||""} rows={rows} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirtyWithRef(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
+    :<input type={type} value={appSettings[settingKey]||""} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirtyWithRef(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>}
+  </div>;
+}
 
 export default function App() {
   // ── AUTH ──
@@ -129,10 +245,16 @@ export default function App() {
 
   // ── MAIN APP HOOKS (must all be declared before any return) ──
   const [tab, setTab] = useState("crm");
+  React.useEffect(() => {
+    if (isMobile && tab !== "crm") {
+      setTab("crm");
+    }
+  }, [isMobile, tab]);
   const [showMoreSheet, setShowMoreSheet] = React.useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [msgLimit, setMsgLimit] = useState(60);
   const [loading, setLoading] = useState(true);
   const [backendStatus, setBackendStatus] = useState("online");
   const [backendVersion, setBackendVersion] = useState("");
@@ -241,6 +363,7 @@ export default function App() {
   };
   const [broadcastFile, setBroadcastFile] = useState(null);
   const [showRightPanel, setShowRightPanel] = useState(true);
+  const [loadingChatMessages, setLoadingChatMessages] = useState(false);
   const [showCalendly, setShowCalendly] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [adHistory, setAdHistory] = useState([]);
@@ -340,30 +463,6 @@ export default function App() {
         fontFamily:"'Inter Tight',sans-serif",
         background:"linear-gradient(135deg,#8052FF 0%,#C040E8 50%,#FF6B9D 100%)",
         position:"relative",overflow:"hidden"}}>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,200;1,200&display=swap');
-          @keyframes lgFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-          .la0{animation:lgFadeUp .5s ease both}
-          .la1{animation:lgFadeUp .5s .1s ease both}
-          .la2{animation:lgFadeUp .5s .18s ease both}
-          .la3{animation:lgFadeUp .5s .26s ease both}
-          .la4{animation:lgFadeUp .5s .34s ease both}
-          .lluna-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#111;font-size:14px;font-family:'Inter Tight',sans-serif;font-weight:200;outline:none;box-sizing:border-box;transition:all .2s}
-          .lluna-input:focus{border-color:#8052FF;background:#fff;box-shadow:0 0 0 3px rgba(128,82,255,0.1)}
-          .lluna-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter Tight',sans-serif;font-weight:200;transition:all .2s;box-shadow:0 4px 16px rgba(128,82,255,0.35)}
-          .lluna-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(128,82,255,0.45)}
-          .lluna-btn:disabled{opacity:0.7;cursor:wait;transform:none}
-          @keyframes shinyMove{0%{background-position:150% center}100%{background-position:-50% center}}
-          .shiny-text{
-            display:inline-block;
-            background-image:linear-gradient(120deg,#0f0f1a 0%,#0f0f1a 35%,#8052FF 50%,#ffffff 55%,#0f0f1a 65%,#0f0f1a 100%);
-            background-size:200% auto;
-            -webkit-background-clip:text;
-            background-clip:text;
-            -webkit-text-fill-color:transparent;
-            animation:shinyMove 3s linear infinite;
-          }
-        `}</style>
 
         {/* Background orbs */}
         <div style={{position:"absolute",width:500,height:500,borderRadius:"50%",
@@ -428,7 +527,7 @@ export default function App() {
           <div className="la2">
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
-                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter Tight',sans-serif",fontWeight:200}}>Username</label>
+                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter Tight',sans-serif"}}>Username</label>
               <input className="lluna-input" value={loginForm.username}
                 onChange={e=>setLoginForm(p=>({...p,username:e.target.value}))}
                 onKeyDown={e=>e.key==="Enter"&&doLogin()}
@@ -436,7 +535,7 @@ export default function App() {
             </div>
             <div style={{marginBottom:22}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",
-                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter Tight',sans-serif",fontWeight:200}}>Password</label>
+                marginBottom:6,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter Tight',sans-serif"}}>Password</label>
               <div style={{position:"relative"}}>
                 <input className="lluna-input" type={showPw?"text":"password"} value={loginForm.password}
                   onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))}
@@ -466,12 +565,6 @@ export default function App() {
 
         {/* Tagline below card */}
         <div style={{position:"absolute",bottom:36,left:0,right:0,textAlign:"center"}}>
-          <style>{`
-            @keyframes wReveal{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-            .w1{animation:wReveal .5s .1s both}.w2{animation:wReveal .5s .25s both}
-            .w3{animation:wReveal .5s .4s both}.w4{animation:wReveal .5s .55s both}
-            .w5{animation:wReveal .5s .85s both}
-          `}</style>
           <div style={{fontStyle:"normal",fontFamily:"'Inter Tight',sans-serif",
             fontSize:18,fontWeight:200,color:"rgba(255,255,255,0.95)",
             textShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
@@ -656,30 +749,36 @@ export default function App() {
   // Scroll refs for tracking
   const prevSelectedId = useRef(null);
   const userScrolled = useRef(false);
+  const scrollTickRef = useRef(false);
+  const prevMsgCount = useRef(0);
   const chatContainerRef = useRef(null);
 
-  // Only scroll to bottom when switching to a new chat
+  const scrollToBottom = useCallback(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, []);
 
+  // Scroll to bottom when opening a chat or when messages finish loading
   useEffect(() => {
-    if(!selected?.id) return;
-    if(selected.id !== prevSelectedId.current) {
+    if (!selected?.id) return;
+    const isNewChat = selected.id !== prevSelectedId.current;
+    if (isNewChat) {
       prevSelectedId.current = selected.id;
       userScrolled.current = false;
-      setTimeout(()=>messagesEndRef.current?.scrollIntoView({behavior:"auto"}), 50);
+      prevMsgCount.current = 0;
     }
-  }, [selected?.id]);
 
-  // Only scroll when NEW message added AND user hasn't scrolled up
-  const prevMsgCount = useRef(0);
-  useEffect(() => {
-    const count = selected?.messages?.length || 0;
-    if(count > prevMsgCount.current && prevMsgCount.current > 0) {
-      if(!userScrolled.current) {
-        messagesEndRef.current?.scrollIntoView({behavior:"smooth"});
-      }
+    const count = selected.messages?.length || 0;
+    if (isNewChat || (!userScrolled.current && count !== prevMsgCount.current)) {
+      requestAnimationFrame(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+      });
     }
     prevMsgCount.current = count;
-  }, [selected?.messages?.length]);
+  }, [selected?.id, selected?.messages?.length]);
 
   useEffect(() => { botEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [botConvo]);
 
@@ -722,7 +821,7 @@ export default function App() {
     // Track last user activity
     let lastActivity = Date.now();
     const onActivity = () => { lastActivity = Date.now(); };
-    ["mousedown","keydown","touchstart","scroll"].forEach(e=>
+    ["click","keydown"].forEach(e=>
       document.addEventListener(e, onActivity, {passive:true})
     );
 
@@ -770,7 +869,7 @@ export default function App() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
-      ["mousedown","keydown","touchstart","scroll"].forEach(e=>
+      ["click","keydown"].forEach(e=>
         document.removeEventListener(e, onActivity)
       );
       try { bc?.close(); } catch(e) {}
@@ -812,17 +911,29 @@ export default function App() {
       });
       setBackendStatus("online");
       fetchConversations._failCount = 0; // reset on success
-      try {
-        const vr = await fetch(`${API}/version`);
-        if (vr.ok) { const vd = await vr.json(); setBackendVersion(vd.version||""); }
-      } catch {}
-      if (selected) { const u = data.find(c=>c.id===selected.id); if (u) setSelected(prev => ({...prev, botActive: u.botActive, status: u.status, lead: u.lead})); }
+      // Fetch version only once at startup, not every poll
+      if (!fetchConversations._versionFetched) {
+        fetchConversations._versionFetched = true;
+        try {
+          const vr = await fetch(`${API}/version`);
+          if (vr.ok) { const vd = await vr.json(); setBackendVersion(vd.version||""); }
+        } catch {}
+      }
+      if (selectedRef.current?.id) {
+        const u = data.find(c => c.id === selectedRef.current.id);
+        if (u) {
+          setSelected(prev => {
+            if (!prev || !prev.id || prev.id !== selectedRef.current?.id) return null;
+            return { ...prev, botActive: u.botActive, status: u.status, lead: u.lead };
+          });
+        }
+      }
     } catch { 
       // Don't set offline here — health ping handles status independently
       fetchConversations._failCount = (fetchConversations._failCount||0) + 1;
     }
     finally { setLoading(false); }
-  }, [selected, inboxClinic]);
+  }, [inboxClinic]);
 
 const fetchTemplates = useCallback(async (clinicId=null) => {
     try {
@@ -916,7 +1027,6 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     setAnalyticsLoading(true);
     try {
       const cParam = clinicId ? `&clinic_id=${clinicId}` : "";
-      console.log("📊 fetchAnalytics clinic_id=", clinicId, "url=", `/api/analytics?from=${from}&to=${to}${cParam}`);
       const r = await fetch(`${API}/api/analytics?from=${from}&to=${to}${cParam}`, {headers:authHeaders()});
       if(r.ok) setAnalytics(await r.json());
       // Also fetch ad summary for KPI card
@@ -1189,29 +1299,68 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     } catch { setAdHistory([]); }
   }
 
+  const handleGoBack = useCallback(() => {
+    selectedRef.current = null;
+    React.startTransition(() => {
+      setSelected(null);
+      setShowRightPanel(false);
+      setLoadingChatMessages(false);
+    });
+  }, []);
+
   async function selectContact(c) {
-    setShowRightPanel(true);
-    setSelected({...c, messages: c.messages||[]}); selectedRef.current = c; setMenuOpen(false);
+    if(!c) return;
+    const hasMsgs = Boolean(c.messages && c.messages.length > 0);
+    selectedRef.current = c;
     manuallyReadRef.current.add(c.id);
+
+    React.startTransition(() => {
+      setShowRightPanel(!isMobile);
+      setLoadingChatMessages(!hasMsgs);
+      setSelected({...c, messages: c.messages||[]});
+      setMsgLimit(60);
+      setMenuOpen(false);
+      setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:0}:x));
+    });
+
     try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders()}); } catch {}
-    setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:0}:x));
     fetchAdHistory(c.phone);
+
     // Lazy load messages if not already loaded
-    if(!c.messages || c.messages.length===0) {
+    if(!hasMsgs) {
       try {
         const phone = c.phone.replace(/^\+/, '');
         const r = await fetch(`${API}/api/conversations/${phone}`,{headers:authHeaders()});
         if(r.ok) {
           const data = await r.json();
+          if(selectedRef.current?.id !== c.id) return;
           const msgs = (data.messages || []).map(m=>({
             ...m,
             mediaUrl: m.mediaUrl || m.media_url || "",
             agentName: m.agentName || m.agent_name || "",
           }));
-          setSelected(prev => prev?.id===c.id ? {...prev, ...data, messages: msgs} : prev);
-          selectedRef.current = {...selectedRef.current, ...data, messages: msgs};
+          React.startTransition(() => {
+            setSelected(prev => {
+              if(!prev || prev.id !== c.id) return prev;
+              return {
+                ...c,
+                ...prev,
+                ...data,
+                name: prev.name || c.name || data.name,
+                avatar: prev.avatar || c.avatar || data.avatar,
+                phone: prev.phone || c.phone || data.phone,
+                messages: msgs
+              };
+            });
+          });
+          selectedRef.current = { ...c, ...selectedRef.current, ...data, messages: msgs };
         }
       } catch(e) { console.error('lazy load failed:', e); }
+      finally {
+        React.startTransition(() => { setLoadingChatMessages(false); });
+      }
+    } else {
+      React.startTransition(() => { setLoadingChatMessages(false); });
     }
   }
 
@@ -1244,19 +1393,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     } catch {}
   }
 
-  async function sendAgentReply() {
-    if(!reply.trim()||!selected) return;
-    const text = reply.trim();
+  const sendAgentReply = useCallback(async (textToSubmit) => {
+    const targetSelected = selectedRef.current;
+    const text = (typeof textToSubmit === "string" ? textToSubmit : reply).trim();
+    if(!text || !targetSelected) return;
     setReply("");
 
     // Show message instantly in UI with agent name tag
     const agentName = currentUser?.username || currentUser?.name || "Agent";
     const tempMsg = { id: "temp_" + Date.now(), from: "agent", text, time: ts(), sources: [], date: today(), agentName };
-    setSelected(prev => ({ ...prev, messages: [...(prev.messages||[]), tempMsg] }));
-    setContacts(prev => prev.map(c => c.id===selected.id ? {...c, lastMessage:text, lastTime:ts()} : c));
+    setSelected(prev => (!prev || !prev.id ? null : { ...prev, messages: [...(prev.messages||[]), tempMsg] }));
+    setContacts(prev => prev.map(c => c.id===targetSelected.id ? {...c, lastMessage:text, lastTime:ts()} : c));
 
     try {
-      const r = await fetch(`${API}/api/conversations/${selected.id}/reply`, {
+      const r = await fetch(`${API}/api/conversations/${targetSelected.id}/reply`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ text })
@@ -1267,20 +1417,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         const err = await r.json().catch(()=>({}));
         showToast(`Failed to send: ${err.error||r.status} — check WhatsApp token`,"#ef4444");
         // Remove temp message on failure
-        setSelected(prev => ({ ...prev, messages: prev.messages.filter(m=>m.id!==tempMsg.id) }));
+        setSelected(prev => (!prev || !prev.id ? null : { ...prev, messages: (prev.messages||[]).filter(m=>m.id!==tempMsg.id) }));
       }
     } catch(e) {
       showToast("Network error — backend may be offline","#ef4444");
-      setSelected(prev => ({ ...prev, messages: prev.messages.filter(m=>m.id!==tempMsg.id) }));
+      setSelected(prev => (!prev || !prev.id ? null : { ...prev, messages: (prev.messages||[]).filter(m=>m.id!==tempMsg.id) }));
     }
-  }
+  }, [currentUser, reply, fetchConversations]);
 
   async function toggleBot(id) {
     const c=contacts.find(x=>x.id===id);
     const newState = !c?.botActive;
     // Update locally immediately so badge disappears right away
     setContacts(prev=>prev.map(x=>x.id===id?{...x,botActive:newState}:x));
-    if(selected?.id===id) setSelected(prev=>({...prev,botActive:newState}));
+    if(selectedRef.current?.id===id) setSelected(prev=>(!prev||!prev.id||prev.id!==id?prev:{...prev,botActive:newState}));
     try { await fetch(`${API}/api/conversations/${id}/bot`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({botActive:newState})}); } catch {}
   }
 
@@ -1293,7 +1443,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     // Update locally immediately so card moves instantly in leads tab
     const stage = lead==="done" ? "done" : undefined;
     setContacts(prev=>prev.map(c=>c.id===id?{...c,lead,...(stage?{pipelineStage:stage}:{})}:c));
-    if(selected?.id===id) setSelected(prev=>({...prev,lead,...(stage?{pipelineStage:stage}:{})}));
+    if(selectedRef.current?.id===id) setSelected(prev=>(!prev||!prev.id||prev.id!==id?prev:{...prev,lead,...(stage?{pipelineStage:stage}:{})}));
     try {
       await fetch(`${API}/api/conversations/${id}/lead`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({lead})});
       if(stage) await fetch(`${API}/api/conversations/${id}/pipeline`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({stage:"done"})});
@@ -1341,7 +1491,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
   // Claude-powered greeting toast
   async function showGreeting() {
-    if(!currentUser) return;
+    if(!currentUser || isMobile) return;
     const name = currentUser.full_name || currentUser.username || "there";
     const firstName = name.split(" ")[0];
     const now = new Date();
@@ -1373,6 +1523,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
   }
 
   function showGreetingToast(msg) {
+    if(isMobile) return;
     const existing = document.getElementById("lluna-greeting-toast");
     if(existing) existing.remove();
     document.getElementById("lluna-greeting-style")?.remove();
@@ -1578,7 +1729,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     else { await setManualLead(id,stage); }
   }
 
-  const filtered = contacts.filter(c=>
+  const filtered = React.useMemo(() => contacts.filter(c=>
     (filter==="all"||c.status===filter)&&
     (leadFilter==="all"||c.lead===leadFilter)&&
     (c.name?.toLowerCase().includes(search.toLowerCase())||c.phone?.includes(search))&&
@@ -1597,11 +1748,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       try {
         let day,mon,yr,hr=0,min=0;
         if(d.includes("-")){
-          // YYYY-MM-DD format from DB
           const p=d.split("-");
           yr=parseInt(p[0]);mon=parseInt(p[1])-1;day=parseInt(p[2]);
         } else if(d.includes("/")){
-          // dd/mm/yyyy format
           const p=d.split("/");
           if(p[2]&&p[2].length===4){day=parseInt(p[0]);mon=parseInt(p[1])-1;yr=parseInt(p[2]);}
           else{yr=parseInt(p[0]);mon=parseInt(p[1])-1;day=parseInt(p[2]);}
@@ -1620,13 +1769,20 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       } catch { return 0; }
     };
     return parseDate(b.lastDate,b.lastTime) - parseDate(a.lastDate,a.lastTime);
-  });
+  }), [contacts, filter, leadFilter, search, isAdmin, inboxClinic, inboxFilter, inboxDateFilter]);
 
-  const totalUnread = contacts.reduce((s,c)=>s+c.unread,0);
-  const hotCount    = contacts.filter(c=>c.lead==="hot"&&(c.pipelineStage||"new")!=="done").length;
-  const warmCount   = contacts.filter(c=>c.lead==="warm"&&(c.pipelineStage||"new")!=="done").length;
+  const totalUnread = React.useMemo(() => contacts.reduce((s,c)=>s+c.unread,0), [contacts]);
+  const hotCount    = React.useMemo(() => contacts.filter(c=>c.lead==="hot"&&(c.pipelineStage||"new")!=="done").length, [contacts]);
+  const warmCount   = React.useMemo(() => contacts.filter(c=>c.lead==="warm"&&(c.pipelineStage||"new")!=="done").length, [contacts]);
+  const adminClinicMap = React.useMemo(() => {
+    const map = new Map();
+    (adminOverview || []).forEach(c => {
+      if (c.clinic_id || c.id) map.set(String(c.clinic_id || c.id), c.company_name || "Bot");
+    });
+    return map;
+  }, [adminOverview]);
 
-  const T = dark ? {
+  const T = React.useMemo(() => dark ? {
     bg:"#0f1117",sidebar:"#1a1d27",nav:"#1a1d27",border:"#2d3048",
     card:"#1e2235",card2:"#252840",input:"#252840",inputBorder:"#3d4165",
     text:"#f1f3f9",textMuted:"#8b92b8",textFaint:"#5a6080",
@@ -1638,138 +1794,28 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     text:"#1a1d2e",textMuted:"#6b7290",textFaint:"#9fa6c0",
     msgOut:"#e3f5e1",msgIn:"#ffffff",chatBg:"#eef0f5",
     sidebarHover:"#f0f1f8",selectedBg:"#eef0f8",overlay:"rgba(0,0,0,.4)",
-  };
+  }, [dark]);
 
-  function LeadBadge({lead,score,reason,small}) {
-    const cfg=LEAD_CFG[lead]||LEAD_CFG.cold;
-    return <div title={reason||""} style={{display:"inline-flex",alignItems:"center",gap:3,background:dark?cfg.dark:cfg.bg,border:`1px solid ${cfg.border}`,borderRadius:10,padding:small?"1px 6px":"3px 8px",fontSize:small?9:11,fontWeight:700,color:cfg.color,whiteSpace:"nowrap"}}>{cfg.label}{score>0&&!small&&<span style={{opacity:.7,fontWeight:400}}>· {score}</span>}</div>;
-  }
 
-  function SourceBadge({s}) {
-    const qa=qaData.find(q=>String(q.id)===String(s.id)); if(!qa) return null;
-    const color=s.relevance==="high"?WA_GREEN:"#FFA726";
-    return (
-      <div onMouseEnter={()=>setHoveredSource(s.id)} onMouseLeave={()=>setHoveredSource(null)} onClick={()=>highlightQA(s.id)}
-        style={{position:"relative",display:"inline-flex",alignItems:"center",gap:4,background:dark?"#1a2e23":"#dcfce7",border:`1px solid ${color}40`,borderRadius:12,padding:"2px 8px",cursor:"pointer",marginRight:4,marginTop:4}}>
-        <span style={{width:6,height:6,borderRadius:"50%",background:color,display:"inline-block"}}/>
-        <span style={{fontSize:10,color,fontWeight:600}}>{qa.question.slice(0,28)}{qa.question.length>28?"…":""}</span>
-        {hoveredSource===s.id&&<div style={{position:"absolute",bottom:"calc(100% + 6px)",left:0,zIndex:99,background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:10,width:260,boxShadow:"0 4px 20px rgba(0,0,0,.15)"}}>
-          <div style={{fontSize:11,color:WA_GREEN,fontWeight:700,marginBottom:4}}>📌 {qa.question}</div>
-          <div style={{fontSize:11,color:T.textMuted,lineHeight:1.5}}>{qa.answer}</div>
-        </div>}
-      </div>
-    );
-  }
-
-  function StatCard({icon,label,value,color,sub,badge}) {
-    return <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"16px 18px",flex:1,minWidth:120}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-        <div style={{fontSize:22,marginBottom:6}}>{icon}</div>
-        {badge&&<div style={{background:badge.positive?"#dcfce7":"#fef2f2",color:badge.positive?WA_GREEN:"#ef4444",fontSize:11,fontWeight:700,borderRadius:12,padding:"2px 8px"}}>{badge.positive?"+":""}{badge.value}%</div>}
-      </div>
-      <div style={{fontSize:28,fontWeight:800,color:color||T.text,lineHeight:1}}>{value??"-"}</div>
-      <div style={{fontSize:12,fontWeight:600,color:T.text,marginTop:4}}>{label}</div>
-      {sub&&<div style={{fontSize:11,color:T.textFaint,marginTop:2}}>{sub}</div>}
-    </div>;
-  }
-
-  function SettingInput({label,hint,settingKey,type="text",rows}) {
-    return <div style={{marginBottom:14}}>
-      <div style={{fontWeight:600,fontSize:12,color:T.text,marginBottom:3}}>{label}</div>
-      {hint&&<div style={{fontSize:11,color:T.textFaint,marginBottom:5}}>{hint}</div>}
-      {rows?<textarea value={appSettings[settingKey]||""} rows={rows} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirtyWithRef(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12,fontFamily:"inherit"}}/>
-      :<input type={type} value={appSettings[settingKey]||""} onChange={e=>{setAppSettings(p=>({...p,[settingKey]:e.target.value}));setSettingsDirtyWithRef(true);}} style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"8px 12px",color:T.text,fontSize:12}}/>}
-    </div>;
-  }
 
   const navStyle = {height:60,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 20px",gap:4,flexShrink:0,boxShadow:"0 1px 8px rgba(0,0,0,.06)"};
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:T.bg,fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden"}}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css');
-        *{box-sizing:border-box;margin:0;padding:0}
-        ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:${T.border};border-radius:8px}::-webkit-scrollbar-track{background:transparent}
-        textarea:focus,input:focus,select:focus{outline:none;border-color:${WA_GREEN}!important;box-shadow:0 0 0 3px ${WA_GREEN}15}
-        input,textarea,select{transition:border-color .15s,box-shadow .15s}
-        textarea{resize:none}
-        button{transition:all .15s;cursor:pointer}
-
-        .ci{transition:background .15s;cursor:pointer;position:relative}
-        .ci:hover{background:${T.sidebarHover}}
-        .ci.active{background:${WA_GREEN}10;border-right:2px solid ${WA_GREEN}}
-
-        .nav-item-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;width:100%;text-align:left;font-size:13px;transition:all .15s;background:transparent;font-weight:400}
-        .nav-item-btn:hover{background:${T.sidebarHover};color:${T.text}}
-        .nav-item-btn.active{background:${WA_GREEN}15;color:${WA_GREEN}!important;font-weight:600}
-
-        .nx-card{background:${T.card};border-radius:12px;border:1px solid ${T.border};padding:20px;margin-bottom:16px}
-        .nx-card-title{font-size:13px;font-weight:700;color:${T.text};margin-bottom:14px;display:flex;align-items:center;gap:8px}
-
-        .nx-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid ${T.border};background:${T.card};color:${T.text};font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
-        .nx-btn:hover{background:${T.card2}}
-        .nx-btn.primary{background:${WA_GREEN};color:#fff;border-color:${WA_GREEN}}
-        .nx-btn.primary:hover{background:#1db954;border-color:#1db954}
-        .nx-btn.danger{color:#ef4444;border-color:#ef444440}
-        .nx-btn.danger:hover{background:#fef2f2}
-
-        .nx-input{width:100%;padding:9px 12px;border-radius:8px;border:1px solid ${T.border};background:${T.input};color:${T.text};font-size:12px;font-family:inherit;outline:none;transition:all .15s}
-        .nx-input:focus{border-color:${WA_GREEN};background:${T.card};box-shadow:0 0 0 3px ${WA_GREEN}12}
-        .nx-label{display:block;font-size:12px;font-weight:600;color:${T.text};margin-bottom:6px}
-        .nx-hint{font-size:10px;color:${T.textMuted};margin-top:4px}
-
-        .nx-table{width:100%;border-collapse:collapse;font-size:12px}
-        .nx-table th{text-align:left;padding:10px 14px;background:${T.card2};color:${T.textMuted};font-weight:600;font-size:11px;border-bottom:1px solid ${T.border};white-space:nowrap}
-        .nx-table td{padding:10px 14px;border-bottom:1px solid ${T.border};color:${T.text};vertical-align:middle}
-        .nx-table tr:hover td{background:${T.card2}}
-
-        .nx-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
-        .nx-badge.hot{background:#fef2f2;color:#dc2626}
-        .nx-badge.warm{background:#fffbeb;color:#b45309}
-        .nx-badge.cold{background:#eff6ff;color:#1d4ed8}
-        .nx-badge.success{background:#f0fdf4;color:#15803d}
-        .nx-badge.pending{background:#fffbeb;color:#b45309}
-        .nx-badge.failed{background:#fef2f2;color:#dc2626}
-
-        .nx-stat{background:${T.card};border-radius:12px;border:1px solid ${T.border};padding:16px}
-        .nx-stat-label{font-size:11px;color:${T.textMuted};font-weight:500;margin-bottom:6px}
-        .nx-stat-val{font-size:24px;font-weight:800;color:${T.text};line-height:1}
-
-        .nx-page-header{background:${T.card};border-bottom:1px solid ${T.border};padding:14px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-        .nx-page-title{font-size:15px;font-weight:700;color:${T.text}}
-        .nx-page-sub{font-size:11px;color:${T.textMuted};margin-top:1px}
-
-        .nx-filter{font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid ${T.border};background:transparent;color:${T.textMuted};cursor:pointer;white-space:nowrap;font-weight:500;font-family:inherit;transition:all .15s}
-        .nx-filter:hover{border-color:${WA_GREEN};color:${WA_GREEN}}
-        .nx-filter.active{background:${WA_GREEN};color:#fff;border-color:${WA_GREEN}}
-
-        .nx-search{display:flex;align-items:center;gap:6px;background:${T.card2};border-radius:8px;padding:7px 10px;border:1px solid ${T.border};transition:all .15s}
-        .nx-search:focus-within{border-color:${WA_GREEN};background:${T.card}}
-        .nx-search input{border:none;background:transparent;font-size:12px;color:${T.text};width:100%;outline:none;font-family:inherit}
-
-        .nx-toggle{width:34px;height:19px;border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
-        .nx-toggle.on{background:${WA_GREEN}}
-        .nx-toggle.off{background:${T.border}}
-        .nx-toggle-dot{width:15px;height:15px;background:#fff;border-radius:50%;position:absolute;top:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-        .nx-toggle.on .nx-toggle-dot{left:17px}
-        .nx-toggle.off .nx-toggle-dot{left:2px}
-
-        .mb{animation:fadeUp .2s ease}@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-        .sb:active{transform:scale(.92)}
-        .qa-row.hl{background:#dcfce720!important;border-color:${WA_GREEN}!important}
-        input::placeholder,textarea::placeholder{color:${T.textFaint}}
-        @keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
-        .kc{border-radius:12px;min-height:200px;transition:background .15s}.kc.over{background:${dark?"#1a2e23":"#e8fdf0"}!important}
-        .kcard{cursor:grab;transition:transform .15s,box-shadow .15s}.kcard:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12)}.kcard:active{cursor:grabbing}
-        .cc{background:${T.card};border:1px solid ${T.border};border-radius:12px;padding:20px;margin-bottom:16px}
-        @media(min-width:640px){.hide-desktop{display:none!important}}
-        .nav-item-wrap:hover .nav-tooltip{opacity:0!important;visibility:hidden!important}
-        .nav-tooltip{display:none}
-        .nav-tooltip::after{content:"";position:absolute;right:100%;top:50%;transform:translateY(-50%);border:5px solid transparent;border-right-color:#111827}
-        @keyframes pulse{0%{transform:scale(1);opacity:.8}70%{transform:scale(2.2);opacity:0}100%{transform:scale(1);opacity:0}}
-        @media(max-width:1023px){.tablet-stack{flex-direction:column!important}}
-      `}</style>
+    <div style={{
+      display:"flex",flexDirection:"column",height:"100%",width:"100%",background:T.bg,
+      fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",color:T.text,overflow:"hidden",
+      "--wa-green": WA_GREEN,
+      "--bg-color": T.bg,
+      "--sidebar-bg": T.sidebar,
+      "--border-color": T.border,
+      "--card-bg": T.card,
+      "--card2-bg": T.card2,
+      "--input-bg": T.input,
+      "--text-color": T.text,
+      "--text-muted": T.textMuted,
+      "--text-faint": T.textFaint,
+      "--sidebar-hover": T.sidebarHover
+    }}>
 
 
             {/* EXPORT CSV MODAL */}
@@ -2038,35 +2084,58 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
       </div>}
 
       {/* NAV */}
-      {/* Mobile hamburger only — desktop has no top bar like mockup */}
-      <div className="hide-desktop" style={{height:56,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 14px",gap:10,flexShrink:0}}>
+      {/* Mobile Header: shows Logo, Inbox label, Theme toggle, and direct Logout button */}
+      <div className="hide-desktop" style={{height:56,background:T.nav,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 12px",gap:8,flexShrink:0,position:"relative",zIndex:100}}>
         <button className="tb" onClick={()=>setMenuOpen(m=>!m)}
-          style={{width:38,height:38,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4,padding:8,flexShrink:0}}>
-          {[0,1,2].map(i=><div key={i} style={{width:18,height:2,background:menuOpen?WA_GREEN:T.textMuted,borderRadius:2,transition:"all .2s",transform:menuOpen?(i===0?"rotate(45deg) translate(4px,4px)":i===2?"rotate(-45deg) translate(4px,-4px)":"scaleX(0)"):"none"}}/>)}
+          style={{width:38,height:38,borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+          <i className={menuOpen?"ti ti-x":"ti ti-menu-2"} style={{fontSize:22,color:menuOpen?WA_GREEN:T.text}}/>
         </button>
-          <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-            <img src={LLUNA_LOGO} alt="Lluna" style={{height:28,width:"auto",objectFit:"contain"}} onError={e=>{e.target.style.display="none";}}/>
-          </div>
-        <button onClick={()=>setDark(d=>!d)} style={{padding:"4px 8px",borderRadius:18,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{dark?"☀️":"🌙"}</button>
+        <div style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
+          <img src={currentUser?.logo_url||LLUNA_LOGO} alt="Lluna" style={{height:26,width:"auto",objectFit:"contain"}} onError={e=>{e.target.style.display="none";}}/>
+          <span style={{fontWeight:700,fontSize:14,color:T.text,whiteSpace:"nowrap"}}>Inbox</span>
+        </div>
+        <button onClick={()=>setDark(d=>!d)} style={{padding:"6px 10px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{dark?"☀️":"🌙"}</button>
+        <button onClick={()=>setConfirmModal({title:"Log Out?",message:"Log out of Lluna CRM?",icon:"🔐",danger:false,confirmText:"Yes, Log Out",onConfirm:()=>doLogout()})}
+          style={{display:"flex",alignItems:"center",gap:4,padding:"6px 10px",borderRadius:10,border:`1px solid #fca5a5`,background:"#fef2f2",color:"#ef4444",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+          <i className="ti ti-logout" style={{fontSize:14}}/>
+          <span>Logout</span>
+        </button>
       </div>
 
-      {/* HAMBURGER SIDEBAR OVERLAY */}
+      {/* HAMBURGER SIDEBAR OVERLAY (Mobile View: Only Inbox & Logout) */}
       {menuOpen&&<>
-        <div onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,background:T.overlay,zIndex:90}}/>
-        <div style={{position:"fixed",top:56,left:0,bottom:0,width:260,background:T.sidebar,borderRight:`1px solid ${T.border}`,zIndex:91,display:"flex",flexDirection:"column",padding:12,gap:4,boxShadow:"4px 0 20px rgba(0,0,0,.15)"}}>
-          <div style={{fontSize:11,color:T.textFaint,fontWeight:700,padding:"4px 8px",marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Navigation</div>
-          {TABS.filter(t=>canSee(t.id)).map(t=>(
-            <button key={t.id} onClick={()=>{safeSetTab(t.id);setMenuOpen(false);}}
-              style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",
-                background:tab===t.id?`${WA_GREEN}15`:T.sidebar,
-                color:tab===t.id?WA_GREEN:T.text,fontWeight:tab===t.id?700:400,fontSize:14,textAlign:"left"}}>
-              <i className={t.icon} style={{fontSize:18}}/>
-              <span style={{flex:1}}>{t.label}</span>
-              {t.id==="crm"&&totalUnread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:11,fontWeight:700}}>{totalUnread}</span>}
-              {t.id==="leads"&&(hotCount+warmCount)>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:11,fontWeight:700}}>{hotCount+warmCount}</span>}
-            </button>
-          ))}
+        <div onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,background:T.overlay,zIndex:9998,WebkitTapHighlightColor:"transparent"}}/>
+        <div style={{position:"fixed",top:56,left:0,bottom:0,width:260,background:T.sidebar,borderRight:`1px solid ${T.border}`,zIndex:9999,display:"flex",flexDirection:"column",padding:14,gap:8,boxShadow:"4px 0 20px rgba(0,0,0,.25)",WebkitOverflowScrolling:"touch"}}>
+          <div style={{fontSize:11,color:T.textFaint,fontWeight:700,padding:"4px 4px",textTransform:"uppercase",letterSpacing:.5}}>Menu</div>
+          
+          {/* Inbox option */}
+          <button onClick={()=>{safeSetTab("crm");setMenuOpen(false);setSelected(null);selectedRef.current=null;}}
+            style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",
+              background:`${WA_GREEN}15`,color:WA_GREEN,fontWeight:700,fontSize:14,textAlign:"left"}}>
+            <i className="ti ti-message-2" style={{fontSize:18}}/>
+            <span style={{flex:1}}>Inbox</span>
+            {totalUnread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:11,fontWeight:700}}>{totalUnread}</span>}
+          </button>
 
+          <div style={{flex:1}}/>
+
+          {/* Account Card */}
+          <div style={{padding:"10px",borderRadius:10,background:T.card2,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"#f5f3ff",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+              <img src={currentUser?.logo_url||LLUNA_LOGO} style={{width:"100%",height:"100%",objectFit:"contain"}} alt="user"/>
+            </div>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{fontWeight:700,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser?.company_name||"Lluna"}</div>
+              <div style={{fontSize:10,color:T.textFaint}}>v{CRM_VERSION}</div>
+            </div>
+          </div>
+
+          {/* Logout Button */}
+          <button onClick={()=>{setMenuOpen(false);setConfirmModal({title:"Log Out?",message:"Log out of Lluna CRM?",icon:"🔐",danger:false,confirmText:"Yes, Log Out",onConfirm:()=>doLogout()});}}
+            style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderRadius:10,border:"1px solid #fca5a5",background:"#fef2f2",color:"#ef4444",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+            <i className="ti ti-logout" style={{fontSize:18}}/>
+            <span>Log Out</span>
+          </button>
         </div>
       </>}
 
@@ -2074,7 +2143,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
         {/* ══ PERMANENT LEFT SIDEBAR (desktop) ══ */}
 
-        <div className="hide-mobile nav-sidebar" style={{width:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
+        <div className="hide-mobile nav-sidebar" style={{width:200,flexShrink:0,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:isMobile?"none":"flex",flexDirection:"column",overflowY:"auto",overflowX:"hidden",position:"relative"}}>
           {/* Brand — top of sidebar like mockup */}
           <div style={{padding:"16px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
             <div style={{width:32,height:32,borderRadius:8,background:"#f5f3ff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
@@ -2189,7 +2258,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           {/* ══ INBOX SIDEBAR ══ */}
           <div style={{width:isMobile?"100%":isTablet?260:280,background:T.sidebar,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,
             ...(isMobile&&selected?{display:"none"}:{})}}>
-
+            {!(isMobile&&selected)&&<>
             {/* Sidebar Top — matches mockup exactly */}
             <div style={{padding:"14px",borderBottom:`1px solid ${T.border}`}}>
               {/* Title row */}
@@ -2373,6 +2442,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>
               ))}
             </div>
+            </>}
           </div>
 
           {/* ══ CHAT WINDOW ══ */}
@@ -2380,33 +2450,36 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
 
               {/* CHAT HEADER */}
-              <div style={{padding:"10px 18px",background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-                {isMobile&&<button onClick={()=>setSelected(null)} style={{background:"none",border:"none",cursor:"pointer",color:WA_GREEN,fontSize:26,padding:"0 4px 0 0",display:"flex",alignItems:"center",lineHeight:1}}>‹</button>}
+              <div style={{padding:"10px 12px",background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:8,flexShrink:0,minWidth:0}}>
+                {isMobile&&<button onClick={handleGoBack}
+                  style={{background:"none",border:"none",cursor:"pointer",color:WA_GREEN,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0,borderRadius:"50%",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                  <i className="ti ti-chevron-left" style={{fontSize:22,lineHeight:1}}/>
+                </button>}
                 <div style={{position:"relative",flexShrink:0}}>
-                  <div style={{width:38,height:38,borderRadius:"50%",background:getColor(selected.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",
+                  <div style={{width:36,height:36,borderRadius:"50%",background:getColor(selected.name||selected.phone||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",
                     boxShadow:selected.lead==="hot"?`0 0 0 2px #e11d48`:selected.lead==="warm"?`0 0 0 2px #d97706`:"none"}}>
-                    {selected.avatar}
+                    {selected.avatar || (selected.name ? selected.name[0].toUpperCase() : (selected.phone ? selected.phone.slice(-2) : "?"))}
                   </div>
-                  <div style={{position:"absolute",bottom:0,right:0,width:10,height:10,borderRadius:"50%",background:"#16a34a",border:"2px solid "+T.card}}/>
+                  <div style={{position:"absolute",bottom:0,right:0,width:8,height:8,borderRadius:"50%",background:"#16a34a",border:"2px solid "+T.card}}/>
                 </div>
-                <div>
-                  <div style={{fontWeight:700,fontSize:14,color:T.text}}>{selected.name}</div>
-                  <div style={{fontSize:11,color:T.textMuted}}>{selected.phone}</div>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selected.name||selected.phone||"Chat"}</div>
+                  <div style={{fontSize:10,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selected.phone}</div>
                 </div>
-                <div style={{display:"flex",gap:10,alignItems:"center",marginLeft:"auto"}}>
+                <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
                   <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)}
                     style={{background:selected.lead==="hot"?"#fef2f2":selected.lead==="warm"?"#fffbeb":T.card2,
                       border:`1px solid ${selected.lead==="hot"?"#fecaca":selected.lead==="warm"?"#fde68a":T.border}`,
-                      borderRadius:20,padding:"5px 10px",
+                      borderRadius:20,padding:"4px 8px",
                       color:selected.lead==="hot"?"#dc2626":selected.lead==="warm"?"#b45309":T.textMuted,
                       fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
                     <option value="hot">🔥 Hot</option><option value="warm">🟡 Warm</option><option value="cold">🔵 Cold</option><option value="done">✅ Done</option>
                   </select>
-                  <i className="ti ti-search" onClick={()=>{}} title="Search" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
-                  <i className="ti ti-phone" onClick={()=>{}} title="Call" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
+                  {!isMobile&&<i className="ti ti-search" onClick={()=>{}} title="Search" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>}
+                  {!isMobile&&<i className="ti ti-phone" onClick={()=>{}} title="Call" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>}
                   <i className="ti ti-robot" onClick={()=>toggleBot(selected.id)} title={selected.botActive?"Bot ON — click to pause":"Bot OFF — click to activate"}
                     style={{fontSize:18,color:selected.botActive?WA_GREEN:T.textMuted,cursor:"pointer"}}/>
-                  <i className="ti ti-dots-vertical" onClick={()=>{}} title="More" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
+                  <i className="ti ti-info-circle" onClick={()=>setShowRightPanel(p=>!p)} title="Contact Info" style={{fontSize:18,color:showRightPanel?WA_GREEN:T.textMuted,cursor:"pointer"}}/>
                 </div>
               </div>
 
@@ -2420,34 +2493,24 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {(selected.lead==="hot"||selected.lead==="warm")&&<div style={{
                 background:selected.lead==="hot"?"#fef2f2":"#fffbeb",
                 borderBottom:`1px solid ${selected.lead==="hot"?"#fecaca":"#fde68a"}`,
-                padding:"6px 18px",display:"flex",alignItems:"center",gap:8}}>
+                padding:"6px 12px",display:"flex",alignItems:"center",gap:6,minWidth:0,overflow:"hidden"}}>
                 <span style={{fontSize:13}}>{selected.lead==="hot"?"🔥":"🟡"}</span>
                 <span style={{fontWeight:700,fontSize:11,color:selected.lead==="hot"?"#dc2626":"#b45309"}}>{selected.lead==="hot"?"Hot":"Warm"} Lead:</span>
                 <span style={{fontSize:11,color:T.textMuted,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selected.leadReason||"Keyword match"}</span>
                 {(()=>{
-                  const lastUserMsg=selected.messages?.filter(m=>m.from==="user").slice(-1)[0];
-                  const lastUserTime=(()=>{
-                    if(!lastUserMsg?.date||!lastUserMsg?.time)return 0;
-                    try{
-                      const d=lastUserMsg.date.includes("/")?lastUserMsg.date.split("/").reverse().join("-"):lastUserMsg.date;
-                      const t=lastUserMsg.time.trim();const isPM=/PM/i.test(t);const isAM=/AM/i.test(t);
-                      const tp=t.replace(/[APap][Mm]/g,"").trim();const tc=tp.split(":");
-                      let h=parseInt(tc[0])||0;const m=parseInt(tc[1])||0;
-                      if(isPM&&h!==12)h+=12;if(isAM&&h===12)h=0;
-                      return new Date(`${d}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00`).getTime();
-                    }catch{return 0;}
-                  })();
-                  const hoursElapsed=lastUserTime?(now-lastUserTime)/3600000:999;
-                  const over24=hoursElapsed>24;
-                  const pct=Math.min(100,(hoursElapsed/24)*100);
-                  const circleColor=pct<50?"#16a34a":pct<80?"#d97706":"#e11d48";
-                  const r=9;const circ=2*Math.PI*r;
+                  const lastUserTime = calcLastUserTime(selected.messages);
+                  const hoursElapsed = (lastUserTime && Number.isFinite(now - lastUserTime)) ? (now - lastUserTime) / 3600000 : 999;
+                  const over24 = hoursElapsed > 24;
+                  const pct = Number.isFinite(hoursElapsed) ? Math.min(100, Math.max(0, (hoursElapsed / 24) * 100)) : 100;
+                  const circleColor = pct < 50 ? "#16a34a" : pct < 80 ? "#d97706" : "#e11d48";
+                  const r = 9; const circ = 2 * Math.PI * r;
+                  const safeOffset = Number.isFinite(circ * (pct / 100)) ? circ * (pct / 100) : circ;
                   return <>
-                    <div title={over24?"24hr window expired":""+Math.max(0,24-hoursElapsed).toFixed(1)+"hrs left"} style={{flexShrink:0}}>
-                      <svg width="24" height="24" style={{transform:"rotate(-90deg)"}}>
-                        <circle cx="12" cy="12" r={r} fill="none" stroke="#e8eaef" strokeWidth="2.5"/>
+                    <div title={over24 ? "24hr window expired" : "" + (Number.isFinite(hoursElapsed) ? Math.max(0, 24 - hoursElapsed).toFixed(1) : "0") + "hrs left"} style={{ flexShrink: 0 }}>
+                      <svg width="24" height="24" style={{ transform: "rotate(-90deg)" }}>
+                        <circle cx="12" cy="12" r={r} fill="none" stroke="#e8eaef" strokeWidth="2.5" />
                         <circle cx="12" cy="12" r={r} fill="none" stroke={circleColor} strokeWidth="2.5"
-                          strokeDasharray={circ} strokeDashoffset={circ*(pct/100)} strokeLinecap="round"/>
+                          strokeDasharray={circ} strokeDashoffset={safeOffset} strokeLinecap="round" />
                       </svg>
                     </div>
                     {over24?(
@@ -2469,16 +2532,40 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>}
 
               {/* MESSAGES */}
-              <div ref={chatContainerRef} onScroll={()=>{const el=chatContainerRef.current;if(!el)return;userScrolled.current=(el.scrollHeight-el.scrollTop-el.clientHeight)>120;}}
+              <div ref={chatContainerRef} className="chat-scroll-container" onScroll={(e)=>{
+                const el=e.currentTarget;
+                if(!el||scrollTickRef.current)return;
+                scrollTickRef.current=true;
+                requestAnimationFrame(()=>{
+                  scrollTickRef.current=false;
+                  if(el)userScrolled.current=(el.scrollHeight-el.scrollTop-el.clientHeight)>120;
+                });
+              }}
                 style={{flex:1,overflowY:"auto",padding:"12px 12px",paddingBottom:isMobile?80:20,
-                  background:"#f5f6fa",display:"flex",flexDirection:"column",gap:8,
-                  backgroundImage:"radial-gradient(circle at 100% 0,rgba(108,99,255,.03) 0,transparent 60%)",
+                  background:T.bg||"#f5f6fa",display:"flex",flexDirection:"column",gap:8,
                   WebkitOverflowScrolling:"touch",minHeight:0}}>
-                {(!selected.messages||selected.messages.length===0)&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",color:"#8696a0",gap:8}}>
-                  <div style={{width:24,height:24,borderRadius:"50%",border:`3px solid ${WA_GREEN}30`,borderTop:`3px solid ${WA_GREEN}`,animation:"spin .8s linear infinite"}}/>
-                  <span style={{fontSize:12}}>Loading messages...</span>
-                </div>}
-                {selected.messages?.map((msg,i)=>{
+                {loadingChatMessages ? (
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",color:"#8696a0",gap:8,padding:20}}>
+                    <div style={{width:24,height:24,borderRadius:"50%",border:`3px solid ${WA_GREEN}30`,borderTop:`3px solid ${WA_GREEN}`,animation:"spin .8s linear infinite"}}/>
+                    <span style={{fontSize:12}}>Loading messages...</span>
+                  </div>
+                ) : (!selected.messages || selected.messages.length === 0) ? (
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",color:T.textMuted,gap:8,padding:20,textAlign:"center"}}>
+                    <div style={{width:48,height:48,borderRadius:16,background:T.card2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>💬</div>
+                    <span style={{fontSize:13,fontWeight:600,color:T.text}}>No messages yet</span>
+                    <span style={{fontSize:11,color:T.textMuted}}>Type a message below to start the conversation!</span>
+                  </div>
+                ) : (
+                  <>
+                    {selected.messages.length > msgLimit && (
+                      <button onClick={() => setMsgLimit(l => l + 100)} style={{
+                        margin: "8px auto", padding: "6px 14px", borderRadius: 16, border: `1px solid ${T.border}`,
+                        background: T.card, color: T.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer", display: "block"
+                      }}>
+                        📜 Load older messages ({selected.messages.length - msgLimit} hidden)
+                      </button>
+                    )}
+                    {(selected.messages.length > msgLimit ? selected.messages.slice(-msgLimit) : selected.messages).map((msg,i)=>{
                   const isOut=msg.from!=="user";
                   const isBot=msg.from==="bot";
                   const isAgent=msg.from==="agent";
@@ -2488,7 +2575,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       {isOut&&<div style={{fontSize:9,fontWeight:700,marginBottom:3,textAlign:"right",letterSpacing:.2,
                         color:isBot?WA_GREEN:isAgent?"#0284c7":T.textMuted}}>
                         {isBot?(msg.agentName?.startsWith("📤")?msg.agentName:"🤖 "+(
-                          adminOverview.find(c=>String(c.clinic_id||c.id)===String(selected.clinicId||selected.clinic_id||1))?.company_name||
+                          adminClinicMap.get(String(selected.clinicId||selected.clinic_id||1))||
                           currentUser?.company_name||
                           "Bot"
                         )):msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
@@ -2500,7 +2587,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         boxShadow:"0 1px 2px rgba(0,0,0,.06)",
                         border:isOut?`1px solid ${isBot?WA_GREEN:isAgent?"#0284c7":T.border}`:isBot?`1px solid ${T.border};border-left:3px solid ${WA_GREEN}`:`1px solid ${T.border}`}}>
                         {msg.mediaUrl&&msg.text?.startsWith("[Image")?(
-                          <div><img src={msg.mediaUrl} alt="image" style={{maxWidth:"100%",maxHeight:220,borderRadius:8,display:"block",cursor:"pointer"}} onClick={()=>window.open(msg.mediaUrl,"_blank")}/></div>
+                          <div><img src={msg.mediaUrl} alt="image" loading="lazy" decoding="async" style={{maxWidth:"100%",maxHeight:220,borderRadius:8,display:"block",cursor:"pointer"}} onClick={()=>window.open(msg.mediaUrl,"_blank")}/></div>
                         ):msg.mediaUrl&&msg.text?.startsWith("[Document")?(
                           <a href={msg.mediaUrl} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,textDecoration:"none",background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px"}}>
                             <span style={{fontSize:20}}>📄</span>
@@ -2539,32 +2626,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                           {isOut&&!msg.is_read&&<span style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>✓</span>}
                         </div>
                       </div>
-                      {msg.sources?.length>0&&<div style={{marginTop:4,paddingLeft:4}}>{msg.sources.map(s=><SourceBadge key={s.id} s={s}/>)}</div>}
+                      {msg.sources?.length>0&&<div style={{marginTop:4,paddingLeft:4}}>{msg.sources.map(s=><SourceBadge key={s.id} s={s} dark={dark} qaData={qaData} WA_GREEN={WA_GREEN} T={T} hoveredSource={hoveredSource} setHoveredSource={setHoveredSource} highlightQA={highlightQA}/>)}</div>}
                     </div>
                   </div>;
                 })}
+              </>)}
                 <div ref={messagesEndRef}/>
               </div>
 
               {/* INPUT BAR */}
-              <div className="mobile-chat-input" style={{padding:"10px 16px",background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"flex-end",
-                flexShrink:0,paddingBottom:"10px"}}>
-                <div style={{flex:1,background:"#f8f9fc",border:"1.5px solid #e8eaef",borderRadius:14,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
-                  onFocus={()=>{}} onBlur={()=>{}}>
-                  <textarea value={reply} onChange={e=>setReply(e.target.value)}
-                    onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAgentReply();}}}
-                    placeholder={selected.botActive?"Bot is active — toggle off to reply":"Type a message..."}
-                    disabled={selected.botActive} rows={1}
-                    style={{flex:1,background:"transparent",border:"none",color:selected.botActive?"#9ca3af":"#0d0f1a",fontSize:isMobile?16:13,maxHeight:100,fontFamily:"inherit",outline:"none",resize:"none",lineHeight:1.4}}/>
-                  <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>😊</span>
-                  <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>📎</span>
-                </div>
-                <button className="sb" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()}
-                  style={{width:42,height:42,borderRadius:12,border:"none",
-                    background:selected.botActive||!reply.trim()?"#f8f9fc":"linear-gradient(135deg,#6c63ff,#5a52e0)",
-                    color:selected.botActive||!reply.trim()?"#9ca3af":"#fff",fontSize:17,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0,
-                    boxShadow:selected.botActive||!reply.trim()?"none":"0 2px 10px rgba(108,99,255,.25)",transition:"all .2s"}}>➤</button>
-              </div>
+              <ChatInputBar selected={selected} isMobile={isMobile} T={T} onSend={sendAgentReply} />
             </div>
           ):<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,background:"#f5f6fa"}}>
             <div style={{width:64,height:64,borderRadius:20,background:"linear-gradient(135deg,#f0effe,#e8eaef)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>💬</div>
@@ -2572,8 +2643,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{fontSize:12,color:"#9ca3af"}}>Choose from the list to start chatting</div>
           </div>}
 
-          {/* RIGHT PANEL — always visible on desktop when contact selected, like mockup */}
-          {selected&&!isMobile&&showRightPanel&&<div style={{width:240,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.sidebar,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+          {/* RIGHT PANEL — visible on desktop inline or on mobile as drawer */}
+          {selected&&showRightPanel&&<>
+            {isMobile&&<div onClick={()=>setShowRightPanel(false)} style={{position:"fixed",inset:0,background:T.overlay,zIndex:98}}/>}
+            <div style={{
+              width:isMobile?"85%":240,maxWidth:isMobile?320:"none",
+              position:isMobile?"fixed":"relative",top:isMobile?0:"auto",right:isMobile?0:"auto",bottom:isMobile?0:"auto",
+              zIndex:isMobile?99:"auto",borderLeft:`1px solid ${T.border}`,background:T.sidebar,overflowY:"auto",
+              display:"flex",flexDirection:"column",boxShadow:isMobile?"-4px 0 24px rgba(0,0,0,.25)":"none"
+            }}>
             <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{fontWeight:700,fontSize:13,color:T.text}}>Contact info</div>
               <button onClick={()=>setShowRightPanel(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted,lineHeight:1}}>×</button>
@@ -2703,7 +2781,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </button>
               </div>
             </div>
-          </div>}
+          </div></>}
         </>}
 
 
@@ -8622,7 +8700,7 @@ function PromptWizard({T, WA_GREEN, dark, API, authHeaders, kbClinic, systemProm
                   </button>;
                 })}
               </div>}
-              <input value={typeof answers[q.id]==="string"?answers[q.id]:(Array.isArray(answers[q.id])?answers[q.id].join(", "):"null"===typeof answers[q.id]?"":"")}
+              <input value={typeof answers[q.id]==="string"?answers[q.id]:(Array.isArray(answers[q.id])?answers[q.id].join(", "):answers[q.id]===null||answers[q.id]===undefined?"":"")}
                 onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))}
                 placeholder={q.placeholder||(q.type==="options"||q.type==="multiselect"?"Add details (optional)...":"Your answer (optional)...")}
                 style={{...IS,resize:"none",padding:"7px 10px",fontSize:11,minHeight:"auto"}}/>
