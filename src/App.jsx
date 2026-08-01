@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.425";
+const CRM_VERSION = "2.9.426";
 
 // Responsive hook
 function useWindowSize() {
@@ -2643,7 +2643,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
               <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Details</div>
               {[
-                {icon:"ti ti-phone", val:selected.phone},
+                {icon:"ti ti-phone", val:selected.channel==="facebook"?"Facebook Messenger":selected.channel==="instagram"?"Instagram DM":selected.phone},
                 {icon:"ti ti-calendar", val:`First seen ${selected.firstSeen||"—"}`},
                 {icon:"ti ti-message-2", val:`${selected.messages?.length||0} messages`},
                 {icon:"ti ti-clock", val:selected.last_seen?`Active ${new Date(selected.last_seen).toLocaleString("en-MY",{dateStyle:"short",timeStyle:"short"})}`:"—"},
