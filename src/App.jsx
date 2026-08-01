@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.420";
+const CRM_VERSION = "2.9.421";
 
 // Responsive hook
 function useWindowSize() {
@@ -3213,17 +3213,43 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     box.style.cssText = `background:${T.card};border-radius:16px;padding:24px;width:100%;max-width:860px;height:80vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 60px rgba(0,0,0,.4)`;
                     box.innerHTML = `
                       <div style="display:flex;align-items:center;justify-content:space-between">
-                        <div style="font-weight:800;font-size:16px;color:${T.text}">⚙️ Bot Personality & Behaviour</div>
+                        <div style="display:flex;align-items:center;gap:10px">
+                          <div style="display:flex;gap:5px">
+                            <div style="width:10px;height:10px;border-radius:50%;background:#ff5f57"></div>
+                            <div style="width:10px;height:10px;border-radius:50%;background:#ffbd2e"></div>
+                            <div style="width:10px;height:10px;border-radius:50%;background:#28c840"></div>
+                          </div>
+                          <span style="font-size:12px;font-family:monospace;color:${T.textMuted}">system_prompt.txt</span>
+                        </div>
                         <button id="close-prompt-modal" style="border:none;background:#ef444420;color:#ef4444;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:700">✕ Close</button>
                       </div>
-                      <div style="font-size:11px;color:${T.textMuted}">Edit your full system prompt below. Changes are saved when you click Save Bot Personality.</div>
-                      <textarea id="expanded-prompt" style="flex:1;width:100%;background:${T.input};border:1px solid ${T.inputBorder};border-radius:10px;padding:14px;color:${T.text};font-size:13px;font-family:inherit;resize:none;line-height:1.6;box-sizing:border-box">${systemPrompt}</textarea>
-                      <div style="display:flex;gap:10px;justify-content:flex-end">
-                        <button id="save-prompt-modal" style="padding:10px 24px;border-radius:10px;border:none;background:${WA_GREEN};color:#fff;font-size:13px;font-weight:700;cursor:pointer">💾 Save Bot Personality</button>
+                      <div style="flex:1;border-radius:10px;overflow:hidden;border:1px solid ${T.border};display:flex;flex-direction:column">
+                        <div style="background:${dark?'#1e1e2e':'#f8f7ff'};padding:6px 14px;border-bottom:1px solid ${T.border};font-size:10px;color:${T.textMuted};font-family:monospace">Edit your full system prompt below. Changes are saved when you click Save.</div>
+                        <div style="flex:1;display:flex;background:${dark?'#13131f':'#fafaf9'};overflow:hidden">
+                          <div id="line-numbers-modal" style="padding:12px 10px;background:${dark?'#1a1a2e':'#f0eeff'};border-right:1px solid ${T.border};font-size:11px;font-family:monospace;color:${T.textMuted};line-height:20px;user-select:none;min-width:40px;text-align:right;overflow:hidden;white-space:pre"></div>
+                          <textarea id="expanded-prompt" style="flex:1;width:100%;background:transparent;border:none;padding:12px 14px;color:${T.text};font-size:13px;font-family:'Fira Code','Cascadia Code','Consolas',monospace;resize:none;line-height:20px;box-sizing:border-box;outline:none" spellcheck="false">${systemPrompt}</textarea>
+                        </div>
+                      </div>
+                      <div style="display:flex;gap:10px;justify-content:space-between;align-items:center">
+                        <span id="char-count-modal" style="font-size:11px;color:${T.textMuted};font-family:monospace"></span>
+                        <button id="save-prompt-modal" style="padding:10px 24px;border-radius:10px;border:none;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;font-size:13px;font-weight:700;cursor:pointer">💾 Save Bot Personality</button>
                       </div>
                     `;
                     modal.appendChild(box);
                     document.body.appendChild(modal);
+                    // Live line numbers
+                    const updateLines = () => {
+                      const ta = document.getElementById("expanded-prompt");
+                      const ln = document.getElementById("line-numbers-modal");
+                      const cc = document.getElementById("char-count-modal");
+                      if(ta && ln) {
+                        const lines = ta.value.split('\n').length;
+                        ln.textContent = Array.from({length:lines},(_,i)=>i+1).join('\n');
+                      }
+                      if(ta && cc) cc.textContent = `${ta.value.split('\n').length} lines · ${ta.value.length} chars`;
+                    };
+                    setTimeout(updateLines, 50);
+                    document.getElementById("expanded-prompt").addEventListener("input", updateLines);
                     document.getElementById("close-prompt-modal").onclick = () => document.body.removeChild(modal);
                     modal.onclick = (e) => { if(e.target === modal) document.body.removeChild(modal); };
                     document.getElementById("save-prompt-modal").onclick = async () => {
