@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.427";
+const CRM_VERSION = "2.9.428";
 
 // Responsive hook
 function useWindowSize() {
@@ -2655,11 +2655,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               ))}
               {selected.channel==="facebook"&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderTop:`1px solid ${T.border}`}}>
                 <i className="ti ti-brand-facebook" style={{fontSize:14,color:"#1877F2",flexShrink:0,width:16}}/>
-                <a href={`https://www.facebook.com/profile.php?id=${selected.id}`} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#1877F2",textDecoration:"none"}}>View Facebook Profile ↗</a>
+                <span style={{fontSize:11,color:"#1877F2",fontWeight:500}}>Facebook Messenger Contact</span>
               </div>}
               {selected.channel==="instagram"&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderTop:`1px solid ${T.border}`}}>
                 <i className="ti ti-brand-instagram" style={{fontSize:14,color:"#E1306C",flexShrink:0,width:16}}/>
-                <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#E1306C",textDecoration:"none"}}>View Instagram Profile ↗</a>
+                <span style={{fontSize:11,color:"#E1306C",fontWeight:500}}>Instagram DM Contact</span>
               </div>}
             </div>
 
