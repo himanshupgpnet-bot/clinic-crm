@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.424";
+const CRM_VERSION = "2.9.425";
 
 // Responsive hook
 function useWindowSize() {
@@ -2401,7 +2401,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </div>
                 <div>
                   <div style={{fontWeight:700,fontSize:14,color:T.text}}>{selected.name}</div>
-                  <div style={{fontSize:11,color:T.textMuted}}>{selected.phone}</div>
+                  <div style={{fontSize:11,color:T.textMuted}}>
+                    {selected.channel==="facebook"?"Facebook Messenger":selected.channel==="instagram"?"Instagram DM":selected.phone}
+                  </div>
                 </div>
                 <div style={{display:"flex",gap:10,alignItems:"center",marginLeft:"auto"}}>
                   <select value={selected.lead} onChange={e=>setManualLead(selected.id,e.target.value)}
