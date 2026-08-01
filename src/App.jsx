@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.419";
+const CRM_VERSION = "2.9.420";
 
 // Responsive hook
 function useWindowSize() {
@@ -3191,15 +3191,16 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <div style={{display:"flex",background:dark?"#13131f":"#fafaf9",position:"relative"}}>
                     <div style={{padding:"12px 10px",background:dark?"#1a1a2e":"#f0eeff",
                       borderRight:`1px solid ${T.border}`,fontSize:11,fontFamily:"monospace",
-                      color:T.textMuted,lineHeight:"20px",userSelect:"none",minWidth:36,textAlign:"right"}}>
-                      {systemPrompt.split('\n').map((_,i)=>(
+                      color:T.textMuted,lineHeight:"20px",userSelect:"none",minWidth:36,textAlign:"right",
+                      maxHeight:160,overflow:"hidden"}}>
+                      {systemPrompt.split('\n').slice(0,8).map((_,i)=>(
                         <div key={i}>{i+1}</div>
                       ))}
                     </div>
                     <textarea value={systemPrompt} onChange={e=>setSystemPrompt(e.target.value)}
                       style={{flex:1,background:"transparent",border:"none",padding:"12px 14px",
                         color:T.text,fontSize:12,fontFamily:"'Fira Code','Cascadia Code','Consolas',monospace",
-                        resize:"none",boxSizing:"border-box",minHeight:200,maxHeight:400,
+                        resize:"none",boxSizing:"border-box",minHeight:80,maxHeight:160,
                         lineHeight:"20px",outline:"none",width:"100%"}}
                       spellCheck={false}/>
                   </div>
