@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.429";
+const CRM_VERSION = "2.9.431";
 
 // Responsive hook
 function useWindowSize() {
@@ -665,7 +665,9 @@ export default function App() {
     if(selected.id !== prevSelectedId.current) {
       prevSelectedId.current = selected.id;
       userScrolled.current = false;
-      setTimeout(()=>messagesEndRef.current?.scrollIntoView({behavior:"auto"}), 200);
+      prevMsgCount.current = 0;
+      setTimeout(()=>messagesEndRef.current?.scrollIntoView({behavior:"auto"}), 100);
+      setTimeout(()=>messagesEndRef.current?.scrollIntoView({behavior:"auto"}), 500);
     }
   }, [selected?.id]);
 
@@ -673,8 +675,11 @@ export default function App() {
   const prevMsgCount = useRef(0);
   useEffect(() => {
     const count = selected?.messages?.length || 0;
-    if(count > prevMsgCount.current && prevMsgCount.current > 0) {
-      if(!userScrolled.current) {
+    if(count > prevMsgCount.current) {
+      if(prevMsgCount.current === 0) {
+        // First load — always scroll to bottom
+        setTimeout(()=>messagesEndRef.current?.scrollIntoView({behavior:"auto"}), 50);
+      } else if(!userScrolled.current) {
         messagesEndRef.current?.scrollIntoView({behavior:"smooth"});
       }
     }
@@ -4204,7 +4209,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         {tab==="settings"&&<div style={{flex:1,display:"flex",flexDirection:"column",background:T.bg,overflow:"hidden"}}>
           {/* Page header with client pills */}
           <div className="nx-page-header" style={{flexShrink:0}}>
-            <i className="ti ti-settings" style={{fontSize:20,color:WA_GREEN}}/>
+            <i className="ti ti-settings" style={{fontSize:20,color:"#8052FF"}}/>
             <div>
               <div className="nx-page-title">Settings</div>
               <div className="nx-page-sub">{settingsClinic?settingsClinic.company_name||settingsClinic.username:"Configure your bot and account"}</div>
@@ -4243,8 +4248,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   <div key={n.id} onClick={()=>setSettingsNav(n.id)}
                     style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,
                       fontSize:12,fontWeight:500,cursor:"pointer",marginBottom:2,transition:"all .15s",
-                      background:settingsNav===n.id?`${WA_GREEN}15`:"transparent",
-                      color:settingsNav===n.id?WA_GREEN:T.textMuted}}>
+                      background:settingsNav===n.id?"rgba(128,82,255,0.1)":"transparent",
+                      color:settingsNav===n.id?"#8052FF":T.textMuted}}>
                     <i className={n.icon} style={{fontSize:16}}/>
                     {n.label}
                   </div>
@@ -4263,8 +4268,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       <div style={{width:8,height:8,borderRadius:"50%",background:WA_GREEN,animation:"pulse 1.5s infinite"}}/>
                       <span style={{fontSize:13,fontWeight:600,color:WA_GREEN}}>Unsaved changes</span>
                     </div>
-                    <button onClick={saveSettings} className="nx-btn primary" style={{padding:"8px 22px",fontSize:13}}>
-                      💾 Save Settings
+                    <button onClick={saveSettings} style={{padding:"9px 22px",fontSize:13,fontWeight:700,borderRadius:10,border:"none",background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:6,boxShadow:"0 4px 14px rgba(128,82,255,0.3)"}}>
+                      <i className="ti ti-device-floppy" style={{fontSize:15}}/> Save Settings
                     </button>
                   </div>
                 </div>}
@@ -4413,7 +4418,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       </div>
                     </div>
 
-                    <button onClick={saveSettings} className="nx-btn primary" style={{padding:"10px 28px",fontSize:13}}>
+                    <button onClick={saveSettings} style={{padding:"10px 28px",fontSize:13,fontWeight:700,borderRadius:10,border:"none",background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:6,boxShadow:"0 4px 14px rgba(128,82,255,0.3)"}}>
                       💾 Save Settings
                     </button>
                   </>}
