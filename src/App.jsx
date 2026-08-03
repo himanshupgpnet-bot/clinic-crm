@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.428";
+const CRM_VERSION = "2.9.429";
 
 // Responsive hook
 function useWindowSize() {
@@ -665,7 +665,7 @@ export default function App() {
     if(selected.id !== prevSelectedId.current) {
       prevSelectedId.current = selected.id;
       userScrolled.current = false;
-      setTimeout(()=>messagesEndRef.current?.scrollIntoView({behavior:"auto"}), 50);
+      setTimeout(()=>messagesEndRef.current?.scrollIntoView({behavior:"auto"}), 200);
     }
   }, [selected?.id]);
 
@@ -3143,9 +3143,24 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     </div>
                   </div>
                 </div>
-                <textarea value={welcomeMessage} onChange={e=>setWelcomeMessage(e.target.value)} rows={3}
-                  placeholder={"Hi! I'm [Bot Name] from [Company] 😊 How can I help you today?"}
-                  style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                <div style={{borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,boxShadow:`0 2px 8px rgba(0,0,0,0.04)`}}>
+                  <div style={{background:dark?"#1e1e2e":"#f8f7ff",padding:"7px 14px",borderBottom:`1px solid ${T.border}`,
+                    display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{display:"flex",gap:5}}>
+                        <div style={{width:10,height:10,borderRadius:"50%",background:"#ff5f57"}}/>
+                        <div style={{width:10,height:10,borderRadius:"50%",background:"#ffbd2e"}}/>
+                        <div style={{width:10,height:10,borderRadius:"50%",background:"#28c840"}}/>
+                      </div>
+                      <span style={{fontSize:11,color:T.textMuted,fontFamily:"monospace",marginLeft:4}}>welcome_message.txt</span>
+                    </div>
+                    <span style={{fontSize:10,color:T.textMuted}}>{welcomeMessage.length} chars</span>
+                  </div>
+                  <textarea value={welcomeMessage} onChange={e=>setWelcomeMessage(e.target.value)} rows={3}
+                    placeholder={"Hi! I'm [Bot Name] from [Company] 😊 How can I help you today?"}
+                    style={{width:"100%",background:dark?"#13131f":"#fafaf9",border:"none",padding:"12px 14px",
+                      color:T.text,fontSize:13,fontFamily:"inherit",resize:"none",boxSizing:"border-box",outline:"none"}}/>
+                </div>
                 <button onClick={async()=>{
                   const body = {welcome_message: welcomeMessage};
                   const clinicId = kbClinic?.clinic_id || currentUser?.clinic_id;
@@ -3158,8 +3173,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   t.innerHTML="<div style='font-size:32px;margin-bottom:8px'>👋</div><div style='font-weight:800;font-size:16px;color:#166534'>Welcome Message Saved!</div>";
                   document.body.appendChild(t);
                   setTimeout(()=>t.remove(),2500);
-                }} style={{marginTop:10,padding:"8px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  💾 Save Welcome Message
+                }} style={{marginTop:10,padding:"10px 20px",borderRadius:10,border:"none",
+                  background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",fontSize:13,
+                  fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:6,
+                  boxShadow:"0 4px 14px rgba(128,82,255,0.3)"}}>
+                  <i className="ti ti-device-floppy" style={{fontSize:15}}/> Save Welcome Message
                 </button>
               </div>
 
@@ -3311,8 +3329,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       setTimeout(()=>t.remove(),2500);
                     }
                   });
-                }} style={{marginTop:10,padding:"8px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  💾 Save Bot Personality
+                }} style={{marginTop:10,padding:"10px 20px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 14px rgba(128,82,255,0.3)",display:"inline-flex",alignItems:"center",gap:6}}>
+                  <i className="ti ti-device-floppy" style={{fontSize:15}}/> Save Bot Personality
                 </button>
               </div>
 
@@ -3436,7 +3454,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     } catch(e) {
                       res.innerHTML = `<div style='color:#ef4444;padding:10px;background:#fef2f2;border-radius:10px;margin-top:10px'>Failed: ${e.message}</div>`;
                     }
-                  }} style={{padding:"10px 18px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                  }} style={{padding:"10px 18px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",boxShadow:"0 4px 14px rgba(128,82,255,0.3)"}}>
                     🌐 Build from Website
                   </button>
                 </div>
@@ -3672,7 +3690,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                           <textarea value={editA} onChange={e=>setEditA(e.target.value)} rows={2}
                             style={{width:"100%",background:T.input,border:`1px solid ${T.inputBorder}`,borderRadius:8,padding:"7px 10px",color:T.text,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:8,boxSizing:"border-box"}}/>
                           <div style={{display:"flex",gap:6}}>
-                            <button onClick={()=>saveEdit(qa.id)} style={{padding:"5px 14px",borderRadius:8,border:"none",background:WA_GREEN,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+                            <button onClick={()=>saveEdit(qa.id)} style={{padding:"5px 14px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 2px 8px rgba(128,82,255,0.3)"}}>Save</button>
                             <button onClick={()=>setEditingId(null)} style={{padding:"5px 14px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card2,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
                           </div>
                         </div>
