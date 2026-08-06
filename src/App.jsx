@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.434";
+const CRM_VERSION = "2.9.435";
 
 // Responsive hook
 function useWindowSize() {
@@ -3859,26 +3859,33 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       </span>
                       <button onClick={async e=>{e.stopPropagation();
                         const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                        // Show custom confirm modal
                         const confirmed = await new Promise(resolve=>{
+                          const style=document.createElement("style");
+                          style.textContent=`@keyframes delPop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.8)}60%{transform:translate(-50%,-50%) scale(1.03)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}} @keyframes delShine{0%{left:-100%}100%{left:200%}} #del-modal{animation:delPop .4s cubic-bezier(.34,1.56,.64,1) forwards}`;
+                          document.head.appendChild(style);
                           const overlay=document.createElement("div");
-                          overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)";
+                          overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)";
                           const box=document.createElement("div");
-                          box.style.cssText="background:#fff;border-radius:20px;padding:32px 28px;width:360px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.2)";
+                          box.id="del-modal";
+                          box.style.cssText="position:fixed;top:50%;left:50%;background:#fff;border-radius:24px;padding:36px 32px;width:380px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,0.25);overflow:hidden";
                           box.innerHTML=`
-                            <div style="width:52px;height:52px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px">🗑️</div>
-                            <div style="font-size:17px;font-weight:700;color:#0f0f1a;margin-bottom:8px">Delete Template?</div>
-                            <div style="font-size:13px;color:#6b7280;margin-bottom:24px;line-height:1.6">This will permanently delete <strong>"${t.template_name}"</strong> from Lluna AND Meta WhatsApp.<br/>This cannot be undone.</div>
+                            <div style="position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(128,82,255,0.04),transparent);animation:delShine 2s ease 0.3s"></div>
+                            <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#fef2f2,#fee2e2);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:26px;box-shadow:0 4px 16px rgba(239,68,68,0.2)">🗑️</div>
+                            <div style="font-size:19px;font-weight:800;color:#0f0f1a;margin-bottom:8px;letter-spacing:-0.3px">Delete Template?</div>
+                            <div style="font-size:13px;color:#6b7280;margin-bottom:8px;line-height:1.6">You're about to permanently delete</div>
+                            <div style="font-size:13px;font-weight:700;color:#8052FF;background:#f5f3ff;border-radius:8px;padding:8px 14px;margin-bottom:20px;display:inline-block">"${t.template_name}"</div>
+                            <div style="font-size:12px;color:#9ca3af;margin-bottom:24px">This removes it from Lluna <strong>and</strong> Meta WhatsApp permanently.</div>
                             <div style="display:flex;gap:10px">
-                              <button id="cancel-del" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Cancel</button>
-                              <button id="confirm-del" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Delete</button>
+                              <button id="cancel-del" style="flex:1;padding:12px;border-radius:12px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s">Cancel</button>
+                              <button id="confirm-del" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(239,68,68,0.35)">Yes, Delete</button>
                             </div>
                           `;
                           overlay.appendChild(box);
                           document.body.appendChild(overlay);
-                          document.getElementById("cancel-del").onclick=()=>{document.body.removeChild(overlay);resolve(false);};
-                          document.getElementById("confirm-del").onclick=()=>{document.body.removeChild(overlay);resolve(true);};
-                          overlay.onclick=(e)=>{if(e.target===overlay){document.body.removeChild(overlay);resolve(false);}};
+                          const cleanup=()=>{document.body.removeChild(overlay);style.remove();};
+                          document.getElementById("cancel-del").onclick=()=>{cleanup();resolve(false);};
+                          document.getElementById("confirm-del").onclick=()=>{cleanup();resolve(true);};
+                          overlay.onclick=(e)=>{if(e.target===overlay){cleanup();resolve(false);}};
                         });
                         if(!confirmed) return;
                         await fetch(`${API}/api/templates/${t.id}`,{method:"DELETE",headers:authHeaders()});
@@ -9364,11 +9371,24 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
 
           {/* Body */}
           <div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:4,color:T.text}}>Body <span style={{fontSize:10,color:"#ef4444",fontWeight:400}}>Required</span></div>
-            <textarea value={bodyText} onChange={e=>setBodyText(e.target.value)} maxLength={1024} rows={5}
-              placeholder={"Hello {{1}}, your appointment is confirmed for {{2}}."}
-              style={{...inputStyle,resize:"vertical",minHeight:100,
-                borderColor:bodyText&&(/^\s*{{/.test(bodyText)||/}}\s*$/.test(bodyText))?"#ef4444":T.inputBorder}}/>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:T.text,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span>Message Body <span style={{fontSize:10,color:"#ef4444",fontWeight:400}}>Required</span></span>
+              <span style={{fontSize:10,color:T.textMuted,fontWeight:400}}>{bodyText.length}/1024</span>
+            </div>
+            <div style={{borderRadius:10,overflow:"hidden",border:`1.5px solid ${bodyText&&(/^\s*{{/.test(bodyText)||/}}\s*$/.test(bodyText))?"#ef4444":T.border}`}}>
+              <div style={{background:dark?"#1e1e2e":"#f8f7ff",padding:"6px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:6}}>
+                <div style={{display:"flex",gap:4}}>
+                  <div style={{width:9,height:9,borderRadius:"50%",background:"#ff5f57"}}/>
+                  <div style={{width:9,height:9,borderRadius:"50%",background:"#ffbd2e"}}/>
+                  <div style={{width:9,height:9,borderRadius:"50%",background:"#28c840"}}/>
+                </div>
+                <span style={{fontSize:10,color:T.textMuted,fontFamily:"monospace",marginLeft:4}}>message_body.txt</span>
+              </div>
+              <textarea value={bodyText} onChange={e=>setBodyText(e.target.value)} maxLength={1024} rows={5}
+                placeholder={"Hello {{1}}, your appointment is confirmed for {{2}}."}
+                style={{...inputStyle,resize:"vertical",minHeight:100,border:"none",borderRadius:0,
+                  background:dark?"#13131f":"#fafaf9",borderColor:"transparent"}}/>
+            </div>
             {bodyText&&/^\s*{{/.test(bodyText)&&<div style={{fontSize:10,color:"#ef4444",marginTop:4}}>⚠️ Variable cannot be at the start of the message. Add text before {"{{1}}"}.</div>}
             {bodyText&&/}}\s*$/.test(bodyText)&&<div style={{fontSize:10,color:"#ef4444",marginTop:4}}>⚠️ Variable cannot be at the end of the message. Add text after the variable.</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6}}>
