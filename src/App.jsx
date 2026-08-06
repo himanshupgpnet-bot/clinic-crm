@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.432";
+const CRM_VERSION = "2.9.434";
 
 // Responsive hook
 function useWindowSize() {
@@ -3859,7 +3859,28 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       </span>
                       <button onClick={async e=>{e.stopPropagation();
                         const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                        if(!window.confirm(`Delete template "${t.template_name}"?\n\nThis will permanently delete it from Lluna AND Meta WhatsApp. This cannot be undone.`)) return;
+                        // Show custom confirm modal
+                        const confirmed = await new Promise(resolve=>{
+                          const overlay=document.createElement("div");
+                          overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)";
+                          const box=document.createElement("div");
+                          box.style.cssText="background:#fff;border-radius:20px;padding:32px 28px;width:360px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.2)";
+                          box.innerHTML=`
+                            <div style="width:52px;height:52px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px">🗑️</div>
+                            <div style="font-size:17px;font-weight:700;color:#0f0f1a;margin-bottom:8px">Delete Template?</div>
+                            <div style="font-size:13px;color:#6b7280;margin-bottom:24px;line-height:1.6">This will permanently delete <strong>"${t.template_name}"</strong> from Lluna AND Meta WhatsApp.<br/>This cannot be undone.</div>
+                            <div style="display:flex;gap:10px">
+                              <button id="cancel-del" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Cancel</button>
+                              <button id="confirm-del" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Delete</button>
+                            </div>
+                          `;
+                          overlay.appendChild(box);
+                          document.body.appendChild(overlay);
+                          document.getElementById("cancel-del").onclick=()=>{document.body.removeChild(overlay);resolve(false);};
+                          document.getElementById("confirm-del").onclick=()=>{document.body.removeChild(overlay);resolve(true);};
+                          overlay.onclick=(e)=>{if(e.target===overlay){document.body.removeChild(overlay);resolve(false);}};
+                        });
+                        if(!confirmed) return;
                         await fetch(`${API}/api/templates/${t.id}`,{method:"DELETE",headers:authHeaders()});
                         fetchTemplates(clinicId);if(selectedTemplate?.id===t.id)setSelectedTemplate(null);
                       }} style={{width:24,height:24,border:"none",background:"transparent",color:T.textFaint,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,flexShrink:0}}
@@ -8993,7 +9014,7 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
 
 
 function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, isAdmin, broadcastClinic, step, setStep, submitting, setSubmitting, result, setResult, onSuccess}) {
-  const inputStyle = {width:"100%",background:T.input,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none",transition:"border-color .15s"};
+  const inputStyle = {width:"100%",background:T.input,border:`1.5px solid ${T.border}`,borderRadius:10,padding:"10px 13px",color:T.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none",transition:"all .2s"};
   const labelStyle = {fontSize:11,fontWeight:600,color:T.textMuted,marginBottom:5,display:"block",letterSpacing:.2};
 
   const [category, setCategory] = React.useState("MARKETING");
@@ -9106,7 +9127,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
   return (
     <div style={{flex:1,overflowY:"auto",padding:"0 20px 20px"}}>
       <div style={{padding:"16px 0 14px",borderBottom:`1px solid ${T.border}`,marginBottom:20,display:"flex",alignItems:"center",gap:10}}>
-        <i className="ti ti-template" style={{fontSize:18,color:WA_GREEN}}/>
+        <i className="ti ti-template" style={{fontSize:18,color:"#8052FF"}}/>
         <div>
           <div style={{fontWeight:700,fontSize:15,color:T.text}}>Create Template</div>
           <div style={{fontSize:11,color:T.textMuted}}>Submit a WhatsApp template to Meta for approval</div>
@@ -9117,7 +9138,7 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
       <div style={{display:"flex",gap:0,marginBottom:24,background:T.card2,borderRadius:12,padding:4,border:`1px solid ${T.border}`}}>
         {stepLabels.map((l,i)=>(
           <div key={i} style={{flex:1,textAlign:"center",padding:"8px 4px",borderRadius:8,fontSize:11,fontWeight:700,
-            background:step===i+1?WA_GREEN:"transparent",color:step===i+1?"#fff":step>i+1?WA_GREEN:T.textMuted,transition:"all .2s"}}>
+            background:step===i+1?"#8052FF":"transparent",color:step===i+1?"#fff":step>i+1?"#8052FF":T.textMuted,transition:"all .2s"}}>
             {step>i+1?"✅ ":""}{l}
           </div>
         ))}
@@ -9130,12 +9151,12 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
           {categories.map(c=>(
             <div key={c.id} onClick={()=>setCategory(c.id)}
-              style={{padding:"12px 14px",borderRadius:10,border:`1px solid ${category===c.id?WA_GREEN:T.border}`,
-                background:category===c.id?`${WA_GREEN}08`:T.card,cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}
+              style={{padding:"12px 14px",borderRadius:10,border:`1.5px solid ${category===c.id?"#8052FF":T.border}`,
+                background:category===c.id?"rgba(128,82,255,0.06)":T.card,cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}
               onMouseEnter={e=>{if(category!==c.id)e.currentTarget.style.borderColor=T.textFaint;}}
               onMouseLeave={e=>{if(category!==c.id)e.currentTarget.style.borderColor=T.border;}}>
-              <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${category===c.id?WA_GREEN:T.border}`,
-                background:category===c.id?WA_GREEN:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
+              <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${category===c.id?"#8052FF":T.border}`,
+                background:category===c.id?"#8052FF":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
                 {category===c.id&&<div style={{width:6,height:6,borderRadius:"50%",background:"#fff"}}/>}
               </div>
               <div style={{fontSize:18,flexShrink:0}}>{c.icon}</div>
@@ -9143,13 +9164,13 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
                 <div style={{fontWeight:600,fontSize:13,color:T.text}}>{c.label}</div>
                 <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>{c.desc}</div>
               </div>
-              {category===c.id&&<i className="ti ti-check" style={{fontSize:16,color:WA_GREEN,flexShrink:0}}/>}
+              {category===c.id&&<i className="ti ti-check" style={{fontSize:16,color:"#8052FF",flexShrink:0}}/>}
             </div>
           ))}
         </div>
-        <button onClick={()=>setStep(2)} className="nx-btn primary"
-          style={{width:"100%",justifyContent:"center",padding:"11px",fontSize:13,fontWeight:600}}>
-          <i className="ti ti-arrow-right" style={{fontSize:14}}/> Continue
+        <button onClick={()=>setStep(2)}
+          style={{width:"100%",justifyContent:"center",padding:"12px",fontSize:13,fontWeight:700,borderRadius:12,border:"none",background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 16px rgba(128,82,255,0.35)"}}>
+          Continue <i className="ti ti-arrow-right" style={{fontSize:14}}/>
         </button>
       </div>}
 
@@ -9160,14 +9181,14 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
 
           {/* Name + Language */}
           <div style={{background:T.card,borderRadius:12,padding:16,border:`1px solid ${T.border}`}}>
-            <div style={{fontWeight:600,fontSize:12,marginBottom:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.6}}>Template name and language</div>
+            <div style={{fontWeight:700,fontSize:12,marginBottom:12,color:T.text,letterSpacing:.2,display:"flex",alignItems:"center",gap:6}}>Template name and language</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div>
                 <label style={labelStyle}>Name your template</label>
                 <div style={{position:"relative"}}>
                   <input value={name} onChange={e=>setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))}
                     placeholder="e.g. welcome_offer_v1" maxLength={512}
-                    style={{...inputStyle,borderColor:name&&name.length>0?(name.length>=3?"#16a34a":T.inputBorder):T.inputBorder}}/>
+                    style={{...inputStyle,borderColor:name&&name.length>0?(name.length>=3?"#8052FF":T.inputBorder):T.inputBorder}}/>
                   {name.length>=3&&<span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:14}}>✅</span>}
                 </div>
                 <div style={{fontSize:10,marginTop:4,color:name.length>0&&name.length<3?"#ef4444":T.textFaint}}>
@@ -9473,14 +9494,18 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
 
           {/* Actions */}
           <div style={{display:"flex",gap:10}}>
-            <button onClick={()=>setStep(1)} className="nx-btn" style={{flex:1,justifyContent:"center",padding:"11px"}}>
-              ← Back
+            <button onClick={()=>setStep(1)} style={{flex:1,justifyContent:"center",padding:"12px",fontSize:13,fontWeight:600,borderRadius:12,border:`1.5px solid ${T.border}`,background:"transparent",color:T.text,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+              <i className="ti ti-arrow-left" style={{fontSize:14}}/> Back
             </button>
             <button onClick={handleSubmit} disabled={submitting||!name||!bodyText}
-              className="nx-btn primary" style={{flex:2,justifyContent:"center",padding:"11px",
-                opacity:submitting||!name||!bodyText?0.5:1,
-                cursor:submitting||!name||!bodyText?"not-allowed":"pointer"}}>
-              {submitting?(uploadingMedia?"⏳ Uploading...":"⏳ Submitting..."):"🚀 Submit for Review →"}
+              style={{flex:2,justifyContent:"center",padding:"12px",fontSize:13,fontWeight:700,
+                borderRadius:12,border:"none",
+                background:submitting||!name||!bodyText?"#9ca3af":"linear-gradient(135deg,#8052FF,#6030DD)",
+                color:"#fff",cursor:submitting||!name||!bodyText?"not-allowed":"pointer",
+                fontFamily:"inherit",display:"flex",alignItems:"center",gap:8,
+                boxShadow:submitting||!name||!bodyText?"none":"0 4px 16px rgba(128,82,255,0.35)",
+                opacity:1}}>
+              {submitting?(uploadingMedia?"⏳ Uploading...":"⏳ Submitting..."):<><i className="ti ti-send" style={{fontSize:14}}/> Submit for Review</>}
             </button>
           </div>
         </div>
