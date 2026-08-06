@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.431";
+const CRM_VERSION = "2.9.432";
 
 // Responsive hook
 function useWindowSize() {
@@ -3859,6 +3859,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                       </span>
                       <button onClick={async e=>{e.stopPropagation();
                         const clinicId=isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                        if(!window.confirm(`Delete template "${t.template_name}"?\n\nThis will permanently delete it from Lluna AND Meta WhatsApp. This cannot be undone.`)) return;
                         await fetch(`${API}/api/templates/${t.id}`,{method:"DELETE",headers:authHeaders()});
                         fetchTemplates(clinicId);if(selectedTemplate?.id===t.id)setSelectedTemplate(null);
                       }} style={{width:24,height:24,border:"none",background:"transparent",color:T.textFaint,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6,flexShrink:0}}
