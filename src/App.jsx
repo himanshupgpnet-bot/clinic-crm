@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.435";
+const CRM_VERSION = "2.9.436";
 
 // Responsive hook
 function useWindowSize() {
@@ -9615,49 +9615,62 @@ function CreateTemplatePanel({T, WA_GREEN, dark, API, authHeaders, authToken, is
       </div>}
 
       {/* STEP 3 — Result */}
-      {step===3&&result&&<div style={{textAlign:"center",padding:"40px 20px"}}>
+      {step===3&&result&&<div style={{textAlign:"center",padding:"32px 20px"}}>
         {result.success
           ?<>
-            <div style={{fontSize:64,marginBottom:16}}>🎉</div>
-            <div style={{fontWeight:800,fontSize:20,color:WA_GREEN,marginBottom:8}}>Template Submitted!</div>
-            <div style={{fontSize:13,color:T.textMuted,marginBottom:6}}><strong>"{result.name}"</strong> has been submitted to Meta for review.</div>
-            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 14px",borderRadius:20,
-              background:result.currentStatus==="APPROVED"?"#dcfce7":result.currentStatus==="REJECTED"?"#fef2f2":"#fef3c7",
-              color:result.currentStatus==="APPROVED"?"#16a34a":result.currentStatus==="REJECTED"?"#dc2626":"#d97706",
-              fontSize:12,fontWeight:700,marginBottom:8}}>
-              {result.currentStatus==="APPROVED"?"✅ APPROVED":result.currentStatus==="REJECTED"?"❌ REJECTED":"⏳ "+(result.currentStatus||"PENDING REVIEW")}
-              <button onClick={async()=>{
-                try {
-                  const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
-                  const url = clinicId ? `${API}/api/admin/clients/${clinicId}/templates/status?name=${result.name}` : `${API}/api/templates/status?name=${result.name}`;
-                  const r = await fetch(url, {headers:authHeaders()});
-                  const d = await r.json();
-                  if(d.status) setResult(prev=>({...prev,currentStatus:d.status}));
-                } catch(e) {}
-              }} style={{border:"none",background:"none",cursor:"pointer",fontSize:12,padding:"0 4px"}}>
-                🔄
-              </button>
+            <style>{`@keyframes successPop{0%{opacity:0;transform:scale(0.7)}60%{transform:scale(1.05)}100%{opacity:1;transform:scale(1)}} @keyframes confettiShine{0%{left:-100%}100%{left:200%}}`}</style>
+            {/* Vivid gradient card */}
+            <div style={{background:"linear-gradient(135deg,#8052FF 0%,#C040E8 55%,#FF6B9D 100%)",borderRadius:24,padding:"36px 28px",marginBottom:20,position:"relative",overflow:"hidden",boxShadow:"0 20px 60px rgba(128,82,255,0.4)"}}>
+              <div style={{position:"absolute",top:0,left:"-100%",width:"60%",height:"100%",background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)",animation:"confettiShine 2s ease 0.3s"}}/>
+              <div style={{fontSize:56,marginBottom:12,animation:"successPop .5s cubic-bezier(.34,1.56,.64,1) forwards"}}>🎉</div>
+              <div style={{fontWeight:800,fontSize:22,color:"#fff",marginBottom:8,letterSpacing:-0.3}}>Template Submitted!</div>
+              <div style={{fontSize:13,color:"rgba(255,255,255,0.85)",marginBottom:16}}>
+                <strong style={{color:"#fff"}}>"{result.name}"</strong> has been sent to Meta for review.
+              </div>
+              {/* Status badge */}
+              <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"8px 18px",borderRadius:30,
+                background:result.currentStatus==="APPROVED"?"rgba(22,163,74,0.25)":result.currentStatus==="REJECTED"?"rgba(239,68,68,0.25)":"rgba(255,255,255,0.2)",
+                backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,0.3)",
+                color:"#fff",fontSize:13,fontWeight:700}}>
+                {result.currentStatus==="APPROVED"?"✅ APPROVED":result.currentStatus==="REJECTED"?"❌ REJECTED":"⏳ PENDING REVIEW"}
+                <button onClick={async()=>{
+                  try {
+                    const clinicId = isAdmin&&broadcastClinic?(broadcastClinic.clinic_id||broadcastClinic.id):null;
+                    const url = clinicId ? `${API}/api/admin/clients/${clinicId}/templates/status?name=${result.name}` : `${API}/api/templates/status?name=${result.name}`;
+                    const r = await fetch(url, {headers:authHeaders()});
+                    const d = await r.json();
+                    if(d.status) setResult(prev=>({...prev,currentStatus:d.status}));
+                  } catch(e) {}
+                }} style={{border:"none",background:"rgba(255,255,255,0.2)",cursor:"pointer",fontSize:11,padding:"2px 8px",borderRadius:20,color:"#fff",fontFamily:"inherit"}}>
+                  🔄 Refresh
+                </button>
+              </div>
             </div>
-            {result.currentStatus==="APPROVED"&&<div style={{fontSize:12,color:"#16a34a",fontWeight:600,marginBottom:12}}>Template is now available in Send Broadcast!</div>}
-            <div style={{fontSize:12,color:T.textMuted,marginBottom:24}}>Meta usually reviews templates within a few minutes to 24 hours.</div>
+            {/* Info note */}
+            <div style={{fontSize:12,color:T.textMuted,marginBottom:24,padding:"10px 14px",background:T.card,borderRadius:10,border:`1px solid ${T.border}`,textAlign:"left"}}>
+              <span style={{fontWeight:600,color:T.text}}>⏱ What's next?</span> Meta usually reviews templates within a few minutes to 24 hours. You'll see the status update here.
+              {result.currentStatus==="APPROVED"&&<div style={{marginTop:6,color:"#16a34a",fontWeight:600}}>✅ Template is now available in Send Broadcast!</div>}
+            </div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-              <button onClick={()=>{setStep(1);setName("");setBodyText("");setHeaderText("");setFooterText("");setButtons([]);setVarSamples({});setResult(null);setHeaderSampleUrl("");setMediaFile(null);setMediaPreview("");}}
-                style={{padding:"10px 20px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                Create Another
+              <button onClick={()=>{setStep(1);setName("");setBodyText("");setHeaderText("");setFooterText("");setButtons([]);setVarSamples({});setResult(null);setHeaderSampleUrl("");setMediaFile(null);setMediaPreview("")}}
+                style={{padding:"11px 20px",borderRadius:12,border:`1.5px solid ${T.border}`,background:T.card,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+                <i className="ti ti-plus" style={{fontSize:14}}/> Create Another
               </button>
               <button onClick={onSuccess}
-                style={{padding:"10px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                View All Templates →
+                style={{padding:"11px 20px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 16px rgba(128,82,255,0.35)",display:"flex",alignItems:"center",gap:6}}>
+                View All Templates <i className="ti ti-arrow-right" style={{fontSize:14}}/>
               </button>
             </div>
           </>
           :<>
-            <div style={{fontSize:64,marginBottom:16}}>❌</div>
-            <div style={{fontWeight:800,fontSize:20,color:"#ef4444",marginBottom:8}}>Submission Failed</div>
-            <div style={{fontSize:12,color:T.textMuted,background:T.card2,padding:"10px 14px",borderRadius:8,marginBottom:20,textAlign:"left"}}>{result.error}</div>
+            <div style={{background:"linear-gradient(135deg,#fef2f2,#fee2e2)",borderRadius:24,padding:"36px 28px",marginBottom:20,boxShadow:"0 8px 32px rgba(239,68,68,0.15)"}}>
+              <div style={{fontSize:56,marginBottom:12}}>❌</div>
+              <div style={{fontWeight:800,fontSize:20,color:"#dc2626",marginBottom:8}}>Submission Failed</div>
+              <div style={{fontSize:12,color:"#7f1d1d",background:"rgba(239,68,68,0.1)",padding:"10px 14px",borderRadius:10,textAlign:"left"}}>{result.error}</div>
+            </div>
             <button onClick={()=>setStep(2)}
-              style={{padding:"10px 20px",borderRadius:10,border:"none",background:WA_GREEN,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-              ← Try Again
+              style={{padding:"11px 24px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 16px rgba(128,82,255,0.35)",display:"inline-flex",alignItems:"center",gap:6}}>
+              <i className="ti ti-arrow-left" style={{fontSize:14}}/> Try Again
             </button>
           </>
         }
