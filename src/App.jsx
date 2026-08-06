@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.436";
+const CRM_VERSION = "2.9.437";
 
 // Responsive hook
 function useWindowSize() {
@@ -8886,18 +8886,19 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
     {/* KPI row */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
       {[
-        {label:"Total Sent",    value:totalSent,      color:"#3b82f6", icon:"ti-send"},
-        {label:"Delivered",     value:totalDelivered, color:WA_GREEN,  icon:"ti-checks"},
-        {label:"Read",          value:totalRead,      color:"#8b5cf6", icon:"ti-eye"},
-        {label:"Failed",        value:totalFailed,    color:"#ef4444", icon:"ti-x"},
+        {label:"Total Sent",    value:totalSent,      color:"#8052FF", grad:"linear-gradient(135deg,#8052FF,#6030DD)", icon:"ti-send"},
+        {label:"Delivered",     value:totalDelivered, color:"#25D366", grad:"linear-gradient(135deg,#25D366,#128C7E)", icon:"ti-checks"},
+        {label:"Read",          value:totalRead,      color:"#8b5cf6", grad:"linear-gradient(135deg,#8b5cf6,#6d28d9)", icon:"ti-eye"},
+        {label:"Failed",        value:totalFailed,    color:"#ef4444", grad:"linear-gradient(135deg,#ef4444,#dc2626)", icon:"ti-x"},
       ].map((k,i)=>(
-        <div key={i} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:36,height:36,borderRadius:10,background:`${k.color}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            <i className={`ti ${k.icon}`} style={{fontSize:16,color:k.color}}/>
+        <div key={i} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"16px",display:"flex",alignItems:"center",gap:12,boxShadow:`0 2px 12px ${k.color}18`,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:0,right:0,width:60,height:60,borderRadius:"50%",background:`${k.color}08`,transform:"translate(20px,-20px)"}}/>
+          <div style={{width:42,height:42,borderRadius:12,background:k.grad,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:`0 4px 12px ${k.color}30`}}>
+            <i className={`ti ${k.icon}`} style={{fontSize:18,color:"#fff"}}/>
           </div>
           <div>
-            <div style={{fontSize:20,fontWeight:700,color:T.text,lineHeight:1}}>{k.value}</div>
-            <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>{k.label}</div>
+            <div style={{fontSize:24,fontWeight:800,color:T.text,lineHeight:1,letterSpacing:-0.5}}>{k.value}</div>
+            <div style={{fontSize:11,color:T.textMuted,marginTop:3,fontWeight:500}}>{k.label}</div>
           </div>
         </div>
       ))}
@@ -8908,8 +8909,8 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
       <div style={{flex:1,position:"relative"}}>
         <i className="ti ti-search" style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:T.textMuted}}/>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, phone or template…"
-          style={{width:"100%",padding:"9px 12px 9px 34px",borderRadius:10,border:`1px solid ${T.border}`,
-            background:T.card2,color:T.text,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"10px 12px 10px 34px",borderRadius:12,border:`1.5px solid ${T.border}`,
+            background:T.input,color:T.text,fontSize:13,outline:"none",boxSizing:"border-box",transition:"border-color .2s"}}/>
       </div>
       <div style={{fontSize:12,color:T.textMuted,whiteSpace:"nowrap",padding:"0 4px"}}>{totalSent} records · {groups.length} campaigns</div>
     </div>
@@ -8933,8 +8934,8 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
               alignItems:"center",cursor:"pointer",background:isOpen?T.card2:"transparent",
               transition:"background .15s"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
-              <div style={{width:32,height:32,borderRadius:8,background:`${WA_GREEN}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <i className="ti ti-speakerphone" style={{fontSize:15,color:WA_GREEN}}/>
+              <div style={{width:32,height:32,borderRadius:8,background:"rgba(128,82,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <i className="ti ti-speakerphone" style={{fontSize:15,color:"#8052FF"}}/>
               </div>
               <div style={{minWidth:0}}>
                 <div style={{fontWeight:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.template}</div>
@@ -8945,9 +8946,9 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
             <div style={{width:80,display:"flex",flexDirection:"column",gap:3}}>
               <div style={{fontSize:10,color:T.textMuted,textAlign:"center"}}>Delivery</div>
               <div style={{height:4,borderRadius:2,background:T.border,overflow:"hidden"}}>
-                <div style={{height:4,borderRadius:2,background:WA_GREEN,width:`${delivRate}%`}}/>
+                <div style={{height:4,borderRadius:2,background:"#8052FF",width:`${delivRate}%`}}/>
               </div>
-              <div style={{fontSize:10,fontWeight:600,color:WA_GREEN,textAlign:"center"}}>{delivRate}%</div>
+              <div style={{fontSize:10,fontWeight:600,color:"#8052FF",textAlign:"center"}}>{delivRate}%</div>
             </div>
             {/* Read rate */}
             <div style={{width:70,display:"flex",flexDirection:"column",gap:3}}>
