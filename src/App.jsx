@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.440";
+const CRM_VERSION = "2.9.441";
 
 // Responsive hook
 function useWindowSize() {
@@ -2632,6 +2632,60 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 <i className="ti ti-calendar-event" style={{fontSize:14}}/> 
                 {showCalendly?"Close Calendly":"Book via Calendly"}
               </button>}
+              {/* Send to Meta Pixel button */}
+              {appSettings.pixel_id&&<div style={{marginTop:10}}>
+                <button onClick={async()=>{
+                  const events=[{label:"Lead 🎯",val:"Lead"},{label:"Schedule 📅",val:"Schedule"},{label:"Purchase 💰",val:"Purchase"}];
+                  const style=document.createElement("style");
+                  style.textContent=`@keyframes pixPop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.85)}60%{transform:translate(-50%,-50%) scale(1.03)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}} #pix-modal{animation:pixPop .35s cubic-bezier(.34,1.56,.64,1) forwards}`;
+                  document.head.appendChild(style);
+                  const overlay=document.createElement("div");
+                  overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)";
+                  const box=document.createElement("div");
+                  box.id="pix-modal";
+                  box.style.cssText="position:fixed;top:50%;left:50%;background:#fff;border-radius:20px;padding:28px 26px;width:340px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.2)";
+                  box.innerHTML=`
+                    <div style="font-size:28px;margin-bottom:10px">📡</div>
+                    <div style="font-size:16px;font-weight:700;color:#0f0f1a;margin-bottom:6px">Send to Meta Pixel</div>
+                    <div style="font-size:12px;color:#6b7280;margin-bottom:18px">Select event type for <strong>${selected.name}</strong></div>
+                    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+                      ${events.map(e=>`<button id="pix-${e.val}" style="padding:10px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.background='#f5f3ff';this.style.borderColor='#8052FF'" onmouseout="this.style.background='#fff';this.style.borderColor='#e5e7eb'">${e.label}</button>`).join("")}
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+                      <span style="font-size:12px;color:#6b7280;flex-shrink:0">Value (MYR)</span>
+                      <input id="pix-value" type="number" value="108" style="flex:1;padding:8px 10px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:13px;outline:none;font-family:inherit"/>
+                    </div>
+                    <button id="pix-cancel" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Cancel</button>
+                  `;
+                  overlay.appendChild(box);
+                  document.body.appendChild(overlay);
+                  const cleanup=()=>{document.body.removeChild(overlay);style.remove();};
+                  document.getElementById("pix-cancel").onclick=cleanup;
+                  overlay.onclick=e=>{if(e.target===overlay)cleanup();};
+                  events.forEach(ev=>{
+                    document.getElementById(`pix-${ev.val}`).onclick=async()=>{
+                      const val=document.getElementById("pix-value").value;
+                      cleanup();
+                      try{
+                        const r=await fetch(`${API}/api/conversations/${selected.id}/pixel`,{method:"POST",headers:authHeaders(),body:JSON.stringify({event_name:ev.val,value:parseFloat(val)||null,currency:"MYR"})});
+                        const d=await r.json();
+                        if(r.ok){
+                          const t=document.createElement("div");
+                          t.style.cssText="position:fixed;top:20px;right:20px;z-index:99999;background:linear-gradient(135deg,#8052FF,#6030DD);color:#fff;border-radius:14px;padding:14px 20px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(128,82,255,0.4)";
+                          t.innerHTML=`📡 ${ev.label} sent to Meta Pixel!`;
+                          document.body.appendChild(t);
+                          setTimeout(()=>t.remove(),3000);
+                        }else{alert("Failed: "+(d.error||"Unknown error"));}
+                      }catch(e){alert("Error: "+e.message);}
+                    };
+                  });
+                }} style={{width:"100%",padding:"8px 12px",borderRadius:10,border:"1.5px solid #8052FF",
+                  background:"rgba(128,82,255,0.06)",color:"#8052FF",
+                  fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                  <i className="ti ti-brand-meta" style={{fontSize:14}}/> Send to Meta Pixel
+                </button>
+              </div>}
             </div>
             {/* Lead score — mockup style */}
             {selected.leadScore>0&&<div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
