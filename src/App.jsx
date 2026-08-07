@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.439";
+const CRM_VERSION = "2.9.440";
 
 // Responsive hook
 function useWindowSize() {
@@ -8846,7 +8846,7 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
         const sorted = [...arr].sort((a,b)=>(b.sent_at||"").localeCompare(a.sent_at||""));
         const first = sorted[0];
         if(first){
-          const key = `${first.template_name}__${(first.sent_at||"").slice(0,10)}`;
+          const key = first.template_name;
           setExpanded({[key]:true});
         }
       }
@@ -8859,11 +8859,11 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
       return new Date(ts).toLocaleString("en-MY",{timeZone:"Asia/Kuala_Lumpur",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
     }catch(e){return ts.slice(0,16);}
   };
-  const fmtDate = d => {
-    if(!d) return "";
+  const fmtDate = ts => {
+    if(!ts) return "";
     try{
-      return new Date(d+"T00:00:00").toLocaleDateString("en-MY",{weekday:"short",day:"numeric",month:"short"});
-    }catch(e){return d;}
+      return new Date(ts).toLocaleString("en-MY",{timeZone:"Asia/Kuala_Lumpur",weekday:"short",day:"numeric",month:"short"});
+    }catch(e){return "";}
   };
 
   const statusCfg = {
@@ -8879,12 +8879,14 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
     (h.phone||"").includes(search)||(h.template_name||"").toLowerCase().includes(search.toLowerCase())
   );
 
-  // Group by template + date, sorted latest first
+  // Group by template name only — one card per template
   const grouped = filtered.reduce((acc,h)=>{
-    const key = `${h.template_name}__${(h.sent_at||"").slice(0,10)}`;
-    if(!acc[key]) acc[key]={key,template:h.template_name,date:(h.sent_at||"").slice(0,10),contacts:[],total:0,delivered:0,read:0,failed:0,sent:0,bodyPreview:h.body_text||""};
+    const key = h.template_name;
+    if(!acc[key]) acc[key]={key,template:h.template_name,latestAt:h.sent_at||"",contacts:[],total:0,delivered:0,read:0,failed:0,sent:0,bodyPreview:h.body_text||""};
     acc[key].contacts.push(h);
     acc[key].total++;
+    // Track latest send time
+    if((h.sent_at||"")>(acc[key].latestAt||"")) acc[key].latestAt=h.sent_at;
     if(h.status==="read") acc[key].read++;
     else if(h.status==="delivered") acc[key].delivered++;
     else if(h.status==="failed") acc[key].failed++;
@@ -8892,7 +8894,8 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
     return acc;
   },{});
 
-  const groups = Object.values(grouped).sort((a,b)=>b.date.localeCompare(a.date));
+  // Sort by latest send time desc
+  const groups = Object.values(grouped).sort((a,b)=>(b.latestAt||"").localeCompare(a.latestAt||""));
   const totalSent = filtered.length;
   const totalDelivered = filtered.filter(h=>h.status==="delivered"||h.status==="read").length;
   const totalRead = filtered.filter(h=>h.status==="read").length;
@@ -8969,7 +8972,7 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
               {/* Name + meta + preview */}
               <div style={{flex:1,minWidth:120}}>
                 <div style={{fontSize:14,fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.template}</div>
-                <div style={{fontSize:11,color:T.textMuted,marginTop:3}}>{fmtDate(g.date)} · {g.total} recipient{g.total!==1?"s":""}</div>
+                <div style={{fontSize:11,color:T.textMuted,marginTop:3}}>Last sent {fmtDate(g.latestAt)} · {g.total} total sent</div>
                 {g.bodyPreview&&<div style={{fontSize:11,color:T.textMuted,marginTop:4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",lineHeight:1.4}}>"{g.bodyPreview.slice(0,120)}{g.bodyPreview.length>120?"…":""}"</div>}
               </div>
 
