@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.441";
+const CRM_VERSION = "2.9.442";
 
 // Responsive hook
 function useWindowSize() {
@@ -2633,8 +2633,18 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 {showCalendly?"Close Calendly":"Book via Calendly"}
               </button>}
               {/* Send to Meta Pixel button */}
-              {appSettings.pixel_id&&<div style={{marginTop:10}}>
+              {(appSettings.pixel_id||(isAdmin&&selected?.clinicId&&true))&&<div style={{marginTop:10}}>
                 <button onClick={async()=>{
+                  // For admin, fetch pixel_id from clinic settings first
+                  let pixelConfigured = !!appSettings.pixel_id;
+                  if(isAdmin&&selected?.clinicId&&!pixelConfigured){
+                    try{
+                      const r=await fetch(`${API}/api/admin/clients/${selected.clinicId}/settings`,{headers:authHeaders()});
+                      const d=await r.json();
+                      pixelConfigured=!!(d.pixel_id&&d.pixel_id.length>0);
+                    }catch(e){}
+                  }
+                  if(!pixelConfigured){alert("Pixel not configured for this clinic. Add pixel_id in Settings.");return;}
                   const events=[{label:"Lead 🎯",val:"Lead"},{label:"Schedule 📅",val:"Schedule"},{label:"Purchase 💰",val:"Purchase"}];
                   const style=document.createElement("style");
                   style.textContent=`@keyframes pixPop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.85)}60%{transform:translate(-50%,-50%) scale(1.03)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}} #pix-modal{animation:pixPop .35s cubic-bezier(.34,1.56,.64,1) forwards}`;
