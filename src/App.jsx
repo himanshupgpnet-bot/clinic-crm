@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.438";
+const CRM_VERSION = "2.9.439";
 
 // Responsive hook
 function useWindowSize() {
@@ -8838,28 +8838,51 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
     const url = clinicId ? `${API}/api/broadcast/history?clinic_id=${clinicId}&limit=500` : `${API}/api/broadcast/history?limit=500`;
     setLoading(true);
     fetch(url,{headers:authHeaders()}).then(r=>r.json()).then(d=>{
-      setHistory(Array.isArray(d)?d:[]);
+      const arr = Array.isArray(d)?d:[];
+      setHistory(arr);
       setLoading(false);
+      // Auto-expand latest successful group
+      if(arr.length>0){
+        const sorted = [...arr].sort((a,b)=>(b.sent_at||"").localeCompare(a.sent_at||""));
+        const first = sorted[0];
+        if(first){
+          const key = `${first.template_name}__${(first.sent_at||"").slice(0,10)}`;
+          setExpanded({[key]:true});
+        }
+      }
     }).catch(()=>setLoading(false));
   },[broadcastClinic]);
 
-  const statusConfig = {
-    read:     {color:"#8b5cf6", bg:"#f5f3ff", label:"Read",      icon:"ti-eye"},
-    delivered:{color:"#25D366", bg:"#f0fdf4", label:"Delivered",  icon:"ti-checks"},
-    failed:   {color:"#ef4444", bg:"#fef2f2", label:"Failed",     icon:"ti-x"},
-    accepted: {color:"#f59e0b", bg:"#fffbeb", label:"Sent",       icon:"ti-clock"},
+  const fmtTime = ts => {
+    if(!ts) return "—";
+    try{
+      return new Date(ts).toLocaleString("en-MY",{timeZone:"Asia/Kuala_Lumpur",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+    }catch(e){return ts.slice(0,16);}
   };
-  const sc = s => statusConfig[s] || statusConfig.accepted;
+  const fmtDate = d => {
+    if(!d) return "";
+    try{
+      return new Date(d+"T00:00:00").toLocaleDateString("en-MY",{weekday:"short",day:"numeric",month:"short"});
+    }catch(e){return d;}
+  };
+
+  const statusCfg = {
+    read:     {color:"#378ADD", bg:"rgba(55,138,221,0.1)",  label:"Read"},
+    delivered:{color:"#1D9E75", bg:"rgba(29,158,117,0.1)",  label:"Delivered"},
+    failed:   {color:"#E24B4A", bg:"rgba(226,75,74,0.1)",   label:"Failed"},
+    accepted: {color:"#f59e0b", bg:"rgba(245,158,11,0.1)",  label:"Sent"},
+  };
+  const sc = s => statusCfg[s] || statusCfg.accepted;
 
   const filtered = history.filter(h=>
     !search||(h.name||"").toLowerCase().includes(search.toLowerCase())||
-    h.phone?.includes(search)||h.template_name?.toLowerCase().includes(search.toLowerCase())
+    (h.phone||"").includes(search)||(h.template_name||"").toLowerCase().includes(search.toLowerCase())
   );
 
-  // Group by template + date — use sent_at date
+  // Group by template + date, sorted latest first
   const grouped = filtered.reduce((acc,h)=>{
     const key = `${h.template_name}__${(h.sent_at||"").slice(0,10)}`;
-    if(!acc[key]) acc[key]={key, template:h.template_name, date:(h.sent_at||"").slice(0,10), sentAt:h.sent_at, contacts:[], total:0, delivered:0, read:0, failed:0, sent:0};
+    if(!acc[key]) acc[key]={key,template:h.template_name,date:(h.sent_at||"").slice(0,10),contacts:[],total:0,delivered:0,read:0,failed:0,sent:0,bodyPreview:h.body_text||""};
     acc[key].contacts.push(h);
     acc[key].total++;
     if(h.status==="read") acc[key].read++;
@@ -8869,43 +8892,33 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
     return acc;
   },{});
 
-  // Sort groups by date desc — latest first
   const groups = Object.values(grouped).sort((a,b)=>b.date.localeCompare(a.date));
-
   const totalSent = filtered.length;
   const totalDelivered = filtered.filter(h=>h.status==="delivered"||h.status==="read").length;
   const totalRead = filtered.filter(h=>h.status==="read").length;
   const totalFailed = filtered.filter(h=>h.status==="failed").length;
 
-  // Malaysia time formatter
-  const fmtTime = ts => {
-    if(!ts) return "—";
-    const d = new Date(ts);
-    return d.toLocaleString("en-MY",{timeZone:"Asia/Kuala_Lumpur",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
-  };
-  const fmtDate = d => {
-    if(!d) return "";
-    const dt = new Date(d+"T00:00:00");
-    return dt.toLocaleDateString("en-MY",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
-  };
+  const initials = name => (name||"?").split("_").map(w=>w[0]||"").join("").slice(0,2).toUpperCase()||"?";
+  const colors = ["#7F77DD","#534AB7","#185FA5","#1D9E75","#D85A30","#D4537E","#BA7517"];
+  const colorFor = (str,i) => colors[i%colors.length];
 
-  return <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",padding:20,gap:16}}>
-    {/* KPI row */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+  return <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",padding:"16px 20px",gap:14}}>
+
+    {/* KPI row — responsive grid */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10}}>
       {[
-        {label:"Total Sent",    value:totalSent,      color:"#8052FF", grad:"linear-gradient(135deg,#8052FF,#6030DD)", icon:"ti-send"},
-        {label:"Delivered",     value:totalDelivered, color:"#25D366", grad:"linear-gradient(135deg,#25D366,#128C7E)", icon:"ti-checks"},
-        {label:"Read",          value:totalRead,      color:"#8b5cf6", grad:"linear-gradient(135deg,#8b5cf6,#6d28d9)", icon:"ti-eye"},
-        {label:"Failed",        value:totalFailed,    color:"#ef4444", grad:"linear-gradient(135deg,#ef4444,#dc2626)", icon:"ti-x"},
+        {label:"Total sent",   value:totalSent,      color:"#7F77DD", icon:"ti-send"},
+        {label:"Delivered",    value:totalDelivered, color:"#1D9E75", icon:"ti-checks"},
+        {label:"Read",         value:totalRead,      color:"#378ADD", icon:"ti-eye"},
+        {label:"Failed",       value:totalFailed,    color:"#E24B4A", icon:"ti-x"},
       ].map((k,i)=>(
-        <div key={i} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"16px",display:"flex",alignItems:"center",gap:12,boxShadow:`0 2px 12px ${k.color}18`,position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",top:0,right:0,width:60,height:60,borderRadius:"50%",background:`${k.color}08`,transform:"translate(20px,-20px)"}}/>
-          <div style={{width:44,height:44,borderRadius:12,background:k.grad,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:`0 4px 12px ${k.color}30`}}>
-            <i className={`ti ${k.icon}`} style={{fontSize:18,color:"#fff"}}/>
+        <div key={i} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:34,height:34,borderRadius:8,background:k.color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <i className={`ti ${k.icon}`} style={{fontSize:15,color:"#fff"}}/>
           </div>
           <div>
-            <div style={{fontSize:26,fontWeight:800,color:T.text,lineHeight:1,letterSpacing:-0.5}}>{k.value}</div>
-            <div style={{fontSize:11,color:T.textMuted,marginTop:4,fontWeight:500}}>{k.label}</div>
+            <div style={{fontSize:20,fontWeight:500,color:T.text,lineHeight:1}}>{k.value}</div>
+            <div style={{fontSize:11,color:T.textMuted,marginTop:3}}>{k.label}</div>
           </div>
         </div>
       ))}
@@ -8913,98 +8926,97 @@ function BroadcastHistoryPanel({T, WA_GREEN, API, authHeaders, isAdmin, broadcas
 
     {/* Search */}
     <div style={{position:"relative"}}>
-      <i className="ti ti-search" style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:14,color:T.textMuted}}/>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search campaign, contact or phone…"
-        style={{width:"100%",padding:"10px 12px 10px 36px",borderRadius:12,border:`1.5px solid ${T.border}`,
-          background:T.input,color:T.text,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+      <i className="ti ti-search" style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:14,color:T.textMuted}}/>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search template or contact…"
+        style={{width:"100%",padding:"9px 12px 9px 32px",borderRadius:8,border:`0.5px solid ${T.border}`,
+          background:T.card,color:T.text,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
     </div>
 
-    {/* Campaign cards */}
-    <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:12}}>
-      {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,color:T.textMuted,gap:8}}>
-        <i className="ti ti-loader" style={{fontSize:20}}/> Loading…
-      </div>:groups.length===0?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:200,color:T.textMuted,gap:8}}>
-        <i className="ti ti-send" style={{fontSize:32,opacity:.3}}/>
-        <div style={{fontSize:14}}>No broadcast history yet</div>
-        <div style={{fontSize:12}}>Send your first broadcast to see results here</div>
-      </div>:groups.map((g,gi)=>{
-        const isOpen = expanded[g.key]===true;
-        const delivRate = g.total>0?Math.round((g.delivered+g.read)/g.total*100):0;
-        const readRate = g.total>0?Math.round(g.read/g.total*100):0;
-        const hasSuccess = g.read>0||g.delivered>0;
+    {/* Cards list */}
+    <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:10}}>
+      {loading
+        ?<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,color:T.textMuted,gap:8,fontSize:13}}>
+          <i className="ti ti-loader-2" style={{fontSize:20}}/> Loading…
+        </div>
+        :groups.length===0
+        ?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:200,color:T.textMuted,gap:8}}>
+          <i className="ti ti-send" style={{fontSize:32,opacity:.25}}/>
+          <div style={{fontSize:14}}>No broadcast history yet</div>
+          <div style={{fontSize:12}}>Send your first broadcast to see results here</div>
+        </div>
+        :groups.map((g,gi)=>{
+          const isOpen = !!expanded[g.key];
+          const allFailed = g.failed===g.total;
+          const allSuccess = g.failed===0;
+          const pillColor = allFailed?"#E24B4A":allSuccess?"#1D9E75":"#f59e0b";
+          const pillBg = allFailed?"rgba(226,75,74,0.1)":allSuccess?"rgba(29,158,117,0.1)":"rgba(245,158,11,0.1)";
+          const pillLabel = allFailed?`All failed`:allSuccess?`${Math.round((g.read+g.delivered)/g.total*100)}% delivered`:`${g.failed} failed`;
+          const ic = initials(g.template);
+          const icColor = colorFor(g.template, gi);
 
-        return <div key={gi} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:16,overflow:"hidden",
-          boxShadow:hasSuccess?"0 2px 16px rgba(128,82,255,0.08)":"0 1px 4px rgba(0,0,0,0.04)"}}>
+          return <div key={gi} style={{background:T.card,border:`0.5px solid ${isOpen&&!allFailed?"rgba(55,138,221,0.4)":T.border}`,borderRadius:12,overflow:"hidden"}}>
 
-          {/* Card header */}
-          <div onClick={()=>setExpanded(p=>({...p,[g.key]:!isOpen}))}
-            style={{padding:"20px 22px",cursor:"pointer",transition:"background .15s"}}
-            onMouseEnter={e=>e.currentTarget.style.background=T.card2}
-            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            {/* Card header */}
+            <div onClick={()=>setExpanded(p=>({...p,[g.key]:!isOpen}))}
+              style={{padding:"14px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}
+              onMouseEnter={e=>e.currentTarget.style.background=T.card2}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
 
-            {/* Top row */}
-            <div style={{display:"flex",alignItems:"flex-start",gap:14,marginBottom:isOpen?16:0}}>
-              <div style={{width:46,height:46,borderRadius:13,background:"linear-gradient(135deg,rgba(128,82,255,0.12),rgba(192,64,232,0.08))",
-                display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:20}}>📢</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:15,fontWeight:700,color:T.text,letterSpacing:-0.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.template}</div>
-                <div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{fmtDate(g.date)} · {g.total} recipient{g.total!==1?"s":""}</div>
+              {/* Initials avatar */}
+              <div style={{width:44,height:44,borderRadius:10,background:icColor,display:"flex",alignItems:"center",justifyContent:"center",
+                flexShrink:0,fontSize:13,fontWeight:500,color:"#fff",letterSpacing:-0.5}}>{ic}</div>
+
+              {/* Name + meta + preview */}
+              <div style={{flex:1,minWidth:120}}>
+                <div style={{fontSize:14,fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.template}</div>
+                <div style={{fontSize:11,color:T.textMuted,marginTop:3}}>{fmtDate(g.date)} · {g.total} recipient{g.total!==1?"s":""}</div>
+                {g.bodyPreview&&<div style={{fontSize:11,color:T.textMuted,marginTop:4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",lineHeight:1.4}}>"{g.bodyPreview.slice(0,120)}{g.bodyPreview.length>120?"…":""}"</div>}
               </div>
-              <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-                {g.read>0&&<span style={{fontSize:11,fontWeight:600,padding:"4px 12px",borderRadius:20,background:"#f5f3ff",color:"#8b5cf6"}}>👁 {g.read} Read</span>}
-                {g.delivered>0&&!g.read&&<span style={{fontSize:11,fontWeight:600,padding:"4px 12px",borderRadius:20,background:"#f0fdf4",color:"#25D366"}}>✓✓ {g.delivered} Delivered</span>}
-                {g.failed>0&&g.read===0&&g.delivered===0&&<span style={{fontSize:11,fontWeight:600,padding:"4px 12px",borderRadius:20,background:"#fef2f2",color:"#ef4444"}}>✗ {g.failed} Failed</span>}
-                {g.failed>0&&(g.read>0||g.delivered>0)&&<span style={{fontSize:11,fontWeight:600,padding:"4px 12px",borderRadius:20,background:"#fef2f2",color:"#ef4444"}}>✗ {g.failed}</span>}
-                <i className={`ti ti-chevron-${isOpen?"up":"down"}`} style={{fontSize:14,color:T.textMuted,marginLeft:4}}/>
+
+              {/* Stats — wrap on small screens */}
+              <div style={{display:"flex",gap:0,alignItems:"center",flexShrink:0}}>
+                {[
+                  {val:g.total,     label:"sent",      color:"#7F77DD"},
+                  {val:g.delivered+g.read, label:"delivered", color:"#1D9E75"},
+                  {val:g.read,      label:"read",      color:"#378ADD"},
+                  {val:g.failed,    label:"failed",    color:"#E24B4A"},
+                ].map((s,i)=>(
+                  <React.Fragment key={i}>
+                    {i>0&&<div style={{width:"0.5px",height:24,background:T.border,margin:"0 8px"}}/>}
+                    <div style={{textAlign:"center",minWidth:36}}>
+                      <div style={{fontSize:15,fontWeight:500,color:s.val>0?s.color:T.textMuted,lineHeight:1}}>{s.val}</div>
+                      <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{s.label}</div>
+                    </div>
+                  </React.Fragment>
+                ))}
               </div>
+
+              {/* Status pill */}
+              <span style={{fontSize:10,fontWeight:500,padding:"3px 10px",borderRadius:20,background:pillBg,color:pillColor,flexShrink:0,whiteSpace:"nowrap"}}>{pillLabel}</span>
+
+              <i className={`ti ti-chevron-${isOpen?"up":"down"}`} style={{fontSize:13,color:T.textMuted,flexShrink:0}}/>
             </div>
 
-            {/* Stats row — only when expanded */}
-            {isOpen&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-              {[
-                {label:"Sent",      val:g.total,     color:"#8052FF"},
-                {label:"Delivered", val:g.delivered+g.read, color:"#25D366"},
-                {label:"Read",      val:g.read,      color:"#8b5cf6"},
-                {label:"Failed",    val:g.failed,    color:"#ef4444"},
-              ].map((s,i)=>(
-                <div key={i} style={{background:T.card2,borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
-                  <div style={{fontSize:18,fontWeight:800,color:s.val>0?s.color:T.textMuted}}>{s.val}</div>
-                  <div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{s.label}</div>
-                  <div style={{marginTop:6,height:4,borderRadius:2,background:T.border,overflow:"hidden"}}>
-                    <div style={{height:4,borderRadius:2,background:s.color,width:g.total>0?`${Math.round(s.val/g.total*100)}%`:"0%"}}/>
+            {/* Contact rows */}
+            {isOpen&&<div style={{borderTop:`0.5px solid ${T.border}`,padding:"10px 14px",display:"flex",flexDirection:"column",gap:6}}>
+              {g.contacts.sort((a,b)=>(b.sent_at||"").localeCompare(a.sent_at||"")).map((h,i)=>{
+                const cfg = sc(h.status);
+                return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,background:T.card2,flexWrap:"wrap"}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:cfg.color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:500,color:"#fff"}}>
+                    {(h.name||h.phone||"?")[0].toUpperCase()}
                   </div>
-                </div>
-              ))}
+                  <div style={{flex:1,minWidth:80}}>
+                    <div style={{fontSize:12,fontWeight:500,color:T.text}}>{h.name||"Unknown"}</div>
+                    <div style={{fontSize:11,color:T.textMuted}}>{h.phone}</div>
+                  </div>
+                  <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,background:cfg.bg,color:cfg.color,flexShrink:0}}>{cfg.label}</span>
+                  <span style={{fontSize:10,color:T.textMuted,flexShrink:0}}>{fmtTime(h.sent_at)}</span>
+                  {h.failed_reason&&<div style={{width:"100%",fontSize:10,color:T.textMuted,paddingLeft:40,marginTop:2}} title={h.failed_reason}>⚠️ {h.failed_reason}</div>}
+                </div>;
+              })}
             </div>}
-          </div>
-
-          {/* Contact rows — only when expanded */}
-          {isOpen&&<div style={{borderTop:`1px solid ${T.border}`,padding:"12px 16px",display:"flex",flexDirection:"column",gap:8}}>
-            {g.contacts.map((h,i)=>{
-              const cfg = sc(h.status);
-              return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,background:T.card2}}>
-                <div style={{width:34,height:34,borderRadius:"50%",background:`linear-gradient(135deg,${cfg.color},${cfg.color}aa)`,
-                  display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,fontWeight:700,color:"#fff"}}>
-                  {(h.name||h.phone||"?")[0].toUpperCase()}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:600,color:T.text}}>{h.name||"Unknown"}</div>
-                  <div style={{fontSize:11,color:T.textMuted,marginTop:1}}>+{h.phone}</div>
-                </div>
-                <div style={{textAlign:"right",flexShrink:0}}>
-                  <span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:20,background:cfg.bg,color:cfg.color}}>
-                    {cfg.label}
-                  </span>
-                  <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>{fmtTime(h.sent_at)}</div>
-                </div>
-                {h.failed_reason&&<div style={{fontSize:10,color:T.textMuted,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={h.failed_reason}>
-                  ⚠️ {h.failed_reason}
-                </div>}
-              </div>;
-            })}
-          </div>}
-        </div>;
-      })}
+          </div>;
+        })}
     </div>
   </div>;
 }
