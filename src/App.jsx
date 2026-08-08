@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.454";
+const CRM_VERSION = "2.9.455";
 
 // Responsive hook
 function useWindowSize() {
@@ -10337,7 +10337,8 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,tableLayout:"fixed"}}>
                     <thead>
                       <tr style={{background:T.card2}}>
-                        <th style={{padding:"10px 16px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:180}}>Campaign</th>
+                        <th style={{padding:"10px 16px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:180}}>Ad</th>
+                        <th style={{padding:"10px 10px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:150}}>Campaign</th>
                         <th style={{padding:"10px 10px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:80}}>Status</th>
                         <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:70}}>Budget/day</th>
                         <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:75}}>Spend</th>
@@ -10362,6 +10363,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                             <div style={{fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ad.ad_name}</div>
                             {ad.date_start&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{ad.date_start} → {ad.date_stop}</div>}
                           </td>
+                          <td style={{padding:"14px 10px",fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>{ad.campaign_name||"—"}</td>
                           <td style={{padding:"14px 10px"}}>
                             <span style={{fontSize:10,fontWeight:500,padding:"3px 10px",borderRadius:20,
                               background:isActive?"#e1f5ee":"rgba(156,163,175,0.1)",
