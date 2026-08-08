@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.450";
+const CRM_VERSION = "2.9.451";
 
 // Responsive hook
 function useWindowSize() {
@@ -10078,7 +10078,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
         const bookedFired = pixelEvents.filter(e=>e.event_name==="Schedule"&&e.fired_by==="auto");
         const autoAll = pixelEvents.filter(e=>e.fired_by==="auto");
         const firedPhones = new Set(pixelEvents.map(e=>String(e.phone).replace(/^\+/,"")));
-        const warmPending = contacts.filter(c=>c.lead==="warm"&&!firedPhones.has(String(c.phone||"").replace(/^\+/,"")));
+        const warmPending = contacts.filter(c=>c.lead==="warm"&&!firedPhones.has(String(c.phone||"").replace(/^\+/,""))&&(c.ad_id||c.ad_headline||c.ad_source));
         const totalSentMeta = pixelEvents.length;
 
         return <div style={{display:"flex",flexDirection:"column",gap:0,flex:1,overflow:"hidden"}}>
