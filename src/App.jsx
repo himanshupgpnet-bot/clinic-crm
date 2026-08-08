@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.453";
+const CRM_VERSION = "2.9.454";
 
 // Responsive hook
 function useWindowSize() {
@@ -10337,15 +10337,16 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,tableLayout:"fixed"}}>
                     <thead>
                       <tr style={{background:T.card2}}>
-                        <th style={{padding:"10px 16px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:200}}>Ad</th>
-                        <th style={{padding:"10px 10px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:60}}>Period</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:80}}>Spend</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:90}}>Impressions</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:60}}>Clicks</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:55}}>CTR</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:60}}>CPC</th>
+                        <th style={{padding:"10px 16px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:180}}>Campaign</th>
+                        <th style={{padding:"10px 10px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:80}}>Status</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:70}}>Budget/day</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:75}}>Spend</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:85}}>Impressions</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:55}}>Clicks</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:50}}>CTR</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:75}}>Meta convos</th>
                         <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:55}}>Leads</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:60}}>CPA</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:55}}>CPA</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -10359,16 +10360,24 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                           onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                           <td style={{padding:"14px 16px"}}>
                             <div style={{fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ad.ad_name}</div>
+                            {ad.date_start&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{ad.date_start} → {ad.date_stop}</div>}
                           </td>
-                          <td style={{padding:"14px 10px",fontSize:11,color:T.textMuted,whiteSpace:"nowrap"}}>{ad.date_start?`${ad.date_start.slice(5)} → ${ad.date_stop.slice(5)}`:"—"}</td>
+                          <td style={{padding:"14px 10px"}}>
+                            <span style={{fontSize:10,fontWeight:500,padding:"3px 10px",borderRadius:20,
+                              background:isActive?"#e1f5ee":"rgba(156,163,175,0.1)",
+                              color:isActive?"#0F6E56":"#9ca3af"}}>
+                              {isActive?"Active":"Paused"}
+                            </span>
+                          </td>
+                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontSize:11,fontVariantNumeric:"tabular-nums"}}>{ad.daily_budget?`RM${ad.daily_budget}`:"—"}</td>
                           <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:T.text,fontVariantNumeric:"tabular-nums"}}>RM{Math.round(spend).toLocaleString()}</td>
                           <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.impressions||0).toLocaleString()}</td>
                           <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.clicks||0).toLocaleString()}</td>
                           <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseFloat(ad.ctr||0).toFixed(1)}%</td>
-                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>RM{parseFloat(ad.cpc||0).toFixed(2)}</td>
+                          <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:ad.messaging_contacts>0?"#185FA5":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{ad.messaging_contacts||"—"}</td>
                           <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:leads>0?"#7F77DD":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{leads||"—"}</td>
                           <td style={{padding:"14px 10px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
-                            {cpa?<span style={{fontWeight:500,color:cpa<50?"#0F6E56":cpa<100?"#185FA5":"var(--text-secondary)"}}> RM{cpa.toLocaleString()}</span>:<span style={{color:T.textMuted}}>—</span>}
+                            {cpa?<span style={{fontWeight:500,color:cpa<50?"#0F6E56":cpa<100?"#185FA5":"var(--text-secondary)"}}>RM{cpa.toLocaleString()}</span>:<span style={{color:T.textMuted}}>—</span>}
                           </td>
                         </tr>;
                       })}
