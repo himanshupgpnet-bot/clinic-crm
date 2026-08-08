@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.463";
+const CRM_VERSION = "2.9.464";
 
 // Responsive hook
 function useWindowSize() {
@@ -10442,7 +10442,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                                 {isActive?"Active":"Paused"}
                               </span>
                             </td>
-                            <td style={{padding:"14px 10px",textAlign:"right",fontSize:11,color:T.textMuted}}>{ad.daily_budget?`RM${ad.daily_budget}`:"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontSize:11,color:T.textMuted}}>{ad.daily_budget>0?<span>{`RM${ad.daily_budget}`}{ad.budget_type==="cbo"&&<span style={{fontSize:9,marginLeft:4,padding:"1px 5px",borderRadius:10,background:"rgba(128,82,255,0.1)",color:"#7F77DD"}}>CBO</span>}</span>:"—"}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:T.text,fontVariantNumeric:"tabular-nums"}}>RM{Math.round(spend).toLocaleString()}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.impressions||0).toLocaleString()}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.clicks||0).toLocaleString()}</td>
