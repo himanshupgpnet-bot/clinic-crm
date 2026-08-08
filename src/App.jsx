@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.447";
+const CRM_VERSION = "2.9.448";
 
 // Responsive hook
 function useWindowSize() {
@@ -10072,27 +10072,6 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
 
     <div style={{flex:1,overflowY:"auto",padding:20,display:"flex",flexDirection:"column",gap:14}}>
 
-      {/* KPI row */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10}}>
-        {[
-          {label:"Leads fired",    val:totalLeads,     color:"#8052FF", icon:"ti-target"},
-          {label:"Schedules",      val:totalScheduled, color:"#25D366", icon:"ti-calendar"},
-          {label:"Purchases",      val:totalPurchase,  color:"#E1306C", icon:"ti-shopping-cart"},
-          {label:"Auto fired",     val:autoFired,      color:"#f59e0b", icon:"ti-robot"},
-          {label:"Manual fired",   val:manualFired,    color:"#378ADD", icon:"ti-hand-click"},
-        ].map((k,i)=>(
-          <div key={i} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:34,height:34,borderRadius:8,background:`${k.color}20`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <i className={`ti ${k.icon}`} style={{fontSize:15,color:k.color}}/>
-            </div>
-            <div>
-              <div style={{fontSize:20,fontWeight:700,color:T.text,lineHeight:1}}>{k.val}</div>
-              <div style={{fontSize:10,color:T.textMuted,marginTop:3}}>{k.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {activeSubTab==="pixel"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
 
         {/* Section 1 — Hot leads auto-fired */}
@@ -10183,9 +10162,12 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                   <span style={{fontSize:13,fontWeight:600,color:T.text}}>Warm leads — not yet sent ({warmPending.length})</span>
                 </div>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  <button onClick={()=>{const a={};warmPending.slice(0,100).forEach(c=>{a[c.phone||c.id]=true;});setSelectedWarm(a);}}
-                    style={{fontSize:11,padding:"4px 12px",borderRadius:20,border:`0.5px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                    Select all (100)
+                  <button onClick={()=>{
+                    const selected = Object.keys(selectedWarm).filter(k=>selectedWarm[k]);
+                    if(selected.length>0){setSelectedWarm({});}
+                    else{const a={};warmPending.slice(0,100).forEach(c=>{a[c.phone||c.id]=true;});setSelectedWarm(a);}
+                  }} style={{fontSize:11,padding:"4px 12px",borderRadius:20,border:`0.5px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                    {Object.keys(selectedWarm).filter(k=>selectedWarm[k]).length>0?"Deselect all":"Select all (100)"}
                   </button>
                   {Object.keys(selectedWarm).filter(k=>selectedWarm[k]).length>0&&
                     <button onClick={async()=>{
@@ -10311,36 +10293,39 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
           :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
               <tr style={{background:T.card2}}>
-                {["Ad name","Status","Spend","Impressions","Clicks","CTR","CPC","Leads","CPA","ROAS"].map(h=>(
+                {["Ad name","Period","Status","Spend","Clicks","CTR","Leads","CPA","ROAS"].map(h=>(
                   <th key={h} style={{padding:"8px 10px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {ads.map((ad,i)=>{
-                const leads = contacts.filter(c=>c.ad_id===ad.ad_id).length;
-                const booked = contacts.filter(c=>c.ad_id===ad.ad_id&&(c.lead==="hot"||c.booking_confirmed)).length;
-                const cpa = booked>0?(parseFloat(ad.spend)/booked).toFixed(0):null;
-                const roas = booked>0?((booked*108)/parseFloat(ad.spend)).toFixed(1):null;
+              {[...ads].sort((a,b)=>parseFloat(b.spend)-parseFloat(a.spend)).map((ad,i)=>{
+                const leads = ad.leads||0;
+                const booked = ad.bookings||0;
+                const spend = parseFloat(ad.spend||0);
+                const cpa = booked>0?(spend/booked).toFixed(0):null;
+                const roas = booked>0?((booked*108)/spend).toFixed(1):null;
                 const roasColor = !roas?"#9ca3af":parseFloat(roas)>=2?"#25D366":parseFloat(roas)>=1?"#f59e0b":"#ef4444";
+                const isActive = ad.status==="ACTIVE";
+                const period = ad.date_start&&ad.date_stop?`${ad.date_start.slice(5)} → ${ad.date_stop.slice(5)}`:"—";
                 return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
                   onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
                   onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                   <td style={{padding:"9px 10px",maxWidth:200}}>
                     <div style={{fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:200}}>{ad.ad_name}</div>
+                    {ad.ad_id&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>ID: {ad.ad_id}</div>}
                   </td>
+                  <td style={{padding:"9px 10px",color:T.textMuted,fontSize:11,whiteSpace:"nowrap"}}>{period}</td>
                   <td style={{padding:"9px 10px"}}>
                     <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,
-                      background:ad.status==="ACTIVE"?"rgba(37,211,102,0.1)":"rgba(156,163,175,0.1)",
-                      color:ad.status==="ACTIVE"?"#25D366":"#9ca3af"}}>
-                      {ad.status}
+                      background:isActive?"rgba(37,211,102,0.1)":"rgba(156,163,175,0.1)",
+                      color:isActive?"#25D366":"#9ca3af"}}>
+                      {isActive?"Active":"Paused"}
                     </span>
                   </td>
-                  <td style={{padding:"9px 10px",fontWeight:500,color:T.text}}>RM{parseFloat(ad.spend).toFixed(0)}</td>
-                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseInt(ad.impressions).toLocaleString()}</td>
-                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseInt(ad.clicks).toLocaleString()}</td>
-                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseFloat(ad.ctr).toFixed(1)}%</td>
-                  <td style={{padding:"9px 10px",color:T.textMuted}}>RM{parseFloat(ad.cpc).toFixed(2)}</td>
+                  <td style={{padding:"9px 10px",fontWeight:500,color:T.text}}>RM{spend.toFixed(0)}</td>
+                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseInt(ad.clicks||0).toLocaleString()}</td>
+                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseFloat(ad.ctr||0).toFixed(1)}%</td>
                   <td style={{padding:"9px 10px",fontWeight:600,color:leads>0?"#8052FF":T.textMuted}}>{leads}</td>
                   <td style={{padding:"9px 10px",color:cpa?T.text:T.textMuted}}>{cpa?`RM${cpa}`:"—"}</td>
                   <td style={{padding:"9px 10px"}}>
