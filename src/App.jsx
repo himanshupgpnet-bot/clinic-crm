@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.446";
+const CRM_VERSION = "2.9.447";
 
 // Responsive hook
 function useWindowSize() {
@@ -10093,175 +10093,194 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
         ))}
       </div>
 
-      {activeSubTab==="pixel"&&<>
+      {activeSubTab==="pixel"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
+
         {/* Section 1 — Hot leads auto-fired */}
         {(()=>{
           const hotFired = pixelEvents.filter(e=>e.event_name==="Lead"&&e.fired_by==="auto");
           const bookedFired = pixelEvents.filter(e=>e.event_name==="Schedule");
           const firedPhones = new Set(pixelEvents.map(e=>String(e.phone).replace(/^\+/,"")));
-          const warmPending = contacts.filter(c=>c.lead==="warm"&&!firedPhones.has(String(c.phone||"").replace(/^\+/,""))&&!firedPhones.has(String(c.id||"")));
+          const warmPending = contacts.filter(c=>c.lead==="warm"&&!firedPhones.has(String(c.phone||"").replace(/^\+/,"")));
 
           return <>
-            {/* Hot leads — auto fired */}
-            <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
-              <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div style={{fontSize:13,fontWeight:600,color:T.text,display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{width:8,height:8,borderRadius:"50%",background:"#ef4444",display:"inline-block"}}/>
-                  🔥 Hot Leads — Auto sent to Meta ({hotFired.length})
+            {/* KPI row */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10}}>
+              {[
+                {label:"Lead events",val:pixelEvents.filter(e=>e.event_name==="Lead").length,color:"#8052FF"},
+                {label:"Schedule events",val:pixelEvents.filter(e=>e.event_name==="Schedule").length,color:"#25D366"},
+                {label:"Purchase events",val:pixelEvents.filter(e=>e.event_name==="Purchase").length,color:"#E1306C"},
+                {label:"Auto fired",val:pixelEvents.filter(e=>e.fired_by==="auto").length,color:"#f59e0b"},
+                {label:"Manual fired",val:pixelEvents.filter(e=>e.fired_by!=="auto").length,color:"#378ADD"},
+                {label:"Warm pending",val:warmPending.length,color:"#9ca3af"},
+              ].map((k,i)=>(
+                <div key={i} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"12px 14px"}}>
+                  <div style={{fontSize:20,fontWeight:700,color:k.color,lineHeight:1}}>{k.val}</div>
+                  <div style={{fontSize:10,color:T.textMuted,marginTop:4}}>{k.label}</div>
                 </div>
-                <button onClick={loadData} style={{fontSize:11,padding:"3px 10px",borderRadius:20,border:`0.5px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                  <i className="ti ti-refresh" style={{fontSize:11}}/> Refresh
-                </button>
+              ))}
+            </div>
+
+            {/* Hot leads */}
+            <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+              <div style={{padding:"10px 14px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:13}}>🔥</span>
+                <span style={{fontSize:13,fontWeight:600,color:T.text}}>Hot leads — auto sent ({hotFired.length})</span>
               </div>
               {hotFired.length===0
-                ?<div style={{padding:24,textAlign:"center",color:T.textMuted,fontSize:12}}>No hot leads auto-fired yet. Fires automatically when a contact becomes 🔥 Hot.</div>
-                :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead><tr style={{background:T.card2}}>
-                    {["Contact","Phone","Ad","Fired at"].map(h=><th key={h} style={{padding:"7px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>)}
-                  </tr></thead>
-                  <tbody>{hotFired.map((e,i)=>(
-                    <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
-                      onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                      <td style={{padding:"8px 14px",fontWeight:500,color:T.text}}>{e.contact_name||e.phone}</td>
-                      <td style={{padding:"8px 14px",color:T.textMuted}}>{e.phone}</td>
-                      <td style={{padding:"8px 14px",color:T.textMuted,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||"—"}</td>
-                      <td style={{padding:"8px 14px",color:T.textMuted,whiteSpace:"nowrap"}}>{fmtTime(e.fired_at)}</td>
-                    </tr>
-                  ))}</tbody>
-                </table>}
+                ?<div style={{padding:16,fontSize:12,color:T.textMuted,textAlign:"center"}}>No hot leads auto-fired yet</div>
+                :<div style={{maxHeight:220,overflowY:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead style={{position:"sticky",top:0,background:T.card2}}>
+                      <tr>{["Contact","Phone","Ad source","Fired at"].map(h=><th key={h} style={{padding:"6px 12px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>)}</tr>
+                    </thead>
+                    <tbody>{hotFired.map((e,i)=>(
+                      <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
+                        onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
+                        onMouseLeave={ev=>ev.currentTarget.style.background=""}>
+                        <td style={{padding:"7px 12px",fontWeight:500,color:T.text}}>{e.contact_name||e.phone}</td>
+                        <td style={{padding:"7px 12px",color:T.textMuted,fontSize:11}}>{e.phone}</td>
+                        <td style={{padding:"7px 12px",color:"#8052FF",fontSize:11,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||"—"}</td>
+                        <td style={{padding:"7px 12px",color:T.textMuted,whiteSpace:"nowrap",fontSize:11}}>{fmtTime(e.fired_at)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>}
             </div>
 
-            {/* Booked — auto fired */}
+            {/* Booked */}
             <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
-              <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
-                <span style={{width:8,height:8,borderRadius:"50%",background:"#25D366",display:"inline-block"}}/>
-                <div style={{fontSize:13,fontWeight:600,color:T.text}}>📅 Booked — Auto sent to Meta ({bookedFired.length})</div>
+              <div style={{padding:"10px 14px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:13}}>📅</span>
+                <span style={{fontSize:13,fontWeight:600,color:T.text}}>Bookings confirmed — auto sent ({bookedFired.length})</span>
               </div>
               {bookedFired.length===0
-                ?<div style={{padding:24,textAlign:"center",color:T.textMuted,fontSize:12}}>No bookings auto-fired yet. Fires when bot confirms a booking.</div>
-                :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead><tr style={{background:T.card2}}>
-                    {["Contact","Phone","Value","Ad","Fired at"].map(h=><th key={h} style={{padding:"7px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>)}
-                  </tr></thead>
-                  <tbody>{bookedFired.map((e,i)=>(
-                    <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
-                      onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                      <td style={{padding:"8px 14px",fontWeight:500,color:T.text}}>{e.contact_name||e.phone}</td>
-                      <td style={{padding:"8px 14px",color:T.textMuted}}>{e.phone}</td>
-                      <td style={{padding:"8px 14px",color:"#25D366",fontWeight:500}}>{e.value?`RM ${e.value}`:"—"}</td>
-                      <td style={{padding:"8px 14px",color:T.textMuted,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||"—"}</td>
-                      <td style={{padding:"8px 14px",color:T.textMuted,whiteSpace:"nowrap"}}>{fmtTime(e.fired_at)}</td>
-                    </tr>
-                  ))}</tbody>
-                </table>}
+                ?<div style={{padding:16,fontSize:12,color:T.textMuted,textAlign:"center"}}>No booking events auto-fired yet</div>
+                :<div style={{maxHeight:220,overflowY:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead style={{position:"sticky",top:0,background:T.card2}}>
+                      <tr>{["Contact","Phone","Value","Ad source","Fired at"].map(h=><th key={h} style={{padding:"6px 12px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>)}</tr>
+                    </thead>
+                    <tbody>{bookedFired.map((e,i)=>(
+                      <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
+                        onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
+                        onMouseLeave={ev=>ev.currentTarget.style.background=""}>
+                        <td style={{padding:"7px 12px",fontWeight:500,color:T.text}}>{e.contact_name||e.phone}</td>
+                        <td style={{padding:"7px 12px",color:T.textMuted,fontSize:11}}>{e.phone}</td>
+                        <td style={{padding:"7px 12px",color:"#25D366",fontWeight:500}}>RM {e.value||"—"}</td>
+                        <td style={{padding:"7px 12px",color:"#8052FF",fontSize:11,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||"—"}</td>
+                        <td style={{padding:"7px 12px",color:T.textMuted,whiteSpace:"nowrap",fontSize:11}}>{fmtTime(e.fired_at)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>}
             </div>
 
-            {/* Warm leads — pending bulk send */}
+            {/* Warm leads bulk send */}
             <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
-              <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+              <div style={{padding:"10px 14px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{width:8,height:8,borderRadius:"50%",background:"#f59e0b",display:"inline-block"}}/>
-                  <div style={{fontSize:13,fontWeight:600,color:T.text}}>🟡 Warm Leads — Not yet sent to Meta ({warmPending.length})</div>
+                  <span style={{fontSize:13}}>🟡</span>
+                  <span style={{fontSize:13,fontWeight:600,color:T.text}}>Warm leads — not yet sent ({warmPending.length})</span>
                 </div>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  <button onClick={()=>{
-                    const all={};
-                    warmPending.forEach(c=>{all[c.phone||c.id]=true;});
-                    setSelectedWarm(all);
-                  }} style={{fontSize:11,padding:"4px 12px",borderRadius:20,border:`0.5px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-                    Select all
+                  <button onClick={()=>{const a={};warmPending.slice(0,100).forEach(c=>{a[c.phone||c.id]=true;});setSelectedWarm(a);}}
+                    style={{fontSize:11,padding:"4px 12px",borderRadius:20,border:`0.5px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                    Select all (100)
                   </button>
-                  {Object.keys(selectedWarm).filter(k=>selectedWarm[k]).length>0&&<button
-                    onClick={async()=>{
+                  {Object.keys(selectedWarm).filter(k=>selectedWarm[k]).length>0&&
+                    <button onClick={async()=>{
                       const phones=Object.keys(selectedWarm).filter(k=>selectedWarm[k]);
                       setBulkSending(true);
                       try{
-                        const clinic_id=clinicId||1;
                         const r=await fetch(`${API}/api/pixel/bulk`,{method:"POST",headers:authHeaders(),
-                          body:JSON.stringify({phones,event_name:"Lead",value:108,currency:"MYR",clinic_id})});
+                          body:JSON.stringify({phones,event_name:"Lead",value:108,currency:"MYR",clinic_id:clinicId})});
                         const d=await r.json();
                         alert(`✅ Sent: ${d.sent} · Failed: ${d.failed}`);
                         setSelectedWarm({});
                         loadData();
                       }catch(e){alert("Error: "+e.message);}
                       setBulkSending(false);
-                    }}
+                    }} disabled={bulkSending}
                     style={{fontSize:12,padding:"6px 16px",borderRadius:20,border:"none",
                       background:"linear-gradient(135deg,#8052FF,#6030DD)",color:"#fff",
-                      fontWeight:700,cursor:"pointer",fontFamily:"inherit",
-                      boxShadow:"0 4px 12px rgba(128,82,255,0.3)",
-                      opacity:bulkSending?0.6:1}}>
+                      fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:bulkSending?0.6:1}}>
                     {bulkSending?"Sending...":"📡 Send "+Object.keys(selectedWarm).filter(k=>selectedWarm[k]).length+" to Meta"}
                   </button>}
                 </div>
               </div>
               {warmPending.length===0
-                ?<div style={{padding:24,textAlign:"center",color:T.textMuted,fontSize:12}}>All warm leads have been sent to Meta. ✅</div>
-                :<div style={{maxHeight:320,overflowY:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead style={{position:"sticky",top:0,zIndex:1,background:T.card2}}>
-                    <tr>
-                    <th style={{padding:"7px 14px",borderBottom:`0.5px solid ${T.border}`,width:32}}/>
-                    {["Contact","Phone","Lead score","Ad"].map(h=><th key={h} style={{padding:"7px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>)}
-                  </tr></thead>
-                  <tbody>{warmPending.slice(0,100).map((c,i)=>{
-                    const key=c.phone||c.id;
-                    return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`,background:selectedWarm[key]?T.card2:""}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
-                      onMouseLeave={ev=>ev.currentTarget.style.background=selectedWarm[key]?T.card2:""}>
-                      <td style={{padding:"8px 14px"}}>
-                        <input type="checkbox" checked={!!selectedWarm[key]}
-                          onChange={e=>setSelectedWarm(p=>({...p,[key]:e.target.checked}))}
-                          style={{cursor:"pointer",width:14,height:14}}/>
-                      </td>
-                      <td style={{padding:"8px 14px",fontWeight:500,color:T.text}}>{c.name||"Unknown"}</td>
-                      <td style={{padding:"8px 14px",color:T.textMuted}}>{c.phone}</td>
-                      <td style={{padding:"8px 14px"}}><span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.1)",color:"#f59e0b"}}>🟡 {c.leadScore||0}</span></td>
-                      <td style={{padding:"8px 14px",color:T.textMuted,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.ad_headline||c.ad_source||"—"}</td>
-                    </tr>;
-                  })}</tbody>
-                </table>
-                {warmPending.length>100&&<div style={{padding:"10px 14px",fontSize:11,color:T.textMuted,textAlign:"center",borderTop:`0.5px solid ${T.border}`}}>
-                  Showing first 100 of {warmPending.length} warm leads
-                </div>}
+                ?<div style={{padding:16,fontSize:12,color:T.textMuted,textAlign:"center"}}>All warm leads sent ✅</div>
+                :<div style={{maxHeight:280,overflowY:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead style={{position:"sticky",top:0,background:T.card2}}>
+                      <tr>
+                        <th style={{padding:"6px 12px",borderBottom:`0.5px solid ${T.border}`,width:32}}/>
+                        {["Contact","Phone","Score","Ad source"].map(h=><th key={h} style={{padding:"6px 12px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>{warmPending.slice(0,100).map((c,i)=>{
+                      const key=c.phone||c.id;
+                      return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`,background:selectedWarm[key]?T.card2:""}}
+                        onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
+                        onMouseLeave={ev=>ev.currentTarget.style.background=selectedWarm[key]?T.card2:""}>
+                        <td style={{padding:"7px 12px"}}>
+                          <input type="checkbox" checked={!!selectedWarm[key]}
+                            onChange={e=>setSelectedWarm(p=>({...p,[key]:e.target.checked}))}
+                            style={{cursor:"pointer"}}/>
+                        </td>
+                        <td style={{padding:"7px 12px",fontWeight:500,color:T.text}}>{c.name||"Unknown"}</td>
+                        <td style={{padding:"7px 12px",color:T.textMuted,fontSize:11}}>{c.phone}</td>
+                        <td style={{padding:"7px 12px"}}><span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.1)",color:"#f59e0b"}}>🟡 {c.leadScore||0}</span></td>
+                        <td style={{padding:"7px 12px",color:"#8052FF",fontSize:11,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.ad_headline||c.ad_source||"—"}</td>
+                      </tr>;
+                    })}</tbody>
+                  </table>
+                  {warmPending.length>100&&<div style={{padding:"8px 12px",fontSize:11,color:T.textMuted,textAlign:"center",borderTop:`0.5px solid ${T.border}`}}>
+                    Showing 100 of {warmPending.length} warm leads
+                  </div>}
                 </div>}
             </div>
 
-            {/* Full pixel log */}
+            {/* Full log */}
             <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
-              <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
-                <i className="ti ti-brand-meta" style={{fontSize:14,color:"#1877F2"}}/>
-                <div style={{fontSize:13,fontWeight:600,color:T.text}}>All Pixel Events — Full Log ({pixelEvents.length})</div>
+              <div style={{padding:"10px 14px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <i className="ti ti-brand-meta" style={{fontSize:14,color:"#1877F2"}}/>
+                  <span style={{fontSize:13,fontWeight:600,color:T.text}}>Full pixel log ({pixelEvents.length})</span>
+                </div>
+                <button onClick={loadData} style={{fontSize:11,padding:"3px 10px",borderRadius:20,border:`0.5px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+                  <i className="ti ti-refresh" style={{fontSize:11}}/> Refresh
+                </button>
               </div>
               {pixelEvents.length===0
-                ?<div style={{padding:24,textAlign:"center",color:T.textMuted,fontSize:12}}>No pixel events yet.</div>
-                :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead><tr style={{background:T.card2}}>
-                    {["Contact","Event","Value","Ad","Fired by","Time"].map(h=>(
-                      <th key={h} style={{padding:"7px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>{pixelEvents.map((e,i)=>(
-                    <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
-                      onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                      <td style={{padding:"8px 14px"}}><div style={{fontWeight:500,color:T.text}}>{e.contact_name||e.phone}</div><div style={{fontSize:10,color:T.textMuted}}>{e.phone}</div></td>
-                      <td style={{padding:"8px 14px"}}><span style={{fontSize:11,fontWeight:600,padding:"2px 10px",borderRadius:20,background:eventBg[e.event_name]||"#f5f3ff",color:eventColor[e.event_name]||"#8052FF"}}>{e.event_name}</span></td>
-                      <td style={{padding:"8px 14px",color:T.text}}>{e.value?`${e.currency} ${e.value}`:"—"}</td>
-                      <td style={{padding:"8px 14px",color:T.textMuted,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||"—"}</td>
-                      <td style={{padding:"8px 14px"}}><span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,background:e.fired_by==="auto"?"rgba(245,158,11,0.1)":"rgba(55,138,221,0.1)",color:e.fired_by==="auto"?"#f59e0b":"#378ADD"}}>{e.fired_by==="auto"?"🤖 Auto":e.fired_by}</span></td>
-                      <td style={{padding:"8px 14px",color:T.textMuted,whiteSpace:"nowrap"}}>{fmtTime(e.fired_at)}</td>
-                    </tr>
-                  ))}</tbody>
-                </table>}
+                ?<div style={{padding:16,fontSize:12,color:T.textMuted,textAlign:"center"}}>No pixel events yet</div>
+                :<div style={{maxHeight:300,overflowY:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead style={{position:"sticky",top:0,background:T.card2}}>
+                      <tr>{["Contact","Event","Value","Ad source","By","Time"].map(h=>(
+                        <th key={h} style={{padding:"6px 12px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>{pixelEvents.map((e,i)=>(
+                      <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
+                        onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
+                        onMouseLeave={ev=>ev.currentTarget.style.background=""}>
+                        <td style={{padding:"7px 12px"}}><div style={{fontWeight:500,color:T.text}}>{e.contact_name||e.phone}</div><div style={{fontSize:10,color:T.textMuted}}>{e.phone}</div></td>
+                        <td style={{padding:"7px 12px"}}><span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:20,background:eventBg[e.event_name]||"#f5f3ff",color:eventColor[e.event_name]||"#8052FF"}}>{e.event_name}</span></td>
+                        <td style={{padding:"7px 12px",color:T.text,fontSize:11}}>{e.value?`RM ${e.value}`:"—"}</td>
+                        <td style={{padding:"7px 12px",color:"#8052FF",fontSize:11,maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||"—"}</td>
+                        <td style={{padding:"7px 12px"}}><span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,background:e.fired_by==="auto"?"rgba(245,158,11,0.1)":"rgba(55,138,221,0.1)",color:e.fired_by==="auto"?"#f59e0b":"#378ADD"}}>{e.fired_by==="auto"?"🤖 Auto":e.fired_by}</span></td>
+                        <td style={{padding:"7px 12px",color:T.textMuted,whiteSpace:"nowrap",fontSize:11}}>{fmtTime(e.fired_at)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>}
             </div>
           </>;
         })()}
-      </>}
+      </div>}
 
-      {activeSubTab==="performance"&&<>
+            {activeSubTab==="performance"&&<>
         {/* Date filter */}
         <div style={{display:"flex",gap:6}}>
           {[{val:"last_7d",label:"7 days"},{val:"last_30d",label:"30 days"},{val:"last_90d",label:"90 days"}].map(d=>(
