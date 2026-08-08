@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.442";
+const CRM_VERSION = "2.9.443";
 
 // Responsive hook
 function useWindowSize() {
@@ -85,6 +85,7 @@ const TABS = [
   {id:"leads",        icon:"ti ti-target",        label:"Leads"},
   {id:"broadcast",    icon:"ti ti-speakerphone",  label:"Broadcast"},
   {id:"analytics",    icon:"ti ti-chart-bar",     label:"Analytics"},
+  {id:"ads",          icon:"ti ti-ad-2",          label:"Ads"},
   {id:"kb",           icon:"ti ti-book",          label:"Knowledge"},
   {id:"bot",          icon:"ti ti-robot",         label:"Test Bot"},
   {id:"notes",        icon:"ti ti-notes",         label:"Notes"},
@@ -4279,6 +4280,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         </div>
         </div>}
 
+        {tab==="ads"&&<AdsTab
+          T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
+          currentUser={currentUser} API={API} authHeaders={authHeaders}
+          contacts={contacts} setTab={setTab} selectContact={selectContact}
+        />}
         {tab==="notes"&&<NotesTab
           T={T} WA_GREEN={WA_GREEN} dark={dark} isAdmin={isAdmin}
           currentUser={currentUser} authToken={authToken}
@@ -10002,3 +10008,219 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
   );
 }
 
+function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, contacts, setTab, selectContact}) {
+  const [ads, setAds] = React.useState([]);
+  const [pixelEvents, setPixelEvents] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [activeSubTab, setActiveSubTab] = React.useState("performance");
+  const [dateRange, setDateRange] = React.useState("last_30d");
+  const [expanded, setExpanded] = React.useState({});
+  const [clinicId, setClinicId] = React.useState(currentUser?.clinic_id||1);
+
+  const fmtTime = ts => {
+    if(!ts) return "—";
+    try{ return new Date(ts).toLocaleString("en-MY",{timeZone:"Asia/Kuala_Lumpur",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}); }
+    catch(e){ return ts; }
+  };
+
+  React.useEffect(()=>{
+    loadData();
+  },[clinicId, dateRange]);
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      // Fetch pixel events log
+      const pe = await fetch(`${API}/api/pixel-events?clinic_id=${clinicId}&limit=200`, {headers:authHeaders()});
+      if(pe.ok) setPixelEvents(await pe.json());
+      // Fetch ads from Meta via backend
+      const adsR = await fetch(`${API}/api/ads-performance?clinic_id=${clinicId}&date_preset=${dateRange}`, {headers:authHeaders()});
+      if(adsR.ok) setAds(await adsR.json());
+    } catch(e) {}
+    setLoading(false);
+  }
+
+  // Calculate totals from pixel events
+  const totalLeads = pixelEvents.filter(e=>e.event_name==="Lead").length;
+  const totalScheduled = pixelEvents.filter(e=>e.event_name==="Schedule").length;
+  const totalPurchase = pixelEvents.filter(e=>e.event_name==="Purchase").length;
+  const autoFired = pixelEvents.filter(e=>e.fired_by==="auto").length;
+  const manualFired = pixelEvents.filter(e=>e.fired_by!=="auto").length;
+
+  const eventColor = {Lead:"#8052FF", Schedule:"#25D366", Purchase:"#E1306C"};
+  const eventBg = {Lead:"rgba(128,82,255,0.08)", Schedule:"rgba(37,211,102,0.08)", Purchase:"rgba(225,48,108,0.08)"};
+
+  return <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:T.bg}}>
+    {/* Header */}
+    <div style={{padding:"14px 20px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.sidebar}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <i className="ti ti-ad-2" style={{fontSize:18,color:"#8052FF"}}/>
+        <div style={{fontSize:14,fontWeight:700,color:T.text}}>Ads & Pixel</div>
+      </div>
+      <div style={{display:"flex",gap:6}}>
+        {["performance","pixel"].map(t=>(
+          <button key={t} onClick={()=>setActiveSubTab(t)}
+            style={{padding:"5px 14px",borderRadius:20,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",
+              background:activeSubTab===t?"#8052FF":"transparent",color:activeSubTab===t?"#fff":T.textMuted}}>
+            {t==="performance"?"📊 Ad Performance":"📡 Pixel Events"}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div style={{flex:1,overflowY:"auto",padding:20,display:"flex",flexDirection:"column",gap:14}}>
+
+      {/* KPI row */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10}}>
+        {[
+          {label:"Leads fired",    val:totalLeads,     color:"#8052FF", icon:"ti-target"},
+          {label:"Schedules",      val:totalScheduled, color:"#25D366", icon:"ti-calendar"},
+          {label:"Purchases",      val:totalPurchase,  color:"#E1306C", icon:"ti-shopping-cart"},
+          {label:"Auto fired",     val:autoFired,      color:"#f59e0b", icon:"ti-robot"},
+          {label:"Manual fired",   val:manualFired,    color:"#378ADD", icon:"ti-hand-click"},
+        ].map((k,i)=>(
+          <div key={i} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:34,height:34,borderRadius:8,background:`${k.color}20`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <i className={`ti ${k.icon}`} style={{fontSize:15,color:k.color}}/>
+            </div>
+            <div>
+              <div style={{fontSize:20,fontWeight:700,color:T.text,lineHeight:1}}>{k.val}</div>
+              <div style={{fontSize:10,color:T.textMuted,marginTop:3}}>{k.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {activeSubTab==="pixel"&&<>
+        {/* Pixel Events Log */}
+        <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+          <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.text,display:"flex",alignItems:"center",gap:8}}>
+              <i className="ti ti-brand-meta" style={{fontSize:14,color:"#1877F2"}}/>
+              Pixel Events Log
+            </div>
+            <button onClick={loadData} style={{fontSize:11,padding:"3px 10px",borderRadius:20,border:`0.5px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+              <i className="ti ti-refresh" style={{fontSize:11}}/> Refresh
+            </button>
+          </div>
+          {loading?<div style={{padding:40,textAlign:"center",color:T.textMuted,fontSize:13}}>Loading…</div>
+          :pixelEvents.length===0?<div style={{padding:40,textAlign:"center",color:T.textMuted,fontSize:13}}>
+            <i className="ti ti-brand-meta" style={{fontSize:32,display:"block",marginBottom:8,opacity:.3}}/>
+            No pixel events yet. Events fire automatically when leads go Hot or bookings are confirmed.
+          </div>
+          :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead>
+              <tr style={{background:T.card2}}>
+                {["Contact","Event","Value","Ad","Fired by","Time"].map(h=>(
+                  <th key={h} style={{padding:"8px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pixelEvents.map((e,i)=>(
+                <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
+                  onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
+                  onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                  <td style={{padding:"9px 14px"}}>
+                    <div style={{fontWeight:500,color:T.text}}>{e.contact_name||e.phone}</div>
+                    <div style={{fontSize:10,color:T.textMuted}}>{e.phone}</div>
+                  </td>
+                  <td style={{padding:"9px 14px"}}>
+                    <span style={{fontSize:11,fontWeight:600,padding:"2px 10px",borderRadius:20,
+                      background:eventBg[e.event_name]||"#f5f3ff",color:eventColor[e.event_name]||"#8052FF"}}>
+                      {e.event_name}
+                    </span>
+                  </td>
+                  <td style={{padding:"9px 14px",color:T.text}}>{e.value?`${e.currency} ${e.value}`:"—"}</td>
+                  <td style={{padding:"9px 14px",color:T.textMuted,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||"—"}</td>
+                  <td style={{padding:"9px 14px"}}>
+                    <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,
+                      background:e.fired_by==="auto"?"rgba(245,158,11,0.1)":"rgba(55,138,221,0.1)",
+                      color:e.fired_by==="auto"?"#f59e0b":"#378ADD"}}>
+                      {e.fired_by==="auto"?"🤖 Auto":e.fired_by}
+                    </span>
+                  </td>
+                  <td style={{padding:"9px 14px",color:T.textMuted,whiteSpace:"nowrap"}}>{fmtTime(e.fired_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>}
+        </div>
+      </>}
+
+      {activeSubTab==="performance"&&<>
+        {/* Date filter */}
+        <div style={{display:"flex",gap:6}}>
+          {[{val:"last_7d",label:"7 days"},{val:"last_30d",label:"30 days"},{val:"last_90d",label:"90 days"}].map(d=>(
+            <button key={d.val} onClick={()=>setDateRange(d.val)}
+              style={{padding:"5px 14px",borderRadius:20,border:`0.5px solid ${T.border}`,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"inherit",
+                background:dateRange===d.val?"#8052FF":"transparent",color:dateRange===d.val?"#fff":T.textMuted}}>
+              {d.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Ads table */}
+        <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+          <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.text,display:"flex",alignItems:"center",gap:8}}>
+              <i className="ti ti-ad-2" style={{fontSize:14,color:"#8052FF"}}/>
+              Ad Performance · Evera Marketing
+            </div>
+            <button onClick={loadData} style={{fontSize:11,padding:"3px 10px",borderRadius:20,border:`0.5px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
+              <i className="ti ti-refresh" style={{fontSize:11}}/> Refresh
+            </button>
+          </div>
+          {loading?<div style={{padding:40,textAlign:"center",color:T.textMuted,fontSize:13}}>Loading ads from Meta…</div>
+          :ads.length===0?<div style={{padding:40,textAlign:"center",color:T.textMuted,fontSize:13}}>
+            <i className="ti ti-ad" style={{fontSize:32,display:"block",marginBottom:8,opacity:.3}}/>
+            No ad data — configure ads_account_ids in Settings
+          </div>
+          :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead>
+              <tr style={{background:T.card2}}>
+                {["Ad name","Status","Spend","Impressions","Clicks","CTR","CPC","Leads","CPA","ROAS"].map(h=>(
+                  <th key={h} style={{padding:"8px 10px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ads.map((ad,i)=>{
+                const leads = contacts.filter(c=>c.ad_id===ad.ad_id).length;
+                const booked = contacts.filter(c=>c.ad_id===ad.ad_id&&(c.lead==="hot"||c.booking_confirmed)).length;
+                const cpa = booked>0?(parseFloat(ad.spend)/booked).toFixed(0):null;
+                const roas = booked>0?((booked*108)/parseFloat(ad.spend)).toFixed(1):null;
+                const roasColor = !roas?"#9ca3af":parseFloat(roas)>=2?"#25D366":parseFloat(roas)>=1?"#f59e0b":"#ef4444";
+                return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
+                  onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
+                  onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                  <td style={{padding:"9px 10px",maxWidth:200}}>
+                    <div style={{fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:200}}>{ad.ad_name}</div>
+                  </td>
+                  <td style={{padding:"9px 10px"}}>
+                    <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,
+                      background:ad.status==="ACTIVE"?"rgba(37,211,102,0.1)":"rgba(156,163,175,0.1)",
+                      color:ad.status==="ACTIVE"?"#25D366":"#9ca3af"}}>
+                      {ad.status}
+                    </span>
+                  </td>
+                  <td style={{padding:"9px 10px",fontWeight:500,color:T.text}}>RM{parseFloat(ad.spend).toFixed(0)}</td>
+                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseInt(ad.impressions).toLocaleString()}</td>
+                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseInt(ad.clicks).toLocaleString()}</td>
+                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseFloat(ad.ctr).toFixed(1)}%</td>
+                  <td style={{padding:"9px 10px",color:T.textMuted}}>RM{parseFloat(ad.cpc).toFixed(2)}</td>
+                  <td style={{padding:"9px 10px",fontWeight:600,color:leads>0?"#8052FF":T.textMuted}}>{leads}</td>
+                  <td style={{padding:"9px 10px",color:cpa?T.text:T.textMuted}}>{cpa?`RM${cpa}`:"—"}</td>
+                  <td style={{padding:"9px 10px"}}>
+                    {roas?<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,
+                      background:`${roasColor}15`,color:roasColor}}>{roas}x</span>:<span style={{color:T.textMuted}}>—</span>}
+                  </td>
+                </tr>;
+              })}
+            </tbody>
+          </table>}
+        </div>
+      </>}
+    </div>
+  </div>;
+}
