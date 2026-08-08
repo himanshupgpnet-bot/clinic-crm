@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.449";
+const CRM_VERSION = "2.9.450";
 
 // Responsive hook
 function useWindowSize() {
@@ -10017,6 +10017,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
   const [expanded, setExpanded] = React.useState({});
   const [selectedWarm, setSelectedWarm] = React.useState({});
   const [bulkSending, setBulkSending] = React.useState(false);
+  const [pixelSubTab, setPixelSubTab] = React.useState("send");
   const [clinicId, setClinicId] = React.useState(currentUser?.clinic_id||1);
 
   const fmtTime = ts => {
@@ -10078,7 +10079,6 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
         const autoAll = pixelEvents.filter(e=>e.fired_by==="auto");
         const firedPhones = new Set(pixelEvents.map(e=>String(e.phone).replace(/^\+/,"")));
         const warmPending = contacts.filter(c=>c.lead==="warm"&&!firedPhones.has(String(c.phone||"").replace(/^\+/,"")));
-        const [pixelSubTab, setPixelSubTab] = React.useState("send");
         const totalSentMeta = pixelEvents.length;
 
         return <div style={{display:"flex",flexDirection:"column",gap:0,flex:1,overflow:"hidden"}}>
