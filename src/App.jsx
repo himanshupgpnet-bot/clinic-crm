@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.458";
+const CRM_VERSION = "2.9.459";
 
 // Responsive hook
 function useWindowSize() {
@@ -10358,10 +10358,10 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                     {selectedCampaign?`${selectedCampaign.ads?.length||0} ads`:`${campaigns.length} campaigns · sorted by spend`}
                   </span>
                 </div>
-                <div style={{overflowX:"auto"}}>
+                <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
                   {!selectedCampaign
                     /* CAMPAIGN LEVEL */
-                    ?<table style={{width:"100%",borderCollapse:"collapse",fontSize:12,tableLayout:"fixed"}}>
+                    ?<table style={{width:"max-content",minWidth:"100%",borderCollapse:"collapse",fontSize:12}}>
                       <thead>
                         <tr style={{background:T.card2}}>
                           {["Campaign","Delivery","Budget","Amount spent","Impressions","Reach","Total messaging contacts","New messaging contacts","Results","Cost per result","Leads (Lluna)","CPA"].map((h,i)=>(
@@ -10405,11 +10405,11 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                       </tbody>
                     </table>
                     /* AD LEVEL DRILL DOWN */
-                    :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12,tableLayout:"fixed"}}>
+                    :<table style={{width:"max-content",minWidth:"100%",borderCollapse:"collapse",fontSize:12}}>
                       <thead>
                         <tr style={{background:T.card2}}>
                           {["Ad","Status","Budget/day","Spend","Impressions","Clicks","CTR","Meta convos","Leads","CPA"].map((h,i)=>(
-                            <th key={h} style={{padding:"10px "+(i===0?"16px":"10px"),textAlign:i>2?"right":"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap",width:i===0?200:i===1?80:i===2?80:i===3?75:i===4?90:i===5?60:i===6?50:i===7?90:i===8?55:60}}>{h}</th>
+                            <th key={h} style={{padding:"10px "+(i===0?"16px":"14px"),textAlign:i>1?"right":"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap"}}>{h}</th>
                           ))}
                         </tr>
                       </thead>
