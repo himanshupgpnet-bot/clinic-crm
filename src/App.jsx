@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.452";
+const CRM_VERSION = "2.9.453";
 
 // Responsive hook
 function useWindowSize() {
@@ -10314,7 +10314,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                       </div>
                       <div style={{fontSize:24,fontWeight:500,color:T.text,lineHeight:1,letterSpacing:-0.5}}>{k.val||"—"}</div>
                     </div>
-                  ))};
+                  ))}
                 </div>;
               })()}
 
@@ -10338,7 +10338,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                     <thead>
                       <tr style={{background:T.card2}}>
                         <th style={{padding:"10px 16px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:200}}>Ad</th>
-                        <th style={{padding:"10px 10px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:80}}>Status</th>
+                        <th style={{padding:"10px 10px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:60}}>Period</th>
                         <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:80}}>Spend</th>
                         <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:90}}>Impressions</th>
                         <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:60}}>Clicks</th>
@@ -10359,15 +10359,8 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                           onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                           <td style={{padding:"14px 16px"}}>
                             <div style={{fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ad.ad_name}</div>
-                            {ad.date_start&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{ad.date_start} → {ad.date_stop}</div>}
                           </td>
-                          <td style={{padding:"14px 10px"}}>
-                            <span style={{fontSize:10,fontWeight:500,padding:"3px 10px",borderRadius:20,
-                              background:isActive?"#e1f5ee":"var(--surface-1)",
-                              color:isActive?"#0F6E56":"var(--text-muted)"}}>
-                              {isActive?"Active":"Paused"}
-                            </span>
-                          </td>
+                          <td style={{padding:"14px 10px",fontSize:11,color:T.textMuted,whiteSpace:"nowrap"}}>{ad.date_start?`${ad.date_start.slice(5)} → ${ad.date_stop.slice(5)}`:"—"}</td>
                           <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:T.text,fontVariantNumeric:"tabular-nums"}}>RM{Math.round(spend).toLocaleString()}</td>
                           <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.impressions||0).toLocaleString()}</td>
                           <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.clicks||0).toLocaleString()}</td>
