@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.461";
+const CRM_VERSION = "2.9.462";
 
 // Responsive hook
 function useWindowSize() {
@@ -10417,7 +10417,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                     :<table style={{width:"max-content",minWidth:"100%",borderCollapse:"collapse",fontSize:12}}>
                       <thead>
                         <tr style={{background:T.card2}}>
-                          {["Ad","Status","Budget/day","Spend","Impressions","Clicks","CTR","Meta convos","Leads","CPA"].map((h,i)=>(
+                          {["Ad","Status","Budget/day","Amount spent","Impressions","Clicks","CTR","Results (Meta)","Cost per result","Leads (Lluna)","CPA (Lluna)"].map((h,i)=>(
                             <th key={h} style={{padding:"10px "+(i===0?"16px":"14px"),textAlign:i>1?"right":"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap"}}>{h}</th>
                           ))}
                         </tr>
@@ -10446,6 +10446,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                             <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.clicks||0).toLocaleString()}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseFloat(ad.ctr||0).toFixed(1)}%</td>
                             <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:ad.messaging_contacts>0?"#1877F2":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{ad.messaging_contacts||"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{ad.messaging_contacts>0&&parseFloat(ad.spend||0)>0?`RM${(parseFloat(ad.spend)/ad.messaging_contacts).toFixed(2)}`:"—"}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:leads>0?"#7F77DD":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{leads||"—"}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
                               {cpa?<span style={{fontWeight:500,color:cpa<50?"#0F6E56":cpa<100?"#185FA5":"var(--text-secondary)"}}>RM{cpa}</span>:<span style={{color:T.textMuted}}>—</span>}
