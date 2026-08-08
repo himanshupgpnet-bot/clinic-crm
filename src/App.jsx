@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.455";
+const CRM_VERSION = "2.9.456";
 
 // Responsive hook
 function useWindowSize() {
@@ -10010,6 +10010,8 @@ function AIPromptImprover({T, WA_GREEN, dark, API, authHeaders, kbClinic, system
 
 function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, contacts, setTab, selectContact}) {
   const [ads, setAds] = React.useState([]);
+  const [campaigns, setCampaigns] = React.useState([]);
+  const [selectedCampaign, setSelectedCampaign] = React.useState(null);
   const [pixelEvents, setPixelEvents] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [activeSubTab, setActiveSubTab] = React.useState("performance");
@@ -10038,7 +10040,17 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
       if(pe.ok) setPixelEvents(await pe.json());
       // Fetch ads from Meta via backend
       const adsR = await fetch(`${API}/api/ads-performance?clinic_id=${clinicId}&date_preset=${dateRange}`, {headers:authHeaders()});
-      if(adsR.ok) setAds(await adsR.json());
+      if(adsR.ok){
+        const d = await adsR.json();
+        if(d.campaigns){
+          setCampaigns(d.campaigns);
+          setAds(d.ads||[]);
+        } else {
+          setAds(Array.isArray(d)?d:[]);
+          setCampaigns([]);
+        }
+        setSelectedCampaign(null);
+      }
     } catch(e) {}
     setLoading(false);
   }
@@ -10268,11 +10280,17 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
 
             {activeSubTab==="performance"&&<div style={{display:"flex",flexDirection:"column",gap:16}}>
 
-              {/* Header row */}
+              {/* Header */}
               <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
-                <div>
-                  <div style={{fontSize:18,fontWeight:500,color:T.text}}>Ads performance</div>
-                  <div style={{fontSize:12,color:T.textMuted,marginTop:3}}>Track advertising performance, campaign efficiency and lead generation.</div>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  {selectedCampaign&&<button onClick={()=>setSelectedCampaign(null)}
+                    style={{padding:"6px 12px",borderRadius:8,border:`0.5px solid ${T.border}`,fontSize:12,cursor:"pointer",fontFamily:"inherit",background:"transparent",color:T.textMuted,display:"flex",alignItems:"center",gap:5}}>
+                    <i className="ti ti-arrow-left" style={{fontSize:13}}/> Campaigns
+                  </button>}
+                  <div>
+                    <div style={{fontSize:18,fontWeight:500,color:T.text}}>{selectedCampaign?selectedCampaign.campaign_name:"Ads performance"}</div>
+                    <div style={{fontSize:12,color:T.textMuted,marginTop:3}}>{selectedCampaign?`${selectedCampaign.ads?.length||0} ads`:"Track advertising performance, campaign efficiency and lead generation."}</div>
+                  </div>
                 </div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   {[{val:"last_7d",label:"7 days"},{val:"last_30d",label:"30 days"},{val:"last_90d",label:"90 days"}].map(d=>(
@@ -10290,101 +10308,141 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
 
               {/* KPI cards */}
               {(()=>{
-                const totalSpend = ads.reduce((s,a)=>s+parseFloat(a.spend||0),0);
-                const totalClicks = ads.reduce((s,a)=>s+parseInt(a.clicks||0),0);
-                const totalImpressions = ads.reduce((s,a)=>s+parseInt(a.impressions||0),0);
-                const totalLeads = ads.reduce((s,a)=>s+parseInt(a.leads||0),0);
+                const src = selectedCampaign ? selectedCampaign.ads||[] : (campaigns.length>0?campaigns:ads);
+                const totalSpend = src.reduce((s,a)=>s+parseFloat(a.spend||0),0);
+                const totalClicks = src.reduce((s,a)=>s+parseInt(a.clicks||0),0);
+                const totalImpressions = src.reduce((s,a)=>s+parseInt(a.impressions||0),0);
+                const totalLeads = src.reduce((s,a)=>s+parseInt(a.leads||0),0);
+                const totalConvos = src.reduce((s,a)=>s+parseInt(a.messaging_contacts||0),0);
+                const avgCTR = totalImpressions>0?((totalClicks/totalImpressions)*100).toFixed(2):0;
                 const avgCPA = totalLeads>0?(totalSpend/totalLeads).toFixed(0):0;
-                const avgCTR = totalClicks>0&&totalImpressions>0?((totalClicks/totalImpressions)*100).toFixed(2):0;
-                return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12}}>
+                return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12}}>
                   {[
                     {label:"Impressions",val:totalImpressions>=1000?(totalImpressions/1000).toFixed(1)+"K":totalImpressions,color:"#185FA5",bg:"#E6F1FB",icon:"ti-eye"},
                     {label:"Clicks",val:totalClicks.toLocaleString(),color:"#534AB7",bg:"#EEEDFE",icon:"ti-cursor-text"},
-                    {label:"Leads",val:totalLeads,color:"#0F6E56",bg:"#E1F5EE",icon:"ti-users"},
+                    {label:"Meta convos",val:totalConvos,color:"#1877F2",bg:"#E7F0FD",icon:"ti-message"},
+                    {label:"Leads (Lluna)",val:totalLeads,color:"#0F6E56",bg:"#E1F5EE",icon:"ti-users"},
                     {label:"Spend",val:`RM${Math.round(totalSpend).toLocaleString()}`,color:"#A32D2D",bg:"#FCEBEB",icon:"ti-cash"},
-                    {label:"Avg CPA",val:`RM${avgCPA}`,color:"#7F77DD",bg:"#EEEDFE",icon:"ti-target"},
-                    {label:"Avg CTR",val:`${avgCTR}%`,color:"#185FA5",bg:"#E6F1FB",icon:"ti-percentage"},
+                    {label:"Avg CPA",val:avgCPA?`RM${avgCPA}`:"—",color:"#7F77DD",bg:"#EEEDFE",icon:"ti-target"},
                   ].map((k,i)=>(
-                    <div key={i} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,padding:"16px 18px",display:"flex",flexDirection:"column",gap:10}}>
+                    <div key={i} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                        <span style={{fontSize:12,color:T.textMuted,fontWeight:500}}>{k.label}</span>
-                        <div style={{width:32,height:32,borderRadius:"50%",background:k.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                          <i className={`ti ${k.icon}`} style={{fontSize:14,color:k.color}}/>
+                        <span style={{fontSize:11,color:T.textMuted,fontWeight:500}}>{k.label}</span>
+                        <div style={{width:30,height:30,borderRadius:"50%",background:k.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <i className={`ti ${k.icon}`} style={{fontSize:13,color:k.color}}/>
                         </div>
                       </div>
-                      <div style={{fontSize:24,fontWeight:500,color:T.text,lineHeight:1,letterSpacing:-0.5}}>{k.val||"—"}</div>
+                      <div style={{fontSize:22,fontWeight:500,color:T.text,lineHeight:1}}>{k.val||"—"}</div>
                     </div>
                   ))}
                 </div>;
               })()}
 
               {loading&&<div style={{textAlign:"center",padding:40,color:T.textMuted,fontSize:13}}>
-                <i className="ti ti-loader-2" style={{fontSize:24,display:"block",marginBottom:8}}/> Loading ads from Meta…
+                <i className="ti ti-loader-2" style={{fontSize:24,display:"block",marginBottom:8}}/> Loading ads…
               </div>}
 
-              {!loading&&ads.length===0&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,padding:48,textAlign:"center"}}>
+              {!loading&&campaigns.length===0&&ads.length===0&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,padding:48,textAlign:"center"}}>
                 <i className="ti ti-ad" style={{fontSize:36,color:T.textMuted,display:"block",marginBottom:12,opacity:.4}}/>
                 <div style={{fontSize:14,fontWeight:500,color:T.text,marginBottom:6}}>No ad data yet</div>
-                <div style={{fontSize:12,color:T.textMuted}}>Configure ads_account_ids in Settings to pull Meta ad performance.</div>
+                <div style={{fontSize:12,color:T.textMuted}}>Make sure ads_account_ids is configured in Settings.</div>
               </div>}
 
-              {!loading&&ads.length>0&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,overflow:"hidden"}}>
+              {/* Campaign table OR Ad drill-down */}
+              {!loading&&(campaigns.length>0||ads.length>0)&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,overflow:"hidden"}}>
                 <div style={{padding:"14px 20px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div style={{fontSize:14,fontWeight:500,color:T.text}}>Recent ads</div>
-                  <span style={{fontSize:11,color:T.textMuted}}>{ads.length} ads · sorted by spend</span>
+                  <div style={{fontSize:14,fontWeight:500,color:T.text}}>
+                    {selectedCampaign?`Ads in "${selectedCampaign.campaign_name}"`:"Campaigns"}
+                  </div>
+                  <span style={{fontSize:11,color:T.textMuted}}>
+                    {selectedCampaign?`${selectedCampaign.ads?.length||0} ads`:`${campaigns.length} campaigns · sorted by spend`}
+                  </span>
                 </div>
                 <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,tableLayout:"fixed"}}>
-                    <thead>
-                      <tr style={{background:T.card2}}>
-                        <th style={{padding:"10px 16px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:180}}>Ad</th>
-                        <th style={{padding:"10px 10px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:150}}>Campaign</th>
-                        <th style={{padding:"10px 10px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:80}}>Status</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:70}}>Budget/day</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:75}}>Spend</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:85}}>Impressions</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:55}}>Clicks</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:50}}>CTR</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:75}}>Meta convos</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:55}}>Leads</th>
-                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:55}}>CPA</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...ads].sort((a,b)=>parseFloat(b.spend)-parseFloat(a.spend)).map((ad,i)=>{
-                        const leads = ad.leads||0;
-                        const spend = parseFloat(ad.spend||0);
-                        const cpa = leads>0?Math.round(spend/leads):null;
-                        const isActive = ad.status==="ACTIVE";
-                        return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
-                          onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
-                          onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                          <td style={{padding:"14px 16px"}}>
-                            <div style={{fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ad.ad_name}</div>
-                            {ad.date_start&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{ad.date_start} → {ad.date_stop}</div>}
-                          </td>
-                          <td style={{padding:"14px 10px",fontSize:11,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>{ad.campaign_name||"—"}</td>
-                          <td style={{padding:"14px 10px"}}>
-                            <span style={{fontSize:10,fontWeight:500,padding:"3px 10px",borderRadius:20,
-                              background:isActive?"#e1f5ee":"rgba(156,163,175,0.1)",
-                              color:isActive?"#0F6E56":"#9ca3af"}}>
-                              {isActive?"Active":"Paused"}
-                            </span>
-                          </td>
-                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontSize:11,fontVariantNumeric:"tabular-nums"}}>{ad.daily_budget?`RM${ad.daily_budget}`:"—"}</td>
-                          <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:T.text,fontVariantNumeric:"tabular-nums"}}>RM{Math.round(spend).toLocaleString()}</td>
-                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.impressions||0).toLocaleString()}</td>
-                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.clicks||0).toLocaleString()}</td>
-                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseFloat(ad.ctr||0).toFixed(1)}%</td>
-                          <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:ad.messaging_contacts>0?"#185FA5":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{ad.messaging_contacts||"—"}</td>
-                          <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:leads>0?"#7F77DD":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{leads||"—"}</td>
-                          <td style={{padding:"14px 10px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
-                            {cpa?<span style={{fontWeight:500,color:cpa<50?"#0F6E56":cpa<100?"#185FA5":"var(--text-secondary)"}}>RM{cpa.toLocaleString()}</span>:<span style={{color:T.textMuted}}>—</span>}
-                          </td>
-                        </tr>;
-                      })}
-                    </tbody>
-                  </table>
+                  {!selectedCampaign
+                    /* CAMPAIGN LEVEL */
+                    ?<table style={{width:"100%",borderCollapse:"collapse",fontSize:12,tableLayout:"fixed"}}>
+                      <thead>
+                        <tr style={{background:T.card2}}>
+                          {["Campaign","Status","Budget/day","Spend","Impressions","Clicks","CTR","Meta convos","Leads","CPA"].map((h,i)=>(
+                            <th key={h} style={{padding:"10px "+(i===0?"16px":"10px"),textAlign:i>2?"right":"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap",width:i===0?200:i===1?80:i===2?80:i===3?75:i===4?90:i===5?60:i===6?50:i===7?90:i===8?55:60}}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {campaigns.map((c,i)=>{
+                          const isActive = c.status==="ACTIVE";
+                          const cpa = c.leads>0?Math.round(c.spend/c.leads):null;
+                          return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`,cursor:"pointer"}}
+                            onClick={()=>setSelectedCampaign(c)}
+                            onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
+                            onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                            <td style={{padding:"14px 16px"}}>
+                              <div style={{fontWeight:500,color:"#7F77DD",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6}}>
+                                {c.campaign_name}
+                                <i className="ti ti-chevron-right" style={{fontSize:11,flexShrink:0}}/>
+                              </div>
+                            </td>
+                            <td style={{padding:"14px 10px"}}>
+                              <span style={{fontSize:10,fontWeight:500,padding:"3px 10px",borderRadius:20,background:isActive?"#e1f5ee":"rgba(156,163,175,0.1)",color:isActive?"#0F6E56":"#9ca3af"}}>
+                                {isActive?"Active":"Paused"}
+                              </span>
+                            </td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontSize:11,color:T.textMuted}}>{c.daily_budget?`RM${c.daily_budget}`:"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:T.text,fontVariantNumeric:"tabular-nums"}}>RM{Math.round(c.spend).toLocaleString()}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(c.impressions||0).toLocaleString()}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(c.clicks||0).toLocaleString()}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.ctr||0}%</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:c.messaging_contacts>0?"#1877F2":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.messaging_contacts||"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:c.leads>0?"#7F77DD":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.leads||"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
+                              {cpa?<span style={{fontWeight:500,color:cpa<50?"#0F6E56":cpa<100?"#185FA5":"var(--text-secondary)"}}>RM{cpa}</span>:<span style={{color:T.textMuted}}>—</span>}
+                            </td>
+                          </tr>;
+                        })}
+                      </tbody>
+                    </table>
+                    /* AD LEVEL DRILL DOWN */
+                    :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12,tableLayout:"fixed"}}>
+                      <thead>
+                        <tr style={{background:T.card2}}>
+                          {["Ad","Status","Budget/day","Spend","Impressions","Clicks","CTR","Meta convos","Leads","CPA"].map((h,i)=>(
+                            <th key={h} style={{padding:"10px "+(i===0?"16px":"10px"),textAlign:i>2?"right":"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap",width:i===0?200:i===1?80:i===2?80:i===3?75:i===4?90:i===5?60:i===6?50:i===7?90:i===8?55:60}}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(selectedCampaign.ads||[]).map((ad,i)=>{
+                          const isActive = ad.status==="ACTIVE";
+                          const leads = ad.leads||0;
+                          const spend = parseFloat(ad.spend||0);
+                          const cpa = leads>0?Math.round(spend/leads):null;
+                          return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
+                            onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
+                            onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                            <td style={{padding:"14px 16px"}}>
+                              <div style={{fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ad.ad_name}</div>
+                              {ad.date_start&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{ad.date_start} → {ad.date_stop}</div>}
+                            </td>
+                            <td style={{padding:"14px 10px"}}>
+                              <span style={{fontSize:10,fontWeight:500,padding:"3px 10px",borderRadius:20,background:isActive?"#e1f5ee":"rgba(156,163,175,0.1)",color:isActive?"#0F6E56":"#9ca3af"}}>
+                                {isActive?"Active":"Paused"}
+                              </span>
+                            </td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontSize:11,color:T.textMuted}}>{ad.daily_budget?`RM${ad.daily_budget}`:"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:T.text,fontVariantNumeric:"tabular-nums"}}>RM{Math.round(spend).toLocaleString()}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.impressions||0).toLocaleString()}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.clicks||0).toLocaleString()}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseFloat(ad.ctr||0).toFixed(1)}%</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:ad.messaging_contacts>0?"#1877F2":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{ad.messaging_contacts||"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:leads>0?"#7F77DD":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{leads||"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
+                              {cpa?<span style={{fontWeight:500,color:cpa<50?"#0F6E56":cpa<100?"#185FA5":"var(--text-secondary)"}}>RM{cpa}</span>:<span style={{color:T.textMuted}}>—</span>}
+                            </td>
+                          </tr>;
+                        })}
+                      </tbody>
+                    </table>}
                 </div>
               </div>}
 
