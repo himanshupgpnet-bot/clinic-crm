@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.460";
+const CRM_VERSION = "2.9.461";
 
 // Responsive hook
 function useWindowSize() {
@@ -10401,10 +10401,10 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                             <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:T.text,fontVariantNumeric:"tabular-nums"}}>RM{Math.round(c.spend).toLocaleString()}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(c.impressions||0).toLocaleString()}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(c.reach||0).toLocaleString()}</td>
-                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:c.total_messaging>0?"#1877F2":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.total_messaging||"—"}</td>
-                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.new_messaging||"—"}</td>
-                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:c.messaging_contacts>0?"#1877F2":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.messaging_contacts||"—"}</td>
-                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.messaging_contacts>0&&c.spend>0?`RM${(c.spend/c.messaging_contacts).toFixed(2)}`:"—"}</td>
+                            <td style={{padding:"14px 14px",textAlign:"right",fontWeight:500,color:c.messaging_contacts>0?"#1877F2":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.total_messaging||"—"}</td>
+                            <td style={{padding:"14px 14px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.new_messaging||"—"}</td>
+                            <td style={{padding:"14px 14px",textAlign:"right",fontWeight:500,color:c.results>0?"#1877F2":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.results||"—"}</td>
+                            <td style={{padding:"14px 14px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.cost_per_result?`RM${c.cost_per_result}`:"—"}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:c.leads>0?"#7F77DD":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.leads||"—"}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
                               {cpa?<span style={{fontWeight:500,color:cpa<50?"#0F6E56":cpa<100?"#185FA5":"var(--text-secondary)"}}>RM{cpa}</span>:<span style={{color:T.textMuted}}>—</span>}
