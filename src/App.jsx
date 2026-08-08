@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.451";
+const CRM_VERSION = "2.9.452";
 
 // Responsive hook
 function useWindowSize() {
@@ -10266,82 +10266,126 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
         </div>;
       })()}
 
-            {activeSubTab==="performance"&&<>
-        {/* Date filter */}
-        <div style={{display:"flex",gap:6}}>
-          {[{val:"last_7d",label:"7 days"},{val:"last_30d",label:"30 days"},{val:"last_90d",label:"90 days"}].map(d=>(
-            <button key={d.val} onClick={()=>setDateRange(d.val)}
-              style={{padding:"5px 14px",borderRadius:20,border:`0.5px solid ${T.border}`,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"inherit",
-                background:dateRange===d.val?"#8052FF":"transparent",color:dateRange===d.val?"#fff":T.textMuted}}>
-              {d.label}
-            </button>
-          ))}
-        </div>
+            {activeSubTab==="performance"&&<div style={{display:"flex",flexDirection:"column",gap:16}}>
 
-        {/* Ads table */}
-        <div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
-          <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div style={{fontSize:13,fontWeight:600,color:T.text,display:"flex",alignItems:"center",gap:8}}>
-              <i className="ti ti-ad-2" style={{fontSize:14,color:"#8052FF"}}/>
-              Ad Performance · Evera Marketing
-            </div>
-            <button onClick={loadData} style={{fontSize:11,padding:"3px 10px",borderRadius:20,border:`0.5px solid ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer",fontFamily:"inherit"}}>
-              <i className="ti ti-refresh" style={{fontSize:11}}/> Refresh
-            </button>
-          </div>
-          {loading?<div style={{padding:40,textAlign:"center",color:T.textMuted,fontSize:13}}>Loading ads from Meta…</div>
-          :ads.length===0?<div style={{padding:40,textAlign:"center",color:T.textMuted,fontSize:13}}>
-            <i className="ti ti-ad" style={{fontSize:32,display:"block",marginBottom:8,opacity:.3}}/>
-            No ad data — configure ads_account_ids in Settings
-          </div>
-          :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-            <thead>
-              <tr style={{background:T.card2}}>
-                {["Ad name","Period","Status","Spend","Clicks","CTR","Leads","CPA","ROAS"].map(h=>(
-                  <th key={h} style={{padding:"8px 10px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap"}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[...ads].sort((a,b)=>parseFloat(b.spend)-parseFloat(a.spend)).map((ad,i)=>{
-                const leads = ad.leads||0;
-                const booked = ad.bookings||0;
-                const spend = parseFloat(ad.spend||0);
-                const cpa = booked>0?(spend/booked).toFixed(0):null;
-                const roas = booked>0?((booked*108)/spend).toFixed(1):null;
-                const roasColor = !roas?"#9ca3af":parseFloat(roas)>=2?"#25D366":parseFloat(roas)>=1?"#f59e0b":"#ef4444";
-                const isActive = ad.status==="ACTIVE";
-                const period = ad.date_start&&ad.date_stop?`${ad.date_start.slice(5)} → ${ad.date_stop.slice(5)}`:"—";
-                return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
-                  onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
-                  onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                  <td style={{padding:"9px 10px",maxWidth:200}}>
-                    <div style={{fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:200}}>{ad.ad_name}</div>
-                    {ad.ad_id&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>ID: {ad.ad_id}</div>}
-                  </td>
-                  <td style={{padding:"9px 10px",color:T.textMuted,fontSize:11,whiteSpace:"nowrap"}}>{period}</td>
-                  <td style={{padding:"9px 10px"}}>
-                    <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,
-                      background:isActive?"rgba(37,211,102,0.1)":"rgba(156,163,175,0.1)",
-                      color:isActive?"#25D366":"#9ca3af"}}>
-                      {isActive?"Active":"Paused"}
-                    </span>
-                  </td>
-                  <td style={{padding:"9px 10px",fontWeight:500,color:T.text}}>RM{spend.toFixed(0)}</td>
-                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseInt(ad.clicks||0).toLocaleString()}</td>
-                  <td style={{padding:"9px 10px",color:T.textMuted}}>{parseFloat(ad.ctr||0).toFixed(1)}%</td>
-                  <td style={{padding:"9px 10px",fontWeight:600,color:leads>0?"#8052FF":T.textMuted}}>{leads}</td>
-                  <td style={{padding:"9px 10px",color:cpa?T.text:T.textMuted}}>{cpa?`RM${cpa}`:"—"}</td>
-                  <td style={{padding:"9px 10px"}}>
-                    {roas?<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,
-                      background:`${roasColor}15`,color:roasColor}}>{roas}x</span>:<span style={{color:T.textMuted}}>—</span>}
-                  </td>
-                </tr>;
-              })}
-            </tbody>
-          </table>}
-        </div>
-      </>}
+              {/* Header row */}
+              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+                <div>
+                  <div style={{fontSize:18,fontWeight:500,color:T.text}}>Ads performance</div>
+                  <div style={{fontSize:12,color:T.textMuted,marginTop:3}}>Track advertising performance, campaign efficiency and lead generation.</div>
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {[{val:"last_7d",label:"7 days"},{val:"last_30d",label:"30 days"},{val:"last_90d",label:"90 days"}].map(d=>(
+                    <button key={d.val} onClick={()=>setDateRange(d.val)}
+                      style={{padding:"6px 14px",borderRadius:8,border:`0.5px solid ${T.border}`,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"inherit",
+                        background:dateRange===d.val?"#7F77DD":"transparent",color:dateRange===d.val?"#fff":T.textMuted}}>
+                      {d.label}
+                    </button>
+                  ))}
+                  <button onClick={loadData} style={{padding:"6px 14px",borderRadius:8,border:`0.5px solid ${T.border}`,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"inherit",background:"transparent",color:T.textMuted,display:"flex",alignItems:"center",gap:5}}>
+                    <i className="ti ti-refresh" style={{fontSize:13}}/> Refresh
+                  </button>
+                </div>
+              </div>
+
+              {/* KPI cards */}
+              {(()=>{
+                const totalSpend = ads.reduce((s,a)=>s+parseFloat(a.spend||0),0);
+                const totalClicks = ads.reduce((s,a)=>s+parseInt(a.clicks||0),0);
+                const totalImpressions = ads.reduce((s,a)=>s+parseInt(a.impressions||0),0);
+                const totalLeads = ads.reduce((s,a)=>s+parseInt(a.leads||0),0);
+                const avgCPA = totalLeads>0?(totalSpend/totalLeads).toFixed(0):0;
+                const avgCTR = totalClicks>0&&totalImpressions>0?((totalClicks/totalImpressions)*100).toFixed(2):0;
+                return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12}}>
+                  {[
+                    {label:"Impressions",val:totalImpressions>=1000?(totalImpressions/1000).toFixed(1)+"K":totalImpressions,color:"#185FA5",bg:"#E6F1FB",icon:"ti-eye"},
+                    {label:"Clicks",val:totalClicks.toLocaleString(),color:"#534AB7",bg:"#EEEDFE",icon:"ti-cursor-text"},
+                    {label:"Leads",val:totalLeads,color:"#0F6E56",bg:"#E1F5EE",icon:"ti-users"},
+                    {label:"Spend",val:`RM${Math.round(totalSpend).toLocaleString()}`,color:"#A32D2D",bg:"#FCEBEB",icon:"ti-cash"},
+                    {label:"Avg CPA",val:`RM${avgCPA}`,color:"#7F77DD",bg:"#EEEDFE",icon:"ti-target"},
+                    {label:"Avg CTR",val:`${avgCTR}%`,color:"#185FA5",bg:"#E6F1FB",icon:"ti-percentage"},
+                  ].map((k,i)=>(
+                    <div key={i} style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,padding:"16px 18px",display:"flex",flexDirection:"column",gap:10}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                        <span style={{fontSize:12,color:T.textMuted,fontWeight:500}}>{k.label}</span>
+                        <div style={{width:32,height:32,borderRadius:"50%",background:k.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <i className={`ti ${k.icon}`} style={{fontSize:14,color:k.color}}/>
+                        </div>
+                      </div>
+                      <div style={{fontSize:24,fontWeight:500,color:T.text,lineHeight:1,letterSpacing:-0.5}}>{k.val||"—"}</div>
+                    </div>
+                  ))};
+                </div>;
+              })()}
+
+              {loading&&<div style={{textAlign:"center",padding:40,color:T.textMuted,fontSize:13}}>
+                <i className="ti ti-loader-2" style={{fontSize:24,display:"block",marginBottom:8}}/> Loading ads from Meta…
+              </div>}
+
+              {!loading&&ads.length===0&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,padding:48,textAlign:"center"}}>
+                <i className="ti ti-ad" style={{fontSize:36,color:T.textMuted,display:"block",marginBottom:12,opacity:.4}}/>
+                <div style={{fontSize:14,fontWeight:500,color:T.text,marginBottom:6}}>No ad data yet</div>
+                <div style={{fontSize:12,color:T.textMuted}}>Configure ads_account_ids in Settings to pull Meta ad performance.</div>
+              </div>}
+
+              {!loading&&ads.length>0&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,overflow:"hidden"}}>
+                <div style={{padding:"14px 20px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{fontSize:14,fontWeight:500,color:T.text}}>Recent ads</div>
+                  <span style={{fontSize:11,color:T.textMuted}}>{ads.length} ads · sorted by spend</span>
+                </div>
+                <div style={{overflowX:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,tableLayout:"fixed"}}>
+                    <thead>
+                      <tr style={{background:T.card2}}>
+                        <th style={{padding:"10px 16px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:200}}>Ad</th>
+                        <th style={{padding:"10px 10px",textAlign:"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:80}}>Status</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:80}}>Spend</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:90}}>Impressions</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:60}}>Clicks</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:55}}>CTR</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:60}}>CPC</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:55}}>Leads</th>
+                        <th style={{padding:"10px 10px",textAlign:"right",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,width:60}}>CPA</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...ads].sort((a,b)=>parseFloat(b.spend)-parseFloat(a.spend)).map((ad,i)=>{
+                        const leads = ad.leads||0;
+                        const spend = parseFloat(ad.spend||0);
+                        const cpa = leads>0?Math.round(spend/leads):null;
+                        const isActive = ad.status==="ACTIVE";
+                        return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`}}
+                          onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
+                          onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                          <td style={{padding:"14px 16px"}}>
+                            <div style={{fontWeight:500,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ad.ad_name}</div>
+                            {ad.date_start&&<div style={{fontSize:10,color:T.textMuted,marginTop:2}}>{ad.date_start} → {ad.date_stop}</div>}
+                          </td>
+                          <td style={{padding:"14px 10px"}}>
+                            <span style={{fontSize:10,fontWeight:500,padding:"3px 10px",borderRadius:20,
+                              background:isActive?"#e1f5ee":"var(--surface-1)",
+                              color:isActive?"#0F6E56":"var(--text-muted)"}}>
+                              {isActive?"Active":"Paused"}
+                            </span>
+                          </td>
+                          <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:T.text,fontVariantNumeric:"tabular-nums"}}>RM{Math.round(spend).toLocaleString()}</td>
+                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.impressions||0).toLocaleString()}</td>
+                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(ad.clicks||0).toLocaleString()}</td>
+                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseFloat(ad.ctr||0).toFixed(1)}%</td>
+                          <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>RM{parseFloat(ad.cpc||0).toFixed(2)}</td>
+                          <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:leads>0?"#7F77DD":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{leads||"—"}</td>
+                          <td style={{padding:"14px 10px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
+                            {cpa?<span style={{fontWeight:500,color:cpa<50?"#0F6E56":cpa<100?"#185FA5":"var(--text-secondary)"}}> RM{cpa.toLocaleString()}</span>:<span style={{color:T.textMuted}}>—</span>}
+                          </td>
+                        </tr>;
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>}
+
+            </div>}
+
     </div>
   </div>;
 }
