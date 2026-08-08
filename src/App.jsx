@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.462";
+const CRM_VERSION = "2.9.463";
 
 // Responsive hook
 function useWindowSize() {
@@ -287,7 +287,7 @@ export default function App() {
     if (!currentUser) return false;
     if (isAdmin) return true;
     if (!permissions || permissions === "all") return true;
-    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:"can_settings", integrations:"can_integrations", broadcast:"can_broadcast", notes:"can_notes", admin:false };
+    const map = { crm:"can_inbox", leads:"can_leads", analytics:"can_analytics", bot:"can_testbot", kb:"can_knowledge", settings:"can_settings", integrations:"can_integrations", broadcast:"can_broadcast", notes:"can_notes", ads:"can_ads", admin:false };
     return map[tab] ? permissions[map[tab]] : false;
   };
 
@@ -6502,12 +6502,12 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
     {key:"can_inbox",label:"💬 Inbox"},{key:"can_leads",label:"🎯 Leads"},
     {key:"can_analytics",label:"📊 Analytics"},{key:"can_testbot",label:"🤖 Test Bot"},
     {key:"can_knowledge",label:"📋 Knowledge"},{key:"can_settings",label:"⚙️ Settings"},
-    {key:"can_integrations",label:"🔌 Integrations"},{key:"can_broadcast",label:"📢 Broadcast"},{key:"can_notes",label:"📝 Notes"},{key:"can_prompt_improver",label:"🤖 AI Improver"},{key:"can_prompt_wizard",label:"✨ Prompt Wizard"}
+    {key:"can_integrations",label:"🔌 Integrations"},{key:"can_broadcast",label:"📢 Broadcast"},{key:"can_notes",label:"📝 Notes"},{key:"can_ads",label:"📈 Ads"},{key:"can_prompt_improver",label:"🤖 AI Improver"},{key:"can_prompt_wizard",label:"✨ Prompt Wizard"}
   ];
   const emptyClinic = {name:"",industry:"",website:"",client_domain:"",contact_phone:"",contact_email:"",report_frequency:"weekly",logo_url:"",
     whatsapp_number:"",phone_number_id:"",whatsapp_token:"",ai_provider:"anthropic",ai_api_key:"",max_seats:1};
   const emptyUser = (clinic_id="") => ({username:"",password:"",clinic_id,
-    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,can_broadcast:false,can_notes:false,can_prompt_improver:false,can_prompt_wizard:false,
+    can_inbox:true,can_leads:false,can_analytics:false,can_testbot:false,can_knowledge:false,can_settings:false,can_integrations:false,can_broadcast:false,can_notes:false,can_ads:false,can_prompt_improver:false,can_prompt_wizard:false,
     integration_whatsapp:false,integration_telegram:false,integration_instagram:false,
     integration_tiktok:false,integration_messenger:false,integration_calendar:false,integration_calendly:false});
 
@@ -6619,6 +6619,7 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
             can_broadcast:editUser.can_broadcast||false,
             can_integrations:editUser.can_integrations,
             can_notes:editUser.can_notes||false,
+            can_ads:editUser.can_ads||false,
             can_prompt_improver:editUser.can_prompt_improver||false,
             can_prompt_wizard:editUser.can_prompt_wizard||false,
             integration_whatsapp:editUser.integration_whatsapp,integration_telegram:editUser.integration_telegram,
@@ -6637,6 +6638,7 @@ function AdminPanel({authHeaders, authToken, T, WA_GREEN, dark, setConfirmModal,
             can_broadcast:editUser.can_broadcast||false,
             can_integrations:editUser.can_integrations,
             can_notes:editUser.can_notes||false,
+            can_ads:editUser.can_ads||false,
             can_prompt_improver:editUser.can_prompt_improver||false,
             can_prompt_wizard:editUser.can_prompt_wizard||false,
             integration_whatsapp:editUser.integration_whatsapp,
