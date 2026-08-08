@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.459";
+const CRM_VERSION = "2.9.460";
 
 // Responsive hook
 function useWindowSize() {
@@ -10284,8 +10284,9 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
               <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   {selectedCampaign&&<button onClick={()=>setSelectedCampaign(null)}
-                    style={{padding:"6px 12px",borderRadius:8,border:`0.5px solid ${T.border}`,fontSize:12,cursor:"pointer",fontFamily:"inherit",background:"transparent",color:T.textMuted,display:"flex",alignItems:"center",gap:5}}>
-                    <i className="ti ti-arrow-left" style={{fontSize:13}}/> Campaigns
+                    style={{padding:"7px 16px",borderRadius:8,border:"none",fontSize:12,cursor:"pointer",fontFamily:"inherit",
+                      background:"#7F77DD",color:"#fff",fontWeight:500,display:"flex",alignItems:"center",gap:6,boxShadow:"0 2px 8px rgba(127,119,221,0.3)"}}>
+                    <i className="ti ti-arrow-left" style={{fontSize:13}}/> All Campaigns
                   </button>}
                   <div>
                     <div style={{fontSize:18,fontWeight:500,color:T.text}}>{selectedCampaign?selectedCampaign.campaign_name:"Ads performance"}</div>
@@ -10350,13 +10351,21 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
 
               {/* Campaign table OR Ad drill-down */}
               {!loading&&(campaigns.length>0||ads.length>0)&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:14,overflow:"hidden"}}>
-                <div style={{padding:"14px 20px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div style={{fontSize:14,fontWeight:500,color:T.text}}>
-                    {selectedCampaign?`Ads in "${selectedCampaign.campaign_name}"`:"Campaigns"}
+                <div style={{padding:"14px 20px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:selectedCampaign?`rgba(127,119,221,0.04)`:"transparent"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    {selectedCampaign&&<div style={{width:6,height:32,borderRadius:3,background:"#7F77DD",flexShrink:0}}/>}
+                    <div>
+                      <div style={{fontSize:14,fontWeight:500,color:T.text}}>
+                        {selectedCampaign?selectedCampaign.campaign_name:"Campaigns"}
+                      </div>
+                      <div style={{fontSize:11,color:T.textMuted,marginTop:2}}>
+                        {selectedCampaign
+                          ?<span>{selectedCampaign.ads?.length||0} ads · RM{Math.round(selectedCampaign.spend||0).toLocaleString()} total spend</span>
+                          :`${campaigns.length} campaigns · sorted by spend`}
+                      </div>
+                    </div>
                   </div>
-                  <span style={{fontSize:11,color:T.textMuted}}>
-                    {selectedCampaign?`${selectedCampaign.ads?.length||0} ads`:`${campaigns.length} campaigns · sorted by spend`}
-                  </span>
+                  <span style={{fontSize:11,color:T.textMuted}}>{selectedCampaign?"Click any ad to view details":""}</span>
                 </div>
                 <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
                   {!selectedCampaign
@@ -10377,9 +10386,9 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                             onClick={()=>setSelectedCampaign(c)}
                             onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
                             onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                            <td style={{padding:"14px 16px",maxWidth:200}}>
+                            <td style={{padding:"14px 16px",minWidth:220,maxWidth:280}}>
                               <div style={{fontWeight:500,color:"#7F77DD",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6}}>
-                                {c.campaign_name}
+                                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.campaign_name}</span>
                                 <i className="ti ti-chevron-right" style={{fontSize:11,flexShrink:0}}/>
                               </div>
                             </td>
