@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.456";
+const CRM_VERSION = "2.9.457";
 
 // Responsive hook
 function useWindowSize() {
@@ -10364,8 +10364,8 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                     ?<table style={{width:"100%",borderCollapse:"collapse",fontSize:12,tableLayout:"fixed"}}>
                       <thead>
                         <tr style={{background:T.card2}}>
-                          {["Campaign","Status","Budget/day","Spend","Impressions","Clicks","CTR","Meta convos","Leads","CPA"].map((h,i)=>(
-                            <th key={h} style={{padding:"10px "+(i===0?"16px":"10px"),textAlign:i>2?"right":"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap",width:i===0?200:i===1?80:i===2?80:i===3?75:i===4?90:i===5?60:i===6?50:i===7?90:i===8?55:60}}>{h}</th>
+                          {["Campaign","Status","Budget/day","Spend","Impressions","Reach","Total contacts","New contacts","Leads (Lluna)","CPA"].map((h,i)=>(
+                            <th key={h} style={{padding:"10px "+(i===0?"16px":"10px"),textAlign:i>2?"right":"left",fontSize:11,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`,whiteSpace:"nowrap"}}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -10377,7 +10377,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                             onClick={()=>setSelectedCampaign(c)}
                             onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
                             onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                            <td style={{padding:"14px 16px"}}>
+                            <td style={{padding:"14px 16px",maxWidth:200}}>
                               <div style={{fontWeight:500,color:"#7F77DD",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6}}>
                                 {c.campaign_name}
                                 <i className="ti ti-chevron-right" style={{fontSize:11,flexShrink:0}}/>
@@ -10391,9 +10391,9 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                             <td style={{padding:"14px 10px",textAlign:"right",fontSize:11,color:T.textMuted}}>{c.daily_budget?`RM${c.daily_budget}`:"—"}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:T.text,fontVariantNumeric:"tabular-nums"}}>RM{Math.round(c.spend).toLocaleString()}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(c.impressions||0).toLocaleString()}</td>
-                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(c.clicks||0).toLocaleString()}</td>
-                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.ctr||0}%</td>
-                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:c.messaging_contacts>0?"#1877F2":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.messaging_contacts||"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{parseInt(c.reach||0).toLocaleString()}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:c.total_messaging>0?"#1877F2":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.total_messaging||"—"}</td>
+                            <td style={{padding:"14px 10px",textAlign:"right",color:T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.new_messaging||"—"}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",fontWeight:500,color:c.leads>0?"#7F77DD":T.textMuted,fontVariantNumeric:"tabular-nums"}}>{c.leads||"—"}</td>
                             <td style={{padding:"14px 10px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
                               {cpa?<span style={{fontWeight:500,color:cpa<50?"#0F6E56":cpa<100?"#185FA5":"var(--text-secondary)"}}>RM{cpa}</span>:<span style={{color:T.textMuted}}>—</span>}
