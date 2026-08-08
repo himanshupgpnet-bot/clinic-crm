@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.444";
+const CRM_VERSION = "2.9.446";
 
 // Responsive hook
 function useWindowSize() {
@@ -10098,8 +10098,8 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
         {(()=>{
           const hotFired = pixelEvents.filter(e=>e.event_name==="Lead"&&e.fired_by==="auto");
           const bookedFired = pixelEvents.filter(e=>e.event_name==="Schedule");
-          const firedPhones = new Set(pixelEvents.map(e=>e.phone));
-          const warmPending = contacts.filter(c=>c.lead==="warm"&&!firedPhones.has(c.phone)&&!firedPhones.has(c.id));
+          const firedPhones = new Set(pixelEvents.map(e=>String(e.phone).replace(/^\+/,"")));
+          const warmPending = contacts.filter(c=>c.lead==="warm"&&!firedPhones.has(String(c.phone||"").replace(/^\+/,""))&&!firedPhones.has(String(c.id||"")));
 
           return <>
             {/* Hot leads — auto fired */}
@@ -10199,14 +10199,16 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
               </div>
               {warmPending.length===0
                 ?<div style={{padding:24,textAlign:"center",color:T.textMuted,fontSize:12}}>All warm leads have been sent to Meta. ✅</div>
-                :<table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead><tr style={{background:T.card2}}>
+                :<div style={{maxHeight:320,overflowY:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                  <thead style={{position:"sticky",top:0,zIndex:1,background:T.card2}}>
+                    <tr>
                     <th style={{padding:"7px 14px",borderBottom:`0.5px solid ${T.border}`,width:32}}/>
                     {["Contact","Phone","Lead score","Ad"].map(h=><th key={h} style={{padding:"7px 14px",textAlign:"left",fontSize:10,fontWeight:600,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>)}
                   </tr></thead>
-                  <tbody>{warmPending.map((c,i)=>{
+                  <tbody>{warmPending.slice(0,100).map((c,i)=>{
                     const key=c.phone||c.id;
-                    return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`,background:selectedWarm[key]?`${T.card2}`:""}}
+                    return <tr key={i} style={{borderBottom:`0.5px solid ${T.border}`,background:selectedWarm[key]?T.card2:""}}
                       onMouseEnter={ev=>ev.currentTarget.style.background=T.card2}
                       onMouseLeave={ev=>ev.currentTarget.style.background=selectedWarm[key]?T.card2:""}>
                       <td style={{padding:"8px 14px"}}>
@@ -10220,7 +10222,11 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                       <td style={{padding:"8px 14px",color:T.textMuted,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.ad_headline||c.ad_source||"—"}</td>
                     </tr>;
                   })}</tbody>
-                </table>}
+                </table>
+                {warmPending.length>100&&<div style={{padding:"10px 14px",fontSize:11,color:T.textMuted,textAlign:"center",borderTop:`0.5px solid ${T.border}`}}>
+                  Showing first 100 of {warmPending.length} warm leads
+                </div>}
+                </div>}
             </div>
 
             {/* Full pixel log */}
