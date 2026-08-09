@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.467";
+const CRM_VERSION = "2.9.468";
 
 // Responsive hook
 function useWindowSize() {
@@ -10215,7 +10215,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                 :<div style={{maxHeight:400,overflowY:"auto"}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead style={{position:"sticky",top:0,background:T.card2}}>
-                      <tr>{["Contact","Phone","Event","Came from ad","When"].map(h=>(
+                      <tr>{["Contact","Phone","Event","Ad Name","Ad ID","When"].map(h=>(
                         <th key={h} style={{padding:"7px 14px",textAlign:"left",fontSize:10,fontWeight:500,color:T.textMuted,borderBottom:`0.5px solid ${T.border}`}}>{h}</th>
                       ))}</tr>
                     </thead>
@@ -10232,7 +10232,8 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                             {e.event_name}
                           </span>
                         </td>
-                        <td style={{padding:"8px 14px",fontSize:11,color:"#7F77DD",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||"—"}</td>
+                        <td style={{padding:"8px 14px",fontSize:11,color:"#7F77DD",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||<span style={{color:T.textMuted}}>Organic</span>}</td>
+                        <td style={{padding:"8px 14px",fontSize:10,color:T.textMuted,fontFamily:"monospace"}}>{e.ad_id||"—"}</td>
                         <td style={{padding:"8px 14px",fontSize:11,color:T.textMuted,whiteSpace:"nowrap"}}>{fmtTime(e.fired_at)}</td>
                       </tr>
                     ))}</tbody>
