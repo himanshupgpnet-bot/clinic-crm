@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.465";
+const CRM_VERSION = "2.9.466";
 
 // Responsive hook
 function useWindowSize() {
@@ -10316,7 +10316,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                 const totalClicks = src.reduce((s,a)=>s+parseInt(a.clicks||0),0);
                 const totalImpressions = src.reduce((s,a)=>s+parseInt(a.impressions||0),0);
                 const totalLeads = src.reduce((s,a)=>s+parseInt(a.leads||0),0);
-                const totalConvos = src.reduce((s,a)=>s+parseInt(a.messaging_contacts||0),0);
+                const totalConvos = src.reduce((s,a)=>s+parseInt(a.total_messaging||a.messaging_contacts||0),0);
                 const avgCTR = totalImpressions>0?((totalClicks/totalImpressions)*100).toFixed(2):0;
                 const avgCPA = totalLeads>0?(totalSpend/totalLeads).toFixed(0):0;
                 return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12}}>
