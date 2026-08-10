@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.468";
+const CRM_VERSION = "2.9.469";
 
 // Responsive hook
 function useWindowSize() {
@@ -10232,7 +10232,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                             {e.event_name}
                           </span>
                         </td>
-                        <td style={{padding:"8px 14px",fontSize:11,color:"#7F77DD",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||<span style={{color:T.textMuted}}>Organic</span>}</td>
+                        <td style={{padding:"8px 14px",fontSize:11,color:"#7F77DD",maxWidth:180,wordBreak:"break-word",lineHeight:1.4}}>{e.ad_headline||<span style={{color:T.textMuted}}>Organic</span>}</td>
                         <td style={{padding:"8px 14px",fontSize:10,color:T.textMuted,fontFamily:"monospace"}}>{e.ad_id||"—"}</td>
                         <td style={{padding:"8px 14px",fontSize:11,color:T.textMuted,whiteSpace:"nowrap"}}>{fmtTime(e.fired_at)}</td>
                       </tr>
