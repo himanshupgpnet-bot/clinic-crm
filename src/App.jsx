@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.469";
+const CRM_VERSION = "2.9.470";
 
 // Responsive hook
 function useWindowSize() {
@@ -10192,7 +10192,10 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                         <td style={{padding:"8px 14px"}}>
                           <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.1)",color:"#b45309"}}>🟡 {c.leadScore||0}</span>
                         </td>
-                        <td style={{padding:"8px 14px",fontSize:11,color:"#7F77DD",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.ad_headline||c.ad_source||"—"}</td>
+                        <td style={{padding:"8px 14px",fontSize:11,color:"#7F77DD",maxWidth:200,wordBreak:"break-word",lineHeight:1.4}}>
+                          {c.ad_name&&<div style={{fontWeight:500,marginBottom:2}}>{c.ad_name}</div>}
+                          <div style={{color:T.textMuted,fontSize:10}}>{c.ad_headline||c.ad_source||"—"}</div>
+                        </td>
                       </tr>;
                     })}</tbody>
                   </table>
@@ -10268,7 +10271,10 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                         <td style={{padding:"8px 14px"}}><div style={{fontWeight:500,color:T.text}}>{e.contact_name||e.phone}</div><div style={{fontSize:10,color:T.textMuted}}>{e.phone}</div></td>
                         <td style={{padding:"8px 14px"}}><span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,background:e.event_name==="Lead"?"rgba(128,82,255,0.1)":e.event_name==="Schedule"?"rgba(37,211,102,0.1)":"rgba(225,48,108,0.1)",color:e.event_name==="Lead"?"#7F77DD":e.event_name==="Schedule"?"#0f6e56":"#E1306C"}}>{e.event_name}</span></td>
                         <td style={{padding:"8px 14px",fontSize:11,color:T.text}}>{e.value?`RM ${e.value}`:"—"}</td>
-                        <td style={{padding:"8px 14px",fontSize:11,color:"#7F77DD",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.ad_headline||"—"}</td>
+                        <td style={{padding:"8px 14px",fontSize:11,maxWidth:200,wordBreak:"break-word",lineHeight:1.4}}>
+                          {e.ad_name&&<div style={{fontWeight:500,color:"#7F77DD",marginBottom:2}}>{e.ad_name}</div>}
+                          <div style={{color:T.textMuted,fontSize:10}}>{e.ad_headline||"—"}</div>
+                        </td>
                         <td style={{padding:"8px 14px",fontSize:11,color:T.textMuted,fontFamily:"monospace"}}>{e.ad_id||"—"}</td>
                         <td style={{padding:"8px 14px"}}><span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,background:e.fired_by==="auto"?"rgba(245,158,11,0.1)":"rgba(55,138,221,0.1)",color:e.fired_by==="auto"?"#b45309":"#185fa5"}}>{e.fired_by==="auto"?"Auto":e.fired_by}</span></td>
                         <td style={{padding:"8px 14px",fontSize:11,color:T.textMuted,whiteSpace:"nowrap"}}>{fmtTime(e.fired_at)}</td>
