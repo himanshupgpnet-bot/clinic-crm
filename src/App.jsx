@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.473";
+const CRM_VERSION = "2.9.474";
 
 // Responsive hook
 function useWindowSize() {
@@ -10170,7 +10170,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
               </div>
               {warmPending.length===0
                 ?<div style={{padding:24,textAlign:"center",fontSize:12,color:T.textMuted}}>All warm leads have been sent to Meta ✅</div>
-                :<><div style={{maxHeight:300,overflowY:"auto"}}>
+                :<><div style={{flex:1,overflowY:"auto",minHeight:0}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead style={{position:"sticky",top:0,background:T.card2}}>
                       <tr>
@@ -10216,7 +10216,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                 ?<div style={{padding:32,textAlign:"center",fontSize:12,color:T.textMuted}}>
                   No auto events yet. Events fire automatically when a contact becomes hot or booking is confirmed.
                 </div>
-                :<div style={{maxHeight:400,overflowY:"auto"}}>
+                :<div style={{flex:1,overflowY:"auto",minHeight:0}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead style={{position:"sticky",top:0,background:T.card2}}>
                       <tr>{["Contact","Phone","Event","Ad Name","Ad ID","When"].map(h=>(
@@ -10261,7 +10261,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
               </div>
               {pixelEvents.length===0
                 ?<div style={{padding:32,textAlign:"center",fontSize:12,color:T.textMuted}}>No events yet</div>
-                :<div style={{maxHeight:400,overflowY:"auto"}}>
+                :<div style={{flex:1,overflowY:"auto",minHeight:0}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead style={{position:"sticky",top:0,background:T.card2}}>
                       <tr>{["Contact","Event","Value","Ad name","Ad ID","Sent by","When"].map(h=>(
