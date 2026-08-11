@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.472";
+const CRM_VERSION = "2.9.473";
 
 // Responsive hook
 function useWindowSize() {
@@ -10096,7 +10096,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
         const warmPending = contacts.filter(c=>c.lead==="warm"&&!firedPhones.has(String(c.phone||"").replace(/^\+/,""))&&(c.ad_id||c.ad_headline||c.ad_source));
         const totalSentMeta = pixelEvents.length;
 
-        return <div style={{display:"flex",flexDirection:"column",gap:0,flex:1,overflow:"hidden"}}>
+        return <div style={{display:"flex",flexDirection:"column",gap:0,flex:1,overflow:"hidden",minHeight:0}}>
           {/* Pixel sub-tabs */}
           <div style={{display:"flex",gap:0,borderBottom:`0.5px solid ${T.border}`,padding:"0 20px",background:T.sidebar,flexShrink:0}}>
             {[{id:"send",label:"Send to Meta"},{id:"auto",label:"Auto events"},{id:"log",label:"Full log"}].map(t=>(
@@ -10126,7 +10126,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
             </div>
 
             {/* SEND TO META TAB */}
-            {pixelSubTab==="send"&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+            {pixelSubTab==="send"&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden",flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
               <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div style={{fontSize:13,fontWeight:500,color:T.text,display:"flex",alignItems:"center",gap:8}}>
                   <i className="ti ti-users" style={{fontSize:14,color:"#7F77DD"}}/>
@@ -10207,7 +10207,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
             </div>}
 
             {/* AUTO EVENTS TAB */}
-            {pixelSubTab==="auto"&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+            {pixelSubTab==="auto"&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden",flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
               <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
                 <i className="ti ti-robot" style={{fontSize:14,color:"#f59e0b"}}/>
                 <span style={{fontSize:13,fontWeight:500,color:T.text}}>Auto-fired events ({autoAll.length})</span>
@@ -10249,7 +10249,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
             </div>}
 
             {/* FULL LOG TAB */}
-            {pixelSubTab==="log"&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden"}}>
+            {pixelSubTab==="log"&&<div style={{background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,overflow:"hidden",flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
               <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div style={{fontSize:13,fontWeight:500,color:T.text,display:"flex",alignItems:"center",gap:8}}>
                   <i className="ti ti-brand-meta" style={{fontSize:14,color:"#1877F2"}}/>
@@ -10381,7 +10381,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
                   </div>
                   <span style={{fontSize:11,color:T.textMuted}}>{selectedCampaign?"Click any ad to view details":""}</span>
                 </div>
-                <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+                <div style={{overflowX:"auto",overflowY:"auto",WebkitOverflowScrolling:"touch",flex:1,minHeight:0}}>
                   {!selectedCampaign
                     /* CAMPAIGN LEVEL */
                     ?<table style={{width:"max-content",minWidth:"100%",borderCollapse:"collapse",fontSize:12}}>
