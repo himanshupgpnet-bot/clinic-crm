@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.471";
+const CRM_VERSION = "2.9.472";
 
 // Responsive hook
 function useWindowSize() {
@@ -10015,6 +10015,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
   const [campaigns, setCampaigns] = React.useState([]);
   const [selectedCampaign, setSelectedCampaign] = React.useState(null);
   const [pixelEvents, setPixelEvents] = React.useState([]);
+  const [pixelTotalSent, setPixelTotalSent] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [activeSubTab, setActiveSubTab] = React.useState("performance");
   const [dateRange, setDateRange] = React.useState("last_30d");
@@ -10039,7 +10040,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
     try {
       // Fetch pixel events log
       const pe = await fetch(`${API}/api/pixel-events?clinic_id=${clinicId}&limit=200`, {headers:authHeaders()});
-      if(pe.ok) setPixelEvents(await pe.json());
+      if(pe.ok){const pd=await pe.json();setPixelEvents(pd.events||pd);setPixelTotalSent(pd.total_sent||0);}
       // Fetch ads from Meta via backend
       const adsR = await fetch(`${API}/api/ads-performance?clinic_id=${clinicId}&date_preset=${dateRange}`, {headers:authHeaders()});
       if(adsR.ok){
@@ -10113,7 +10114,7 @@ function AdsTab({T, WA_GREEN, dark, isAdmin, currentUser, API, authHeaders, cont
             {/* KPI row */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10}}>
               {[
-                {label:"Total sent to Meta",val:totalSentMeta,color:"#7F77DD"},
+                {label:"Total sent to Meta",val:pixelTotalSent||totalSentMeta,color:"#7F77DD"},
                 {label:"Auto fired",val:autoAll.length,color:"#f59e0b"},
                 {label:"Warm — not yet sent",val:warmPending.length,color:T.textMuted},
               ].map((k,i)=>(
