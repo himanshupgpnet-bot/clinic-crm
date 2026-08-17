@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.479";
+const CRM_VERSION = "2.9.480";
 
 // Responsive hook
 function useWindowSize() {
@@ -2753,7 +2753,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               {selected.channel==="facebook"&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderTop:`1px solid ${T.border}`}}>
                 <i className="ti ti-brand-facebook" style={{fontSize:14,color:"#1877F2",flexShrink:0,width:16}}/>
                 <a href={selected.fb_thread_id
-                  ? `https://business.facebook.com/latest/inbox/messenger?asset_id=614790775041227&selected_item_id=${selected.fb_thread_id}&thread_type=FB_MESSAGE`
+                  ? `https://business.facebook.com/latest/inbox/messenger?asset_id=614790775041227&selected_item_id=t_${selected.fb_thread_id}&thread_type=FB_MESSAGE`
                   : `https://business.facebook.com/latest/inbox/messenger?asset_id=614790775041227`}
                   target="_blank" rel="noopener noreferrer"
                   style={{fontSize:11,color:"#1877F2",fontWeight:500,textDecoration:"none"}}>
