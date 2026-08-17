@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.474";
+const CRM_VERSION = "2.9.475";
 
 // Responsive hook
 function useWindowSize() {
@@ -1706,9 +1706,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         .ci:hover{background:${T.sidebarHover}}
         .ci.active{background:${WA_GREEN}10;border-right:2px solid ${WA_GREEN}}
 
-        .nav-item-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;width:100%;text-align:left;font-size:13px;transition:all .15s;background:transparent;font-weight:400}
-        .nav-item-btn:hover{background:${T.sidebarHover};color:${T.text}}
+        .nav-item-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;width:100%;text-align:left;font-size:13px;transition:all .2s cubic-bezier(.34,1.56,.64,1);background:transparent;font-weight:400;transform:translateX(0);position:relative;overflow:hidden}
+        .nav-item-btn::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;border-radius:0 3px 3px 0;background:${WA_GREEN};transition:height .2s ease,opacity .2s ease;opacity:0}
+        .nav-item-btn:hover{background:${T.sidebarHover};color:${T.text};transform:translateX(3px)}
+        .nav-item-btn:hover::before{height:60%;opacity:1}
+        .nav-item-btn:hover i{transform:scale(1.15);transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+        .nav-item-btn i{transition:transform .2s ease}
         .nav-item-btn.active{background:${WA_GREEN}15;color:${WA_GREEN}!important;font-weight:600}
+        .nav-item-btn.active::before{height:60%;opacity:1}
+        .nav-item-btn:active{transform:translateX(1px) scale(0.98)}
 
         .nx-card{background:${T.card};border-radius:12px;border:1px solid ${T.border};padding:20px;margin-bottom:16px}
         .nx-card-title{font-size:13px;font-weight:700;color:${T.text};margin-bottom:14px;display:flex;align-items:center;gap:8px}
