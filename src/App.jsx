@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.482";
+const CRM_VERSION = "2.9.483";
 
 // Responsive hook
 function useWindowSize() {
@@ -2752,7 +2752,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               ))}
               {selected.channel==="facebook"&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderTop:`1px solid ${T.border}`}}>
                 <i className="ti ti-brand-facebook" style={{fontSize:14,color:"#1877F2",flexShrink:0,width:16}}/>
-                <a href={`https://business.facebook.com/latest/inbox/messenger?asset_id=${clientSettings?.fb_page_id||""}`} target="_blank" rel="noopener noreferrer"
+                <a href={`https://business.facebook.com/latest/inbox/messenger?asset_id=${(isAdmin?(clinics||[]).find(c=>String(c.id)===String(selected.clinicId||1))?.fb_page_id:clientSettings?.fb_page_id)||""}`} target="_blank" rel="noopener noreferrer"
                   style={{fontSize:11,color:"#1877F2",fontWeight:500,textDecoration:"none"}}>
                   Open Messenger Inbox ↗
                 </a>
