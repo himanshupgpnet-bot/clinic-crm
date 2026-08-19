@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.483";
+const CRM_VERSION = "2.9.484";
 
 // Responsive hook
 function useWindowSize() {
@@ -2596,11 +2596,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 flexShrink:0,paddingBottom:"10px"}}>
                 <div style={{flex:1,background:"#f8f9fc",border:"1.5px solid #e8eaef",borderRadius:14,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
                   onFocus={()=>{}} onBlur={()=>{}}>
-                  <textarea value={reply} onChange={e=>setReply(e.target.value)}
+                  <textarea value={reply} onChange={e=>{setReply(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,160)+"px"}}
                     onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAgentReply();}}}
                     placeholder={selected.botActive?"Bot is active — toggle off to reply":"Type a message..."}
                     disabled={selected.botActive} rows={1}
-                    style={{flex:1,background:"transparent",border:"none",color:selected.botActive?"#9ca3af":"#0d0f1a",fontSize:isMobile?16:13,maxHeight:100,fontFamily:"inherit",outline:"none",resize:"none",lineHeight:1.4}}/>
+                    style={{flex:1,background:"transparent",border:"none",color:selected.botActive?"#9ca3af":"#0d0f1a",fontSize:isMobile?16:13,maxHeight:160,fontFamily:"inherit",outline:"none",resize:"none",lineHeight:1.5,overflowY:"auto"}}/>
                   <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>😊</span>
                   <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>📎</span>
                 </div>
