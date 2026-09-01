@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.485";
+const CRM_VERSION = "2.9.487";
 
 // Responsive hook
 function useWindowSize() {
@@ -1718,8 +1718,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
         .nav-item-btn:hover::before{height:60%;opacity:1}
         .nav-item-btn:hover i{transform:scale(1.15);transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
         .nav-item-btn i{transition:transform .2s ease}
-        .nav-item-btn.active{background:${WA_GREEN}15;color:${WA_GREEN}!important;font-weight:600}
-        .nav-item-btn.active::before{height:60%;opacity:1}
+        .nav-item-btn.active{background:#ededfc;color:#534AB7!important;font-weight:700}
+        .nav-item-btn.active::before{height:60%;opacity:1;background:#7F77DD}
         .nav-item-btn:active{transform:translateX(1px) scale(0.98)}
 
         .nx-card{background:${T.card};border-radius:12px;border:1px solid ${T.border};padding:20px;margin-bottom:16px}
@@ -2107,7 +2107,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               return visibleTabs.map(t=>(
                 <div key={t.id} style={{position:"relative"}} className="nav-item-wrap">
                   <button onClick={()=>safeSetTab(t.id)}
-                    className={`nav-item-btn${tab===t.id?" active":""}`}>
+                    className={`nav-item-btn${tab===t.id?" active":""}`} style={{borderRadius:10}}>
                     <i className={t.icon} style={{fontSize:18,flexShrink:0,width:20,textAlign:"center"}}/>
                     <span style={{flex:1}}>{t.label}</span>
                     {t.id==="crm"&&totalUnread>0&&<span style={{
@@ -2363,8 +2363,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   style={{padding:"11px 14px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",
                     transition:"background .1s",position:"relative",
                     borderBottom:`1px solid ${T.border}`,
-                    borderRight:selected?.id===c.id?`2px solid ${WA_GREEN}`:"2px solid transparent",
-                    background:selected?.id===c.id?`${WA_GREEN}10`:selectMode&&selectedChats.has(c.phone)?`${WA_GREEN}08`:"transparent"}}
+                    borderLeft:selected?.id===c.id?"3px solid #7F77DD":"3px solid transparent",borderRight:"none",
+                    background:selected?.id===c.id?"#f0effe":selectMode&&selectedChats.has(c.phone)?"#f5f3ff":"transparent"}}
                   onMouseEnter={e=>{if(selected?.id!==c.id)e.currentTarget.style.background=T.sidebarHover;}}
                   onMouseLeave={e=>{if(selected?.id!==c.id)e.currentTarget.style.background=selectMode&&selectedChats.has(c.phone)?`${WA_GREEN}08`:"transparent";}}>
 
@@ -2376,7 +2376,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {/* AVATAR */}
                   <div style={{position:"relative",flexShrink:0}}>
                     <div style={{width:40,height:40,borderRadius:"50%",background:getColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#fff",
-                      boxShadow:c.lead==="hot"?`0 0 0 2px #e11d48`:c.lead==="warm"?`0 0 0 2px #d97706`:"none"}}>
+                      boxShadow:c.lead==="hot"?"0 0 0 2.5px #ef5350":c.lead==="warm"?"0 0 0 2.5px #ffa726":"none"}}>
                       {c.avatar||"?"}
                     </div>
                     {c.unread>0&&<div style={{position:"absolute",top:-2,right:-2,background:WA_GREEN,color:"#fff",borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,border:"2px solid "+T.sidebar}}>
@@ -2603,21 +2603,33 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
 
               {/* INPUT BAR */}
               <div className="mobile-chat-input" style={{padding:"8px 14px 10px",background:T.card,borderTop:`1px solid ${T.border}`,flexShrink:0}}>
-                {/* Quick action buttons */}
-                {!selected.botActive&&<div style={{display:"flex",gap:5,marginBottom:7}}>
-                  {[
-                    {icon:"ti ti-template",label:"Template",onClick:()=>{}},
-                    {icon:"ti ti-notes",label:"Note",onClick:()=>{}},
-                    {icon:"ti ti-archive",label:"Archive",onClick:()=>{}},
-                  ].map(b=>(
-                    <button key={b.label} onClick={b.onClick}
-                      style={{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:8,background:T.card2,border:`1px solid ${T.border}`,
-                        fontSize:11,color:"#534AB7",fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}>
-                      <i className={b.icon} style={{fontSize:12}}/>
-                      {b.label}
-                    </button>
-                  ))}
-                </div>}
+                {/* Quick action buttons — always visible */}
+                <div style={{display:"flex",gap:5,marginBottom:7,flexWrap:"wrap"}}>
+                  <button onClick={()=>setTab("broadcast")}
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:8,
+                      background:"#f3f0ff",border:"1px solid #c4beff",
+                      fontSize:11,color:"#534AB7",fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+                    title="Send a pre-approved WhatsApp template">
+                    <i className="ti ti-template" style={{fontSize:13}}/>
+                    Template
+                  </button>
+                  <button onClick={()=>setTab("notes")}
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:8,
+                      background:T.card2,border:`1px solid ${T.border}`,
+                      fontSize:11,color:T.textMuted,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+                    title="Add an internal team note">
+                    <i className="ti ti-notes" style={{fontSize:13}}/>
+                    Note
+                  </button>
+                  <button onClick={()=>setArchiveConfirm(selected.id)}
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:8,
+                      background:T.card2,border:`1px solid ${T.border}`,
+                      fontSize:11,color:T.textMuted,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+                    title="Archive this conversation">
+                    <i className="ti ti-archive" style={{fontSize:13}}/>
+                    Archive
+                  </button>
+                </div>
                 <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
                   <div style={{flex:1,background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}>
                     <textarea value={reply} onChange={e=>{setReply(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,160)+"px"}}
@@ -2643,7 +2655,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           </div>}
 
           {/* RIGHT PANEL — always visible on desktop when contact selected, like mockup */}
-          {selected&&!isMobile&&showRightPanel&&<div style={{width:240,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.sidebar,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+          {selected&&!isMobile&&showRightPanel&&<div style={{width:272,flexShrink:0,borderLeft:`1px solid ${T.border}`,background:T.sidebar,overflowY:"auto",display:"flex",flexDirection:"column"}}>
             <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{fontWeight:700,fontSize:13,color:T.text}}>Contact info</div>
               <button onClick={()=>setShowRightPanel(false)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,color:T.textMuted,lineHeight:1}}>×</button>
@@ -2750,14 +2762,28 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                 </button>
               </div>}
             </div>
-            {/* Lead score — mockup style */}
+            {/* Lead score — big card */}
             {selected.leadScore>0&&<div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
-              <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Lead Score</div>
-              <div style={{background:T.card2,borderRadius:8,padding:"10px 12px",border:`1px solid ${T.border}`}}>
-                <div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden",marginBottom:6}}>
-                  <div style={{height:5,borderRadius:3,width:`${selected.leadScore||0}%`,background:selected.lead==="hot"?"#ef4444":selected.lead==="warm"?"#f59e0b":"#3b82f6",transition:"width .8s ease"}}/>
+              <div style={{background:selected.lead==="hot"?"linear-gradient(135deg,#fff5f5,#ffe8e8)":selected.lead==="warm"?"linear-gradient(135deg,#fffde7,#fff3e0)":"linear-gradient(135deg,#f3f0ff,#ededfc)",
+                border:`1px solid ${selected.lead==="hot"?"#ffcdd2":selected.lead==="warm"?"#ffe082":"#dddafc"}`,borderRadius:14,padding:"13px 14px"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#9090c0",textTransform:"uppercase",letterSpacing:.6}}>Lead score</div>
+                  <div style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,
+                    background:selected.lead==="hot"?"#fff1f0":selected.lead==="warm"?"#fffde7":"#f0effe",
+                    color:selected.lead==="hot"?"#b71c1c":selected.lead==="warm"?"#e65100":"#534AB7"}}>
+                    {selected.lead==="hot"?"🔥 Hot":selected.lead==="warm"?"🟡 Warm":"🔵 Cold"}
+                  </div>
                 </div>
-                <div style={{fontSize:11,fontWeight:700,color:selected.lead==="hot"?"#dc2626":selected.lead==="warm"?"#b45309":"#1d4ed8"}}>{selected.leadScore} · {selected.lead==="hot"?"Hot lead":selected.lead==="warm"?"Warm lead":"Cold lead"}</div>
+                <div style={{fontSize:32,fontWeight:800,letterSpacing:-1,lineHeight:1,color:selected.lead==="hot"?"#e53935":selected.lead==="warm"?"#f57c00":"#534AB7"}}>
+                  {selected.leadScore}<span style={{fontSize:14,fontWeight:600,opacity:.5}}>/100</span>
+                </div>
+                <div style={{height:5,background:"rgba(0,0,0,0.06)",borderRadius:3,margin:"8px 0 4px",overflow:"hidden"}}>
+                  <div style={{height:5,borderRadius:3,width:`${selected.leadScore||0}%`,transition:"width .8s ease",
+                    background:selected.lead==="hot"?"linear-gradient(90deg,#c62828,#ef5350)":selected.lead==="warm"?"linear-gradient(90deg,#e65100,#ffa726)":"linear-gradient(90deg,#534AB7,#9d97e8)"}}/>
+                </div>
+                <div style={{fontSize:11,color:"#9090c0"}}>
+                  {selected.booking_confirmed?"Appointment confirmed":selected.lead==="hot"?"High intent — ready to act":selected.lead==="warm"?"Interested — nurturing":"Early stage — browsing"}
+                </div>
               </div>
             </div>}
 
@@ -2811,15 +2837,33 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
               <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Tags</div>
               <div>
-                {selected.lead==="hot"&&<span className="nx-badge hot" style={{margin:2}}>🔥 Hot lead</span>}
-                {selected.lead==="warm"&&<span className="nx-badge warm" style={{margin:2}}>🟡 Warm lead</span>}
-                {selected.lead==="cold"&&<span className="nx-badge cold" style={{margin:2}}>🔵 Cold</span>}
-                {selected.booking_confirmed&&<span className="nx-badge success" style={{margin:2}}>✅ Booked</span>}
-                {selected.pipelineStage&&selected.pipelineStage!=="new"&&<span className="nx-badge success" style={{margin:2}}>{selected.pipelineStage}</span>}
-                {!selected.botActive&&<span style={{display:"inline-flex",fontSize:10,padding:"3px 8px",borderRadius:20,margin:2,fontWeight:500,background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa"}}>Manual</span>}
+                {selected.lead==="hot"&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff1f0",color:"#b71c1c",border:"1px solid #ffcdd2"}}>🔥 Hot lead</span>}
+                {selected.lead==="warm"&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff8e1",color:"#e65100",border:"1px solid #ffe082"}}>🟡 Warm lead</span>}
+                {selected.lead==="cold"&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#e8f0fe",color:"#1565C0",border:"1px solid #bbdefb"}}>🔵 Cold</span>}
+                {selected.booking_confirmed&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#f1f8e9",color:"#33691e",border:"1px solid #c5e1a5"}}>✅ Booked</span>}
+                {selected.needsHuman&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff1f0",color:"#c62828",border:"1px solid #ffcdd2"}}>👤 Needs Human</span>}
+                {!selected.botActive&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff8e1",color:"#e65100",border:"1px solid #ffe082"}}>Manual mode</span>}
               </div>
             </div>
 
+            {/* Automation log */}
+            {selected.booking_confirmed&&<div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#9090c0",textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Automation log</div>
+              {[
+                {done:true,text:"Telegram alert sent"},
+                {done:true,text:"Meta Lead event fired"},
+                {done:selected.booking_confirmed,text:"Schedule event → Meta"},
+                {done:selected.booking_confirmed,text:"Follow-up paused"},
+              ].map((a,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:i<3?`1px solid ${T.border}`:"none"}}>
+                  <div style={{width:17,height:17,borderRadius:"50%",background:a.done?"#43a047":"#e0dffc",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <span style={{fontSize:9,color:"#fff",fontWeight:700}}>{a.done?"✓":"○"}</span>
+                  </div>
+                  <span style={{fontSize:11,color:T.text,flex:1}}>{a.text}</span>
+                  {a.done&&<span style={{fontSize:10,color:"#9090c0"}}>Just now</span>}
+                </div>
+              ))}
+            </div>}
             {/* AI Bot toggle */}
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
               <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>AI Bot</div>
@@ -2849,14 +2893,14 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{padding:"12px 14px"}}>
               <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Quick actions</div>
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                <button onClick={()=>safeSetTab("broadcast")} className="nx-btn" style={{width:"100%",justifyContent:"center"}}>
-                  <i className="ti ti-speakerphone" style={{fontSize:14}}/> Send template
+                <button onClick={()=>safeSetTab("broadcast")} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:10,border:"1px solid #c4beff",fontSize:12,color:"#534AB7",fontWeight:600,cursor:"pointer",background:"#f3f0ff",fontFamily:"inherit",transition:"all .15s",width:"100%"}}>
+                  <i className="ti ti-template" style={{fontSize:15}}/> Send template
                 </button>
-                <button onClick={()=>safeSetTab("notes")} className="nx-btn" style={{width:"100%",justifyContent:"center"}}>
-                  <i className="ti ti-notes" style={{fontSize:14}}/> Add note
+                <button onClick={()=>safeSetTab("notes")} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:10,border:`1px solid ${T.border}`,fontSize:12,color:T.text,fontWeight:600,cursor:"pointer",background:T.card,fontFamily:"inherit",transition:"all .15s",width:"100%"}}>
+                  <i className="ti ti-notes" style={{fontSize:15}}/> Add note
                 </button>
-                <button onClick={()=>setArchiveConfirm(selected.id)} className="nx-btn" style={{width:"100%",justifyContent:"center"}}>
-                  <i className="ti ti-archive" style={{fontSize:14}}/> Archive chat
+                <button onClick={()=>setArchiveConfirm(selected.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:10,border:`1px solid ${T.border}`,fontSize:12,color:T.text,fontWeight:600,cursor:"pointer",background:T.card,fontFamily:"inherit",transition:"all .15s",width:"100%"}}>
+                  <i className="ti ti-archive" style={{fontSize:15}}/> Archive chat
                 </button>
               </div>
             </div>
