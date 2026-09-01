@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.487";
+const CRM_VERSION = "2.9.488";
 
 // Responsive hook
 function useWindowSize() {
@@ -246,6 +246,8 @@ export default function App() {
   const [showCalendly, setShowCalendly] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [adHistory, setAdHistory] = useState([]);
+  const [automationLog, setAutomationLog] = useState([]);
+  const [automationLogLoading, setAutomationLogLoading] = useState(false);
 
   const [adHistoryPage, setAdHistoryPage] = useState(0);
   const [navCollapsed, setNavCollapsed] = useState(true); // always icon-only
@@ -1196,6 +1198,17 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     } catch { setAdHistory([]); }
   }
 
+  async function fetchAutomationLog(c) {
+    if(!c?.id) return;
+    setAutomationLogLoading(true);
+    try {
+      const r = await fetch(`${API}/api/conversations/${c.id}/automation-log`, {headers: authHeaders()});
+      if(r.ok) setAutomationLog(await r.json());
+      else setAutomationLog([]);
+    } catch { setAutomationLog([]); }
+    setAutomationLogLoading(false);
+  }
+
   async function selectContact(c) {
     setShowRightPanel(true);
     setSelected({...c, messages: c.messages||[]}); selectedRef.current = c; setMenuOpen(false);
@@ -1203,6 +1216,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     try { await fetch(`${API}/api/conversations/${c.id}/read`,{method:"PATCH",headers:authHeaders()}); } catch {}
     setContacts(p=>p.map(x=>x.id===c.id?{...x,unread:0}:x));
     fetchAdHistory(c.phone);
+    fetchAutomationLog(c);
     // Lazy load messages if not already loaded
     if(!c.messages || c.messages.length===0) {
       try {
@@ -2846,24 +2860,30 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
             </div>
 
-            {/* Automation log */}
-            {selected.booking_confirmed&&<div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#9090c0",textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Automation log</div>
-              {[
-                {done:true,text:"Telegram alert sent"},
-                {done:true,text:"Meta Lead event fired"},
-                {done:selected.booking_confirmed,text:"Schedule event → Meta"},
-                {done:selected.booking_confirmed,text:"Follow-up paused"},
-              ].map((a,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:i<3?`1px solid ${T.border}`:"none"}}>
-                  <div style={{width:17,height:17,borderRadius:"50%",background:a.done?"#43a047":"#e0dffc",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    <span style={{fontSize:9,color:"#fff",fontWeight:700}}>{a.done?"✓":"○"}</span>
+            {/* Automation log — real data */}
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#9090c0",textTransform:"uppercase",letterSpacing:.6,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <span>Automation log</span>
+                <span style={{fontWeight:400,color:"#c0bede",fontSize:10}}>{automationLog.length} events</span>
+              </div>
+              {automationLogLoading&&<div style={{fontSize:11,color:T.textMuted,padding:"4px 0"}}>Loading...</div>}
+              {!automationLogLoading&&automationLog.length===0&&<div style={{fontSize:11,color:T.textFaint,fontStyle:"italic"}}>No automation events yet</div>}
+              {!automationLogLoading&&automationLog.slice(0,6).map((a,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 0",borderBottom:i<Math.min(automationLog.length,6)-1?`1px solid ${T.border}`:"none"}}>
+                  <div style={{width:18,height:18,borderRadius:"50%",flexShrink:0,marginTop:1,
+                    background:a.status==="done"?"#43a047":a.status==="failed"?"#e53935":"#9090c0",
+                    display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <span style={{fontSize:9,color:"#fff",fontWeight:700}}>
+                      {a.status==="done"?"✓":a.status==="failed"?"✕":"—"}
+                    </span>
                   </div>
-                  <span style={{fontSize:11,color:T.text,flex:1}}>{a.text}</span>
-                  {a.done&&<span style={{fontSize:10,color:"#9090c0"}}>Just now</span>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:11,color:T.text,fontWeight:500,lineHeight:1.4}}>{a.event_label}</div>
+                    {a.fired_at&&<div style={{fontSize:10,color:T.textFaint,marginTop:2}}>{a.fired_at}</div>}
+                  </div>
                 </div>
               ))}
-            </div>}
+            </div>
             {/* AI Bot toggle */}
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
               <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>AI Bot</div>
