@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.484";
+const CRM_VERSION = "2.9.485";
 
 // Responsive hook
 function useWindowSize() {
@@ -2328,14 +2328,19 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             {/* Channel filter */}
             <div style={{display:"flex",gap:4,padding:"6px 10px",borderBottom:`0.5px solid ${T.border}`,overflowX:"auto"}}>
               {[
-                {id:"all",label:"All channels"},
-                {id:"whatsapp",label:"WhatsApp",color:"#25D366"},
-                {id:"facebook",label:"Messenger",color:"#1877F2"},
-                {id:"instagram",label:"Instagram",color:"#E1306C"},
+                {id:"all",label:"All",color:null,svg:null},
+                {id:"whatsapp",label:"WhatsApp",color:"#25D366",activeColor:"#1a7a3f",activeBg:"#f0fff5",svg:<svg viewBox="0 0 24 24" width="10" height="10"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path fill="currentColor" d="M11.944 0C5.348 0 0 5.348 0 11.944c0 2.088.54 4.05 1.485 5.754L.054 23.399l5.878-1.538C7.582 22.85 9.704 23.5 11.944 23.5 18.54 23.5 24 18.152 24 11.556 24 4.96 18.54 0 11.944 0zm0 21.5c-1.93 0-3.733-.52-5.275-1.424l-.378-.224-3.49.914.929-3.393-.247-.391C2.548 15.396 2 13.73 2 11.944 2 6.452 6.452 2 11.944 2 17.436 2 22 6.452 22 11.944c0 5.493-4.564 9.556-10.056 9.556z"/></svg>},
+                {id:"facebook",label:"Messenger",color:"#1877F2",activeColor:"#0d4fa8",activeBg:"#f0f5ff",svg:<svg viewBox="0 0 24 24" width="10" height="10"><path fill="currentColor" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>},
+                {id:"instagram",label:"Instagram",color:"#C13584",activeColor:"#831c59",activeBg:"#fff0f7",svg:<svg viewBox="0 0 24 24" width="10" height="10"><path fill="currentColor" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>},
               ].map(f=>(
                 <button key={f.id} onClick={()=>setChannelFilter(f.id)}
-                  style={{display:"flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:20,border:`0.5px solid ${channelFilter===f.id?(f.color||T.border):T.border}`,background:channelFilter===f.id?(f.color?f.color+"18":T.card2):"transparent",color:channelFilter===f.id?(f.color||T.text):T.textMuted,fontSize:11,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",transition:"all .15s"}}>
-                  {f.color&&<div style={{width:6,height:6,borderRadius:"50%",background:f.color,flexShrink:0}}/>}
+                  style={{display:"flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:20,
+                    border:`1px solid ${channelFilter===f.id?(f.color||T.border):T.border}`,
+                    background:channelFilter===f.id?(f.activeBg||T.card2):"transparent",
+                    color:channelFilter===f.id?(f.activeColor||T.text):T.textMuted,
+                    fontSize:11,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",transition:"all .15s",
+                    fontWeight:channelFilter===f.id?700:400}}>
+                  {f.svg}
                   {f.label}
                 </button>
               ))}
@@ -2393,7 +2398,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   {/* Info */}
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                      <span style={{fontWeight:c.unread>0?700:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>
+                      <span style={{fontWeight:c.unread>0?700:600,fontSize:13,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:110}}>
                         {c.name}
                       </span>
                       <span style={{fontSize:10,color:c.unread>0?WA_GREEN:T.textFaint,fontWeight:c.unread>0?700:400,flexShrink:0,marginLeft:4}}>{c.lastTime}</span>
@@ -2403,7 +2408,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         {c.lastMessage||"No messages"}
                       </span>
                       {c.unread>0&&<span style={{background:WA_GREEN,color:"#fff",borderRadius:10,fontSize:9,fontWeight:700,padding:"1px 5px",minWidth:16,textAlign:"center",flexShrink:0}}>{c.unread>9?"9+":c.unread}</span>}
-                      {!c.unread&&!c.botActive&&<span style={{fontSize:9,background:"#f0fdf4",color:"#15803d",padding:"1px 5px",borderRadius:6,fontWeight:600,flexShrink:0}}>BOT</span>}
+                      {c.lead==="hot"&&!c.unread&&<span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:10,background:"#fff1f0",color:"#b71c1c",flexShrink:0}}>🔥</span>}
+                      {c.lead==="warm"&&!c.unread&&<span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:10,background:"#fff8e1",color:"#e65100",flexShrink:0}}>🟡</span>}
+                      {!c.unread&&c.lead!=="hot"&&c.lead!=="warm"&&!c.botActive&&<span style={{fontSize:9,background:"#f0fdf4",color:"#15803d",padding:"1px 5px",borderRadius:6,fontWeight:600,flexShrink:0}}>BOT</span>}
                     </div>
                   </div>
                     {/* Tags + score bar */}
@@ -2449,8 +2456,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </select>
                   <i className="ti ti-search" onClick={()=>{}} title="Search" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
                   <i className="ti ti-phone" onClick={()=>{}} title="Call" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
-                  <i className="ti ti-robot" onClick={()=>toggleBot(selected.id)} title={selected.botActive?"Bot ON — click to pause":"Bot OFF — click to activate"}
-                    style={{fontSize:18,color:selected.botActive?WA_GREEN:T.textMuted,cursor:"pointer"}}/>
+                  <div onClick={()=>toggleBot(selected.id)} title={selected.botActive?"Bot ON — click to pause":"Bot OFF — click to activate"}
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",borderRadius:20,cursor:"pointer",
+                      border:`1px solid ${selected.botActive?"#a5d6a7":"#ffcdd2"}`,
+                      background:selected.botActive?"#f0fff5":"#fff1f0",transition:"all .2s",flexShrink:0}}>
+                    <div style={{width:7,height:7,borderRadius:"50%",background:selected.botActive?"#43a047":"#e53935",flexShrink:0}}/>
+                    <span style={{fontSize:10,fontWeight:700,color:selected.botActive?"#1b5e20":"#b71c1c",whiteSpace:"nowrap"}}>
+                      {selected.botActive?"Bot on":"Bot off"}
+                    </span>
+                  </div>
                   <i className="ti ti-dots-vertical" onClick={()=>{}} title="More" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
                 </div>
               </div>
@@ -2531,19 +2545,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     {!isOut&&<div style={{width:28,height:28,borderRadius:"50%",background:getColor(selected.name||"?"),flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>{selected.avatar}</div>}
                     <div style={{maxWidth:"65%"}}>
                       {isOut&&<div style={{fontSize:9,fontWeight:700,marginBottom:3,textAlign:"right",letterSpacing:.2,
-                        color:isBot?WA_GREEN:isAgent?"#0284c7":T.textMuted}}>
-                        {isBot?(msg.agentName?.startsWith("📤")?msg.agentName:"🤖 "+(
-                          adminOverview.find(c=>String(c.clinic_id||c.id)===String(selected.clinicId||selected.clinic_id||1))?.company_name||
-                          currentUser?.company_name||
-                          "Bot"
-                        )):msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
+                        color:isBot?"#9d97e8":isAgent?"#64b5f6":T.textMuted}}>
+                        {isBot?"✦ Lluna":msg.agentName?`👤 ${msg.agentName}`:"👤 Agent"}
                       </div>}
                       <div style={{
-                        background:isOut?(isBot?WA_GREEN:isAgent?"#0284c7":T.card2):T.msgIn,
+                        background:isOut?(isBot?"#6055cc":isAgent?"#1976D2":T.card2):T.msgIn,
                         borderRadius:isOut?"12px 2px 12px 12px":"2px 12px 12px 12px",
                         padding:"9px 13px",
                         boxShadow:"0 1px 2px rgba(0,0,0,.06)",
-                        border:isOut?`1px solid ${isBot?WA_GREEN:isAgent?"#0284c7":T.border}`:isBot?`1px solid ${T.border};border-left:3px solid ${WA_GREEN}`:`1px solid ${T.border}`}}>
+                        border:isOut?`1px solid ${isBot?"#534AB7":isAgent?"#1565C0":T.border}`:`1px solid ${T.border}`}}>
                         {msg.mediaUrl&&msg.text?.startsWith("[Image")?(
                           <div><img src={msg.mediaUrl} alt="image" style={{maxWidth:"100%",maxHeight:220,borderRadius:8,display:"block",cursor:"pointer"}} onClick={()=>window.open(msg.mediaUrl,"_blank")}/></div>
                         ):msg.mediaUrl&&msg.text?.startsWith("[Document")?(
@@ -2592,23 +2602,38 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
               </div>
 
               {/* INPUT BAR */}
-              <div className="mobile-chat-input" style={{padding:"10px 16px",background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"flex-end",
-                flexShrink:0,paddingBottom:"10px"}}>
-                <div style={{flex:1,background:"#f8f9fc",border:"1.5px solid #e8eaef",borderRadius:14,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
-                  onFocus={()=>{}} onBlur={()=>{}}>
-                  <textarea value={reply} onChange={e=>{setReply(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,160)+"px"}}
-                    onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAgentReply();}}}
-                    placeholder={selected.botActive?"Bot is active — toggle off to reply":"Type a message..."}
-                    disabled={selected.botActive} rows={1}
-                    style={{flex:1,background:"transparent",border:"none",color:selected.botActive?"#9ca3af":"#0d0f1a",fontSize:isMobile?16:13,maxHeight:160,fontFamily:"inherit",outline:"none",resize:"none",lineHeight:1.5,overflowY:"auto"}}/>
-                  <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>😊</span>
-                  <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>📎</span>
+              <div className="mobile-chat-input" style={{padding:"8px 14px 10px",background:T.card,borderTop:`1px solid ${T.border}`,flexShrink:0}}>
+                {/* Quick action buttons */}
+                {!selected.botActive&&<div style={{display:"flex",gap:5,marginBottom:7}}>
+                  {[
+                    {icon:"ti ti-template",label:"Template",onClick:()=>{}},
+                    {icon:"ti ti-notes",label:"Note",onClick:()=>{}},
+                    {icon:"ti ti-archive",label:"Archive",onClick:()=>{}},
+                  ].map(b=>(
+                    <button key={b.label} onClick={b.onClick}
+                      style={{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:8,background:T.card2,border:`1px solid ${T.border}`,
+                        fontSize:11,color:"#534AB7",fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}>
+                      <i className={b.icon} style={{fontSize:12}}/>
+                      {b.label}
+                    </button>
+                  ))}
+                </div>}
+                <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
+                  <div style={{flex:1,background:T.card2,border:`1px solid ${T.border}`,borderRadius:14,padding:"9px 14px",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}>
+                    <textarea value={reply} onChange={e=>{setReply(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,160)+"px"}}
+                      onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAgentReply();}}}
+                      placeholder={selected.botActive?"Bot is active — toggle off to reply":"Type a message..."}
+                      disabled={selected.botActive} rows={1}
+                      style={{flex:1,background:"transparent",border:"none",color:selected.botActive?"#9ca3af":T.text,fontSize:isMobile?16:13,maxHeight:160,fontFamily:"inherit",outline:"none",resize:"none",lineHeight:1.5,overflowY:"auto"}}/>
+                    <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>😊</span>
+                    <span style={{fontSize:15,color:"#9ca3af",cursor:"pointer"}}>📎</span>
+                  </div>
+                  <button className="sb" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()}
+                    style={{width:40,height:40,borderRadius:50,border:"none",
+                      background:selected.botActive||!reply.trim()?"#f0effe":"linear-gradient(135deg,#7F77DD,#534AB7)",
+                      color:selected.botActive||!reply.trim()?"#c0bede":"#fff",fontSize:17,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0,
+                      boxShadow:selected.botActive||!reply.trim()?"none":"0 2px 12px rgba(127,119,221,.35)",transition:"all .2s"}}>➤</button>
                 </div>
-                <button className="sb" onClick={sendAgentReply} disabled={selected.botActive||!reply.trim()}
-                  style={{width:42,height:42,borderRadius:12,border:"none",
-                    background:selected.botActive||!reply.trim()?"#f8f9fc":"linear-gradient(135deg,#6c63ff,#5a52e0)",
-                    color:selected.botActive||!reply.trim()?"#9ca3af":"#fff",fontSize:17,cursor:selected.botActive?"not-allowed":"pointer",flexShrink:0,
-                    boxShadow:selected.botActive||!reply.trim()?"none":"0 2px 10px rgba(108,99,255,.25)",transition:"all .2s"}}>➤</button>
               </div>
             </div>
           ):<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,background:"#f5f6fa"}}>
