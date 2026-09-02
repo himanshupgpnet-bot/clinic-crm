@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.491";
+const CRM_VERSION = "2.9.492";
 
 // Responsive hook
 function useWindowSize() {
@@ -1202,7 +1202,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(!c?.id) return;
     setAutomationLogLoading(true);
     try {
-      const r = await fetch(`${API}/api/conversations/${c.id}/automation-log`, {headers: authHeaders()});
+      const phoneKey = String(c.id).replace(/^\+/,"");
+      const r = await fetch(`${API}/api/conversations/${phoneKey}/automation-log`, {headers: authHeaders()});
       if(r.ok) setAutomationLog(await r.json());
       else setAutomationLog([]);
     } catch { setAutomationLog([]); }
@@ -2472,6 +2473,8 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                   </select>
                   <i className="ti ti-search" onClick={()=>{}} title="Search" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
                   <i className="ti ti-phone" onClick={()=>{}} title="Call" style={{fontSize:18,color:T.textMuted,cursor:"pointer"}}/>
+                  <i className="ti ti-layout-sidebar-right" onClick={()=>setShowRightPanel(p=>!p)} title="Toggle contact info"
+                    style={{fontSize:18,color:showRightPanel?"#534AB7":T.textMuted,cursor:"pointer"}}/>
                   <div onClick={()=>toggleBot(selected.id)} title={selected.botActive?"Bot ON — click to pause":"Bot OFF — click to activate"}
                     style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",borderRadius:20,cursor:"pointer",
                       border:`1px solid ${selected.botActive?"#a5d6a7":"#ffcdd2"}`,
