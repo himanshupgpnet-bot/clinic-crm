@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.488";
+const CRM_VERSION = "2.9.489";
 
 // Responsive hook
 function useWindowSize() {
@@ -2851,11 +2851,11 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`}}>
               <div style={{fontSize:10,fontWeight:700,color:T.textFaint,textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Tags</div>
               <div>
-                {selected.lead==="hot"&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff1f0",color:"#b71c1c",border:"1px solid #ffcdd2"}}>🔥 Hot lead</span>}
-                {selected.lead==="warm"&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff8e1",color:"#e65100",border:"1px solid #ffe082"}}>🟡 Warm lead</span>}
-                {selected.lead==="cold"&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#e8f0fe",color:"#1565C0",border:"1px solid #bbdefb"}}>🔵 Cold</span>}
+                {!selected.booking_confirmed&&selected.lead==="hot"&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff1f0",color:"#b71c1c",border:"1px solid #ffcdd2"}}>🔥 Hot lead</span>}
+                {!selected.booking_confirmed&&selected.lead==="warm"&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff8e1",color:"#e65100",border:"1px solid #ffe082"}}>🟡 Warm lead</span>}
+                {!selected.booking_confirmed&&selected.lead==="cold"&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#e8f0fe",color:"#1565C0",border:"1px solid #bbdefb"}}>🔵 Cold</span>}
                 {selected.booking_confirmed&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#f1f8e9",color:"#33691e",border:"1px solid #c5e1a5"}}>✅ Booked</span>}
-                {selected.needsHuman&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff1f0",color:"#c62828",border:"1px solid #ffcdd2"}}>👤 Needs Human</span>}
+                {selected.needsHuman&&!selected.booking_confirmed&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff1f0",color:"#c62828",border:"1px solid #ffcdd2"}}>👤 Needs Human</span>}
                 {!selected.botActive&&<span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,margin:2,display:"inline-block",background:"#fff8e1",color:"#e65100",border:"1px solid #ffe082"}}>Manual mode</span>}
               </div>
             </div>
