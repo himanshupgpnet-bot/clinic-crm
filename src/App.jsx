@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.489";
+const CRM_VERSION = "2.9.490";
 
 // Responsive hook
 function useWindowSize() {
@@ -1221,7 +1221,9 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
     if(!c.messages || c.messages.length===0) {
       try {
         const phone = c.phone.replace(/^\+/, '');
-        const r = await fetch(`${API}/api/conversations/${phone}`,{headers:authHeaders()});
+        const clinicId = c.clinicId || c.clinic_id || '';
+        const clinicSuffix = isAdmin && clinicId ? `?clinic_id=${clinicId}` : '';
+        const r = await fetch(`${API}/api/conversations/${phone}${clinicSuffix}`,{headers:authHeaders()});
         if(r.ok) {
           const data = await r.json();
           const msgs = (data.messages || []).map(m=>({
