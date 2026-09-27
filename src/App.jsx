@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.492";
+const CRM_VERSION = "2.9.493";
 
 // Responsive hook
 function useWindowSize() {
@@ -229,6 +229,7 @@ export default function App() {
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastLog, setBroadcastLog] = useState([]);
   const [broadcastSearch, setBroadcastSearch] = useState("");
+  const [broadcastSegment, setBroadcastSegment] = useState("all");
   const [scheduleMode, setScheduleMode] = useState(false);
   const [scheduleAt, setScheduleAt] = useState("");
   const [scheduledBroadcasts, setScheduledBroadcasts] = useState([]);
@@ -4103,6 +4104,54 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                     <button onClick={()=>document.getElementById("broadcast-file-input").click()} className="nx-btn" style={{padding:"4px 10px",fontSize:11}}><i className="ti ti-paperclip" style={{fontSize:12}}/></button>
                   </div>
                 </div>
+                {/* ── SMART SEGMENT FILTERS ── */}
+                {(()=>{
+                  const now = Date.now();
+                  const segments = [
+                    {id:"all",    label:"All",          emoji:"👥", count:contacts.length, filter:()=>true},
+                    {id:"hot",    label:"Hot leads",    emoji:"🔥", count:contacts.filter(c=>c.lead==="hot").length, filter:c=>c.lead==="hot"},
+                    {id:"warm",   label:"Warm leads",   emoji:"🟡", count:contacts.filter(c=>c.lead==="warm").length, filter:c=>c.lead==="warm"},
+                    {id:"cold",   label:"Cold leads",   emoji:"🔵", count:contacts.filter(c=>c.lead==="cold").length, filter:c=>c.lead==="cold"},
+                    {id:"booked", label:"Booked",       emoji:"✅", count:contacts.filter(c=>c.booking_confirmed||c.bookingConfirmed).length, filter:c=>c.booking_confirmed||c.bookingConfirmed},
+                    {id:"silent", label:"Silent 3+ days",emoji:"💤", count:contacts.filter(c=>{
+                      const last = c.lastTime||c.last_time||"";
+                      if(!last) return false;
+                      try{const d=new Date(last);return (now-d.getTime())>3*24*60*60*1000;}catch{return false;}
+                    }).length, filter:c=>{
+                      const last = c.lastTime||c.last_time||"";
+                      if(!last) return false;
+                      try{const d=new Date(last);return (now-d.getTime())>3*24*60*60*1000;}catch{return false;}
+                    }},
+                    {id:"nobook", label:"Hot — not booked", emoji:"⚡", count:contacts.filter(c=>c.lead==="hot"&&!c.booking_confirmed&&!c.bookingConfirmed).length, filter:c=>c.lead==="hot"&&!c.booking_confirmed&&!c.bookingConfirmed},
+                  ];
+                  const activeSeg = segments.find(s=>s.id===broadcastSegment)||segments[0];
+                  return (
+                    <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.border}`,background:T.card2}}>
+                      <div style={{fontSize:10,fontWeight:700,color:"#9090b0",textTransform:"uppercase",letterSpacing:.6,marginBottom:8}}>Smart segments</div>
+                      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
+                        {segments.map(s=>(
+                          <div key={s.id} onClick={()=>{
+                            setBroadcastSegment(s.id);
+                            const filtered = contacts.filter(s.filter);
+                            setBroadcastContacts(filtered.map(c=>({name:c.name||c.phone,phone:c.phone})));
+                          }} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:20,cursor:"pointer",transition:"all .15s",
+                            background:broadcastSegment===s.id?"#7F77DD":"#fff",
+                            border:`1px solid ${broadcastSegment===s.id?"#7F77DD":"#e8e6fc"}`,
+                            color:broadcastSegment===s.id?"#fff":"#534AB7"}}>
+                            <span style={{fontSize:11}}>{s.emoji}</span>
+                            <span style={{fontSize:11,fontWeight:700}}>{s.label}</span>
+                            <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:10,
+                              background:broadcastSegment===s.id?"rgba(255,255,255,0.2)":"#f0effe",
+                              color:broadcastSegment===s.id?"#fff":"#534AB7"}}>{s.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{fontSize:11,color:"#9090b0"}}>
+                        <strong style={{color:"#534AB7"}}>{broadcastContacts.length} contacts</strong> selected from segment — {activeSeg.emoji} {activeSeg.label}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <input type="file" accept=".csv,.txt" id="broadcast-file-input" style={{display:"none"}} onChange={e=>{
                   const file=e.target.files[0]; if(!file) return;
                   const reader=new FileReader();
