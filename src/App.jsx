@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.493";
+const CRM_VERSION = "2.9.494";
 
 // Responsive hook
 function useWindowSize() {
@@ -980,6 +980,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
           timezone:             d.timezone||"",
           ai_enabled:           d.bot_enabled===false?"false":"true",
           usd_conversion:       d.usd_conversion||false,
+          voice_transcription_enabled: d.voice_transcription_enabled===false?false:true,
           hot_keywords:         d.lead_keywords||d.hot_keywords||"",
           warm_keywords:        d.warm_keywords||"",
           cold_keywords:        d.cold_keywords||"",
@@ -1490,6 +1491,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
             groq_key:             appSettings.groq_key||"",
             bot_enabled:          appSettings.ai_enabled!=="false",
             usd_conversion:       appSettings.usd_conversion===true||appSettings.usd_conversion==="true",
+            voice_transcription_enabled: appSettings.voice_transcription_enabled===true||appSettings.voice_transcription_enabled==="true",
             system_prompt:        appSettings.system_prompt||"",
             hot_keywords:         appSettings.hot_keywords||"",
             warm_keywords:        appSettings.warm_keywords||"",
@@ -4665,6 +4667,7 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                         {[
                           {key:"ai_enabled",     label:"Enable AI bot globally",        hint:"Bot auto-replies to all incoming messages",            invert:true,  color:WA_GREEN},
                           {key:"usd_conversion", label:"International USD conversion",  hint:"Show MYR + USD for non-Malaysian phone numbers",        invert:false, color:"#f59e0b"},
+                          {key:"voice_transcription_enabled", label:"Voice message transcription", hint:"Transcribe customer voice notes to text so bot can reply",  invert:false, color:"#7F77DD"},
                         ].map(t=>{
                           const val = t.invert ? appSettings[t.key]!=="false" : appSettings[t.key]===true||appSettings[t.key]==="true";
                           return <div key={t.key}
