@@ -32,7 +32,7 @@ if("serviceWorker" in navigator) {
   // Also claim control immediately if a SW is active
   navigator.serviceWorker.ready?.then(sw => sw.unregister()).catch(()=>{});
 }
-const CRM_VERSION = "2.9.494";
+const CRM_VERSION = "2.9.495";
 
 // Responsive hook
 function useWindowSize() {
@@ -2608,7 +2608,15 @@ const fetchTemplates = useCallback(async (clinicId=null) => {
                             <div style={{fontSize:12,fontWeight:600,color:isOut?"#fff":T.text}}>{msg.text.replace("📢 Broadcast: ","")}</div>
                           </div>
                         ):(
-                          <div style={{fontSize:13,lineHeight:1.55,whiteSpace:"pre-wrap",color:isOut?"#ffffff":T.text}}>{msg.text}</div>
+                          <div>
+                            {msg.mediaUrl&&(msg.mediaUrl.endsWith(".bin")||msg.mediaUrl.endsWith(".ogg"))&&msg.from==="user"&&(
+                              <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:5,opacity:.7}}>
+                                <span style={{fontSize:11}}>🎙️</span>
+                                <span style={{fontSize:10,fontWeight:600,color:isOut?"rgba(255,255,255,.7)":T.textMuted}}>Voice message</span>
+                              </div>
+                            )}
+                            <div style={{fontSize:13,lineHeight:1.55,whiteSpace:"pre-wrap",color:isOut?"#ffffff":T.text}}>{msg.text}</div>
+                          </div>
                         )}
                         <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:4,marginTop:5}}>
                           <span style={{fontSize:9,color:isOut?"rgba(255,255,255,.6)":T.textFaint}}>{formatMsgTime(msg.time,msg.date)}</span>
